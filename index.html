@@ -185,6 +185,7 @@ nav{padding-bottom:0}
     <button data-s="custos">Custos</button>
     <button data-s="contas">Plano de Contas</button>
     <button data-s="resumofrota">Resumo de Frota</button>
+    <button data-s="pessoas">Resumo de Pessoas</button>
     <button data-s="painel">Painel</button>
     <button data-s="valida">Validação <span id="vbadge"></span></button>
   </nav>
@@ -583,6 +584,27 @@ nav{padding-bottom:0}
     <div class="tblwrap"><table id="t_rf_tpess"></table></div></div>
   <div class="panel"><h3>Irrigação — conjuntos motobomba</h3>
     <div class="tblwrap"><table id="t_rf_irrig"></table></div></div>
+</section>
+
+<!-- ===== RESUMO DE PESSOAS ===== -->
+<section id="pessoas">
+  <h2>Resumo de Pessoas</h2>
+  <p class="lead">Efetivo dimensionado pelo plano, por departamento e por função, com a mobilização e o custo
+  de mão de obra mês a mês. Departamento = etapa das atividades, mais as equipes de manutenção e a estrutura
+  agrícola indireta.</p>
+  <div class="grid g4" id="k_pes" style="margin-bottom:16px"></div>
+  <div class="panel"><h3>Pessoas por departamento</h3><div class="tblwrap"><table id="t_pes_dept"></table></div>
+    <div class="hint" style="margin-top:9px" id="pes_conc"></div></div>
+  <div class="panel"><h3>Pessoas por função</h3><div class="tblwrap"><table id="t_pes_fun"></table></div></div>
+  <div class="panel"><h3>Função × departamento (efetivo)</h3><div class="tblwrap"><table id="t_pes_matriz"></table></div></div>
+  <div class="panel"><h3>Fluxo mensal — pessoas mobilizadas</h3><div class="tblwrap"><table id="t_pes_mes_qtd"></table></div>
+    <div class="hint" style="margin-top:9px">Uma equipe de atividade conta nos meses em que a atividade tem quantidade
+    programada no Plano Operacional. Apoio, manutenção e estrutura contam em todos os meses.</div></div>
+  <div class="panel"><h3>Fluxo mensal — custo de mão de obra</h3><div class="tblwrap"><table id="t_pes_mes_custo"></table></div>
+    <div id="ch_pes" style="margin-top:14px"></div>
+    <div class="hint" style="margin-top:9px">O custo das atividades segue a quantidade programada em cada mês; apoio,
+    manutenção e estrutura têm custo mensal constante.</div></div>
+  <div class="panel"><h3>Detalhe por origem</h3><div class="tblwrap"><table id="t_pes_det"></table></div></div>
 </section>
 
 <!-- ===== PAINEL ===== -->
@@ -1225,6 +1247,63 @@ function arrendCalc(){
   const soma = k => linhas.reduce((s,l)=>s+l[k],0);
   return {linhas, area:soma("area"), anual:soma("anual"), total:soma("periodo"),
           mes: MESES.map((m,i)=>linhas.reduce((s,l)=>s+l.mes[i],0))};
+}
+
+/* ================== RESUMO DE PESSOAS ================== */
+const DEPTS_ORD = [...ETAPAS_ORD, "MANUTENÇÃO", "ESTRUTURA AGRÍCOLA"];
+function deptIdx(d){ const i = DEPTS_ORD.indexOf(d); return i<0 ? 99 : i; }
+// Reúne cada fonte de efetivo do plano numa lista única (departamento, função, pessoas e custo por mês).
+// Usa os mesmos números das abas de origem, para o total conferir com a mão de obra da aba Custos.
+function pessoasCalc(R){
+  const MP = R.MP, itens = [];
+  const nomeF = c => (MP.custoFuncao[c]||{nome:c}).nome;
+  const fixo = v => Array(NM).fill(v);
+  const add = (dept, fcod, origem, qtd, qtdMes, custoMes) => itens.push({dept, fcod, fnome:nomeF(fcod), origem,
+    qtd, qtdMes, custoMes, custo:custoMes.reduce((s,x)=>s+x,0)});
+
+  // atividades do plano: a equipe conta nos meses com quantidade; o custo segue a quantidade do mês
+  R.L.forEach(r=>{
+    const tot = r.total||0; if(tot<=0) return;
+    r.partes.forEach(p=>{
+      if(p.terc || !(p.efetivo>0)) return;
+      add(r.a.etapa, p.fcod, r.a.nome, p.efetivo,
+          r.meses.map(q=>num(q)>0 ? p.efetivo : 0), r.meses.map(q=>p.cMDO*num(q)/tot));
+    });
+  });
+  // reserva do transporte de cana que o efetivo total soma à parte (sem custo de MDO próprio no modelo)
+  const fe = MP.fatorEscala, TR = R.TR;
+  const extraTot = Math.ceil(TR.frota*fe);
+  const extraCam = Math.min(extraTot, Math.ceil(((TR.camSafra.frotaR||0)+(TR.camMuda.frotaR||0))*fe));
+  const ativos = cods => MESES.map((m,i)=>cods.some(c=>{ const r=R.L.find(x=>x.a.cod===c); return r && num(r.meses[i])>0; }));
+  if(extraCam>0){ const at=ativos(["TR1","TR2"]);
+    add("COLHEITA","F03","Transporte de cana — reserva do efetivo", extraCam, at.map(b=>b?extraCam:0), fixo(0)); }
+  if(extraTot-extraCam>0){ const n=extraTot-extraCam, at=ativos(["TR3","TR4"]);
+    add("COLHEITA","F11","Transbordo — reserva do efetivo", n, at.map(b=>b?n:0), fixo(0)); }
+  // equipamentos de apoio: mesmo efetivo e custo em todos os meses
+  R.AE.linhas.forEach(l=>{ if(l.efetivo>0)
+    add("APOIO E CONSERVAÇÃO", l.fcod, l.nome, l.efetivo, fixo(l.efetivo), fixo(l.mdo/NM)); });
+  // equipe de manutenção
+  [["F09",R.EM.mec,"Mecânicos"],["F14",R.EM.ajud,"Ajudantes de mecânico"],["F13",R.EM.lider,"Líderes de manutenção"]]
+    .forEach(([f,n,o])=>{ if(n>0) add("MANUTENÇÃO", f, o, n, fixo(n), fixo(n*(MP.custoFuncao[f]||{mensal:0}).mensal)); });
+  // estrutura agrícola indireta
+  CFG.indiretos.forEach(i=>{ if(i.qtd>0)
+    add("ESTRUTURA AGRÍCOLA", i.fcod, i.nome, i.qtd, fixo(i.qtd), fixo(i.qtd*(MP.custoFuncao[i.fcod]||{mensal:0}).mensal)); });
+
+  const agrupa = chave => {
+    const g = {};
+    itens.forEach(it=>{
+      const o = g[chave(it)] = g[chave(it)] || {qtd:0, custo:0, n:0, qtdMes:fixo(0), custoMes:fixo(0)};
+      o.qtd+=it.qtd; o.custo+=it.custo; o.n++;
+      it.qtdMes.forEach((v,i)=>{ o.qtdMes[i]+=v; o.custoMes[i]+=it.custoMes[i]; });
+    });
+    Object.values(g).forEach(o=>{ o.pico=Math.max(...o.qtdMes); o.pessoasMes=o.qtdMes.reduce((s,x)=>s+x,0); });
+    return g;
+  };
+  const qtdMes = MESES.map((m,i)=>itens.reduce((s,it)=>s+it.qtdMes[i],0));
+  const custoMes = MESES.map((m,i)=>itens.reduce((s,it)=>s+it.custoMes[i],0));
+  return {itens, porDept:agrupa(it=>it.dept), porFun:agrupa(it=>it.fcod), qtdMes, custoMes,
+          qtd: itens.reduce((s,it)=>s+it.qtd,0), custo: custoMes.reduce((s,x)=>s+x,0),
+          apoio: R.AE.efetivo};
 }
 
 /* ================== CONSOLIDAÇÃO ================== */
@@ -2232,6 +2311,86 @@ function pintarCombustivel(R){
       : `<tr><td colspan="7" class="calc">Nenhum equipamento com consumo projetado.</td></tr>`) + "</tbody>";
 }
 
+/* ---------- RESUMO DE PESSOAS ---------- */
+function pintarPessoas(R){
+  const S = R.PS, sm = a => a.reduce((s,x)=>s+x,0);
+  const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+  const contaF = c => (CFG.funcoes.find(f=>f.cod===c)||{conta:"—"}).conta;
+  const depts = Object.keys(S.porDept).sort((a,b)=>deptIdx(a)-deptIdx(b));
+  const funs  = Object.keys(S.porFun).sort();
+  const pm = sm(S.qtdMes), iPico = S.qtdMes.indexOf(Math.max(...S.qtdMes));
+  const porPessoa = o => o.pessoasMes>0 ? brl(o.custo/o.pessoasMes,0) : "—";
+
+  $("#k_pes").innerHTML =
+    kpi("Efetivo dimensionado","",fmt(S.qtd)+" pessoas", depts.length+" departamentos · "+funs.length+" funções") +
+    kpi("Pico de mobilização","a",fmt(S.qtdMes[iPico]||0)+" pessoas", S.qtd>0?MESES[iPico]:"") +
+    kpi("Custo de mão de obra","t",brl(S.custo), NM+" meses") +
+    kpi("Custo médio por pessoa","g",pm>0?brl(S.custo/pm,0)+"/mês":"—","pessoa mobilizada no mês");
+
+  $("#t_pes_dept").innerHTML = th([["Departamento"],["Funções",1],["Efetivo",1],["% do efetivo",1],["Pico mensal",1],
+    ["Custo MDO",1],["% do custo",1],["R$/pessoa/mês",1]])+"<tbody>"+
+    depts.map(d=>{ const o=S.porDept[d], nf=new Set(S.itens.filter(it=>it.dept===d).map(it=>it.fcod)).size;
+      return `<tr><td>${esc(d)}</td><td class="num calc">${nf}</td><td class="num tot">${fmt(o.qtd)}</td>
+        <td class="num calc">${S.qtd>0?fmt(o.qtd/S.qtd*100,1)+"%":"—"}</td><td class="num calc">${fmt(o.pico)}</td>
+        <td class="num">${brl(o.custo)}</td><td class="num calc">${S.custo>0?fmt(o.custo/S.custo*100,1)+"%":"—"}</td>
+        <td class="num calc">${porPessoa(o)}</td></tr>`; }).join("")+
+    `<tr><td class="tot">TOTAL</td><td class="num tot">${funs.length}</td><td class="num tot">${fmt(S.qtd)}</td>
+     <td class="num tot">100,0%</td><td class="num tot">${fmt(Math.max(...S.qtdMes))}</td><td class="num tot">${brl(S.custo)}</td>
+     <td class="num tot">100,0%</td><td class="num tot">${pm>0?brl(S.custo/pm,0):"—"}</td></tr></tbody>`;
+
+  // conferência com as outras abas: a Capa não soma os operadores de apoio
+  const difCusto = S.custo - R.mdoTotal;
+  $("#pes_conc").innerHTML = `Custo de mão de obra desta aba: <b>${brl(S.custo)}</b> — aba Custos: ${brl(R.mdoTotal)}
+    ${Math.abs(difCusto)<=1?"(confere)":"(diferença de "+brl(difCusto)+")"}. Efetivo da Capa: ${fmt(R.efetivoTotal)} pessoas,
+    que não inclui os ${fmt(S.apoio)} operadores dos equipamentos de apoio contados aqui. A reserva do transporte de cana
+    entra no efetivo sem custo de mão de obra próprio, como na Capa.`;
+
+  $("#t_pes_fun").innerHTML = th([["Cod"],["Função"],["Conta"],["Departamentos"],["Efetivo",1],["Pico mensal",1],
+    ["Custo MDO",1],["R$/pessoa/mês",1]])+"<tbody>"+
+    funs.map(f=>{ const o=S.porFun[f];
+      const ds=[...new Set(S.itens.filter(it=>it.fcod===f).map(it=>it.dept))].sort((a,b)=>deptIdx(a)-deptIdx(b));
+      return `<tr><td>${f}</td><td>${esc((R.MP.custoFuncao[f]||{nome:f}).nome)}</td><td class="calc">${contaF(f)}</td>
+        <td class="calc">${ds.map(esc).join(", ")}</td><td class="num tot">${fmt(o.qtd)}</td>
+        <td class="num calc">${fmt(o.pico)}</td><td class="num">${brl(o.custo)}</td>
+        <td class="num calc">${porPessoa(o)}</td></tr>`; }).join("")+
+    `<tr><td class="tot" colspan="4">TOTAL</td><td class="num tot">${fmt(S.qtd)}</td><td></td>
+     <td class="num tot">${brl(S.custo)}</td><td></td></tr></tbody>`;
+
+  const cel = (f,d) => S.itens.filter(it=>it.fcod===f && it.dept===d).reduce((s,it)=>s+it.qtd,0);
+  $("#t_pes_matriz").innerHTML = th([["Função"],...depts.map(d=>[esc(d),1]),["Total",1]])+"<tbody>"+
+    funs.map(f=>`<tr><td>${f} — ${esc((R.MP.custoFuncao[f]||{nome:f}).nome)}</td>`+
+      depts.map(d=>{ const v=cel(f,d); return `<td class="num ${v?"":"calc"}">${v?fmt(v):"—"}</td>`; }).join("")+
+      `<td class="num tot">${fmt(S.porFun[f].qtd)}</td></tr>`).join("")+
+    `<tr><td class="tot">TOTAL</td>`+depts.map(d=>`<td class="num tot">${fmt(S.porDept[d].qtd)}</td>`).join("")+
+    `<td class="num tot">${fmt(S.qtd)}</td></tr></tbody>`;
+
+  $("#t_pes_mes_qtd").innerHTML = th([["Departamento"],...MESES.map(m=>[m,1]),["Pico",1]])+"<tbody>"+
+    depts.map(d=>{ const o=S.porDept[d];
+      return `<tr><td>${esc(d)}</td>`+o.qtdMes.map(v=>`<td class="num calc">${v?fmt(v):"—"}</td>`).join("")+
+        `<td class="num tot">${fmt(o.pico)}</td></tr>`; }).join("")+
+    `<tr><td class="tot">TOTAL</td>`+S.qtdMes.map(v=>`<td class="num tot">${fmt(v)}</td>`).join("")+
+    `<td class="num tot">${fmt(Math.max(...S.qtdMes))}</td></tr></tbody>`;
+
+  let ac = 0;
+  const acum = S.custoMes.map(v=>ac+=v);
+  $("#t_pes_mes_custo").innerHTML = th([["Departamento"],...MESES.map(m=>[m,1]),["Total",1]])+"<tbody>"+
+    depts.map(d=>{ const o=S.porDept[d];
+      return `<tr><td>${esc(d)}</td>`+o.custoMes.map(v=>`<td class="num calc">${brl(v)}</td>`).join("")+
+        `<td class="num tot">${brl(o.custo)}</td></tr>`; }).join("")+
+    `<tr><td class="tot">TOTAL</td>`+S.custoMes.map(v=>`<td class="num tot">${brl(v)}</td>`).join("")+
+    `<td class="num tot">${brl(S.custo)}</td></tr>`+
+    `<tr><td class="calc">Acumulado</td>`+acum.map(v=>`<td class="num calc">${brl(v)}</td>`).join("")+`<td></td></tr>`+
+    `<tr><td class="calc">Pessoas no mês</td>`+S.qtdMes.map(v=>`<td class="num calc">${fmt(v)}</td>`).join("")+`<td></td></tr></tbody>`;
+  barras($("#ch_pes"), MESES.map((m,i)=>({l:m, v:S.custoMes[i]})), "#2E9E5B");
+
+  const det = [...S.itens].sort((a,b)=>deptIdx(a.dept)-deptIdx(b.dept) || b.qtd-a.qtd);
+  $("#t_pes_det").innerHTML = th([["Departamento"],["Origem"],["Função"],["Efetivo",1],["Meses mobilizado",1],["Custo MDO",1]])+"<tbody>"+
+    (det.length ? det.map(it=>`<tr><td class="calc">${esc(it.dept)}</td><td>${esc(it.origem)}</td>
+      <td>${it.fcod} — ${esc(it.fnome)}</td><td class="num tot">${fmt(it.qtd)}</td>
+      <td class="num calc">${it.qtdMes.filter(v=>v>0).length}</td><td class="num">${brl(it.custo)}</td></tr>`).join("")
+      : `<tr><td colspan="6" class="calc">Sem efetivo: lance quantidades no Plano Operacional.</td></tr>`)+"</tbody>";
+}
+
 /* ---------- RESUMO DE FROTA ---------- */
 function pintarResumoFrota(R){
   const oper = [...R.crmFrotaL].filter(l=>l.qtd>0).sort((a,b)=> a.cat===b.cat ? b.qtd-a.qtd : a.cat.localeCompare(b.cat));
@@ -2371,6 +2530,18 @@ function relatorioSecoes(R, nivel){
       brl(R.CB.custoOperMes[i]+R.CB.custoApoioMes[i])])
     .concat([["TOTAL", fmt(R.CB.litrosT), R.CB.litrosT>0?brl(R.dieselT/R.CB.litrosT,2):"—", brl(R.dieselT)]]));
 
+  // o relatório pode receber o resultado de calcular() puro, que não traz o resumo de pessoas
+  const PS = R.PS || calcularCompleto().PS;
+  add("Pessoas por depto","Pessoas por departamento",["Departamento","Efetivo","Pico mensal","Custo MDO"],
+    Object.entries(PS.porDept).sort((a,b)=>deptIdx(a[0])-deptIdx(b[0]))
+      .map(([d,o])=>[d, fmt(o.qtd), fmt(o.pico), brl(o.custo)])
+      .concat([["TOTAL", fmt(PS.qtd), fmt(Math.max(...PS.qtdMes)), brl(PS.custo)]]));
+  add("Pessoas por função","Pessoas por função",["Cod","Função","Efetivo","Pico mensal","Custo MDO"],
+    Object.entries(PS.porFun).sort((a,b)=>a[0].localeCompare(b[0]))
+      .map(([f,o])=>[f, (R.MP.custoFuncao[f]||{nome:f}).nome, fmt(o.qtd), fmt(o.pico), brl(o.custo)]));
+  add("Fluxo mensal MDO","Fluxo mensal — pessoas e custo de mão de obra",["Mês","Pessoas","Custo MDO","Acumulado"],
+    (()=>{ let ac=0; return MESES.map((m,i)=>{ ac+=PS.custoMes[i]; return [m, fmt(PS.qtdMes[i]), brl(PS.custoMes[i]), brl(ac)]; }); })());
+
   add("Frota","Frota — necessidade projetada",["Categoria","Item","Qtd necessária"],
     [...R.crmFrotaL].filter(l=>l.qtd>0).sort((a,b)=>b.qtd-a.qtd).map(l=>[l.cat,l.item,fmt(l.qtd)]));
 
@@ -2452,6 +2623,8 @@ function validar(R){
       Math.abs(ratSoma-100)<=0.01 ? "" : "soma "+fmt(ratSoma,1)+"% — valores normalizados no cálculo");
   const arrSemValor = R.AR.linhas.filter(l=>l.area>0 && l.rsHa<=0);
   add(arrSemValor.length===0,"Fazenda arrendada com área e sem valor de pagamento", arrSemValor.map(l=>l.faz).join(", "));
+  if(R.PS) add(Math.abs(R.PS.custo-R.mdoTotal)<=1,"Resumo de pessoas confere com o custo de mão de obra",
+      Math.abs(R.PS.custo-R.mdoTotal)<=1 ? "" : "diferença de "+brl(R.PS.custo-R.mdoTotal));
   add(R.L.filter(r=>r.rend<=0).length===0,"Rendimento operacional zerado","");
   add(R.L.filter(r=>r.util<=0||r.util>1).length===0,"Taxa de utilização fora de 0–100%","");
   add(R.L.filter(r=>r.ehHa&&r.total>0&&!r.trat).length===0,"Atividade em ha sem tratamento vinculado",
@@ -2499,6 +2672,7 @@ function calcularCompleto(){
   R.efetivoTotal = R.L.reduce((s,r)=>s+r.efetivo,0)
     + CFG.indiretos.reduce((s,i)=>s+i.qtd,0) + R.EM.efetivo
     + Math.ceil(R.TR.frota*R.MP.fatorEscala);
+  R.PS = pessoasCalc(R);
   return R;
 }
 function render(){
@@ -2508,7 +2682,7 @@ function render(){
   $("#c_arr_ha").value=fmt(R.AR.area)+" ha";
   $("#c_arr").value=R.AR.area>0?brl(R.AR.anual/R.AR.area,2):"—";
   pintarCapa(R); pintarMDO(R); pintarPlano(R); pintarDim(R); pintarTransp(R); pintarApoio(R); pintarCRM(R); pintarTPess(R);
-  pintarIrrig(R); pintarInsumos(R); pintarArrend(R); pintarCustos(R); pintarContas(R); pintarCombustivel(R); pintarResumoFrota(R);
+  pintarIrrig(R); pintarInsumos(R); pintarArrend(R); pintarCustos(R); pintarContas(R); pintarCombustivel(R); pintarResumoFrota(R); pintarPessoas(R);
   pintarPainel(R); pintarValida(R);
 }
 

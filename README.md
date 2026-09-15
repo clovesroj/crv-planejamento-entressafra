@@ -25,6 +25,7 @@ todos os usuários.
 | Custos | Custo por etapa, por natureza e mensal |
 | Plano de Contas | Custo projetado por conta contábil |
 | Resumo de Frota | Necessidade consolidada de veículos e equipamentos |
+| Resumo de Pessoas | Efetivo por departamento e função, mobilização e custo de mão de obra mês a mês |
 | Painel | Indicadores, custo de colheita R$/t, grandes contas por mês |
 | Validação | Checagens automáticas de consistência |
 
