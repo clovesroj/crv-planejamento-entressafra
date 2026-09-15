@@ -473,7 +473,6 @@ nav{padding-bottom:0}
   <div class="panel"><h3>Parâmetros de pagamento</h3><div class="grid g4">
     <div><label>ATR médio (kg/t)</label><input data-arp="atr" id="arp_atr" inputmode="decimal"><div class="hint">Converte t de cana em kg de ATR</div></div>
     <div><label>Preço do kg de ATR (R$)</label><input data-arp="precoAtr" id="arp_precoAtr" inputmode="decimal"><div class="hint">Consecana acumulado da safra</div></div>
-    <div><label>Saca de soja (R$/sc 60 kg)</label><input data-arp="precoSoja" id="arp_precoSoja" inputmode="decimal"></div>
     <div><label>Produtividade para parceria (t/ha)</label><input data-arp="tchParc" id="arp_tchParc" inputmode="decimal"><div class="hint">Base do % da produção</div></div>
     <div><label>Apropriação no orçamento</label><select id="arp_criterio">
       <option value="competencia">Competência — 1/12 do valor anual por mês</option>
@@ -483,7 +482,7 @@ nav{padding-bottom:0}
     <div class="tblwrap"><table id="t_arr"></table></div>
     <div class="row" style="margin-top:10px"><button class="btn p" id="btn_arr_add">Adicionar fazenda</button></div>
     <div class="hint" style="margin-top:9px">R$/ha/ano por forma de pagamento: <b>R$ fixo</b> = valor informado ·
-    <b>t de cana</b> = t/ha × ATR × R$/kg ATR · <b>kg de ATR</b> = kg/ha × R$/kg ATR · <b>soja</b> = sacas/ha × preço da saca ·
+    <b>t de cana</b> = t/ha × ATR × R$/kg ATR · <b>kg de ATR</b> = kg/ha × R$/kg ATR ·
     <b>parceria</b> = % × produtividade × ATR × R$/kg ATR. Periodicidade e 1º pagamento só mudam os meses no critério Caixa;
     em Competência cada mês recebe 1/12 do valor anual. Use o campo Grupo para somar fazendas de um mesmo bloco ou proprietário.</div></div>
   <div class="panel"><h3>Resumo por grupo de fazendas</h3><div class="tblwrap"><table id="t_arr_grupo"></table></div></div>
@@ -1210,12 +1209,11 @@ const ARR_FORMAS = {
   rsha:    {nome:"R$ fixo por ha/ano",               un:"R$/ha"},
   tcana:   {nome:"t de cana por ha/ano (Consecana)", un:"t/ha"},
   katr:    {nome:"kg de ATR por ha/ano",             un:"kg ATR/ha"},
-  soja:    {nome:"Sacas de soja por ha/ano",         un:"sc/ha"},
   parceria:{nome:"Parceria — % da produção",         un:"% prod."}
 };
 const ARR_PAG = ["Mensal","Semestral","Anual"];
 // parâmetros que convertem a forma de pagamento em R$ — ajustar pelo Consecana vigente
-const ARR_PAR_PADRAO = {atr:135, precoAtr:1.25, precoSoja:120, tchParc:80, criterio:"competencia"};
+const ARR_PAR_PADRAO = {atr:135, precoAtr:1.25, tchParc:80, criterio:"competencia"};
 // rateio do arrendamento por etapa: padrão editável, a confirmar com o relatório PECEGE/USP adotado
 const ARR_RAT_PADRAO = {"PREPARO DE SOLO":0, "PLANTIO":20, "TRATOS CULTURAIS":45, "COLHEITA":35, "APOIO E CONSERVAÇÃO":0};
 const ETAPAS_ORD = ["PREPARO DE SOLO","PLANTIO","TRATOS CULTURAIS","COLHEITA","APOIO E CONSERVAÇÃO"];
@@ -1225,14 +1223,17 @@ function arrLista(){
   // primeira abertura: herda a área e o valor que estavam nas Premissas, para o custo não mudar sozinho
   if(!ARREND) ARREND = [{faz:"Arrendamentos gerais", grupo:"Geral", area:P.arr_ha||0, forma:"rsha",
                          qtd:P.arr||0, pag:"Anual", mes:0}];
+  // o pagamento em sacas de soja deixou de existir: converte para R$/ha pelo mesmo valor, sem mudar o custo
+  ARREND.forEach(a=>{ if(a.forma==="soja"){
+    a.qtd = num(a.qtd)*num(ARR_PAR.precoSoja!=null ? ARR_PAR.precoSoja : 120); a.forma = "rsha"; } });
   return ARREND;
 }
 function arrendCalc(){
-  const atr=num(arrPar("atr")), pAtr=num(arrPar("precoAtr")), pSoja=num(arrPar("precoSoja")), tch=num(arrPar("tchParc"));
+  const atr=num(arrPar("atr")), pAtr=num(arrPar("precoAtr")), tch=num(arrPar("tchParc"));
   const caixa = arrPar("criterio")==="caixa";
   const linhas = arrLista().map(a=>{
     const area=num(a.area), q=num(a.qtd);
-    const rsHa = ({rsha:q, tcana:q*atr*pAtr, katr:q*pAtr, soja:q*pSoja, parceria:q/100*tch*atr*pAtr})[a.forma] || 0;
+    const rsHa = ({rsha:q, tcana:q*atr*pAtr, katr:q*pAtr, parceria:q/100*tch*atr*pAtr})[a.forma] || 0;
     const anual = rsHa*area;
     const mes = Array(NM).fill(0);
     // competência: 1/12 do valor anual em cada mês; caixa: o valor cai no mês de cada pagamento
@@ -1992,7 +1993,7 @@ function pintarArrend(R){
     kpi("Custo anual","t",brl(A.anual), A.area>0?brl(A.anual/A.area,2)+"/ha/ano":"") +
     kpi("Custo no orçamento","g",brl(A.total), NM+" meses · "+(arrPar("criterio")==="caixa"?"regime de caixa":"competência")) +
     kpi("Peso no custo total","a",R.total>0?fmt(A.total/R.total*100,1)+"%":"—","conta ARR-01");
-  ["atr","precoAtr","precoSoja","tchParc"].forEach(k=>{ $("#arp_"+k).value = +num(arrPar(k)).toFixed(4); });
+  ["atr","precoAtr","tchParc"].forEach(k=>{ $("#arp_"+k).value = +num(arrPar(k)).toFixed(4); });
   $("#arp_criterio").value = arrPar("criterio");
 
   const mesOpts = sel => `<option value="-1" ${sel===-1?"selected":""}>Fora do período</option>`+
