@@ -175,6 +175,7 @@ nav{padding-bottom:0}
     <button data-s="plano">Plano Operacional</button>
     <button data-s="dimens">Dimensionamento</button>
     <button data-s="transp">Transporte</button>
+    <button data-s="combust">Combustível</button>
     <button data-s="apoio">Apoio</button>
     <button data-s="frota">Manutenção de Frota</button>
     <button data-s="tpess">Transporte de Pessoal</button>
@@ -467,7 +468,7 @@ nav{padding-bottom:0}
   <div class="grid g4" id="k_custo" style="margin-bottom:16px"></div>
 
   <div class="panel"><h3>Custo por etapa</h3><div class="tblwrap"><table id="t_unit"></table></div>
-    <div class="hint" style="margin-top:9px">Diesel, mão de obra, manutenção (CRM), insumos e terceirização de
+    <div class="hint" style="margin-top:9px">Diesel (com o dos equipamentos de apoio rateado pelos litros de cada etapa e o preço de cada mês), mão de obra, manutenção (CRM), insumos e terceirização de
     atividades são apurados por etapa diretamente das atividades do Plano Operacional. Os demais custos
     (apoio, irrigação, transporte de pessoal, terceirizações por contrato, esporádicos, arrendamento,
     administração e depreciação) são indiretos ao plano como um todo e rateados proporcionalmente ao custo
@@ -500,6 +501,32 @@ nav{padding-bottom:0}
     Alimenta a conta 200-124.</div></div>
   <div class="panel"><h3>Terceirizações por centro de custo</h3><div class="tblwrap"><table id="t_terc"></table></div>
     <div class="hint" style="margin-top:9px">T01 alimenta a conta 200-126; T02 e T03 alimentam a conta 200-124.</div></div>
+</section>
+
+<!-- ===== COMBUSTÍVEL ===== -->
+<section id="combust">
+  <h2>Combustível — Diesel</h2>
+  <p class="lead">Consumo de diesel dimensionado pela frota do plano (horas de cada conjunto × consumo em L/h),
+  volume necessário mês a mês e preço projetado por mês. O custo alimenta Custos, Plano de Contas (200-110) e Painel.</p>
+  <div class="grid g4" id="k_comb" style="margin-bottom:16px"></div>
+  <div class="panel"><h3>Preço do diesel por mês (R$/L)</h3>
+    <div class="tblwrap"><table id="t_comb_preco"></table></div>
+    <div class="row" style="margin-top:12px">
+      <div style="width:170px"><label>Reajuste mensal (%)</label><input type="number" id="in_diesel_reaj" step="0.1" value="0"></div>
+      <div style="align-self:flex-end"><button class="btn p" id="btn_diesel_reaj">Projetar a partir do preço base</button></div>
+      <div style="align-self:flex-end"><button class="btn" id="btn_diesel_base">Usar preço base em todos os meses</button></div>
+    </div>
+    <div class="hint" style="margin-top:9px">Mês em branco usa o preço base das Premissas. O reajuste aplica
+    juros compostos mês a mês, partindo do preço base no primeiro mês; depois é possível ajustar cada mês à mão.</div></div>
+  <div class="panel"><h3>Volume e custo mensal</h3>
+    <div class="tblwrap"><table id="t_comb_mes"></table></div>
+    <div id="ch_comb" style="margin-top:14px"></div></div>
+  <div class="panel"><h3>Consumo por etapa</h3>
+    <div class="tblwrap"><table id="t_comb_etapa"></table></div>
+    <div class="hint" style="margin-top:9px">O diesel dos equipamentos de apoio é rateado entre as etapas
+    proporcionalmente aos litros consumidos por cada uma — o mesmo valor aparece na coluna Diesel da aba Custos.</div></div>
+  <div class="panel"><h3>Consumo por equipamento</h3>
+    <div class="tblwrap"><table id="t_comb_maq"></table></div></div>
 </section>
 
 <!-- ===== RESUMO DE FROTA ===== -->
@@ -596,6 +623,7 @@ let INSX = null;         // cadastro de insumos (lista editável: incluir/altera
 let FROTA = {};          // item -> {qtd, hmes} frota prevista para manutenção
 let APOIO_FIXO = {};     // nome do item -> qtd ajustada (frota de apoio de utilização fixa)
 let TRAT_NOME = {};      // cod do tratamento -> nome descritivo editável
+let DIESEL_MES = {};     // índice do mês -> preço projetado do diesel (R$/L); vazio = preço base
 let EDITADO = false;     // true assim que o usuário mexe em algo — trava o carregamento
                           // assíncrono do servidor para não sobrescrever uma edição em andamento
 
@@ -777,13 +805,17 @@ function linha(a, MP){
   const fcod = p.fcod || (frentes[0].fcodPad) || CFG.func_at[a.nome] || "F06";
   const fniv = p.fniv!=null ? p.fniv : 0;
 
+  // fração de cada mês na quantidade da atividade: distribui litros e aplica o preço do mês
+  const fracMes = total>0 ? meses.map(q=>num(q)/total) : Array(NM).fill(0);
+  const precoMed = fracMes.reduce((s,fr,i)=>s+fr*precoDiesel(i),0);
+
   const partes = frentes.map(f=>{
     const area = total*f.pct;
     if(f.terc){
       // prestador de serviço: não consome frota nem mão de obra própria.
       // O custo é a tarifa contratada aplicada à área designada.
       const cTerc = area * tarifaTerc(a.cod);
-      return {...f, area, horas:0, capMes:0, frota:0, frotaR:0,
+      return {...f, area, horas:0, capMes:0, frota:0, frotaR:0, litros:0,
               fcod:"—", fnome:"Prestador", cDiesel:0, cManut:0, cMDO:0, cTerc,
               efetivo:0, direto:cTerc};
     }
@@ -804,10 +836,11 @@ function linha(a, MP){
     // a função segue o modo, salvo se o usuário tiver fixado uma função na atividade
     const fc = p.fcod ? fcod : (f.fcodPad || fcod);
     const cf = custoNivel(fc, fniv, MP);
-    const cDiesel = horas*mq.d*P.diesel;
+    const litros  = horas*mq.d;
+    const cDiesel = litros*precoMed;
     const cManut  = 0;   // alocado adiante, a partir do CRM da frota prevista
     const cMDO    = horas*cf.hora*f.ops*MP.fatorEscala;
-    return {...f, area, horas, capMes, frota, frotaR:Math.ceil(frota), cTerc:0,
+    return {...f, area, horas, capMes, frota, frotaR:Math.ceil(frota), cTerc:0, litros, consumoLh:mq.d,
             fcod:fc, fnome:cf.nome, cDiesel, cManut, cMDO,
             efetivo: Math.ceil(Math.ceil(frota)*f.ops*f.turnos*MP.fatorEscala),
             direto: cDiesel+cManut+cMDO};
@@ -825,8 +858,13 @@ function linha(a, MP){
           fcod, fniv, fnome:partes[0].fnome, efetivo:soma("efetivo"),
           modo: M ? "mix" : "", maqEfetiva: partes.map(x=>x.maq).join(" + "),
           impEfetivo: partes.map(x=>x.imp).join(" + "),
-          direto: soma("direto")+cInsumo, trat:p.trat, ehHa};
+          direto: soma("direto")+cInsumo, trat:p.trat, ehHa,
+          litros: soma("litros"),
+          litrosMes: fracMes.map(fr=>fr*soma("litros")),
+          dieselMes: fracMes.map((fr,i)=>fr*soma("litros")*precoDiesel(i))};
 }
+// preço do diesel no mês i: valor projetado para o mês, ou o preço base das Premissas
+function precoDiesel(i){ return DIESEL_MES[i]!=null ? num(DIESEL_MES[i]) : P.diesel; }
 
 /* ================== INSUMOS E TRATAMENTOS ================== */
 function precoInsumo(prod){
@@ -972,16 +1010,24 @@ function apoioCalc(MP){
     const mq = CFG.maquinas[a.maq] || CFG.maquinas["A definir"];
     const horas = num(a.qtd)*num(a.hmes)*NM;
     const cf = custoNivel(a.fcod, a.fniv||0, MP);
-    const diesel = horas*mq.d*P.diesel;
+    // apoio trabalha as mesmas horas todo mês: volume mensal constante, preço de cada mês
+    const litrosMes = Array(NM).fill(num(a.qtd)*num(a.hmes)*mq.d);
+    const dieselMes = litrosMes.map((l,i)=>l*precoDiesel(i));
+    const litros = litrosMes.reduce((s,x)=>s+x,0);
+    const diesel = dieselMes.reduce((s,x)=>s+x,0);
     const manut  = 0;   // idem: vem do CRM da frota
     const mdo    = num(a.qtd)*cf.mensal*NM*MP.fatorEscala;
     return {...a, horas, diesel, manut, mdo, fnome:cf.nome,
+            litros, litrosMes, dieselMes, consumoLh:mq.d,
             efetivo: Math.ceil(num(a.qtd)*MP.fatorEscala),
             total: diesel+manut+mdo};
   });
   return {linhas,
     total:   linhas.reduce((s,l)=>s+l.total,0),
     diesel:  linhas.reduce((s,l)=>s+l.diesel,0),
+    litros:  linhas.reduce((s,l)=>s+l.litros,0),
+    litrosMes: MESES.map((m,i)=>linhas.reduce((s,l)=>s+l.litrosMes[i],0)),
+    dieselMes: MESES.map((m,i)=>linhas.reduce((s,l)=>s+l.dieselMes[i],0)),
     manut:   linhas.reduce((s,l)=>s+l.manut,0),
     mdo:     linhas.reduce((s,l)=>s+l.mdo,0),
     horas:   linhas.reduce((s,l)=>s+l.horas,0),
@@ -1033,17 +1079,23 @@ function irrigacao(L){
     const potCV = (P.rendBomba>0) ? vazao*amt/(270*(P.rendBomba/100)) : 0;
     const nConj = Math.max(1, Math.ceil(potCV/150));
     const horas = vazao>0 ? volume/vazao : 0;
+    // motobomba a diesel: litros distribuídos pelos meses da atividade, preço de cada mês
+    const litros = P.fonte==="Elétrica" ? 0 : potCV*0.18*horas;
+    const frM = (r && r.total>0) ? r.meses.map(q=>num(q)/r.total) : Array(NM).fill(0);
+    const litrosMes = frM.map(x=>x*litros);
     const energia = P.fonte==="Elétrica"
       ? potCV*0.7355*horas*P.kwh
-      : potCV*0.18*horas*P.diesel;
+      : litrosMes.reduce((s,l,i)=>s+l*precoDiesel(i),0);
     const cu = CFG.irr_custos[nome] || [0,0,0];
     const insumo = area*cu[1], material = area*cu[2];
     return {nome, cod, metodo, Ea, CUC, lam, lamBruta, area, volume, vazao, amt,
-            potCV, nConj, horas, energia, insumo, material,
+            potCV, nConj, horas, energia, insumo, material, litros, litrosMes,
             total: energia+insumo+material};
   });
   return {linhas, total: linhas.reduce((s,l)=>s+l.total,0),
-          energia: linhas.reduce((s,l)=>s+l.energia,0)};
+          energia: linhas.reduce((s,l)=>s+l.energia,0),
+          litros: linhas.reduce((s,l)=>s+l.litros,0),
+          litrosMes: MESES.map((m,i)=>linhas.reduce((s,l)=>s+l.litrosMes[i],0))};
 }
 
 /* ================== EQUIPE DE MANUTENÇÃO ================== */
@@ -1178,10 +1230,11 @@ function calcular(){
   const haTot = haMes.reduce((s,x)=>s+x,0)||1;
   L.forEach(r=>{
     const tot = r.total||0;
-    r.meses.forEach((q,i)=>{ if(tot>0) meses[i] += r.direto*(num(q)/tot); });
+    // diesel entra pelo litro e preço de cada mês; o restante do custo direto, pela quantidade
+    r.meses.forEach((q,i)=>{ if(tot>0) meses[i] += (r.direto-r.cDiesel)*(num(q)/tot) + r.dieselMes[i]; });
   });
-  const outros = AE.total + IR.total + MT.total + TC.total + EM.total + mdoIndirT + TP.total + crmExtra;
-  for(let i=0;i<NM;i++){ meses[i] += outros*(haMes[i]/haTot) + fixoMes; }
+  const outros = (AE.total-AE.diesel) + IR.total + MT.total + TC.total + EM.total + mdoIndirT + TP.total + crmExtra;
+  for(let i=0;i<NM;i++){ meses[i] += outros*(haMes[i]/haTot) + fixoMes + AE.dieselMes[i]; }
   ESPOR.forEach(e=>{ const i = MESES.indexOf(e.mes); if(i>=0) meses[i]+=num(e.valor); });
 
   // grandes contas por mês — mesmo critério de rateio do total mensal, só que por natureza
@@ -1191,31 +1244,40 @@ function calcular(){
     const tot=r.total||0; if(tot<=0) return;
     r.meses.forEach((q,i)=>{ const f=num(q)/tot;
       mesesCat.mdo[i]+=r.cMDO*f; mesesCat.manut[i]+=r.cManut*f;
-      mesesCat.diesel[i]+=r.cDiesel*f; mesesCat.insumo[i]+=r.cInsumo*f; mesesCat.terc[i]+=r.cTerc*f; });
+      mesesCat.diesel[i]+=r.dieselMes[i]; mesesCat.insumo[i]+=r.cInsumo*f; mesesCat.terc[i]+=r.cTerc*f; });
   });
   const indiretoMdo = AE.mdo+mdoIndirT+EM.total, indiretoManut = AE.manut+crmExtra+MT.total,
-    indiretoDiesel = AE.diesel, indiretoInsumo = IR.total, indiretoTerc = TC.total+TP.total;
+    indiretoInsumo = IR.total, indiretoTerc = TC.total+TP.total;
   for(let i=0;i<NM;i++){ const h=haMes[i]/haTot;
     mesesCat.mdo[i]+=indiretoMdo*h; mesesCat.manut[i]+=indiretoManut*h;
-    mesesCat.diesel[i]+=indiretoDiesel*h; mesesCat.insumo[i]+=indiretoInsumo*h; mesesCat.terc[i]+=indiretoTerc*h;
+    mesesCat.diesel[i]+=AE.dieselMes[i]; mesesCat.insumo[i]+=indiretoInsumo*h; mesesCat.terc[i]+=indiretoTerc*h;
     mesesCat.fixo[i]+=fixoMes;
   }
   ESPOR.forEach(e=>{ const i=MESES.indexOf(e.mes); if(i>=0) mesesCat.espor[i]+=num(e.valor); });
 
   // custo por etapa
-  const etapas = {}, tratosCult = {Soca:{direto:0,ha:0}, Planta:{direto:0,ha:0}};
+  const etapas = {}, tratosCult = {Soca:{direto:0,ha:0,litros:0}, Planta:{direto:0,ha:0,litros:0}};
   L.forEach(r=>{
-    const e=r.a.etapa; etapas[e]=etapas[e]||{direto:0,ha:0,ton:0,diesel:0,mdo:0,manut:0,insumo:0,terc:0};
+    const e=r.a.etapa; etapas[e]=etapas[e]||{direto:0,ha:0,ton:0,diesel:0,litros:0,mdo:0,manut:0,insumo:0,terc:0};
     etapas[e].direto+=r.direto;
-    etapas[e].diesel+=r.cDiesel; etapas[e].mdo+=r.cMDO; etapas[e].manut+=r.cManut;
+    etapas[e].diesel+=r.cDiesel; etapas[e].litros+=r.litros; etapas[e].mdo+=r.cMDO; etapas[e].manut+=r.cManut;
     etapas[e].insumo+=r.cInsumo; etapas[e].terc+=r.cTerc;
     if(r.ehHa) etapas[e].ha+=r.total; else if(r.a.tipo!=="transp") etapas[e].ton+=r.total;
     if(e==="TRATOS CULTURAIS"){
       const c = r.a.cultura||"Soca";
-      tratosCult[c].direto += r.direto;
+      tratosCult[c].direto += r.direto; tratosCult[c].litros += r.litros;
       if(r.ehHa) tratosCult[c].ha += r.total;
     }
   });
+  // diesel dos equipamentos de apoio: rateado entre as etapas pelos litros que cada uma consome
+  const litrosDir = Object.values(etapas).reduce((s,e)=>s+e.litros,0);
+  if(litrosDir>0){
+    const pesos = Object.values(etapas).map(e=>e.litros/litrosDir);
+    Object.values(etapas).forEach((e,k)=>{
+      e.diesel += AE.diesel*pesos[k]; e.direto += AE.diesel*pesos[k]; e.litros += AE.litros*pesos[k]; });
+    Object.values(tratosCult).forEach(c=>{
+      const w = c.litros/litrosDir; c.direto += AE.diesel*w; c.litros += AE.litros*w; });
+  }
   if(etapas["TRATOS CULTURAIS"]){ etapas["TRATOS CULTURAIS"].direto += IR.total; etapas["TRATOS CULTURAIS"].irrig = IR.total; }
   const diretoSum = Object.values(etapas).reduce((s,e)=>s+e.direto,0)||1;
   const indiretoPool = total - diretoSum;
@@ -1231,7 +1293,14 @@ function calcular(){
   const muda = P.plantio*P.dens;
   const viveiro = P.tch>0 ? muda/P.tch : 0;
 
-  return {MP,L,TR,AE,IR,MT,AP,EM,TC,TP, meses, mesesCat, haMes,
+  const litrosOperMes = MESES.map((m,i)=>L.reduce((s,r)=>s+r.litrosMes[i],0));
+  const custoOperMes  = MESES.map((m,i)=>L.reduce((s,r)=>s+r.dieselMes[i],0));
+  const CB = {preco: MESES.map((m,i)=>precoDiesel(i)), litrosOperMes, custoOperMes,
+    litrosApoioMes: AE.litrosMes, custoApoioMes: AE.dieselMes,
+    litrosT: litrosOperMes.reduce((s,x)=>s+x,0)+AE.litros,
+    litrosIrrigMes: IR.litrosMes, litrosIrrig: IR.litros};
+
+  return {MP,L,TR,AE,IR,MT,AP,EM,TC,TP,CB, meses, mesesCat, haMes,
           dieselT: dieselTot, manutT: manutTot,
           mdoDireta: mdoT, mdoApoio: AE.mdo, mdoIndirT, mdoManut: EM.total,
           mdoTotal: mdoTot,
@@ -1898,7 +1967,7 @@ function pintarContas(R){
 }
 
 /* ---------- GRÁFICOS ---------- */
-function barras(el,dados,cor){
+function barras(el,dados,cor,un){
   const W=760,H=210,ml=64,mb=34,mt=12,mr=10;
   const max=Math.max(...dados.map(d=>d.v),1), bw=(W-ml-mr)/dados.length;
   let s=`<svg viewBox="0 0 ${W} ${H}" class="chart">`;
@@ -1907,7 +1976,7 @@ function barras(el,dados,cor){
         <text x="${ml-7}" y="${y+4}" text-anchor="end" font-size="9.5" fill="var(--grey)">${fmt(v/1000)}k</text>`;}
   dados.forEach((d,i)=>{const hh=(H-mt-mb)*(d.v/max),x=ml+i*bw+bw*.18,y=H-mb-hh;
     const ly=Math.max(y-5,mt+9);
-    s+=`<rect x="${x}" y="${y}" width="${bw*.64}" height="${Math.max(hh,0)}" fill="${cor}" rx="2"><title>${d.l}: ${brl(d.v)}</title></rect>
+    s+=`<rect x="${x}" y="${y}" width="${bw*.64}" height="${Math.max(hh,0)}" fill="${cor}" rx="2"><title>${d.l}: ${un?fmt(d.v)+" "+un:brl(d.v)}</title></rect>
         <text x="${ml+i*bw+bw/2}" y="${ly}" text-anchor="middle" font-size="9" font-weight="700" fill="var(--ink)">${d.v>0?fmt(d.v/1000,0)+"k":""}</text>
         <text x="${ml+i*bw+bw/2}" y="${H-mb+14}" text-anchor="middle" font-size="9.5" fill="var(--grey)">${d.l}</text>`;});
   el.innerHTML=s+`</svg>`;
@@ -1921,6 +1990,74 @@ function barrasH(el,dados){
         <rect x="${ml}" y="${y+2}" width="${Math.max(w,1)}" height="14" fill="${cores[i%12]}" rx="3"><title>${brl(d.v)}</title></rect>
         <text x="${ml+w+7}" y="${y+14}" font-size="10" fill="var(--grey)">${fmt(d.v/tot*100,1)}%</text>`;});
   el.innerHTML=s+`</svg>`;
+}
+
+/* ---------- COMBUSTÍVEL ---------- */
+function pintarCombustivel(R){
+  const C = R.CB, soma = a=>a.reduce((s,x)=>s+x,0);
+  const litrosMes = MESES.map((m,i)=>C.litrosOperMes[i]+C.litrosApoioMes[i]);
+  const custoMes  = MESES.map((m,i)=>C.custoOperMes[i]+C.custoApoioMes[i]);
+  const litrosT = soma(litrosMes), custoT = soma(custoMes);
+  const iPico = litrosMes.indexOf(Math.max(...litrosMes));
+
+  $("#k_comb").innerHTML =
+    kpi("Volume de diesel necessário","",fmt(litrosT)+" L", fmt(litrosT/NM)+" L/mês em média") +
+    kpi("Custo de diesel","t",brl(custoT),"conta 200-110 · Combustível") +
+    kpi("Preço médio ponderado","g",brl(litrosT>0?custoT/litrosT:P.diesel,2)+"/L","ponderado pelo volume mensal") +
+    kpi("Mês de pico","a",litrosT>0?MESES[iPico]:"—", litrosT>0?fmt(litrosMes[iPico])+" L":"sem volume lançado");
+
+  $("#t_comb_preco").innerHTML = th([[""],...MESES.map(m=>[m,1])]) + "<tbody>" +
+    `<tr><td>Preço (R$/L)</td>` + MESES.map((m,i)=>{
+      const v = DIESEL_MES[i];
+      return `<td class="num"><input data-dm="${i}" value="${v!=null?+num(v).toFixed(4):""}"
+        placeholder="${+P.diesel.toFixed(2)}" inputmode="decimal"></td>`;}).join("") + `</tr></tbody>`;
+
+  const linhaTab = (rot,arr,f,forte)=>`<tr><td${forte?' class="tot"':''}>${rot}</td>`+
+    arr.map(v=>`<td class="num ${forte?"tot":"calc"}">${f(v)}</td>`).join("")+
+    `<td class="num tot">${f(soma(arr))}</td></tr>`;
+  let tm = th([["Mês"],...MESES.map(m=>[m,1]),["Total",1]]) + "<tbody>" +
+    linhaTab("Litros — operação do plano", C.litrosOperMes, v=>fmt(v)) +
+    linhaTab("Litros — equipamentos de apoio", C.litrosApoioMes, v=>fmt(v)) +
+    linhaTab("Volume de diesel necessário (L)", litrosMes, v=>fmt(v), true) +
+    `<tr><td>Preço aplicado (R$/L)</td>` + C.preco.map(p=>`<td class="num calc">${brl(p,2)}</td>`).join("") +
+    `<td class="num calc">${litrosT>0?brl(custoT/litrosT,2):"—"}</td></tr>` +
+    linhaTab("Custo de diesel (R$)", custoMes, v=>brl(v), true);
+  if(C.litrosIrrig>0)
+    tm += linhaTab("Irrigação com motobomba a diesel (L) — custo em Irrigação", C.litrosIrrigMes, v=>fmt(v));
+  $("#t_comb_mes").innerHTML = tm + "</tbody>";
+  barras($("#ch_comb"), MESES.map((m,i)=>({l:m, v:litrosMes[i]})), "#E8A33D", "L");
+
+  const et = Object.entries(R.etapas).filter(([,d])=>d.litros>0).sort((a,b)=>b[1].litros-a[1].litros);
+  const lEt = et.reduce((s,[,d])=>s+d.litros,0), cEt = et.reduce((s,[,d])=>s+d.diesel,0);
+  let te = th([["Etapa"],["Litros",1],["% do volume",1],["Custo diesel",1],["R$/L",1],["Consumo por unidade",1]]) + "<tbody>" +
+    (et.length ? et.map(([e,d])=>{
+      const base = d.ha>0?d.ha:d.ton, un = d.ha>0?"ha":"t";
+      return `<tr><td>${e}</td><td class="num tot">${fmt(d.litros)}</td>
+        <td class="num calc">${fmt(lEt>0?d.litros/lEt*100:0,1)}%</td><td class="num">${brl(d.diesel)}</td>
+        <td class="num calc">${brl(d.diesel/d.litros,2)}</td>
+        <td class="num calc">${base>0?fmt(d.litros/base,1)+" L/"+un:"—"}</td></tr>`;}).join("")
+      : `<tr><td colspan="6" class="calc">Sem consumo nas etapas: lance quantidades no Plano Operacional.</td></tr>`);
+  // sem litros no plano, o diesel do apoio não tem como ser rateado entre etapas
+  if(litrosT-lEt>0.5)
+    te += `<tr><td class="calc">Equipamentos de apoio — sem etapa para ratear</td><td class="num calc">${fmt(litrosT-lEt)}</td>
+      <td></td><td class="num calc">${brl(custoT-cEt)}</td><td colspan="2"></td></tr>`;
+  $("#t_comb_etapa").innerHTML = te +
+    `<tr><td class="tot">TOTAL</td><td class="num tot">${fmt(litrosT)}</td><td class="num tot">100,0%</td>
+     <td class="num tot">${brl(custoT)}</td><td colspan="2"></td></tr></tbody>`;
+
+  const mq = {};
+  const addM = (nome,cons,horas,frota,litros,custo)=>{
+    const o = mq[nome] = mq[nome] || {cons, horas:0, frota:0, litros:0, custo:0};
+    o.horas+=horas; o.frota+=frota; o.litros+=litros; o.custo+=custo; };
+  R.L.forEach(r=>r.partes.forEach(p=>{ if(!p.terc && p.litros>0) addM(p.maq,p.consumoLh,p.horas,p.frotaR,p.litros,p.cDiesel); }));
+  R.AE.linhas.forEach(l=>{ if(l.litros>0) addM(l.maq+" (apoio)",l.consumoLh,l.horas,num(l.qtd),l.litros,l.diesel); });
+  const lm = Object.entries(mq).sort((a,b)=>b[1].litros-a[1].litros);
+  $("#t_comb_maq").innerHTML = th([["Equipamento"],["Consumo (L/h)",1],["Frota",1],["Horas",1],["Litros",1],["Custo diesel",1],["% do volume",1]]) + "<tbody>" +
+    (lm.length ? lm.map(([n,o])=>`<tr><td>${n}</td><td class="num calc">${fmt(o.cons,1)}</td>
+      <td class="num calc">${fmt(o.frota)}</td><td class="num calc">${fmt(o.horas)}</td>
+      <td class="num tot">${fmt(o.litros)}</td><td class="num">${brl(o.custo)}</td>
+      <td class="num calc">${litrosT>0?fmt(o.litros/litrosT*100,1)+"%":"—"}</td></tr>`).join("")
+      : `<tr><td colspan="7" class="calc">Nenhum equipamento com consumo projetado.</td></tr>`) + "</tbody>";
 }
 
 /* ---------- RESUMO DE FROTA ---------- */
@@ -1985,7 +2122,9 @@ function pintarPainel(R){
         brl(R.tratosCult.Planta.total)+" · "+fmt(R.tratosCult.Planta.ha)+" ha") +
     kpi("Etapa colheita (c/ transporte)","",tonEtapa>0?brl(colh.total/tonEtapa,2)+"/t":"—","corte + transporte + transbordo") +
     kpi("CRM total","a",brl(CRM_COMP.reduce((s,k)=>s+R.crmComp[k],0))) +
-    kpi("CRM por hora média","",R.horasT>0?brl(CRM_COMP.reduce((s,k)=>s+R.crmComp[k],0)/R.horasT,2)+"/h":"—");
+    kpi("CRM por hora média","",R.horasT>0?brl(CRM_COMP.reduce((s,k)=>s+R.crmComp[k],0)/R.horasT,2)+"/h":"—") +
+    kpi("Diesel projetado","t",fmt(R.CB.litrosT)+" L",
+        brl(R.dieselT)+(R.CB.litrosT>0?" · "+brl(R.dieselT/R.CB.litrosT,2)+"/L":""));
   barras($("#ch_mes"),MESES.map((m,i)=>({l:m,v:R.meses[i]})),"#2B5CAA");
 
   const catLbl = {mdo:"Mão de obra",manut:"Manutenção (CRM)",diesel:"Diesel",insumo:"Insumos + irrigação",
@@ -2043,6 +2182,11 @@ function relatorioSecoes(R, nivel){
   add("Contas por mês","Grandes contas por mês",["Conta",...MESES,"Total"],
     Object.keys(catLbl).map(k=>{const l=R.mesesCat[k];
       return [catLbl[k], ...l.map(v=>brl(v)), brl(l.reduce((s,v)=>s+v,0))];}));
+
+  add("Combustível","Combustível — diesel projetado",["Mês","Litros","Preço (R$/L)","Custo"],
+    MESES.map((m,i)=>[m, fmt(R.CB.litrosOperMes[i]+R.CB.litrosApoioMes[i]), brl(R.CB.preco[i],2),
+      brl(R.CB.custoOperMes[i]+R.CB.custoApoioMes[i])])
+    .concat([["TOTAL", fmt(R.CB.litrosT), R.CB.litrosT>0?brl(R.dieselT/R.CB.litrosT,2):"—", brl(R.dieselT)]]));
 
   add("Frota","Frota — necessidade projetada",["Categoria","Item","Qtd necessária"],
     [...R.crmFrotaL].filter(l=>l.qtd>0).sort((a,b)=>b.qtd-a.qtd).map(l=>[l.cat,l.item,fmt(l.qtd)]));
@@ -2174,14 +2318,14 @@ function render(){
   $("#c_muda").value=fmt(R.muda)+" t"; $("#c_viveiro").value=fmt(R.viveiro)+" ha";
   $("#c_capTransb").value=fmt(P.capTransb,1)+" t/viagem";
   pintarCapa(R); pintarMDO(R); pintarPlano(R); pintarDim(R); pintarTransp(R); pintarApoio(R); pintarCRM(R); pintarTPess(R);
-  pintarIrrig(R); pintarInsumos(R); pintarCustos(R); pintarContas(R); pintarResumoFrota(R);
+  pintarIrrig(R); pintarInsumos(R); pintarCustos(R); pintarContas(R); pintarCombustivel(R); pintarResumoFrota(R);
   pintarPainel(R); pintarValida(R);
 }
 
 document.getElementById("logo").src=LOGO;document.getElementById("herologo").src=LOGO;
 /* ---------- persistência ---------- */
 function estado(){
-  const s = {P,PLANO,DIM,INSUMO,ESPOR,TRATC,TRAT_NOME,ENC,BEN,NIV,GRAT,APOIO,APOIO_FIXO,
+  const s = {P,PLANO,DIM,INSUMO,ESPOR,TRATC,TRAT_NOME,DIESEL_MES,ENC,BEN,NIV,GRAT,APOIO,APOIO_FIXO,
              TERC_TAR,CRM,MATX,INSX,FROTA,TPESS,FUN:CFG.funcoes.map(f=>f.sal),v:10};
   // Campos que esta sessão nunca tocou ficam nulos ou vazios em memória. Enviá-los
   // apagava no servidor o que outra sessão já tinha preenchido — por isso são omitidos.
@@ -2280,6 +2424,7 @@ function aplicar(d){
   if(d.ESPOR) ESPOR=d.ESPOR;
   if(d.TRATC) TRATC=d.TRATC;
   if(d.TRAT_NOME) TRAT_NOME=d.TRAT_NOME;
+  if(d.DIESEL_MES) DIESEL_MES=d.DIESEL_MES;
   if(d.ENC) ENC=d.ENC;
   if(d.BEN) BEN=d.BEN;
   if(d.NIV) NIV=d.NIV;
@@ -2396,6 +2541,9 @@ document.addEventListener("input",e=>{
   if(t.dataset.ex!==undefined){ ESPOR[+t.dataset.ex][t.dataset.f]=t.dataset.f==="valor"?num(t.value):t.value; salvar(); leve(); return; }
   if(t.dataset.td!==undefined){ const c=destravar(TRAT_SEL); c[+t.dataset.td].dose=num(t.value); salvar(); leve(); return; }
   if(t.id==="in_trat_nome"){ TRAT_NOME[TRAT_SEL]=t.value; salvar(); leve(); return; }
+  // campo vazio volta ao preço base; null (e não delete) para a limpeza chegar ao servidor no merge
+  if(t.dataset.dm!==undefined){ const v=t.value.trim(); DIESEL_MES[t.dataset.dm] = v==="" ? null : num(v);
+    salvar(); leve(); return; }
   if(t.dataset.enc!==undefined){ ENC[t.dataset.enc]=num(t.value); salvar(); leve(); return; }
   if(t.dataset.ben!==undefined){ BEN[t.dataset.ben]=num(t.value); salvar(); leve(); return; }
 });
@@ -2509,6 +2657,16 @@ $("#btn_trat_reset").onclick=()=>{
   if(!TRATC[TRAT_SEL]){ alert("Este tratamento já está com a composição original."); return; }
   if(!confirm("Restaurar a composição original de "+TRAT_SEL+"?")) return;
   delete TRATC[TRAT_SEL]; salvar(true); render();
+};
+$("#btn_diesel_reaj").onclick=()=>{
+  const r = num($("#in_diesel_reaj").value)/100;
+  MESES.forEach((m,i)=>{ DIESEL_MES[i] = +(P.diesel*Math.pow(1+r,i)).toFixed(4); });
+  salvar(); render();
+};
+$("#btn_diesel_base").onclick=()=>{
+  if(!confirm("Usar o preço base das Premissas em todos os meses?")) return;
+  MESES.forEach((m,i)=>{ DIESEL_MES[i] = null; });
+  salvar(); render();
 };
 
 // atualização leve: recalcula tudo mas preserva o foco de quem está digitando

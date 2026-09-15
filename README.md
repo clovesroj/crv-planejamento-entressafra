@@ -16,6 +16,7 @@ todos os usuários.
 | Dimensionamento | Horas, rendimento, frota e efetivo por atividade |
 | Transporte | Transbordo e transporte de cana por raio, ciclo e capacidade |
 | Apoio | Equipamentos de apoio por quantidade e horas |
+| Combustível | Volume de diesel mês a mês, preço projetado por mês, consumo por etapa e equipamento |
 | Manutenção de Frota | CRM por equipamento (R$/h máquinas, R$/km veículos) |
 | Transporte de Pessoal | Rotas, diárias de ônibus e quilometragem |
 | Irrigação | Dimensionamento hidráulico e energia por modalidade |
