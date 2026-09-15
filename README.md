@@ -21,6 +21,7 @@ todos os usuários.
 | Transporte de Pessoal | Rotas, diárias de ônibus e quilometragem |
 | Irrigação | Dimensionamento hidráulico e energia por modalidade |
 | Insumos | Cadastro, composição de tratamentos e volume demandado |
+| Arrendamentos | Fazendas e grupos arrendados, forma de pagamento, custo mensal e rateio por etapa (referência PECEGE/USP) |
 | Custos | Custo por etapa, por natureza e mensal |
 | Plano de Contas | Custo projetado por conta contábil |
 | Resumo de Frota | Necessidade consolidada de veículos e equipamentos |
