@@ -243,6 +243,12 @@ tr.sub td{background:var(--sunk);font-size:12px;padding:5px 12px}
 .b-ok{background:var(--ok-bg);color:var(--ok)}
 .b-warn{background:var(--warn-bg);color:var(--warn)}
 .b-bad{background:var(--bad-bg);color:var(--bad)}
+/* período do ano agrícola: rótulo, não status — por isso não usa as cores de ok/atenção/crítico */
+.per{display:inline-flex;align-items:center;padding:1px 8px;border-radius:4px;font-size:11px;font-weight:600;
+  letter-spacing:.2px;white-space:nowrap}
+.per-safra{background:var(--leaf-soft);color:var(--leaf)}
+.per-entressafra{background:var(--straw-soft);color:var(--warn)}
+th small{display:block;font-size:9.5px;font-weight:500;letter-spacing:.3px;opacity:.75;text-transform:lowercase}
 .bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;min-width:72px}
 .bar i{display:block;height:100%;background:var(--leaf);border-radius:3px}
 
@@ -726,6 +732,16 @@ footer{display:flex;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;co
   consolidada por natureza e da evolução mensal.</p>
   <div class="grid g4" id="k_custo" style="margin-bottom:16px"></div>
 
+  <div class="panel"><h3>Custos por período — safra × entressafra</h3>
+    <div class="grid g4" id="k_per" style="margin-bottom:14px"></div>
+    <div style="display:grid;gap:12px">
+      <div class="tblwrap"><table id="t_per_cat"></table></div>
+      <div class="tblwrap"><table id="t_per_etapa"></table></div>
+    </div>
+    <div class="hint" style="margin-top:9px">Safra: abril a novembro · entressafra: dezembro a março. Cada mês do
+    orçamento entra no período do seu calendário, e os valores seguem a mesma distribuição mensal da tabela
+    "Custo mensal". <span id="per_nota"></span></div></div>
+
   <div class="panel"><h3>Custo por etapa</h3><div class="tblwrap"><table id="t_unit"></table></div>
     <div class="hint" style="margin-top:9px">Diesel (com o dos equipamentos de apoio rateado pelos litros de cada etapa e o preço de cada mês), mão de obra, manutenção (CRM), insumos e terceirização de
     atividades são apurados por etapa diretamente das atividades do Plano Operacional. Os demais custos
@@ -867,6 +883,13 @@ const CFG = {"atividades":[{"cod":"A01","etapa":"COLHEITA","nome":"Colheita safr
 
 const MESES = ["Out/26","Nov/26","Dez/26","Jan/27","Fev/27","Mar/27","Abr/27","Mai/27","Jun/27"];
 const NM = MESES.length;
+// calendário agrícola: safra de abril a novembro, entressafra de dezembro a março
+const MES_NUM = {Jan:1,Fev:2,Mar:3,Abr:4,Mai:5,Jun:6,Jul:7,Ago:8,Set:9,Out:10,Nov:11,Dez:12};
+const PERIODOS = {safra:"Safra (abr–nov)", entressafra:"Entressafra (dez–mar)"};
+function periodoMes(i){ const m = MES_NUM[MESES[i].slice(0,3)] || 0; return (m>=4 && m<=11) ? "safra" : "entressafra"; }
+function perTag(i){ const p = periodoMes(i); return `<span class="per per-${p}">${p==="safra"?"Safra":"Entressafra"}</span>`; }
+const CAT_LBL = {mdo:"Mão de obra", manut:"Manutenção (CRM)", diesel:"Diesel", insumo:"Insumos + irrigação",
+  terc:"Terceirização + transporte", arrend:"Arrendamento", fixo:"Fixos (adm./deprec.)", espor:"Esporádicos"};
 
 const PADRAO = {
   // agronômicas
@@ -1616,14 +1639,17 @@ function calcular(){
   const meses = Array(NM).fill(0);
   const haMes = Array(NM).fill(0);
   L.forEach(r=>{ r.meses.forEach((q,i)=>{ if(r.ehHa) haMes[i]+=num(q); }); });
-  const haTot = haMes.reduce((s,x)=>s+x,0)||1;
+  const haTotReal = haMes.reduce((s,x)=>s+x,0), haTot = haTotReal||1;
+  // peso de cada mês para os custos gerais: pela área operada; sem nenhuma atividade em hectares
+  // no plano, divide igualmente entre os meses (antes esses custos ficavam fora de todos os meses)
+  const pesoMes = i => haTotReal>0 ? haMes[i]/haTotReal : 1/NM;
   L.forEach(r=>{
     const tot = r.total||0;
     // diesel entra pelo litro e preço de cada mês; o restante do custo direto, pela quantidade
     r.meses.forEach((q,i)=>{ if(tot>0) meses[i] += (r.direto-r.cDiesel)*(num(q)/tot) + r.dieselMes[i]; });
   });
   const outros = (AE.total-AE.diesel) + IR.total + MT.total + TC.total + EM.total + mdoIndirT + TP.total + crmExtra;
-  for(let i=0;i<NM;i++){ meses[i] += outros*(haMes[i]/haTot) + fixoMes + AE.dieselMes[i] + AR.mes[i]; }
+  for(let i=0;i<NM;i++){ meses[i] += outros*pesoMes(i) + fixoMes + AE.dieselMes[i] + AR.mes[i]; }
   ESPOR.forEach(e=>{ const i = MESES.indexOf(e.mes); if(i>=0) meses[i]+=num(e.valor); });
 
   // grandes contas por mês — mesmo critério de rateio do total mensal, só que por natureza
@@ -1637,7 +1663,7 @@ function calcular(){
   });
   const indiretoMdo = AE.mdo+mdoIndirT+EM.total, indiretoManut = AE.manut+crmExtra+MT.total,
     indiretoInsumo = IR.total, indiretoTerc = TC.total+TP.total;
-  for(let i=0;i<NM;i++){ const h=haMes[i]/haTot;
+  for(let i=0;i<NM;i++){ const h=pesoMes(i);
     mesesCat.mdo[i]+=indiretoMdo*h; mesesCat.manut[i]+=indiretoManut*h;
     mesesCat.diesel[i]+=AE.dieselMes[i]; mesesCat.insumo[i]+=indiretoInsumo*h; mesesCat.terc[i]+=indiretoTerc*h;
     mesesCat.fixo[i]+=fixoMes; mesesCat.arrend[i]+=AR.mes[i];
@@ -1693,6 +1719,38 @@ function calcular(){
     c.total = c.direto+c.arrend+c.indireto;
   });
 
+  // custo de cada etapa mês a mês, pelo mesmo critério do total mensal — base da segmentação por período
+  const etapaMes = {};
+  Object.keys(etapas).forEach(e=>{ etapaMes[e] = Array(NM).fill(0); });
+  L.forEach(r=>{
+    const tot = r.total||0; if(tot<=0) return;
+    const em = etapaMes[r.a.etapa];
+    r.meses.forEach((q,i)=>{ em[i] += (r.direto-r.cDiesel)*(num(q)/tot) + r.dieselMes[i]; });
+  });
+  const litrosTotEt = litrosDir + AE.litros;
+  Object.entries(etapas).forEach(([e,d])=>{
+    const em = etapaMes[e];
+    // diesel do apoio pelo peso em litros (o mesmo rateio aplicado acima)
+    if(litrosDir>0) for(let i=0;i<NM;i++) em[i] += AE.dieselMes[i]*(d.litros/litrosTotEt);
+    if(d.irrig) for(let i=0;i<NM;i++) em[i] += d.irrig*pesoMes(i);
+    if(d.arrend && AR.total>0) for(let i=0;i<NM;i++) em[i] += d.arrend*(AR.mes[i]/AR.total);
+  });
+  // o que sobra em cada mês é o indireto, repartido pela participação de cada etapa no custo direto
+  for(let i=0;i<NM;i++){
+    const alocado = Object.values(etapaMes).reduce((s,a)=>s+a[i],0);
+    const pool = meses[i] - alocado;
+    Object.entries(etapas).forEach(([e,d])=>{ etapaMes[e][i] += pool*(d.direto/diretoSum); });
+  }
+
+  // segmentação safra × entressafra
+  const somaPer = (arr,p) => arr.reduce((s,v,i)=>s+(periodoMes(i)===p ? v : 0), 0);
+  const PER = {};
+  Object.keys(PERIODOS).forEach(p=>{
+    PER[p] = {nome:PERIODOS[p], meses:MESES.filter((m,i)=>periodoMes(i)===p), total:somaPer(meses,p),
+      cat:   Object.fromEntries(Object.entries(mesesCat).map(([k,a])=>[k, somaPer(a,p)])),
+      etapa: Object.fromEntries(Object.entries(etapaMes).map(([k,a])=>[k, somaPer(a,p)]))};
+  });
+
   const muda = P.plantio*P.dens;
   const viveiro = P.tch>0 ? muda/P.tch : 0;
 
@@ -1703,7 +1761,7 @@ function calcular(){
     litrosT: litrosOperMes.reduce((s,x)=>s+x,0)+AE.litros,
     litrosIrrigMes: IR.litrosMes, litrosIrrig: IR.litros};
 
-  return {MP,L,TR,AE,IR,MT,AP,EM,TC,TP,CB, meses, mesesCat, haMes,
+  return {MP,L,TR,AE,IR,MT,AP,EM,TC,TP,CB, meses, mesesCat, haMes, etapaMes, PER,
           dieselT: dieselTot, manutT: manutTot,
           mdoDireta: mdoT, mdoApoio: AE.mdo, mdoIndirT, mdoManut: EM.total,
           mdoTotal: mdoTot,
@@ -2295,6 +2353,38 @@ function pintarCustos(R){
     kpi("Custo total","",brl(R.total)) + kpi("Custo variável","t",brl(R.variavel)) +
     kpi("Custo fixo","a",brl(R.fixoT)) + kpi("Custo por ha plantado","g",brl(R.total/ha));
 
+  // safra (abr–nov) × entressafra (dez–mar)
+  const PR = R.PER, perTot = PR.safra.total + PR.entressafra.total;
+  const nomeP = p => p==="safra" ? "safra" : "entressafra";
+  $("#k_per").innerHTML =
+    ["safra","entressafra"].map(p=>{ const o=PR[p];
+      return kpi("Custo na "+nomeP(p), p==="safra"?"g":"a", brl(o.total),
+        o.meses.join(" · ")+(perTot>0?" — "+fmt(o.total/perTot*100,1)+"% do total":"")); }).join("") +
+    ["safra","entressafra"].map(p=>{ const o=PR[p];
+      return kpi("Média mensal — "+nomeP(p), p==="safra"?"g":"a", o.meses.length?brl(o.total/o.meses.length):"—",
+        o.meses.length+(o.meses.length===1?" mês":" meses")+" no orçamento"); }).join("");
+
+  $("#t_per_cat").innerHTML = th([["Grande conta"],["Safra",1],["% safra",1],["Entressafra",1],["% entressafra",1],["Total",1]])+"<tbody>"+
+    Object.keys(CAT_LBL).map(k=>{ const s=PR.safra.cat[k], e=PR.entressafra.cat[k], t=s+e;
+      return `<tr><td>${CAT_LBL[k]}</td><td class="num">${brl(s)}</td><td class="num calc">${t>0?fmt(s/t*100,1)+"%":"—"}</td>
+        <td class="num">${brl(e)}</td><td class="num calc">${t>0?fmt(e/t*100,1)+"%":"—"}</td><td class="num tot">${brl(t)}</td></tr>`; }).join("")+
+    `<tr><td class="tot">TOTAL</td><td class="num tot">${brl(PR.safra.total)}</td>
+     <td class="num tot">${perTot>0?fmt(PR.safra.total/perTot*100,1)+"%":"—"}</td><td class="num tot">${brl(PR.entressafra.total)}</td>
+     <td class="num tot">${perTot>0?fmt(PR.entressafra.total/perTot*100,1)+"%":"—"}</td><td class="num tot">${brl(perTot)}</td></tr></tbody>`;
+
+  const etsP = Object.keys(R.etapaMes).filter(e=>PR.safra.etapa[e]+PR.entressafra.etapa[e]>0.5)
+    .sort((a,b)=>(PR.safra.etapa[b]+PR.entressafra.etapa[b])-(PR.safra.etapa[a]+PR.entressafra.etapa[a]));
+  const eS = etsP.reduce((s,e)=>s+PR.safra.etapa[e],0), eE = etsP.reduce((s,e)=>s+PR.entressafra.etapa[e],0);
+  $("#t_per_etapa").innerHTML = th([["Etapa"],["Safra",1],["Entressafra",1],["Total",1],["% na entressafra",1]])+"<tbody>"+
+    (etsP.length ? etsP.map(e=>{ const s=PR.safra.etapa[e], x=PR.entressafra.etapa[e], t=s+x;
+      return `<tr><td>${e}</td><td class="num">${brl(s)}</td><td class="num">${brl(x)}</td>
+        <td class="num tot">${brl(t)}</td><td class="num calc">${t>0?fmt(x/t*100,1)+"%":"—"}</td></tr>`; }).join("")
+      : `<tr><td colspan="5" class="calc">Sem custo por etapa: lance quantidades no Plano Operacional.</td></tr>`)+
+    `<tr><td class="tot">TOTAL DAS ETAPAS</td><td class="num tot">${brl(eS)}</td><td class="num tot">${brl(eE)}</td>
+     <td class="num tot">${brl(eS+eE)}</td><td class="num tot">${eS+eE>0?fmt(eE/(eS+eE)*100,1)+"%":"—"}</td></tr></tbody>`;
+  $("#per_nota").textContent = Math.abs(R.total-(eS+eE))>1
+    ? `Custos gerais sem nenhuma etapa com custo direto para absorvê-los (${brl(R.total-(eS+eE))}) aparecem só nas grandes contas.` : "";
+
   $("#t_custo").innerHTML = th([["Natureza"],["Total",1],["%",1],["R$/ha",1],["Peso"]])+"<tbody>"+
     comps(R).map(([n,v])=>{const p=R.total>0?v/R.total*100:0;
       return `<tr><td>${n}</td><td class="num">${brl(v)}</td><td class="num calc">${fmt(p,1)}%</td>
@@ -2303,10 +2393,10 @@ function pintarCustos(R){
     `<tr><td class="tot">TOTAL</td><td class="num tot">${brl(R.total)}</td>
      <td class="num tot">100,0%</td><td class="num tot">${brl(R.total/ha,0)}</td><td></td></tr></tbody>`;
 
-  $("#t_mensal").innerHTML = th([["Mês"],["Custo",1],["% do total",1],["Acumulado",1],["Curva"]])+"<tbody>"+
+  $("#t_mensal").innerHTML = th([["Mês"],["Período"],["Custo",1],["% do total",1],["Acumulado",1],["Curva"]])+"<tbody>"+
     (()=>{let ac=0; return MESES.map((m,i)=>{ac+=R.meses[i];
       const p=R.total>0?R.meses[i]/R.total*100:0, pa=R.total>0?ac/R.total*100:0;
-      return `<tr><td>${m}</td><td class="num">${brl(R.meses[i])}</td>
+      return `<tr><td>${m}</td><td>${perTag(i)}</td><td class="num">${brl(R.meses[i])}</td>
         <td class="num calc">${fmt(p,1)}%</td><td class="num calc">${brl(ac)}</td>
         <td><div class="bar"><i style="width:${pa}%"></i></div></td></tr>`;}).join("");})()+"</tbody>";
 
@@ -2671,7 +2761,9 @@ function pintarPainel(R){
     kpi("Custo total","",brl(R.total)) +
     kpi("Custo / ha plantado","t",brl(R.total/ha)) +
     kpi("Custo de colheita","g",corteTon>0?brl(corteTotal/corteTon,2)+"/t":"—","só corte (A01+A02), sem transporte") +
-    kpi("Efetivo total","a",fmt(R.efetivoTotal)+" pessoas");
+    kpi("Efetivo total","a",fmt(R.efetivoTotal)+" pessoas") +
+    kpi("Custo na safra","g",brl(R.PER.safra.total),"abr–nov · "+R.PER.safra.meses.length+" meses no orçamento") +
+    kpi("Custo na entressafra","a",brl(R.PER.entressafra.total),"dez–mar · "+R.PER.entressafra.meses.length+" meses no orçamento");
   $("#k_tratos").innerHTML =
     kpi("Tratos — cana soca","t",R.tratosCult.Soca.ha>0?brl(R.tratosCult.Soca.total/R.tratosCult.Soca.ha,2)+"/ha":"—",
         brl(R.tratosCult.Soca.total)+" · "+fmt(R.tratosCult.Soca.ha)+" ha") +
@@ -2689,13 +2781,16 @@ function pintarPainel(R){
   const catLbl = {mdo:"Mão de obra",manut:"Manutenção (CRM)",diesel:"Diesel",insumo:"Insumos + irrigação",
     terc:"Terceirização + transporte",arrend:"Arrendamento",fixo:"Fixos (adm./deprec.)",espor:"Esporádicos"};
   const catKeys = Object.keys(catLbl);
-  $("#t_grandes").innerHTML = th([["Conta"],...MESES.map(m=>[m,1]),["Total",1]])+"<tbody>"+
+  $("#t_grandes").innerHTML = th([["Conta"],...MESES.map((m,i)=>[`${m}<br><small>${periodoMes(i)==="safra"?"safra":"entressafra"}</small>`,1]),
+      ["Total",1],["Safra",1],["Entressafra",1]])+"<tbody>"+
     catKeys.map(k=>{const linha=R.mesesCat[k], tot=linha.reduce((s,v)=>s+v,0);
       return `<tr><td>${catLbl[k]}</td>`+linha.map(v=>`<td class="num calc">${brl(v,0)}</td>`).join("")+
-        `<td class="num tot">${brl(tot)}</td></tr>`;}).join("")+
+        `<td class="num tot">${brl(tot)}</td><td class="num">${brl(R.PER.safra.cat[k])}</td>`+
+        `<td class="num">${brl(R.PER.entressafra.cat[k])}</td></tr>`;}).join("")+
     `<tr><td class="tot">TOTAL</td>`+
     MESES.map((m,i)=>`<td class="num tot">${brl(catKeys.reduce((s,k)=>s+R.mesesCat[k][i],0),0)}</td>`).join("")+
-    `<td class="num tot">${brl(catKeys.reduce((s,k)=>s+R.mesesCat[k].reduce((a,v)=>a+v,0),0))}</td></tr></tbody>`;
+    `<td class="num tot">${brl(catKeys.reduce((s,k)=>s+R.mesesCat[k].reduce((a,v)=>a+v,0),0))}</td>`+
+    `<td class="num tot">${brl(R.PER.safra.total)}</td><td class="num tot">${brl(R.PER.entressafra.total)}</td></tr></tbody>`;
   barrasH($("#ch_comp"),comps(R).filter(([,v])=>v>0).map(([l,v])=>({l,v})));
 
   const ref=[["Operações (MDO + manutenção + diesel)",R.mdoTotal+R.manutT+R.dieselT,52],
@@ -2741,6 +2836,14 @@ function relatorioSecoes(R, nivel){
   add("Contas por mês","Grandes contas por mês",["Conta",...MESES,"Total"],
     Object.keys(catLbl).map(k=>{const l=R.mesesCat[k];
       return [catLbl[k], ...l.map(v=>brl(v)), brl(l.reduce((s,v)=>s+v,0))];}));
+
+  add("Períodos","Custos por período — safra (abr–nov) e entressafra (dez–mar)",["Grande conta","Safra","Entressafra","Total"],
+    Object.keys(CAT_LBL).map(k=>[CAT_LBL[k], brl(R.PER.safra.cat[k]), brl(R.PER.entressafra.cat[k]),
+      brl(R.PER.safra.cat[k]+R.PER.entressafra.cat[k])])
+    .concat([["TOTAL", brl(R.PER.safra.total), brl(R.PER.entressafra.total), brl(R.PER.safra.total+R.PER.entressafra.total)]]));
+  add("Etapas por período","Custo por etapa — safra e entressafra",["Etapa","Safra","Entressafra","Total"],
+    Object.keys(R.etapaMes).filter(e=>R.PER.safra.etapa[e]+R.PER.entressafra.etapa[e]>0.5)
+      .map(e=>[e, brl(R.PER.safra.etapa[e]), brl(R.PER.entressafra.etapa[e]), brl(R.PER.safra.etapa[e]+R.PER.entressafra.etapa[e])]));
 
   add("Arrendamentos","Arrendamentos — fazendas",
     ["Fazenda","Grupo","Área (ha)","Forma de pagamento","R$/ha/ano","Custo anual","Custo no orçamento"],
@@ -3372,8 +3475,10 @@ $("#btn_export").onclick=async()=>{
   c+="\nCOMPOSICAO DE CUSTOS\nNatureza;Total\n";
   comps(R).forEach(([n,v])=>c+=n+";"+v.toFixed(2)+"\n");
   c+="TOTAL;"+R.total.toFixed(2)+"\n";
-  c+="\nCUSTO MENSAL\nMes;Custo\n";
-  MESES.forEach((m,i)=>c+=m+";"+R.meses[i].toFixed(2)+"\n");
+  c+="\nCUSTO MENSAL\nMes;Periodo;Custo\n";
+  MESES.forEach((m,i)=>c+=m+";"+(periodoMes(i)==="safra"?"Safra":"Entressafra")+";"+R.meses[i].toFixed(2)+"\n");
+  c+="\nCUSTO POR PERIODO\nPeriodo;Custo\n";
+  Object.keys(PERIODOS).forEach(p=>c+=PERIODOS[p]+";"+R.PER[p].total.toFixed(2)+"\n");
   c+="\nMAO DE OBRA\nCod;Funcao;Salario;Custo mensal;Custo hora\n";
   CFG.funcoes.forEach(f=>{const x=R.MP.custoFuncao[f.cod];
     c+=[f.cod,f.nome,f.sal,x.mensal.toFixed(2),x.hora.toFixed(2)].join(";")+"\n";});
