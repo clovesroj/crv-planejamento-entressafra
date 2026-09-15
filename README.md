@@ -108,3 +108,14 @@ colocar autenticação é a função `api()` do [`server.js`](server.js).
 - Salários e benefícios — CCT do sindicato rural de Capinópolis/MG
 - Custo de manutenção e consumo de diesel — ajustar pela frota real
 - Depreciação, administração e área arrendada — orçamento oficial
+
+### Quando o TLS do banco falha
+
+O `server.js` decide sozinho se usa TLS pelo formato do host: a URL interna do
+Render é um nome sem ponto (`dpg-xxxx-a`) e dispensa TLS; a externa é um FQDN e
+exige. Num host fora desse padrão, force com a variável `DATABASE_SSL`:
+
+- `DATABASE_SSL=off` — erro `The server does not support SSL connections`
+- `DATABASE_SSL=on` — erro `no pg_hba.conf entry ... no encryption`
+
+O log de arranque mostra a decisão: `[pg] host <nome> — TLS ligado|desligado`.

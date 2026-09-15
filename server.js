@@ -31,15 +31,21 @@ const SERVICO = 'crv-planejamento-entressafra';
 function storePostgres(url) {
   const { Pool } = require('pg');
   const host = new URL(url).hostname;
-  // O Postgres interno do Render responde na rede privada e não oferece TLS; o
-  // endereço externo exige TLS com certificado próprio da Render, que não está
-  // na cadeia de confiança do Node.
-  const interno = host.endsWith('.internal') || host === 'localhost' || host === '127.0.0.1';
+  // A URL interna do Render traz um nome simples, sem ponto (dpg-xxxx-a), e
+  // responde na rede privada sem TLS. A externa é um FQDN
+  // (dpg-xxxx-a.ohio-postgres.render.com) e exige TLS com certificado próprio
+  // da Render, que não está na cadeia de confiança do Node. Pedir TLS a quem
+  // não oferece derruba a conexão, então a distinção importa.
+  const interno = !host.includes('.') || host.endsWith('.internal') || host === '127.0.0.1';
+  // Escotilha caso a heurística erre num host fora desse padrão.
+  const forcado = process.env.DATABASE_SSL;
+  const usarSSL = forcado ? forcado !== 'off' : !interno;
   const pool = new Pool({
     connectionString: url,
-    ssl: interno ? false : { rejectUnauthorized: false },
+    ssl: usarSSL ? { rejectUnauthorized: false } : false,
     max: 5,
   });
+  console.log(`[pg] host ${host} — TLS ${usarSSL ? 'ligado' : 'desligado'}`);
   pool.on('error', err => console.error('[pg] conexão ociosa caiu:', err.message));
 
   let pronto = null;
