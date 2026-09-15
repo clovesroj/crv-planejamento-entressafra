@@ -3,3 +3,14 @@ desktop.ini
 .DS_Store
 *.tmp
 ~$*
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Dados gravados pelo servidor quando roda sem Postgres
+.data/
+
+# Variáveis de ambiente locais
+.env
+.env.local

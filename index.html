@@ -631,13 +631,38 @@ function crmDetalhe(maq, imp, horas){
 }
 let ENC = {};            // índice do encargo -> % ajustado
 let BEN = {};            // índice do benefício -> valor ajustado
-let dbNS = null, saveTimer = null;
+let REMOTO = null, saveTimer = null;
 
 const $ = s => document.querySelector(s);
 const fmt = (n,d=0) => (isFinite(n)?n:0).toLocaleString("pt-BR",{minimumFractionDigits:d,maximumFractionDigits:d});
 const brl = (n,d=0) => "R$ " + fmt(n,d);
 const num = v => { const x = parseFloat(String(v).replace(",",".")); return isFinite(x)?x:0; };
 const pct = n => fmt(n*100,1)+"%";
+
+/* Recursos do Artifact da Claude (banco, downloads). Fora dele a variável
+   `claude` nem existe — o typeof evita o ReferenceError e o app segue no
+   caminho de servidor próprio ou de navegador. */
+async function claudeUse(nome){
+  try{ return typeof claude !== "undefined" && claude ? await claude.use(nome) : null; }
+  catch(e){ return null; }
+}
+
+/* Salvar arquivo no disco do usuário. Dentro do Artifact só o canal de
+   downloads da Claude atravessa o sandbox; hospedado em servidor próprio, o
+   link comum do navegador resolve. */
+async function baixar(dados, nome, tipo){
+  const blob = dados instanceof Blob ? dados : new Blob([dados],{type:tipo||"application/octet-stream"});
+  const dl = await claudeUse("downloads");
+  if(dl){
+    try{ await dl.save({filename:nome, data:dados}); return; }
+    catch(e){}
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = nome;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
 
 /* ================== MÃO DE OBRA ================== */
 function encPct(i){ return ENC[i]!=null ? num(ENC[i])/100 : CFG.encargos[i].pct; }
@@ -2063,11 +2088,8 @@ async function gerarExcel(nivel){
     XLSX.utils.book_append_sheet(wb, ws, nome);
   });
   const out = XLSX.write(wb,{bookType:"xlsx",type:"array"});
-  try{
-    const dl = await claude.use("downloads");
-    if(dl){ await dl.save({filename:`planejamento_entressafra_${nivel}.xlsx`, data:out}); return; }
-  }catch(e){}
-  alert("Não foi possível salvar o arquivo neste ambiente.");
+  await baixar(out, `planejamento_entressafra_${nivel}.xlsx`,
+               "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 }
 
 function gerarPDF(nivel){
@@ -2172,20 +2194,74 @@ function estado(){
 }
 function setStatus(t,c){ $("#stxt").textContent=t; $("#sdot").className="dot "+(c||""); }
 
-async function carregar(){
-  try{
-    dbNS = await claude.use("db");
-    if(dbNS){
-      const d = await dbNS.doc("plano/atual").get();
-      if(d && d.exists){
-        // se o usuário já começou a editar enquanto isto ainda carregava, não pisar na edição dele
-        if(!EDITADO) aplicar(d.data());
-        setStatus("Salvo no servidor",""); return;
-      }
-      setStatus("Pronto — salva no servidor","");
-      return;
+/* Dois destinos remotos possíveis, mesma interface: a API deste servidor
+   (hospedagem própria, ex.: Render) e o banco do Artifact da Claude. Falhando
+   os dois, sobra o localStorage — que de todo modo já é gravado sempre como
+   rascunho. */
+
+async function pedirAPI(metodo, corpo){
+  const r = await fetch("/api/plano", {
+    method: metodo,
+    headers: corpo ? {"content-type":"application/json"} : undefined,
+    body: corpo ? JSON.stringify(corpo) : undefined
+  });
+  if(!r.ok) throw new Error("/api/plano respondeu "+r.status);
+  return r.json();
+}
+
+async function abrirServidor(){
+  // Aberto como arquivo local (file://), não há servidor nenhum para consultar.
+  if(location.protocol === "file:") return null;
+  const r = await fetch("/api/health",{cache:"no-store"});
+  if(!r.ok) return null;
+  // Exigir a assinatura no corpo distingue o servidor de verdade de uma
+  // hospedagem estática que devolve o index.html em toda rota, com status 200.
+  const h = await r.json();
+  if(!h || h.servico !== "crv-planejamento-entressafra") return null;
+  return {
+    duravel: h.duravel !== false,
+    async ler(){ const d = await pedirAPI("GET"); return d.existe ? d.data : null; },
+    mesclar: e => pedirAPI("PATCH", e),
+    substituir: e => pedirAPI("PUT", e),
+    // fetch() é abortado quando a aba fecha; o sendBeacon o navegador entrega
+    // depois, e é por isso que a API aceita POST além de PATCH.
+    beacon(e){
+      if(!navigator.sendBeacon) return false;
+      return navigator.sendBeacon("/api/plano",
+        new Blob([JSON.stringify(e)],{type:"application/json"}));
     }
-  }catch(e){ dbNS=null; }
+  };
+}
+
+async function abrirArtifact(){
+  const ns = await claudeUse("db");
+  if(!ns) return null;
+  const doc = ns.doc("plano/atual");
+  return {
+    duravel: true,
+    async ler(){ const d = await doc.get(); return d && d.exists ? d.data() : null; },
+    // update() mescla campo a campo; se o documento ainda não existe, set() o cria.
+    async mesclar(e){ try{ await doc.update(e); }catch(err){ await doc.set(e); } },
+    substituir: e => doc.set(e)
+  };
+}
+
+function statusRemoto(texto){
+  setStatus(REMOTO.duravel ? texto : texto+" (temporário)", REMOTO.duravel ? "" : "warn");
+}
+
+async function carregar(){
+  for(const abrir of [abrirServidor, abrirArtifact]){
+    try{
+      REMOTO = await abrir();
+      if(!REMOTO) continue;
+      const d = await REMOTO.ler();
+      // se o usuário já começou a editar enquanto isto ainda carregava, não pisar na edição dele
+      if(d && !EDITADO) aplicar(d);
+      statusRemoto(d ? "Salvo no servidor" : "Pronto — salva no servidor");
+      return;
+    }catch(e){ REMOTO = null; }
+  }
   try{
     const raw = localStorage.getItem("crv_plano_v10");
     if(!EDITADO && raw) aplicar(JSON.parse(raw));
@@ -2224,17 +2300,17 @@ async function gravar(full){
   const e = estado();
   // o rascunho local é gravado sempre e na hora: sobrevive a fechar a aba no meio da gravação
   try{ localStorage.setItem("crv_plano_v10",JSON.stringify(e)); }catch(err){}
-  if(dbNS){
+  if(REMOTO){
     try{
-      // update() faz merge campo a campo — uma sessão nunca apaga o que outra preencheu.
-      // set() só em "restaurar padrões", onde limpar campos é justamente a intenção.
-      if(full) await dbNS.doc("plano/atual").set(e);
-      else{
-        try{ await dbNS.doc("plano/atual").update(e); }
-        catch(err){ await dbNS.doc("plano/atual").set(e); }
-      }
-      setStatus("Salvo no servidor",""); return;
-    }catch(err){}
+      // mesclar() junta campo a campo — uma sessão nunca apaga o que outra preencheu.
+      // substituir() só em "restaurar padrões", onde limpar campos é justamente a intenção.
+      if(full) await REMOTO.substituir(e); else await REMOTO.mesclar(e);
+      statusRemoto("Salvo no servidor"); return;
+    }catch(err){
+      // O rascunho local acima já segurou a alteração; dizer que está tudo salvo
+      // esconderia do usuário que os outros ainda não estão vendo o que ele digitou.
+      setStatus("Servidor fora — salvo neste navegador","warn"); return;
+    }
   }
   setStatus("Salvo neste navegador","warn");
 }
@@ -2248,6 +2324,12 @@ function salvar(full){
 function flushSalvar(){
   if(!salvePendente) return;
   clearTimeout(saveTimer);
+  const e = estado();
+  try{ localStorage.setItem("crv_plano_v10",JSON.stringify(e)); }catch(err){}
+  // O navegador cancela um fetch() em curso quando a aba fecha; o sendBeacon ele
+  // se encarrega de entregar. Só existe contra servidor próprio — no Artifact e
+  // sem rede, gravar() faz o que dá.
+  if(REMOTO && REMOTO.beacon && REMOTO.beacon(e)){ salvePendente = false; return; }
   gravar(false);
 }
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden") flushSalvar(); });
@@ -2474,11 +2556,8 @@ $("#btn_export").onclick=async()=>{
   c+="\nMAO DE OBRA\nCod;Funcao;Salario;Custo mensal;Custo hora\n";
   CFG.funcoes.forEach(f=>{const x=R.MP.custoFuncao[f.cod];
     c+=[f.cod,f.nome,f.sal,x.mensal.toFixed(2),x.hora.toFixed(2)].join(";")+"\n";});
-  try{ const dl=await claude.use("downloads");
-    if(dl){ await dl.save({filename:"plano_entressafra_crv.csv",data:c}); return; } }catch(e){}
-  const a=document.createElement("a");
-  a.href="data:text/csv;charset=utf-8,\uFEFF"+encodeURIComponent(c);
-  a.download="plano_entressafra_crv.csv"; a.click();
+  // O BOM faz o Excel abrir o arquivo como UTF-8 em vez de estropiar os acentos.
+  await baixar("\uFEFF"+c, "plano_entressafra_crv.csv", "text/csv;charset=utf-8");
 };
 
 /* ---------- arranque ---------- */
