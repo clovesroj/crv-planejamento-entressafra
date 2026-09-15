@@ -2194,6 +2194,9 @@ async function carregar(){
 }
 function aplicar(d){
   if(!d) return;
+  // o banco entrega o documento congelado (somente leitura): editar direto nele falhava
+  // em silêncio e toda alteração "voltava ao original" — trabalhar sempre numa cópia
+  d = JSON.parse(JSON.stringify(d));
   if(d.P) P={...PADRAO,...d.P};
   if(d.PLANO) PLANO=d.PLANO;
   if(d.DIM) DIM=d.DIM;
