@@ -94,6 +94,8 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);fo
   background-image:repeating-linear-gradient(104deg,rgba(214,180,110,.035) 0 2px,transparent 2px 15px)}
 .brand{display:flex;align-items:center;gap:11px;padding:18px 18px 15px;border-bottom:1px solid rgba(255,255,255,.07)}
 .brand img{height:34px;width:auto;background:#fff;border-radius:6px;padding:4px 7px;flex:none}
+/* logo branco sobre fundo escuro: sem a moldura clara */
+.brand img[data-variante="branco"]{height:36px;background:none;padding:0;border-radius:0}
 .brand .bt{font-family:var(--f-display);font-weight:600;font-size:17px;line-height:1.05;color:#fff;letter-spacing:.2px}
 .brand .bs{font-size:11px;color:var(--side-mute);margin-top:2px}
 
@@ -285,6 +287,7 @@ footer{display:flex;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;co
   background:repeating-linear-gradient(-62deg,rgba(214,180,110,.17) 0 2px,transparent 2px 13px);
   -webkit-mask-image:linear-gradient(90deg,transparent,#000 65%);mask-image:linear-gradient(90deg,transparent,#000 65%)}
 .hero img{height:52px;width:auto;background:#fff;padding:8px 13px;border-radius:7px;position:relative;z-index:1}
+.hero img[data-variante="branco"]{height:58px;background:none;padding:0;border-radius:0}
 .hero .ht{position:relative;z-index:1;min-width:0}
 .hero .eyebrow{font-size:11.5px;text-transform:uppercase;letter-spacing:1.4px;color:#D6B46E;font-weight:600;margin-bottom:3px}
 .hero h1{font-family:var(--f-display);font-size:36px;font-weight:600;line-height:1.05;margin:0 0 6px;letter-spacing:-.3px;
@@ -327,6 +330,7 @@ footer{display:flex;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;co
   .sidebar,.scrim,header,main,footer{display:none!important}
   .app{display:block}
   #print_report{display:block!important}
+  #print_report .rel-logo{height:42px;width:auto;display:block;margin:0 0 10px}
   #print_report h1{font-size:18px;margin:0 0 4px}
   #print_report h2{font-size:13px;margin:18px 0 6px;page-break-after:avoid}
   #print_report p{font-size:11px;color:#555;margin:0 0 10px}
@@ -2815,7 +2819,9 @@ async function gerarExcel(nivel){
 function gerarPDF(nivel){
   const R = calcularCompleto();
   const secoes = relatorioSecoes(R, nivel);
-  let html = `<h1>CRV Industrial — Planejamento de Entressafra</h1>
+  // papel branco: logo azul original
+  let html = `<img class="rel-logo" src="${LOGO}" alt="CRV Industrial">
+    <h1>CRV Industrial — Planejamento de Entressafra</h1>
     <p>Safra 2026/2027 · Unidade Capinópolis-MG · Relatório ${nivel==="detalhado"?"detalhado":"resumido"} ·
     gerado em ${new Date().toLocaleDateString("pt-BR")}</p>`;
   secoes.forEach(s=>{
@@ -2908,7 +2914,37 @@ function render(){
   pintarPainel(R); pintarValida(R);
 }
 
+/* Logo em duas versões, conforme o fundo:
+   azul (original, com fundo branco) — fundos claros, como o relatório impresso;
+   branca (gerada do original)       — fundos escuros: menu lateral e capa.
+   A versão branca troca o fundo branco por transparência e o azul por branco,
+   preservando a suavização das bordas. Se o canvas falhar, fica o azul com a moldura clara. */
+function logoBranco(src){
+  return new Promise(ok=>{
+    const img = new Image();
+    img.onload = ()=>{
+      try{
+        const c = document.createElement("canvas");
+        c.width = img.naturalWidth; c.height = img.naturalHeight;
+        const x = c.getContext("2d"); x.drawImage(img,0,0);
+        const d = x.getImageData(0,0,c.width,c.height), p = d.data;
+        for(let i=0;i<p.length;i+=4){
+          // quanto mais distante do branco, mais opaco
+          const a = Math.min(255, (255-Math.min(p[i],p[i+1],p[i+2]))*1.25);
+          p[i]=p[i+1]=p[i+2]=255; p[i+3]=Math.round(a*p[i+3]/255);
+        }
+        x.putImageData(d,0,0); ok(c.toDataURL("image/png"));
+      }catch(e){ ok(null); }
+    };
+    img.onerror = ()=>ok(null);
+    img.src = src;
+  });
+}
 document.getElementById("logo").src=LOGO;document.getElementById("herologo").src=LOGO;
+logoBranco(LOGO).then(branco=>{
+  if(!branco) return;
+  ["logo","herologo"].forEach(id=>{ const el=document.getElementById(id); el.src=branco; el.dataset.variante="branco"; });
+});
 /* ---------- persistência ---------- */
 function estado(){
   const s = {P,PLANO,DIM,INSUMO,ESPOR,TRATC,TRAT_NOME,DIESEL_MES,ARREND,ARR_PAR,ARR_RAT,ENC,BEN,NIV,GRAT,APOIO,APOIO_FIXO,
