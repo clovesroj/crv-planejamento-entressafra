@@ -6,7 +6,7 @@ import { CFG } from '../dados/cfg.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM } from '../nucleo/calendario.js';
 import { APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, NIV, P, PLANO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, apoioLista, arrLista, fornLista, insLista, matLista, tpessLista } from '../nucleo/estado.js';
-import { FROTA_ABERTO, MAQ, setFROTA_ORIG } from '../nucleo/estado.js';
+import { FROTA_ABERTO, FROTA_UN, MAQ, setFROTA_DEST, setFROTA_ORIG } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { aplicarFiltroPlano } from '../ui/plano.js';
 import { lerPremissas } from '../ui/premissas.js';
@@ -36,6 +36,18 @@ document.addEventListener("input",e=>{
     CRM[m]=CRM[m]||{}; CRM[m][t.dataset.k]=num(t.value); salvar(); leve(); return; }
   if(t.dataset.crmesp!==undefined){ const e=t.dataset.crmesp;
     CRM_ESP[e]=CRM_ESP[e]||{}; CRM_ESP[e][t.dataset.k]=num(t.value); salvar(); leve(); return; }
+  if(t.dataset.ref!==undefined){ const c=t.dataset.ref;
+    FROTA_UN[c]=FROTA_UN[c]||{}; FROTA_UN[c].ref=FROTA_UN[c].ref||{};
+    // campo vazio some do documento em vez de virar zero gravado
+    if(t.value.trim()==="") delete FROTA_UN[c].ref[t.dataset.c];
+    else FROTA_UN[c].ref[t.dataset.c]=num(t.value);
+    salvar(); leve(); return; }
+  if(t.dataset.uncrm!==undefined){ const c=t.dataset.uncrm;
+    FROTA_UN[c]=FROTA_UN[c]||{}; FROTA_UN[c].crm=FROTA_UN[c].crm||{};
+    // campo vazio volta a herdar da especialidade, entao apaga em vez de gravar zero
+    if(t.value.trim()==="") delete FROTA_UN[c].crm[t.dataset.k];
+    else FROTA_UN[c].crm[t.dataset.k]=num(t.value);
+    salvar(); leve(); return; }
   if(t.dataset.maq!==undefined){ const m=t.dataset.maq;
     MAQ[m]=MAQ[m]||{}; MAQ[m][t.dataset.k]=num(t.value); salvar(); render(); return; }
   if(t.dataset.fq!==undefined){ const m=t.dataset.fq;
@@ -103,6 +115,9 @@ document.addEventListener("change",e=>{
   if(t.id==="sel_fun"){ setFUN_SEL(t.value); render(); return; }
   if(t.id==="sel_cat"){ setCAT_SEL(t.value); render(); return; }
   if(t.id==="sel_orig"){ setFROTA_ORIG(t.value); render(); return; }
+  if(t.id==="sel_dest"){ setFROTA_DEST(t.value); render(); return; }
+  if(t.dataset.undest!==undefined){ const c=t.dataset.undest;
+    FROTA_UN[c]=FROTA_UN[c]||{}; FROTA_UN[c].st=t.value; salvar(); render(); return; }
   if(t.dataset.fc!==undefined){ const c=t.dataset.fc;
     PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""};
     PLANO[c].fcod=t.value; PLANO[c].fniv=0; salvar(); render(); return; }

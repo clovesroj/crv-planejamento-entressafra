@@ -1,6 +1,6 @@
 import { CFG } from '../dados/cfg.js';
-import { FROTA_ESP, contaOrigem, rotuloItem } from '../calculo/crm.js';
-import { FROTA_ORIG } from '../nucleo/estado.js';
+import { FROTA_ESP, contaOrigem, destinoDe, rotuloItem } from '../calculo/crm.js';
+import { FROTA_ABERTO, FROTA_ORIG } from '../nucleo/estado.js';
 import { $, fmt, num, pct } from '../nucleo/formato.js';
 import { kpi, th } from './componentes.js';
 
@@ -43,21 +43,52 @@ function pintarResumoFrota(R){
   const espsBase = (CFG.frota_base||[]).filter(e=> contaOrigem(e.prop,e.terc)>0 || nec[e.esp]>0)
     .sort((a,b)=> a.ag.localeCompare(b.ag) || a.grp.localeCompare(b.grp) || a.esp.localeCompare(b.esp));
   let agAtual = "";
+  // Unidades de uma especialidade, respeitando o filtro de origem
+  const anoAtual = new Date().getFullYear();
+  const unidadesDaEsp = e => e.mods.flatMap(m => (m.un||[])
+      .filter(u => FROTA_ORIG==="todos" || (FROTA_ORIG==="proprio" ? u[2]===1 : u[2]===0))
+      .map(u => ({mod:m.m, cod:u[0], ano:u[1], prop:u[2]})))
+    .sort((a,b)=> b.ano-a.ano || a.cod.localeCompare(b.cod));
+
   $("#t_rf_base").innerHTML = th([["Agrupamento / especialidade"],["Modelos",1],["Próprios",1],["Terceiros",1],
-      ["Cadastrada",1],["Exigida pelo plano",1],["Folga",1]])+"<tbody>"+
+      ["Cadastrada",1],["Vai rodar",1],["Vai reformar",1],["Exigida pelo plano",1],["Folga",1]])+"<tbody>"+
     espsBase.map(e=>{
-      const cab = e.ag!==agAtual ? (agAtual=e.ag, `<tr style="background:var(--bg)"><td class="tot" colspan="7">${e.ag}</td></tr>`) : "";
+      const cab = e.ag!==agAtual ? (agAtual=e.ag, `<tr style="background:var(--bg)"><td class="tot" colspan="9">${e.ag}</td></tr>`) : "";
       const cad = contaOrigem(e.prop, e.terc), n = nec[e.esp]||0, folga = cad-n;
-      return cab+`<tr><td style="padding-left:20px">${e.esp} <span class="badge">${e.grp}</span></td>
+      const un = unidadesDaEsp(e);
+      const emRef = un.filter(u=>destinoDe(u.cod)==="reforma").length;
+      const aberto = FROTA_ABERTO["esp:"+e.esp];
+      const linha = cab+`<tr><td style="padding-left:20px">${
+          un.length?`<button class="btn xs" data-abrefrota="esp:${e.esp}" style="margin-right:6px;padding:1px 6px">${aberto?"−":"+"}</button>`:""
+        }${e.esp} <span class="badge">${e.grp}</span></td>
         <td class="num calc">${e.mods.length}</td>
         <td class="num calc">${e.prop||"—"}</td><td class="num calc">${e.terc||"—"}</td>
-        <td class="num tot">${cad||"—"}</td><td class="num tot">${n?fmt(n):"—"}</td>
+        <td class="num tot">${cad||"—"}</td>
+        <td class="num calc">${un.length-emRef||"—"}</td>
+        <td class="num ${emRef?"tot":"calc"}" style="${emRef?"color:var(--amber)":""}">${emRef||"—"}</td>
+        <td class="num tot">${n?fmt(n):"—"}</td>
         <td class="num ${folga<0?"tot":"calc"}" style="${folga<0?"color:var(--red)":""}">${n?fmt(folga):"—"}</td></tr>`;
+      if(!aberto) return linha;
+      return linha+`<tr><td colspan="9" style="padding:0"><div style="padding:6px 0 10px 46px">
+        <table style="width:auto;min-width:520px"><thead><tr>
+          <th>Frota</th><th>Modelo</th><th class="num">Ano</th><th class="num">Idade</th>
+          <th>Origem</th><th>Destino na safra</th></tr></thead><tbody>${
+          un.map(u=>{ const i = u.ano?anoAtual-u.ano:null, d = destinoDe(u.cod);
+            return `<tr${d==="reforma"?' style="opacity:.62"':''}><td>${u.cod}</td><td class="calc">${u.mod}</td>
+              <td class="num ${i!=null&&i>=15?"tot":"calc"}" style="${i!=null&&i>=15?"color:var(--amber)":""}">${u.ano||"—"}</td>
+              <td class="num calc">${i!=null?i+" anos":"—"}</td>
+              <td class="calc">${u.prop?"Própria":"Terceiro"}</td>
+              <td class="${d==="reforma"?"tot":"calc"}">${d==="reforma"?"Vai reformar":"Vai rodar"}</td></tr>`;}).join("")
+        }</tbody></table>
+        <div class="hint" style="margin-top:6px">O destino é definido na aba Manutenção de Frota.</div>
+      </div></td></tr>`;
     }).join("")+
     `<tr><td class="tot">TOTAL</td><td class="num tot">${fmt(espsBase.reduce((s,e)=>s+e.mods.length,0))}</td>
      <td class="num tot">${fmt(espsBase.reduce((s,e)=>s+e.prop,0))}</td>
      <td class="num tot">${fmt(espsBase.reduce((s,e)=>s+e.terc,0))}</td>
      <td class="num tot">${fmt(espsBase.reduce((s,e)=>s+contaOrigem(e.prop,e.terc),0))}</td>
+     <td class="num tot">${fmt(espsBase.reduce((s,e)=>s+unidadesDaEsp(e).filter(u=>destinoDe(u.cod)!=="reforma").length,0))}</td>
+     <td class="num tot">${fmt(espsBase.reduce((s,e)=>s+unidadesDaEsp(e).filter(u=>destinoDe(u.cod)==="reforma").length,0))}</td>
      <td class="num tot">${fmt(Object.values(nec).reduce((a,b)=>a+b,0))}</td><td></td></tr></tbody>`;
 
   $("#t_rf_apoio").innerHTML = th([["Veículo / Máquina"],["Utilização",1],["Disponib.",1],["Necessidade",1],["Atividade"]])+"<tbody>"+

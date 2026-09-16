@@ -24,7 +24,8 @@ direto. Veja [Arquitetura](#arquitetura).
 | Transporte | Transbordo e transporte de cana por raio, ciclo e capacidade |
 | Apoio | Equipamentos de apoio por quantidade e horas |
 | Combustível | Volume de diesel mês a mês, preço projetado por mês, consumo por etapa e equipamento |
-| Manutenção de Frota | CRM por especialidade e modelo, com filtro próprio/terceiro |
+| Manutenção de Frota | CRM por especialidade, modelo e equipamento; destino de cada frota na safra |
+| Reforma de Frota | Provisionamento da reforma, orçado por equipamento e conjunto |
 | Transporte de Pessoal | Rotas, diárias de ônibus e quilometragem |
 | Irrigação | Dimensionamento hidráulico e energia por modalidade |
 | Insumos | Cadastro, composição de tratamentos e volume demandado |
@@ -145,6 +146,54 @@ modelo da especialidade, e a colheita de muda, que usa a mesma colhedora de cana
 outros 34 são classes sem modelo único correspondente — três classes de trator agrícola
 para 28 modelos em campo não viram um modelo só — e aparecem marcados como *classe do
 plano*. Preencher o `mod` deles é trabalho de quem conhece a frota.
+
+### CRM por equipamento
+
+O custo de manutenção pode ser lançado em três níveis, e o mais específico manda:
+
+```
+especialidade   taxa digitada na linha-mãe, vale para todo modelo dela
+   modelo       taxa própria, quando o modelo foge da média
+      frota      ← orçado por equipamento; a média sobe para o modelo e para a especialidade
+```
+
+Abrindo um modelo no **+**, cada equipamento aparece com ano, idade, origem e quatro campos
+de CRM. O que for digitado ali gera a taxa do modelo pela média, e a média dos modelos gera
+a da especialidade — que passa a exibir a tarja *da frota*. Campo em branco volta a herdar.
+
+### Destino da frota na safra
+
+Cada equipamento tem um destino, escolhido na mesma linha:
+
+| Destino | Efeito |
+|---|---|
+| **Vai rodar** | Carrega CRM de safra e entra na média do modelo |
+| **Vai reformar** | Sai da conta do CRM e entra no provisionamento da aba Reforma de Frota |
+
+São excludentes: o equipamento que vai à bancada não roda na operação, e cobrar CRM de safra
+dele seria contar o mesmo custo duas vezes. O filtro **Destino na safra** isola um ou outro —
+é assim que se abre "somente o que vai rodar" para orçar a manutenção da safra.
+
+O Resumo de Frota também desce ao equipamento, com colunas de quantos vão rodar e quantos
+vão reformar por especialidade.
+
+## Reforma de frota
+
+Provisionamento da reforma de entressafra, orçado **por equipamento** e aberto nos conjuntos
+mecânicos que vão à bancada. A lista de conjuntos muda conforme a família, seguindo a planilha
+de orçamento de reforma da safra:
+
+| Família | Conjuntos | Especialidades |
+|---|---|---|
+| Frota geral | 21 — motor, suspensão, freio, cabine, câmbio, diferencial… | todas as demais |
+| Colhedora e esteira | 28 — corte de base, extratores, elevador, rolos, esteira, sapatas… | COLHEDORA - CANA, MAQUINA PESADA - TRATOR ESTEIRA |
+
+A estrutura está em [`dados/reforma.js`](public/js/dados/reforma.js) e **nenhum valor vem
+pré-preenchido** — o orçamento é digitado equipamento por equipamento. Só aparece na aba o
+que estiver marcado como *vai reformar*.
+
+A aba consolida por especialidade (equipamentos, orçados, total e média) e mostra em que
+conjunto a reforma concentra gasto.
 
 ### Parâmetros de máquina
 

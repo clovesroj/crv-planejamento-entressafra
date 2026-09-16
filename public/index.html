@@ -53,6 +53,7 @@
       <button data-s="combust">Combustível</button>
       <button data-s="apoio">Apoio</button>
       <button data-s="frota">Manutenção de Frota</button>
+      <button data-s="reforma">Reforma de Frota</button>
       <button data-s="tpess">Transporte de Pessoal</button>
       <button data-s="resumofrota">Resumo de Frota</button>
     </div>
@@ -304,6 +305,10 @@
         <option value="todos">Próprios e terceiros</option>
         <option value="proprio">Somente próprios</option>
         <option value="terceiro">Somente terceiros</option></select></div>
+      <div style="min-width:190px"><label>Destino na safra</label><select id="sel_dest">
+        <option value="todos">Rodando e em reforma</option>
+        <option value="roda">Somente o que vai rodar</option>
+        <option value="reforma">Somente o que vai reformar</option></select></div>
       <div style="align-self:flex-end"><button class="btn" id="btn_crm_reset">Restaurar padrões do agrupamento</button></div>
     </div>
     <div class="hint" style="margin-bottom:10px">A taxa lançada na linha da <b>especialidade</b> vale para todos
@@ -325,6 +330,20 @@
 </section>
 
 <!-- ===== TRANSPORTE DE PESSOAL ===== -->
+<!-- ===== REFORMA DE FROTA ===== -->
+<section id="reforma">
+  <h2>Reforma de Frota</h2>
+  <p class="lead">Provisionamento da reforma de entressafra, orçado por equipamento e aberto nos conjuntos
+  que vão à bancada. Entra aqui a frota marcada como <b>vai reformar</b> na aba Manutenção de Frota — o que
+  vai rodar carrega CRM de safra, não reforma.</p>
+  <div class="grid g4" id="k_reforma" style="margin-bottom:16px"></div>
+  <div class="panel"><h3>Resumo por especialidade</h3>
+    <div class="tblwrap"><table id="t_ref_resumo"></table></div></div>
+  <div class="panel"><h3>Concentração por conjunto</h3>
+    <div class="tblwrap"><table id="t_ref_conj"></table></div></div>
+  <div id="t_ref_detalhe"></div>
+</section>
+
 <section id="tpess">
   <h2>Transporte de Pessoal</h2>
   <p class="lead">Dimensionamento das rotas e custo do transporte de colaboradores, com diária do motorista

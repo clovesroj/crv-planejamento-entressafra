@@ -1,5 +1,5 @@
 import { CFG } from '../dados/cfg.js';
-import { CRM, CRM_ESP, FROTA, FROTA_ORIG, MAQ, P } from '../nucleo/estado.js';
+import { CRM, CRM_ESP, FROTA, FROTA_DEST, FROTA_ORIG, FROTA_UN, MAQ, P } from '../nucleo/estado.js';
 import { num } from '../nucleo/formato.js';
 
 /* ===== CRM: custos de reparo e manutenção, estratificados ===== */
@@ -40,15 +40,58 @@ function chaveDoModelo(item){
   const c = CFG.crm[item];
   return c && c.mod && c.esp ? c.esp+SEP_MOD+c.mod : null;
 }
+/* ===== Unidade de frota =====
+   O equipamento fisico e a menor unidade do cadastro. Cada um tem um destino na
+   safra: roda na operacao, e ai carrega custo de manutencao, ou vai para
+   reforma, e ai entra no provisionamento de reforma em vez do CRM. */
+const DESTINO_PADRAO = "roda";
+function unDe(cod){ return FROTA_UN[cod] || {}; }
+function destinoDe(cod){ return unDe(cod).st || DESTINO_PADRAO; }
+// CRM proprio da unidade, quando alguem digitou algum componente nela
+function crmUnDe(cod){
+  const c = unDe(cod).crm || {};
+  const o = {}; let tem = false;
+  CRM_COMP.forEach(k=>{ if(c[k]!=null && c[k]!==""){ o[k]=num(c[k]); tem=true; } else o[k]=0; });
+  o.total = CRM_COMP.reduce((s,k)=>s+o[k],0);
+  o.preenchida = tem;
+  return o;
+}
+
 // Unidades físicas de um modelo, do mais novo ao mais velho: [cod, ano, proprio]
-function unidadesDoModelo(chave){
+function unidadesDoModelo(chave, ignorarDestino){
   const i = INFO_MODELO[chave];
   if(!i) return [];
   const e = FROTA_ESP[i.esp];
   const m = e && e.mods.find(x=>x.m===i.mod);
-  const un = (m && m.un) || [];
-  return FROTA_ORIG==="todos" ? un
-       : un.filter(u => FROTA_ORIG==="proprio" ? u[2]===1 : u[2]===0);
+  let un = (m && m.un) || [];
+  if(FROTA_ORIG!=="todos") un = un.filter(u => FROTA_ORIG==="proprio" ? u[2]===1 : u[2]===0);
+  if(!ignorarDestino && FROTA_DEST!=="todos") un = un.filter(u => destinoDe(u[0])===FROTA_DEST);
+  return un;
+}
+// Media do que foi digitado nas unidades que vao rodar. E o caminho de baixo
+// para cima: a unidade orcada gera o modelo, e o modelo gera a especialidade.
+// So conta unidade que roda -- a que vai para reforma nao carrega CRM de safra.
+function crmDasUnidades(chave){
+  const un = unidadesDoModelo(chave, true).filter(u=>destinoDe(u[0])==="roda");
+  const cheias = un.map(u=>crmUnDe(u[0])).filter(c=>c.preenchida);
+  if(!cheias.length) return null;
+  const o = {};
+  CRM_COMP.forEach(k=> o[k] = cheias.reduce((a,c)=>a+c[k],0)/cheias.length);
+  o.total = CRM_COMP.reduce((s,k)=>s+o[k],0);
+  o.n = cheias.length; o.de = un.length;
+  return o;
+}
+// Idem para a especialidade: media dos modelos que tem unidade orcada
+function crmDosModelos(esp){
+  const e = FROTA_ESP[esp];
+  if(!e) return null;
+  const vindos = e.mods.map(m=>crmDasUnidades(esp+SEP_MOD+m.m)).filter(Boolean);
+  if(!vindos.length) return null;
+  const o = {};
+  CRM_COMP.forEach(k=> o[k] = vindos.reduce((a,c)=>a+c[k],0)/vindos.length);
+  o.total = CRM_COMP.reduce((s,k)=>s+o[k],0);
+  o.n = vindos.length;
+  return o;
 }
 // Especialidade de um item: arquétipo traz `esp` no cadastro, modelo da base
 // traz na própria chave. Serviço e mão de obra não têm frota, logo não têm.
@@ -70,9 +113,11 @@ function contaOrigem(prop, terc){
 // Taxa vigente de uma especialidade, para a linha-mãe da tabela
 function crmEspDe(esp){
   const ov = CRM_ESP[esp] || {};
+  const dosMods = crmDosModelos(esp);
   const o = {};
-  CRM_COMP.forEach(k=> o[k] = ov[k]!=null ? num(ov[k]) : 0);
+  CRM_COMP.forEach(k=> o[k] = ov[k]!=null ? num(ov[k]) : dosMods ? dosMods[k] : 0);
   o.total = CRM_COMP.reduce((s,k)=>s+o[k],0);
+  o.daFrota = !!dosMods && !Object.keys(ov).length;   // veio de baixo, nao digitado aqui
   return o;
 }
 
@@ -96,10 +141,14 @@ function crmDe(item){
   // Arquétipo do planejamento já tem a sua e não é afetado.
   const pad  = (esp && CRM_ESP[esp]) || {};
   const ov   = CRM[item] || {};
-  const o = {esp, cat: base ? base.cat : "Equipamentos"};
+  // Precedencia: numero digitado no proprio item > cadastro do arquetipo >
+  // media das unidades orcadas deste modelo > taxa lancada na especialidade.
+  const daFrota = INFO_MODELO[item] ? crmDasUnidades(item) : null;
+  const o = {esp, cat: base ? base.cat : "Equipamentos", daFrota: !!daFrota};
   CRM_COMP.forEach(k=>{
     o[k] = ov[k]!=null           ? num(ov[k])
          : base && base[k]!=null ? base[k]
+         : daFrota               ? daFrota[k]
          : pad[k]!=null          ? num(pad[k])
          : 0;
   });
@@ -198,5 +247,5 @@ function crmFrota(L, AE){
 
 
 export { AG_SEM_FROTA, CAT_VEICULO, MAQ_CAMPOS, baseDe, maqDe, CRM_COMP, CRM_LABEL, FROTA_AG, FROTA_AGS, FROTA_ESP, INFO_MODELO, SEP_MOD,
-         agDeLinha, agsCRM, chaveDoModelo, contaOrigem, crmDe, crmDetalhe, crmEspDe, crmFrota, crmHora, espDe, frotaPorItem,
+         agDeLinha, agsCRM, chaveDoModelo, contaOrigem, crmDasUnidades, crmDe, crmUnDe, destinoDe, crmDetalhe, crmEspDe, crmFrota, crmHora, espDe, frotaPorItem,
          horasPorItem, modDe, modeloNaBase, rotuloItem, unidadesDoModelo, velMediaVeic };

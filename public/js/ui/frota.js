@@ -1,8 +1,8 @@
 import { AG_SEM_FROTA, CRM_COMP, CRM_LABEL, FROTA_ESP, SEP_MOD, agDeLinha, agsCRM,
-         MAQ_CAMPOS, chaveDoModelo, contaOrigem, crmDe, crmEspDe, maqDe, modDe, rotuloItem,
-         unidadesDoModelo } from '../calculo/crm.js';
+         MAQ_CAMPOS, chaveDoModelo, contaOrigem, crmDe, crmEspDe, crmUnDe, destinoDe,
+         maqDe, modDe, rotuloItem, unidadesDoModelo } from '../calculo/crm.js';
 import { CFG } from '../dados/cfg.js';
-import { CAT_SEL, CRM, CRM_ESP, FROTA, FROTA_ABERTO, FROTA_ORIG, MAQ } from '../nucleo/estado.js';
+import { CAT_SEL, CRM, CRM_ESP, FROTA, FROTA_ABERTO, FROTA_DEST, FROTA_ORIG, FROTA_UN as FROTA_UN_REF, MAQ } from '../nucleo/estado.js';
 import { $, brl, fmt } from '../nucleo/formato.js';
 import { kpi, th } from './componentes.js';
 import { setCAT_SEL } from '../nucleo/estado.js';
@@ -13,6 +13,7 @@ function pintarCRM(R){
   if(!CAT_SEL || !ags.includes(CAT_SEL)) setCAT_SEL(ags[0]);
   $("#sel_cat").innerHTML = ags.map(c=>`<option ${c===CAT_SEL?"selected":""}>${c}</option>`).join("");
   $("#sel_orig").value = FROTA_ORIG;
+  $("#sel_dest").value = FROTA_DEST;
 
   const crmT = R.crmTotal;
   $("#k_crm").innerHTML =
@@ -30,6 +31,7 @@ function pintarCRM(R){
     return (ea?ea.grp:"").localeCompare(eb?eb.grp:"") || a.localeCompare(b);
   });
 
+  const unRaw = cod => ((FROTA_UN_REF[cod]||{}).crm)||{};
   const cel = (l,k,c)=>`<td class="num"><input data-crm="${l.item}" data-k="${k}" value="${c[k]}" inputmode="decimal"></td>`;
   // Uma linha do registro: modelo da base, ou item do plano aninhado sob ele.
   // `recuo` distingue os dois niveis visualmente.
@@ -45,7 +47,7 @@ function pintarCRM(R){
     return `<tr><td style="padding-left:${recuo}px">${
         unids.length?`<button class="btn xs" data-abrefrota="${chave}" style="margin-right:6px;padding:1px 6px">${aberto?"−":"+"}</button>`:""
       }${rotuloItem(l.item)}${
-        alt?' <span class="badge b-warn">taxa própria</span>':''}${
+        alt?' <span class="badge b-warn">taxa própria</span>':c.daFrota?' <span class="badge b-ok">da frota</span>':''}${
         eClasse?' <span class="badge">classe do plano</span>':''}${
         l.extra>0?` <span class="badge b-ok">+${l.extra} extra</span>`:''}</td>
       <td class="num calc">${un||"—"}</td>`+
@@ -61,22 +63,36 @@ function pintarCRM(R){
       (aberto ? linhasUnidades(unids) : "");
   };
 
-  // Frota fisica do modelo: um equipamento por linha, com o ano de fabricacao.
+  // Frota fisica do modelo: um equipamento por linha, com ano, destino na safra
+  // e o CRM dele. E aqui que o custo nasce -- a media do que se digita sobe para
+  // o modelo e do modelo para a especialidade.
   const anoAtual = new Date().getFullYear();
   const linhasUnidades = un=>{
-    const idade = a=> a ? anoAtual-a : null;
     return `<tr><td colspan="14" style="padding:0">
       <div style="padding:6px 0 10px 52px">
-        <table style="width:auto;min-width:420px">
-          <thead><tr><th>Frota</th><th class="num">Ano</th><th class="num">Idade</th><th>Origem</th></tr></thead>
+        <table style="width:auto;min-width:760px">
+          <thead><tr><th>Frota</th><th class="num">Ano</th><th class="num">Idade</th><th>Origem</th>
+            <th>Destino na safra</th>
+            ${CRM_COMP.map(k=>`<th class="num">${CRM_LABEL[k]}</th>`).join("")}
+            <th class="num">CRM</th></tr></thead>
           <tbody>${un.map(([cod,ano,prop])=>{
-            const i = idade(ano);
-            return `<tr><td>${cod||"—"}</td>
+            const i = ano ? anoAtual-ano : null;
+            const c = crmUnDe(cod), dest = destinoDe(cod);
+            const emReforma = dest==="reforma";
+            return `<tr${emReforma?' style="opacity:.62"':''}>
+              <td>${cod||"—"}</td>
               <td class="num ${i!=null&&i>=15?"tot":"calc"}" style="${i!=null&&i>=15?"color:var(--amber)":""}">${ano||"—"}</td>
               <td class="num calc">${i!=null?i+" anos":"—"}</td>
-              <td class="calc">${prop?"Própria":"Terceiro"}</td></tr>`;}).join("")}
+              <td class="calc">${prop?"Própria":"Terceiro"}</td>
+              <td><select data-undest="${cod}">
+                <option value="roda"${dest==="roda"?" selected":""}>Vai rodar</option>
+                <option value="reforma"${emReforma?" selected":""}>Vai reformar</option></select></td>
+              ${CRM_COMP.map(k=>`<td class="num"><input data-uncrm="${cod}" data-k="${k}" value="${(unRaw(cod)[k]!=null?unRaw(cod)[k]:"")}" placeholder="—" inputmode="decimal"${emReforma?" disabled":""}></td>`).join("")}
+              <td class="num ${c.preenchida?"tot":"calc"}">${c.preenchida?brl(c.total,2):"—"}</td></tr>`;}).join("")}
           </tbody>
         </table>
+        <div class="hint" style="margin-top:6px">Unidade marcada para reforma não carrega CRM de safra —
+        ela entra no provisionamento da aba Reforma de Frota.</div>
       </div></td></tr>`;
   };
 
@@ -98,7 +114,8 @@ function pintarCRM(R){
     corpo += `<tr style="background:var(--bg)"><td class="tot">${esp}
         ${e?`<span class="badge">${e.grp}</span>`:""}
         <span class="calc" style="font-weight:400">· ${mods.filter(l=>l.naBase).length} modelo${mods.filter(l=>l.naBase).length===1?"":"s"}</span>
-        ${semTaxa?' <span class="badge b-warn">sem taxa</span>':''}</td>
+        ${ce.daFrota?' <span class="badge b-ok">da frota</span>':''}${
+          semTaxa?' <span class="badge b-warn">sem taxa</span>':''}</td>
       <td class="num tot">${un||"—"}</td>`+
       CRM_COMP.map(k=>`<td class="num"><input data-crmesp="${esp}" data-k="${k}" value="${ce[k]}" inputmode="decimal"></td>`).join("")+
       `<td class="num tot">${brl(ce.total,2)}/${unid}</td>

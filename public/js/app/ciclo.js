@@ -12,6 +12,7 @@ import { pintarContas } from '../ui/contas.js';
 import { pintarCustos } from '../ui/custos.js';
 import { pintarDim } from '../ui/dimensionamento.js';
 import { pintarCRM } from '../ui/frota.js';
+import { pintarReforma } from '../ui/reforma.js';
 import { pintarForn } from '../ui/fornecedores.js';
 import { pintarInsumos } from '../ui/insumos.js';
 import { pintarIrrig } from '../ui/irrigacao.js';
@@ -41,7 +42,7 @@ function render(){
   $("#c_capTransb").value=fmt(P.capTransb,1)+" t/viagem";
   $("#c_arr_ha").value=fmt(R.AR.area)+" ha";
   $("#c_arr").value=R.AR.area>0?brl(R.AR.anual/R.AR.area,2):"—";
-  pintarCapa(R); pintarMDO(R); pintarPlano(R); pintarDim(R); pintarTransp(R); pintarApoio(R); pintarCRM(R); pintarTPess(R);
+  pintarCapa(R); pintarMDO(R); pintarPlano(R); pintarDim(R); pintarTransp(R); pintarApoio(R); pintarCRM(R); pintarReforma(); pintarTPess(R);
   pintarIrrig(R); pintarInsumos(R); pintarArrend(R); pintarForn(R); pintarCustos(R); pintarContas(R); pintarCombustivel(R); pintarResumoFrota(R); pintarPessoas(R);
   pintarPainel(R); pintarValida(R);
 }
