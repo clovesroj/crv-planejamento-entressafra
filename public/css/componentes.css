@@ -285,6 +285,22 @@ tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:under
 @media (max-width:640px){#rastro{padding:0}.ra-modal{width:100%;height:100%;max-height:100%;border-radius:0}}
 @media print{#rastro,#rastro_fundo{display:none!important}}
 
+/* Modal de rendimento por mes: mesmo container central com blur do rastro
+   (#rendm/#rendm_fundo espelham #rastro/#rastro_fundo), mas e formulario —
+   uma grade de 12 campos, um por mes, em vez de blocos de explicacao. */
+#rendm_fundo{position:fixed;inset:0;z-index:90;background:rgba(10,17,12,.5);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);animation:raFundoIn .2s ease-out}
+#rendm_fundo[hidden]{display:none}
+#rendm{position:fixed;inset:0;z-index:95;display:flex;align-items:center;justify-content:center;padding:24px}
+#rendm[hidden]{display:none}
+.rm-modal{width:min(620px,100%)}
+.rm-grade{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.rm-mes label{display:block;font-size:11px;color:var(--grey);margin-bottom:4px}
+.rm-mes input{width:100%}
+@media (max-width:640px){#rendm{padding:0}.rm-modal{width:100%;height:100%;max-height:100%;border-radius:0}
+  .rm-grade{grid-template-columns:repeat(2,1fr)}}
+@media print{#rendm,#rendm_fundo{display:none!important}}
+
 /* Filtro global de periodo, na barra superior: vale para toda tela que tenha
    numero decomposto por mes. A aba que nao tem serie mensal ignora e continua
    mostrando o ano -- o rotulo do proprio seletor avisa. */

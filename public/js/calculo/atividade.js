@@ -92,6 +92,7 @@ function linha(a, MP){
   }else{
     frentes = [{modo:"", pct:1, maq:a.maq, imp:a.imp,
                 rend: d.rend!=null?num(d.rend):a.rend,
+                rendM: Array.isArray(d.rendM) ? d.rendM : null,
                 ops:a.ops, turnos:a.turnos, fcodPad:null}];
   }
 
@@ -119,6 +120,14 @@ function linha(a, MP){
       const viagens = cap>0 ? area/cap : 0;
       horas = P.dispTr>0 ? viagens*ciclo/(P.dispTr/100) : 0;
       capMes = P.dias * P.hDiaTr * (P.dispTr/100) * util;
+    }else if(f.rendM){
+      // rendimento varia por mes: soma as horas mes a mes em vez de dividir o total
+      // por um rendimento so — mes sem valor proprio usa o padrao (f.rend)
+      horas = meses.reduce((s,q,i)=>{
+        const rm = num(f.rendM[i]), rendEf = rm>0 ? rm : f.rend;
+        return s + (rendEf>0 ? num(q)/rendEf : 0);
+      }, 0);
+      capMes = P.dias * P.hdia * (P.disp/100) * util;
     }else{
       horas = f.rend>0 ? area/f.rend : 0;
       capMes = P.dias * P.hdia * (P.disp/100) * util;

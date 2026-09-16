@@ -9,8 +9,9 @@ import { FROTA_ABERTO, FROTA_UN, MAQ, setFROTA_DEST, setFROTA_ORIG } from '../nu
 import { $, num } from '../nucleo/formato.js';
 import { aplicarFiltroPlano } from '../ui/plano.js';
 import { lerPremissas } from '../ui/premissas.js';
-import { leve, render, renderRastro } from './ciclo.js';
+import { leve, render, renderRastro, renderRendMensal } from './ciclo.js';
 import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarRastro, voltarRastro } from '../ui/rastro.js';
+import { abrirRendMensal, aberto as rendMensalAberto, fecharRendMensal } from '../ui/rendmensal.js';
 import { setAPOIO, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
 
 /* ---------- entrada ---------- */
@@ -21,6 +22,9 @@ document.addEventListener("input",e=>{
     const c=t.dataset.c; PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""};
     PLANO[c].m[+t.dataset.m]=num(t.value); salvar(); leve(); return; }
   if(t.dataset.r!==undefined){ DIM[t.dataset.r]=DIM[t.dataset.r]||{}; DIM[t.dataset.r].rend=num(t.value); salvar(); leve(); return; }
+  if(t.dataset.rendm!==undefined){ const c=t.dataset.rendm;
+    DIM[c]=DIM[c]||{}; DIM[c].rendM=Array.isArray(DIM[c].rendM)?DIM[c].rendM:Array(NM).fill("");
+    DIM[c].rendM[+t.dataset.i]=num(t.value); salvar(); leve(); return; }
   if(t.dataset.u!==undefined){ DIM[t.dataset.u]=DIM[t.dataset.u]||{}; DIM[t.dataset.u].util=num(t.value)/100; salvar(); leve(); return; }
   if(t.dataset.fs!==undefined){ const f=CFG.funcoes.find(x=>x.cod===t.dataset.fs);
     if(f) f.sal=num(t.value);
@@ -168,6 +172,11 @@ document.addEventListener("click",e=>{
   if(e.target.closest && e.target.closest("#ra_voltar")){ voltarRastro(); renderRastro(); return; }
   if((e.target.closest && e.target.closest("#ra_fechar")) || e.target.id==="rastro_fundo"){
     fecharRastro(); renderRastro(); return; }
+  // rendimento por mes: botao "mês" ao lado do rendimento padrao, no Dimensionamento
+  const alvoRendMes = e.target.closest && e.target.closest("[data-rendmes]");
+  if(alvoRendMes){ abrirRendMensal(alvoRendMes.dataset.rendmes); renderRendMensal(); return; }
+  if((e.target.closest && e.target.closest("#rm_fechar")) || e.target.id==="rendm_fundo"){
+    fecharRendMensal(); renderRendMensal(); return; }
   // ratear: espalha o total da atividade igualmente pelos meses da janela de datas
   const alvoRat = e.target.closest && e.target.closest("[data-ratear]");
   if(alvoRat){
@@ -346,6 +355,7 @@ document.addEventListener("keydown", e=>{
 /* Enter e espaco abrem o rastro de uma linha navegavel; Esc fecha a gaveta. */
 document.addEventListener("keydown", e=>{
   if(e.key==="Escape" && rastroAberto()){ fecharRastro(); renderRastro(); return; }
+  if(e.key==="Escape" && rendMensalAberto()){ fecharRendMensal(); renderRendMensal(); return; }
   if(e.key!=="Enter" && e.key!==" ") return;
   const alvo = e.target.closest && e.target.closest("[data-rastro]");
   if(alvo && e.target.getAttribute && e.target.getAttribute("role")==="button"){
