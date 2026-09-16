@@ -37,6 +37,33 @@ function fatorDe(cod, MP){
   return fatorEscala((DIM[cod]||{}).esc) || MP.fatorEscala;
 }
 
+/* ===== Janela de execução de uma atividade =====
+   Quantos meses a atividade tem para acontecer. Antes a frota era dimensionada
+   sobre os doze meses do orçamento, mesmo numa atividade que roda em três: a
+   conta dava uma frota quatro vezes menor do que a operação precisa.
+
+   A janela sai, nesta ordem:
+     1. datas de início e fim lançadas na atividade
+     2. os meses em que há volume lançado no plano
+     3. o ano inteiro, quando não há nem data nem volume
+
+   Em meses fracionários, porque uma janela de 45 dias não são dois meses. */
+const DIAS_MES = 365 / 12;
+function janelaDe(cod, meses){
+  const d = DIM[cod] || {};
+  if(d.ini && d.fim){
+    const i = new Date(d.ini), f = new Date(d.fim);
+    if(!isNaN(i) && !isNaN(f) && f >= i){
+      const dias = (f - i) / 86400000 + 1;          // fim inclusivo
+      return {meses: Math.max(dias / DIAS_MES, 1 / DIAS_MES), dias, fonte: "datas",
+              ini: d.ini, fim: d.fim};
+    }
+  }
+  const comVol = meses.reduce((n, q) => n + (num(q) > 0 ? 1 : 0), 0);
+  if(comVol > 0) return {meses: comVol, dias: comVol * DIAS_MES, fonte: "meses do plano"};
+  return {meses: NM, dias: NM * DIAS_MES, fonte: "ano inteiro"};
+}
+
 function linha(a, MP){
   const p = PLANO[a.cod] || {m:Array(NM).fill(0), trat:""};
   const meses = a.tipo==="transp"
@@ -49,6 +76,7 @@ function linha(a, MP){
   const turnosOv = num((DIM[a.cod]||{}).turnos);
   const util = d.util!=null ? num(d.util) : a.util;
   const ehHa = a.un.indexOf("ha")===0;
+  const jan = janelaDe(a.cod, meses);
   const M = mixDe(a, p);
 
   // define as frentes de trabalho: uma por modo com % > 0, ou uma única no padrão
@@ -94,7 +122,8 @@ function linha(a, MP){
       horas = f.rend>0 ? area/f.rend : 0;
       capMes = P.dias * P.hdia * (P.disp/100) * util;
     }
-    frota = capMes>0 ? horas/(capMes*NM) : 0;
+    // frota = horas de trabalho ÷ capacidade de um equipamento na janela
+    frota = capMes>0 ? horas/(capMes*jan.meses) : 0;
     const mq = maqDe(f.maq);
     // a função segue o modo, salvo se o usuário tiver fixado uma função na atividade
     const fc = p.fcod ? fcod : (f.fcodPad || fcod);
@@ -115,7 +144,7 @@ function linha(a, MP){
   const cInsumo = (t && ehHa) ? total*t : 0;
   const rendMed = soma("horas")>0 ? total/soma("horas") : (frentes[0].rend||0);
 
-  return {a, meses, total, rend:rendMed, util, partes, escala:(d.esc||""), fator, turnosOv, mix:M?M.mx:null, mixSoma:M?M.soma:0,
+  return {a, meses, total, rend:rendMed, util, partes, escala:(d.esc||""), fator, turnosOv, janela:jan, mix:M?M.mx:null, mixSoma:M?M.soma:0,
           horas:soma("horas"), capMes:partes[0].capMes, frota:soma("frota"),
           frotaR:partes.reduce((s,x)=>s+x.frotaR,0),
           cDiesel:soma("cDiesel"), cManut:soma("cManut"), cMDO:soma("cMDO"), cTerc:soma("cTerc"), cInsumo,

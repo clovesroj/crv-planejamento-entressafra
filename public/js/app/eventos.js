@@ -133,6 +133,11 @@ document.addEventListener("change",e=>{
   if(t.id==="sel_dest"){ setFROTA_DEST(t.value); render(); return; }
   if(t.dataset.undest!==undefined){ const c=t.dataset.undest;
     FROTA_UN[c]=FROTA_UN[c]||{}; FROTA_UN[c].st=t.value; salvar(); render(); return; }
+  if(t.dataset.dt!==undefined){ const c=t.dataset.dt;
+    DIM[c]=DIM[c]||{};
+    // data em branco volta a janela para os meses com volume lançado
+    if(!t.value) delete DIM[c][t.dataset.f]; else DIM[c][t.dataset.f]=t.value;
+    salvar(); render(); return; }
   if(t.dataset.fc!==undefined){ const c=t.dataset.fc;
     PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""};
     PLANO[c].fcod=t.value; salvar(); render(); return; }

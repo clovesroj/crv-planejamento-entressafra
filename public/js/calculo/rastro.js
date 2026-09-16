@@ -141,7 +141,13 @@ function rastroAtividade(R, cod){
       {rot:"Taxa de utilização", val:pct(r.util)},
       {rot:"Horas = volume ÷ rendimento", val:fmt(r.horas)+" h"},
       {rot:"Capacidade por equipamento/mês", val:fmt(r.capMes||0)+" "+un},
-      {rot:"Frota necessária", val:(r.frotaR||0)+" equip."},
+      {rot:"Janela de execução", val:fmt(r.janela.meses,1)+" meses",
+       sub: r.janela.fonte==="datas" ? `de ${r.janela.ini} a ${r.janela.fim} · ${fmt(r.janela.dias,0)} dias`
+          : r.janela.fonte==="meses do plano" ? "meses com volume lançado; defina datas para ajustar"
+          : "sem data nem volume: dimensionado sobre o ano"},
+      {rot:"Capacidade de 1 equipamento na janela", val:fmt((r.capMes||0)*r.janela.meses)+" "+un},
+      {rot:"Frota necessária", val:(r.frotaR||0)+" equip.",
+       sub:`${fmt(r.horas)} h ÷ (${fmt(r.capMes||0)} ${un}/mês × ${fmt(r.janela.meses,1)} meses) = ${fmt(r.frota||0,2)}, arredondado para cima`},
       {rot:"Turnos", val:(r.partes[0]?r.partes[0].turnosEf:r.a.turnos)+"t"},
       {rot:"Escala", val:escala+" · fator "+fmt(r.fator,2)},
       {rot:"Efetivo", val:fmt(r.efetivo)+" pessoas"},

@@ -52,7 +52,7 @@ function pintarPlano(R){
   const parcial = FILTRO_MES!=="todos";
   let h = th([["Cod"],["Atividade"],["Un."],
               ...MESES.map((m,j)=>[m,1,clsMes(j)]),[parcial?"Total do período":"Total",1],
-              ["Modo de execução"],["Função"],["Tratamento"],["Insumo",1]])+"<tbody>";
+              ["Modo de execução"],["Início"],["Fim"],["Equip."],["Tratamento"],["Insumo",1]])+"<tbody>";
   let et="";
   R.L.forEach(r=>{
     if(r.a.etapa!==et){et=r.a.etapa; h+=`<tr class="stage"><td colspan="${NM+9}">${et}</td></tr>`;}
@@ -67,7 +67,10 @@ function pintarPlano(R){
       `<td class="num tot" style="color:${totalNoFiltro(r)>0?'var(--green)':'var(--grey)'}"${
           parcial && r.total>0 ? ` title="No ano: ${fmt(r.total)}"` : ""}>${fmt(totalNoFiltro(r))}</td>
        <td>${r.a.modoOn ? mixEditor(r) : '<span class="calc">—</span>'}</td>
-       <td><select data-fc="${r.a.cod}">${optFuncao(r.fcod)}</select></td>
+       <td><input type="date" data-dt="${r.a.cod}" data-f="ini" value="${r.janela.ini||""}" title="Início da execução"></td>
+       <td><input type="date" data-dt="${r.a.cod}" data-f="fim" value="${r.janela.fim||""}" title="Fim da execução"></td>
+       <td class="num ${r.frotaR>0?"tot":"calc"}" data-rastro="ativ:${r.a.cod}" role="button" tabindex="0"
+           title="Como se chegou nessa frota">${r.frotaR ? r.frotaR+" ›" : "—"}</td>
        <td><select data-t="${r.a.cod}" ${r.ehHa?"":"disabled"}>${opts}</select></td>
        <td class="num calc">${r.cInsumo?brl(r.cInsumo):"—"}</td></tr>`;
   });
