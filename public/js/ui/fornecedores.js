@@ -33,25 +33,25 @@ function pintarForn(R){
     ["Prêmio (R$/t)",1],["Descontos (R$/t)",1],["Frete (R$/t)",1],["Logística (R$/t)",1],
     ["R$/t",1],["Custo total",1],[""]])+"<tbody>"+
     (F.linhas.length ? F.linhas.map((l,i)=>`<tr>
-      <td><input data-fn="${i}" data-f="forn" value="${esc(l.forn)}" style="text-align:left;min-width:160px"></td>
-      <td><input data-fn="${i}" data-f="prop" value="${esc(l.prop)}" style="text-align:left;min-width:150px"></td>
-      <td><select data-fn="${i}" data-f="origem">${ORIG.filter(o=>FORN_ORIGENS[o].fonte==="contrato")
+      <td><input data-fnr="${i}" data-f="forn" value="${esc(l.forn)}" style="text-align:left;min-width:160px"></td>
+      <td><input data-fnr="${i}" data-f="prop" value="${esc(l.prop)}" style="text-align:left;min-width:150px"></td>
+      <td><select data-fnr="${i}" data-f="origem">${ORIG.filter(o=>FORN_ORIGENS[o].fonte==="contrato")
         .map(o=>`<option value="${o}" ${o===l.origem?"selected":""}>${FORN_ORIGENS[o].nome}</option>`).join("")}</select></td>
-      <td><select data-fn="${i}" data-f="mod">${Object.entries(FORN_MODALIDADES)
+      <td><select data-fnr="${i}" data-f="mod">${Object.entries(FORN_MODALIDADES)
         .map(([k,m])=>`<option value="${k}" ${k===l.mod?"selected":""}>${m.nome}</option>`).join("")}</select></td>
-      <td class="num"><input data-fn="${i}" data-f="area" value="${num(l.area)}" inputmode="decimal"></td>
-      <td class="num"><input data-fn="${i}" data-f="tch" value="${num(l.tch)}" inputmode="decimal"></td>
-      <td class="num"><input data-fn="${i}" data-f="tonContr" value="${num(l.tonContr)}" inputmode="decimal"></td>
-      <td class="num"><input data-fn="${i}" data-f="tonEst" value="${num(l.tonEst)}" inputmode="decimal"
+      <td class="num"><input data-fnr="${i}" data-f="area" value="${num(l.area)}" inputmode="decimal"></td>
+      <td class="num"><input data-fnr="${i}" data-f="tch" value="${num(l.tch)}" inputmode="decimal"></td>
+      <td class="num"><input data-fnr="${i}" data-f="tonContr" value="${num(l.tonContr)}" inputmode="decimal"></td>
+      <td class="num"><input data-fnr="${i}" data-f="tonEst" value="${num(l.tonEst)}" inputmode="decimal"
           title="Em branco usa área × TCH"></td>
-      <td class="num"><input data-fn="${i}" data-f="atr" value="${num(l.atr)}" inputmode="decimal"></td>
-      <td class="num"><input data-fn="${i}" data-f="preco" value="${num(l.preco)}" inputmode="decimal"></td>
+      <td class="num"><input data-fnr="${i}" data-f="atr" value="${num(l.atr)}" inputmode="decimal"></td>
+      <td class="num"><input data-fnr="${i}" data-f="preco" value="${num(l.preco)}" inputmode="decimal"></td>
       <td class="calc">${(FORN_MODALIDADES[l.mod]||{un:""}).un}</td>
-      <td class="num"><input data-fn="${i}" data-f="premio" value="${num(l.premio)}" inputmode="decimal"></td>
-      <td class="num"><input data-fn="${i}" data-f="desc" value="${num(l.desc)}" inputmode="decimal"></td>
-      <td class="num"><input data-fn="${i}" data-f="frete" value="${num(l.frete)}" inputmode="decimal"
+      <td class="num"><input data-fnr="${i}" data-f="premio" value="${num(l.premio)}" inputmode="decimal"></td>
+      <td class="num"><input data-fnr="${i}" data-f="desc" value="${num(l.desc)}" inputmode="decimal"></td>
+      <td class="num"><input data-fnr="${i}" data-f="frete" value="${num(l.frete)}" inputmode="decimal"
           title="Em branco usa distância × tarifa por km"></td>
-      <td class="num"><input data-fn="${i}" data-f="logist" value="${num(l.logist)}" inputmode="decimal"></td>
+      <td class="num"><input data-fnr="${i}" data-f="logist" value="${num(l.logist)}" inputmode="decimal"></td>
       <td class="num calc">${l.ton>0?brl(l.rsT,2):"—"}</td>
       <td class="num tot">${brl(l.custo)}</td>
       <td><button class="btn d" data-fnrm="${i}">Remover</button></td></tr>`).join("")
@@ -69,14 +69,14 @@ function pintarForn(R){
     ["Estimado / contratado",1],["R$/kg ATR",1]])+"<tbody>"+
     (F.linhas.length ? F.linhas.map((l,i)=>`<tr>
       <td>${esc(l.forn)}</td><td class="calc">${esc(l.prop)}</td>
-      <td class="num"><input data-fn="${i}" data-f="dist" value="${num(l.dist)}" inputmode="decimal"></td>
+      <td class="num"><input data-fnr="${i}" data-f="dist" value="${num(l.dist)}" inputmode="decimal"></td>
       <td class="num calc">${brl(l.freteT,2)}${num(l.frete)>0?"":" *"}</td>
       <td class="num calc">${brl(num(l.logist),2)}</td>
-      <td><select data-fn="${i}" data-f="entIni">${mesOpts(l.entIni)}</select>
-          <select data-fn="${i}" data-f="entFim">${mesOpts(l.entFim)}</select></td>
-      <td><select data-fn="${i}" data-f="qual">${FORN_QUALIDADE
+      <td><select data-fnr="${i}" data-f="entIni">${mesOpts(l.entIni)}</select>
+          <select data-fnr="${i}" data-f="entFim">${mesOpts(l.entFim)}</select></td>
+      <td><select data-fnr="${i}" data-f="qual">${FORN_QUALIDADE
         .map(q=>`<option ${q===l.qual?"selected":""}>${q}</option>`).join("")}</select></td>
-      <td class="num"><input data-fn="${i}" data-f="tonHist" value="${num(l.tonHist)}" inputmode="decimal"></td>
+      <td class="num"><input data-fnr="${i}" data-f="tonHist" value="${num(l.tonHist)}" inputmode="decimal"></td>
       <td class="num calc">${l.varHist==null?"—":
         `<span class="badge ${l.varHist>=0?"b-ok":"b-bad"}">${l.varHist>=0?"+":""}${fmt(l.varHist*100,1)}%</span>`}</td>
       <td class="num calc">${l.aderContr>0?fmt(l.aderContr*100,1)+"%":"—"}</td>

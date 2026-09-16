@@ -1,5 +1,6 @@
 import { maqDe } from './crm.js';
 import { CFG } from '../dados/cfg.js';
+import { fatorEscala } from '../dados/escalas.js';
 import { NM } from '../nucleo/calendario.js';
 import { DIM, P, PLANO, TERC_TAR } from '../nucleo/estado.js';
 import { num, pct } from '../nucleo/formato.js';
@@ -30,6 +31,12 @@ function mixDe(a, p){
   return {mx, soma};
 }
 
+/* Fator de escala da atividade: a escala escolhida no dimensionamento de pessoas
+   manda; sem escolha, vale o fator das Premissas de Mao de Obra. */
+function fatorDe(cod, MP){
+  return fatorEscala((DIM[cod]||{}).esc) || MP.fatorEscala;
+}
+
 function linha(a, MP){
   const p = PLANO[a.cod] || {m:Array(NM).fill(0), trat:""};
   const meses = a.tipo==="transp"
@@ -37,6 +44,7 @@ function linha(a, MP){
     : (p.m || Array(NM).fill(0));
   const total = meses.reduce((s,x)=>s+num(x),0);
   const d = DIM[a.cod] || {};
+  const fator = fatorDe(a.cod, MP);   // escala da atividade
   const util = d.util!=null ? num(d.util) : a.util;
   const ehHa = a.un.indexOf("ha")===0;
   const M = mixDe(a, p);
@@ -93,10 +101,10 @@ function linha(a, MP){
     const litros  = horas*mq.d;
     const cDiesel = litros*precoMed;
     const cManut  = 0;   // alocado adiante, a partir do CRM da frota prevista
-    const cMDO    = horas*cf.hora*f.ops*MP.fatorEscala;
+    const cMDO    = horas*cf.hora*f.ops*fator;
     return {...f, area, horas, capMes, frota, frotaR:Math.ceil(frota), cTerc:0, litros, consumoLh:mq.d,
             fcod:fc, fnome:cf.nome, cDiesel, cManut, cMDO,
-            efetivo: Math.ceil(Math.ceil(frota)*f.ops*f.turnos*MP.fatorEscala),
+            efetivo: Math.ceil(Math.ceil(frota)*f.ops*f.turnos*fator),
             direto: cDiesel+cManut+cMDO};
   });
 
@@ -105,7 +113,7 @@ function linha(a, MP){
   const cInsumo = (t && ehHa) ? total*t : 0;
   const rendMed = soma("horas")>0 ? total/soma("horas") : (frentes[0].rend||0);
 
-  return {a, meses, total, rend:rendMed, util, partes, mix:M?M.mx:null, mixSoma:M?M.soma:0,
+  return {a, meses, total, rend:rendMed, util, partes, escala:(d.esc||""), fator, mix:M?M.mx:null, mixSoma:M?M.soma:0,
           horas:soma("horas"), capMes:partes[0].capMes, frota:soma("frota"),
           frotaR:partes.reduce((s,x)=>s+x.frotaR,0),
           cDiesel:soma("cDiesel"), cManut:soma("cManut"), cMDO:soma("cMDO"), cTerc:soma("cTerc"), cInsumo,
@@ -118,4 +126,4 @@ function linha(a, MP){
           dieselMes: fracMes.map((fr,i)=>fr*soma("litros")*precoDiesel(i))};
 }
 
-export { MODOS_ORD, modosDe, linha, mixDe, tarifaTerc };
+export { MODOS_ORD, fatorDe, modosDe, linha, mixDe, tarifaTerc };

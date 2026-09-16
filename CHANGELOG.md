@@ -1,5 +1,27 @@
 # Histórico de mudanças
 
+## 2.7.0 — 2026-09-16 · Nível e escala por atividade
+
+No bloco Dimensionamento de pessoas, cada atividade passa a ter uma linha com
+**seletor de nível da função** e **seletor de escala**, e as frentes aparecem
+como sub-linhas. A coluna Fator mostra o que a escala exige de gente por posto.
+
+Escalas em `dados/escalas.js`: 6x1 (1,17), 5x1 (1,20), 5x2 (1,40), 4x1 (1,25) e
+12x36 (2,00). Em branco, a atividade usa o fator das Premissas de Mão de Obra,
+como antes. A escolha é gravada em `DIM[cod].esc`.
+
+O fator entra no efetivo e no custo de mão de obra daquela atividade. Exemplo:
+colheita com 11 pessoas no 6x1 passa a 13 no 5x2, e a mão de obra sobe de
+R$ 184.457 para R$ 221.348.
+
+### Correção
+
+O seletor de nível do Plano Operacional estava sem efeito desde a entrada do
+módulo de fornecedores: as duas telas usavam `data-fn`, e o handler de
+fornecedor, que vem antes, engolia o evento. As linhas de fornecedor passaram a
+usar `data-fnr`.
+
+
 ## 2.6.0 — 2026-09-16 · Dimensionamento em três blocos
 
 A aba Dimensionamento passa a ter três dimensionamentos separados, cada um num

@@ -88,7 +88,7 @@ document.addEventListener("input",e=>{
   if(t.dataset.arp!==undefined){ ARR_PAR[t.dataset.arp]=num(t.value); salvar(); leve(); return; }
   if(t.dataset.arrat!==undefined){ ARR_RAT[t.dataset.arrat]=num(t.value); salvar(); leve(); return; }
   // selects da tabela de fornecedores sao tratados no "change"; aqui so os campos digitados
-  if(t.dataset.fn!==undefined && t.tagName==="INPUT"){ const l=fornLista()[+t.dataset.fn], f=t.dataset.f;
+  if(t.dataset.fnr!==undefined && t.tagName==="INPUT"){ const l=fornLista()[+t.dataset.fnr], f=t.dataset.f;
     l[f] = ["forn","prop"].includes(f) ? t.value : num(t.value); salvar(); leve(); return; }
   if(t.dataset.fnp!==undefined){ FORN_PAR[t.dataset.fnp]=num(t.value); salvar(); leve(); return; }
   // quadro de pessoal por funcao: ativo, ferias e demissoes programadas
@@ -107,7 +107,7 @@ document.addEventListener("change",e=>{
   if(t.dataset.arr!==undefined && t.tagName==="SELECT"){ const l=arrLista()[+t.dataset.arr];
     l[t.dataset.f] = t.dataset.f==="mes" ? +t.value : t.value; salvar(); render(); return; }
   if(t.id==="arp_criterio"){ ARR_PAR.criterio=t.value; salvar(); render(); return; }
-  if(t.dataset.fn!==undefined && t.tagName==="SELECT"){ const l=fornLista()[+t.dataset.fn], f=t.dataset.f;
+  if(t.dataset.fnr!==undefined){ const l=fornLista()[+t.dataset.fnr], f=t.dataset.f;
     l[f] = ["entIni","entFim"].includes(f) ? +t.value : t.value;
     // o fim da entrega nunca fica antes do inicio
     if(f==="entIni" && +l.entFim < +l.entIni) l.entFim = l.entIni;
@@ -125,6 +125,12 @@ document.addEventListener("change",e=>{
     PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""};
     PLANO[c].fcod=t.value; PLANO[c].fniv=0; salvar(); render(); return; }
 
+  // nivel da funcao e escala escolhidos no dimensionamento de pessoas, por atividade
+  if(t.dataset.niv!==undefined){ const c=t.dataset.niv;
+    PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""};
+    PLANO[c].fniv=+t.value; salvar(); render(); return; }
+  if(t.dataset.esc!==undefined){ const c=t.dataset.esc;
+    DIM[c]=DIM[c]||{}; DIM[c].esc=t.value; salvar(); render(); return; }
   if(t.dataset.fn!==undefined){ const c=t.dataset.fn;
     PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""};
     PLANO[c].fniv=+t.value; salvar(); render(); return; }

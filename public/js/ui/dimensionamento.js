@@ -4,6 +4,8 @@ import { FROTA_ABERTO, QUADRO } from '../nucleo/estado.js';
 import { $, brl, fmt, num, pct } from '../nucleo/formato.js';
 import { MESES } from '../nucleo/calendario.js';
 import { kpi, th } from './componentes.js';
+import { ESCALAS } from '../dados/escalas.js';
+import { optNivel } from './plano.js';
 
 /* ---------- DIMENSIONAMENTO ---------- */
 function pintarDim(R){
@@ -104,25 +106,43 @@ function pintarDimPessoas(R){
   const PS = R.PS;
   const qv = (f,k) => num((QUADRO[f]||{})[k]);
 
-  const linhas = [];
-  R.L.forEach(r=>r.partes.forEach(p=>{
-    if(p.terc || !(p.efetivo>0)) return;
-    linhas.push({cod:r.a.cod, ativ:r.a.nome, etapa:r.a.etapa, modo:p.modo,
-      esp: espDe(p.maq) || p.maq, fcod:p.fcod, fnome:p.fnome,
-      pessoas:p.efetivo, frota:p.frotaR, horas:p.horas});
-  }));
+  // uma linha por atividade, com nivel da funcao e escala escolhidos ali mesmo;
+  // as frentes da atividade entram como sub-linhas
+  const escOpts = sel => `<option value="">Padrão (premissas)</option>` +
+    Object.entries(ESCALAS).map(([k,e])=>`<option value="${k}" ${k===sel?"selected":""}>${k}</option>`).join("");
 
-  $("#t_dim_pes").innerHTML = th([["Cod"],["Atividade"],["Etapa"],["Especialidade"],["Função"],
-    ["Frota",1],["Horas",1],["Pessoas",1]])+"<tbody>"+
-    (linhas.length ? linhas.map(l=>`<tr><td>${l.cod}</td>
-      <td>${l.ativ}${l.modo?` <span class="calc">· ${l.modo}</span>`:""}</td>
-      <td class="calc">${l.etapa}</td><td class="calc">${l.esp}</td>
-      <td>${l.fcod} — ${l.fnome}</td>
-      <td class="num calc">${l.frota||"—"}</td><td class="num calc">${fmt(l.horas)}</td>
-      <td class="num tot">${fmt(l.pessoas)}</td></tr>`).join("")
-    : `<tr><td colspan="8" class="calc">Sem frente com efetivo: lance quantidades no Plano Operacional.</td></tr>`)+
-    `<tr><td class="tot" colspan="7">TOTAL NAS ATIVIDADES</td>
-     <td class="num tot">${fmt(linhas.reduce((s,l)=>s+l.pessoas,0))}</td></tr></tbody>`;
+  const comGente = R.L.filter(r=>r.partes.some(p=>!p.terc && p.efetivo>0));
+  let corpoAtiv = "", totPessoas = 0;
+  comGente.forEach(r=>{
+    const frentes = r.partes.filter(p=>!p.terc && p.efetivo>0);
+    const pessoas = frentes.reduce((s,p)=>s+p.efetivo,0);
+    const frota = frentes.reduce((s,p)=>s+p.frotaR,0);
+    const horas = frentes.reduce((s,p)=>s+p.horas,0);
+    totPessoas += pessoas;
+    const multi = frentes.length>1;
+    corpoAtiv += `<tr><td>${r.a.cod}</td><td>${r.a.nome}</td><td class="calc">${r.a.etapa}</td>
+      <td class="calc">${multi?`<span class="badge b-warn">${frentes.length} frentes</span>`:(espDe(frentes[0].maq)||frentes[0].maq)}</td>
+      <td class="calc">${multi?"—":r.fcod+" — "+frentes[0].fnome}</td>
+      <td><select data-niv="${r.a.cod}" style="min-width:70px">${optNivel(r.fcod, r.fniv)}</select></td>
+      <td><select data-esc="${r.a.cod}" style="min-width:150px">${escOpts(r.escala)}</select></td>
+      <td class="num calc">${fmt(r.fator,2)}</td>
+      <td class="num calc">${frota||"—"}</td><td class="num calc">${fmt(horas)}</td>
+      <td class="num tot">${fmt(pessoas)}</td></tr>`;
+    if(multi) frentes.forEach(p=>{
+      corpoAtiv += `<tr class="sub"><td></td><td class="calc">↳ ${p.modo}</td><td></td>
+        <td class="calc">${espDe(p.maq)||p.maq}</td><td class="calc">${p.fcod} — ${p.fnome}</td>
+        <td colspan="3"></td>
+        <td class="num calc">${p.frotaR||"—"}</td><td class="num calc">${fmt(p.horas)}</td>
+        <td class="num calc">${fmt(p.efetivo)}</td></tr>`;
+    });
+  });
+
+  $("#t_dim_pes").innerHTML = th([["Cod"],["Atividade / frente"],["Etapa"],["Especialidade"],["Função"],
+    ["Nível"],["Escala"],["Fator",1],["Frota",1],["Horas",1],["Pessoas",1]])+"<tbody>"+
+    (comGente.length ? corpoAtiv
+    : `<tr><td colspan="11" class="calc">Sem frente com efetivo: lance quantidades no Plano Operacional.</td></tr>`)+
+    `<tr><td class="tot" colspan="10">TOTAL NAS ATIVIDADES</td>
+     <td class="num tot">${fmt(totPessoas)}</td></tr></tbody>`;
 
   const funcoes = Object.keys(PS.porFun).sort();
   const tot = {nec:0, pico:0, ativo:0, ferias:0, demis:0, disp:0, contratar:0, exced:0};
