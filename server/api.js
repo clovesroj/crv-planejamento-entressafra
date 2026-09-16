@@ -38,7 +38,8 @@ async function api(req, res, rota) {
     // Só funciona uma vez: com a tabela vazia. Depois disso é sempre 409 —
     // é assim que o primeiro admin é criado sem senha nenhuma no código-fonte.
     if (await store.contarUsuarios() > 0) throw erroHTTP(409, 'já existe usuário — bootstrap já foi usado');
-    const { login, senha } = await lerCorpo(req);
+    const { login, senha: senhaBruta } = await lerCorpo(req);
+    const senha = aparar(senhaBruta);
     validarCredenciais(login, senha);
     const usuario = await store.criarUsuario({ login, senha_hash: auth.hashSenha(senha), papel: 'admin' });
     return json(res, 201, { usuario: usuarioPublico(usuario) });
@@ -46,10 +47,11 @@ async function api(req, res, rota) {
 
   if (rota === '/api/auth/login') {
     if (req.method !== 'POST') throw erroHTTP(405, 'método não permitido');
-    const { login, senha } = await lerCorpo(req);
+    const { login, senha: senhaBruta } = await lerCorpo(req);
+    const senha = aparar(senhaBruta);
     const u = login && await store.usuarioPorLogin(login);
     // mesma mensagem para login inexistente ou senha errada — não dizer qual dos dois
-    if (!u || !u.ativo || !auth.verificarSenha(senha || '', u.senha_hash)) {
+    if (!u || !u.ativo || !auth.verificarSenha(senha, u.senha_hash)) {
       throw erroHTTP(401, 'usuário ou senha inválidos');
     }
     const token = auth.gerarToken(), expira = auth.expiraEm();
@@ -76,9 +78,10 @@ async function api(req, res, rota) {
   if (rota === '/api/auth/senha') {
     if (req.method !== 'PATCH') throw erroHTTP(405, 'método não permitido');
     const sessao = await auth.exigirSessao(req, store);
-    const { senhaAtual, novaSenha } = await lerCorpo(req);
+    const corpo = await lerCorpo(req);
+    const senhaAtual = aparar(corpo.senhaAtual), novaSenha = aparar(corpo.novaSenha);
     const u = await store.usuarioPorId(sessao.id);
-    if (!auth.verificarSenha(senhaAtual || '', u.senha_hash)) throw erroHTTP(401, 'senha atual incorreta');
+    if (!auth.verificarSenha(senhaAtual, u.senha_hash)) throw erroHTTP(401, 'senha atual incorreta');
     validarSenha(novaSenha);
     await store.redefinirSenha(u.id, auth.hashSenha(novaSenha));
     // a própria sessão atual também foi apagada por redefinirSenha — relogar
@@ -94,14 +97,16 @@ async function api(req, res, rota) {
       return json(res, 200, { usuarios: (await store.listarUsuarios()).map(usuarioPublico) });
     }
     if (req.method === 'POST') {
-      const { login, senha, nome, papel } = await lerCorpo(req);
+      const { login, senha: senhaBruta, nome, papel } = await lerCorpo(req);
+      const senha = aparar(senhaBruta);
       validarCredenciais(login, senha);
       if (await store.usuarioPorLogin(login)) throw erroHTTP(409, 'já existe um usuário com este login');
       const usuario = await store.criarUsuario({ login, senha_hash: auth.hashSenha(senha), nome, papel });
       return json(res, 201, { usuario: usuarioPublico(usuario) });
     }
     if (req.method === 'PATCH') {
-      const { id, ativo, novaSenha } = await lerCorpo(req);
+      const { id, ativo, novaSenha: novaSenhaBruta } = await lerCorpo(req);
+      const novaSenha = aparar(novaSenhaBruta);
       const alvo = id && await store.usuarioPorId(id);
       if (!alvo) throw erroHTTP(404, 'usuário não encontrado');
       if (ativo != null) await store.definirAtivo(id, !!ativo);
@@ -138,12 +143,17 @@ async function api(req, res, rota) {
   throw erroHTTP(405, 'método não permitido');
 }
 
+// espaço a mais no início/fim é o erro de digitação mais comum (autofill,
+// copiar e colar) e o usuário não tem como ver — apara antes de tudo, tanto
+// ao criar/redefinir quanto ao logar, pra não gravar um valor com espaço e
+// depois nunca mais bater com o que a pessoa digita
+function aparar(v) { return String(v == null ? '' : v).trim(); }
 function validarCredenciais(login, senha) {
   if (!login || String(login).trim().length < 3) throw erroHTTP(400, 'login precisa de pelo menos 3 caracteres');
   validarSenha(senha);
 }
 function validarSenha(senha) {
-  if (!senha || String(senha).length < 6) throw erroHTTP(400, 'senha precisa de pelo menos 6 caracteres');
+  if (!senha || senha.length < 6) throw erroHTTP(400, 'senha precisa de pelo menos 6 caracteres');
 }
 
 module.exports = { api };
