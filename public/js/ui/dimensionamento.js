@@ -2,7 +2,7 @@ import { FROTA_ESP, SEP_MOD, chaveDoModelo, destinoDe, espDe, modDe, opcoesDesti
          unidadesDoModelo } from '../calculo/crm.js';
 import { FROTA_ABERTO, QUADRO } from '../nucleo/estado.js';
 import { $, brl, fmt, num, pct } from '../nucleo/formato.js';
-import { MESES } from '../nucleo/calendario.js';
+import { MESES, NM } from '../nucleo/calendario.js';
 import { kpi, th } from './componentes.js';
 import { ESCALAS } from '../dados/escalas.js';
 import { optNivel } from './plano.js';
@@ -108,6 +108,8 @@ function pintarDimPessoas(R){
 
   // uma linha por atividade, com nivel da funcao e escala escolhidos ali mesmo;
   // as frentes da atividade entram como sub-linhas
+  const turOpts = sel => `<option value="">Padrão</option>` +
+    [1,2,3].map(n=>`<option value="${n}" ${n===+sel?"selected":""}>${n}t</option>`).join("");
   const escOpts = sel => `<option value="">Padrão (premissas)</option>` +
     Object.entries(ESCALAS).map(([k,e])=>`<option value="${k}" ${k===sel?"selected":""}>${k}</option>`).join("");
 
@@ -125,54 +127,89 @@ function pintarDimPessoas(R){
       <td class="calc">${multi?"—":r.fcod+" — "+frentes[0].fnome}</td>
       <td><select data-niv="${r.a.cod}" style="min-width:70px">${optNivel(r.fcod, r.fniv)}</select></td>
       <td><select data-esc="${r.a.cod}" style="min-width:150px">${escOpts(r.escala)}</select></td>
+      <td><select data-tur="${r.a.cod}" style="min-width:74px">${turOpts(r.turnosOv)}</select></td>
       <td class="num calc">${fmt(r.fator,2)}</td>
       <td class="num calc">${frota||"—"}</td><td class="num calc">${fmt(horas)}</td>
-      <td class="num tot">${fmt(pessoas)}</td></tr>`;
+      <td class="num tot">${fmt(pessoas)}</td>
+      <td class="num calc">${qv(r.fcod,"ativo")||"—"}</td></tr>`;
     if(multi) frentes.forEach(p=>{
       corpoAtiv += `<tr class="sub"><td></td><td class="calc">↳ ${p.modo}</td><td></td>
         <td class="calc">${espDe(p.maq)||p.maq}</td><td class="calc">${p.fcod} — ${p.fnome}</td>
         <td colspan="3"></td>
+        <td class="num calc">${p.turnosEf}t</td>
         <td class="num calc">${p.frotaR||"—"}</td><td class="num calc">${fmt(p.horas)}</td>
-        <td class="num calc">${fmt(p.efetivo)}</td></tr>`;
+        <td class="num calc">${fmt(p.efetivo)}</td><td></td></tr>`;
     });
   });
 
   $("#t_dim_pes").innerHTML = th([["Cod"],["Atividade / frente"],["Etapa"],["Especialidade"],["Função"],
-    ["Nível"],["Escala"],["Fator",1],["Frota",1],["Horas",1],["Pessoas",1]])+"<tbody>"+
+    ["Nível"],["Escala"],["Turnos"],["Fator",1],["Frota",1],["Horas",1],["Pessoas",1],
+    ["Ativos da função",1]])+"<tbody>"+
     (comGente.length ? corpoAtiv
-    : `<tr><td colspan="11" class="calc">Sem frente com efetivo: lance quantidades no Plano Operacional.</td></tr>`)+
-    `<tr><td class="tot" colspan="10">TOTAL NAS ATIVIDADES</td>
-     <td class="num tot">${fmt(totPessoas)}</td></tr></tbody>`;
+    : `<tr><td colspan="13" class="calc">Sem frente com efetivo: lance quantidades no Plano Operacional.</td></tr>`)+
+    `<tr><td class="tot" colspan="11">TOTAL NAS ATIVIDADES</td>
+     <td class="num tot">${fmt(totPessoas)}</td><td></td></tr></tbody>`;
 
   const funcoes = Object.keys(PS.porFun).sort();
   const tot = {nec:0, pico:0, ativo:0, ferias:0, demis:0, disp:0, contratar:0, exced:0};
+  const disponivel = {};
   const corpo = funcoes.map(f=>{
     const o = PS.porFun[f];
     const ativo = qv(f,"ativo"), ferias = qv(f,"ferias"), demis = qv(f,"demis");
     const disp = ativo - ferias - demis;
+    disponivel[f] = disp;
     const contratar = Math.max(0, o.pico - disp), exced = Math.max(0, disp - o.pico);
     const iPico = o.qtdMes.indexOf(o.pico);
     tot.nec+=o.qtd; tot.pico+=o.pico; tot.ativo+=ativo; tot.ferias+=ferias; tot.demis+=demis;
     tot.disp+=disp; tot.contratar+=contratar; tot.exced+=exced;
     return `<tr><td>${f} — ${(R.MP.custoFuncao[f]||{nome:f}).nome}</td>
-      <td class="num calc">${fmt(o.qtd)}</td>
-      <td class="num tot">${fmt(o.pico)}<span class="calc" style="font-size:10px"> ${o.pico>0?MESES[iPico]:""}</span></td>
       <td class="num"><input data-qd="${f}" data-f="ativo" value="${ativo||""}" inputmode="decimal"></td>
       <td class="num"><input data-qd="${f}" data-f="ferias" value="${ferias||""}" inputmode="decimal"></td>
       <td class="num"><input data-qd="${f}" data-f="demis" value="${demis||""}" inputmode="decimal"></td>
       <td class="num calc">${fmt(disp)}</td>
+      <td class="num calc">${fmt(o.qtd)}</td>
+      <td class="num tot">${fmt(o.pico)}<span class="calc" style="font-size:10px"> ${o.pico>0?MESES[iPico]:""}</span></td>
       <td class="num">${contratar>0?`<span class="badge b-bad">+${fmt(contratar)}</span>`:"—"}</td>
       <td class="num">${exced>0?`<span class="badge b-warn">${fmt(exced)}</span>`:"—"}</td></tr>`;
   }).join("");
 
-  $("#t_pes_quadro").innerHTML = th([["Função"],["Necessidade",1],["Pico mensal",1],["Quadro ativo",1],
-    ["Férias program.",1],["Demissões program.",1],["Disponível",1],["A contratar",1],["Excedente",1]])+"<tbody>"+
+  $("#t_pes_quadro").innerHTML = th([["Função"],["Quadro ativo",1],["Férias program.",1],["Demissões program.",1],
+    ["Disponível",1],["Necessidade",1],["Pico mensal",1],["A contratar",1],["Excedente",1]])+"<tbody>"+
     (funcoes.length ? corpo : `<tr><td colspan="9" class="calc">Sem função dimensionada.</td></tr>`)+
-    `<tr><td class="tot">TOTAL</td><td class="num tot">${fmt(tot.nec)}</td><td class="num tot">${fmt(tot.pico)}</td>
-     <td class="num tot">${fmt(tot.ativo)}</td><td class="num tot">${fmt(tot.ferias)}</td>
+    `<tr><td class="tot">TOTAL</td><td class="num tot">${fmt(tot.ativo)}</td><td class="num tot">${fmt(tot.ferias)}</td>
      <td class="num tot">${fmt(tot.demis)}</td><td class="num tot">${fmt(tot.disp)}</td>
+     <td class="num tot">${fmt(tot.nec)}</td><td class="num tot">${fmt(tot.pico)}</td>
      <td class="num tot">${tot.contratar>0?"+"+fmt(tot.contratar):"—"}</td>
      <td class="num tot">${tot.exced>0?fmt(tot.exced):"—"}</td></tr></tbody>`;
+
+  /* Necessidade mes a mes contra o disponivel informado: e aqui que se ve em
+     qual mes falta gente, e quanta. O pico e apenas o pior desses meses. */
+  // sem nada informado no quadro, nao ha com o que comparar: a matriz nao pinta falta
+  const temQuadro = tot.ativo + tot.ferias + tot.demis > 0;
+  const faltaMes = MESES.map(()=>0);
+  const corpoMes = funcoes.map(f=>{
+    const o = PS.porFun[f], disp = disponivel[f];
+    return `<tr><td>${f} — ${(R.MP.custoFuncao[f]||{nome:f}).nome}</td>
+      <td class="num calc">${fmt(disp)}</td>` +
+      o.qtdMes.map((v,i)=>{
+        const falta = temQuadro ? v - disp : 0;
+        if(falta>0) faltaMes[i] += falta;
+        const ehPico = v>0 && v===o.pico;
+        const estilo = falta>0 ? ' style="background:var(--bad-bg);color:var(--bad);font-weight:600"' : '';
+        return `<td class="num ${falta>0?"":"calc"}"${estilo} title="${MESES[i]}: precisa de ${fmt(v)}, disponível ${fmt(disp)}">${
+          v>0 ? (ehPico?`<b>${fmt(v)}</b>`:fmt(v)) : "—"}</td>`;
+      }).join("") +
+      `<td class="num tot">${fmt(o.pico)}</td></tr>`;
+  }).join("");
+
+  $("#t_pes_mes").innerHTML = th([["Função"],["Disponível",1],...MESES.map(m=>[m,1]),["Pico",1]])+"<tbody>"+
+    (funcoes.length ? corpoMes : `<tr><td colspan="${NM+3}" class="calc">Sem função dimensionada.</td></tr>`)+
+    `<tr><td class="tot">NECESSIDADE TOTAL</td><td class="num tot">${fmt(tot.disp)}</td>` +
+    PS.qtdMes.map(v=>`<td class="num tot">${fmt(v)}</td>`).join("") +
+    `<td class="num tot">${fmt(Math.max(...PS.qtdMes))}</td></tr>` +
+    `<tr><td class="calc">A contratar no mês</td><td></td>` +
+    faltaMes.map(v=>`<td class="num ${v>0?"":"calc"}">${v>0?`<span class="badge b-bad">+${fmt(v)}</span>`:"—"}</td>`).join("") +
+    `<td class="num tot">${faltaMes.some(v=>v>0)?"+"+fmt(Math.max(...faltaMes)):"—"}</td></tr></tbody>`;
 
   const iPicoGeral = PS.qtdMes.indexOf(Math.max(...PS.qtdMes));
   $("#k_dim_pes").innerHTML =

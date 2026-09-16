@@ -129,6 +129,8 @@ document.addEventListener("change",e=>{
   if(t.dataset.niv!==undefined){ const c=t.dataset.niv;
     PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""};
     PLANO[c].fniv=+t.value; salvar(); render(); return; }
+  if(t.dataset.tur!==undefined){ const c=t.dataset.tur;
+    DIM[c]=DIM[c]||{}; DIM[c].turnos=t.value==="" ? null : +t.value; salvar(); render(); return; }
   if(t.dataset.esc!==undefined){ const c=t.dataset.esc;
     DIM[c]=DIM[c]||{}; DIM[c].esc=t.value; salvar(); render(); return; }
   if(t.dataset.fn!==undefined){ const c=t.dataset.fn;

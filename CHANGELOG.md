@@ -1,5 +1,33 @@
 # Histórico de mudanças
 
+## 2.8.0 — 2026-09-16 · Turnos por atividade e necessidade mês a mês
+
+### Turnos na atividade
+
+Ao lado da escala, cada atividade agora escolhe os turnos: **1t, 2t ou 3t**, ou
+Padrão, que segue o modo de execução ou o cadastro. A escolha grava em
+`DIM[cod].turnos` e entra no efetivo junto com a escala. Na colheita do teste:
+1t = 4 pessoas, 2t = 7, 3t = 11.
+
+A coluna Ativos da função mostra, em cada linha, o quadro ativo informado para
+aquela função — é conferência visual; o cruzamento que vale é por função,
+na tabela abaixo.
+
+### Necessidade x quadro ativo
+
+A tabela por função passa a abrir com os campos informados — quadro ativo,
+férias e demissões — seguidos de disponível, necessidade, pico mensal, a
+contratar e excedente.
+
+Abaixo dela, tabela nova: **necessidade mês a mês x disponível**. Uma linha por
+função, uma coluna por mês do orçamento, o mês de pico em negrito e a célula em
+vermelho quando a necessidade do mês passa o disponível. No rodapé, a
+necessidade total de cada mês e quanto falta contratar naquele mês.
+
+Enquanto nada é informado no quadro, a matriz não pinta falta — não há com o
+que comparar.
+
+
 ## 2.7.0 — 2026-09-16 · Nível e escala por atividade
 
 No bloco Dimensionamento de pessoas, cada atividade passa a ter uma linha com
