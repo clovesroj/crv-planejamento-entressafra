@@ -90,11 +90,10 @@ tr.sub td{background:var(--sunk);font-size:12px;padding:5px 12px}
 #t_plano th:nth-child(1),#t_plano td:nth-child(1){position:sticky;left:0;width:60px;min-width:60px;max-width:60px}
 #t_plano th:nth-child(2),#t_plano td:nth-child(2){position:sticky;left:60px;width:250px;min-width:250px;max-width:250px;
   overflow:hidden;text-overflow:ellipsis}
-#t_plano th:nth-child(3),#t_plano td:nth-child(3){position:sticky;left:310px;width:76px;min-width:76px;max-width:76px}
-#t_plano th:nth-child(1),#t_plano th:nth-child(2),#t_plano th:nth-child(3){z-index:3}
-#t_plano td:nth-child(1),#t_plano td:nth-child(2),#t_plano td:nth-child(3){z-index:1;background:var(--card)}
-#t_plano tbody tr:hover td:nth-child(-n+3){background:var(--leaf-soft)}
-#t_plano th:nth-child(3),#t_plano td:nth-child(3){box-shadow:3px 0 6px -2px rgba(0,0,0,.14)}
+#t_plano th:nth-child(1),#t_plano th:nth-child(2){z-index:3}
+#t_plano td:nth-child(1),#t_plano td:nth-child(2){z-index:1;background:var(--card)}
+#t_plano tbody tr:hover td:nth-child(-n+2){background:var(--leaf-soft)}
+#t_plano th:nth-child(2),#t_plano td:nth-child(2){box-shadow:3px 0 6px -2px rgba(0,0,0,.14)}
 #t_plano tr.stage td{position:static;left:auto;background:var(--leaf-strong);box-shadow:none}
 #plano .tblwrap{scrollbar-width:auto}
 #plano .tblwrap::-webkit-scrollbar{height:11px}

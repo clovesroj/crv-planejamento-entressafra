@@ -71,7 +71,7 @@ function pintarPlano(R){
       r.meses.map((q,j)=> auto
         ? `<td class="num calc ${clsMes(j)}">${q?fmt(num(q)):""}</td>`
         : `<td class="num ${clsMes(j)}${dentro(j)?"":" fora-janela"}"><input data-c="${r.a.cod}" data-m="${j}" value="${q||""}" inputmode="decimal"${
-            dentro(j)?"":' disabled title="Fora da janela de datas desta atividade"'}></td>`).join("")+
+            dentro(j)?"":' title="Fora da janela de datas desta atividade — o valor continua contando no total"'}></td>`).join("")+
       `<td class="num tot" style="color:${totalNoFiltro(r)>0?'var(--green)':'var(--grey)'}"${
           parcial && r.total>0 ? ` title="No ano: ${fmt(r.total)}"` : ""}>${fmt(totalNoFiltro(r))}</td>
        <td>${r.a.modoOn ? mixEditor(r) : '<span class="calc">—</span>'}</td>
