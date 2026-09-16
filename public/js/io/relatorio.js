@@ -1,173 +1,78 @@
-import { FROTA_ESP, agDeLinha, contaOrigem, rotuloItem } from '../calculo/crm.js';
 import { calcularCompleto } from '../app/ciclo.js';
-import { ARR_FORMAS, ETAPAS_ORD } from '../calculo/arrendamento.js';
-import { FORN_MODALIDADES } from '../dados/fornecedores.js';
-import { deptIdx } from '../calculo/pessoas.js';
-import { CFG } from '../dados/cfg.js';
 import { LOGO } from '../dados/logo.js';
-import { CAT_LBL, MESES } from '../nucleo/calendario.js';
-import { INSUMO, P, insLista } from '../nucleo/estado.js';
-import { $, brl, fmt, num } from '../nucleo/formato.js';
-import { CONTA_COMBINADA, contasValores } from '../ui/contas.js';
-import { comps } from '../ui/custos.js';
+import { $ } from '../nucleo/formato.js';
+import { RELATORIOS, montarSecoes } from './secoes.js';
 import { baixar } from './arquivo.js';
 
-/* ---------- RELATÓRIO (PDF / EXCEL) ---------- */
-// Monta as seções do relatório uma única vez e reaproveita tanto no Excel quanto no PDF.
-function relatorioSecoes(R, nivel){
-  const secoes = [];
-  const add = (aba,titulo,cab,linhas) => secoes.push({aba,titulo,cab,linhas});
+/* ---------- RELATÓRIOS (PDF / EXCEL / CSV) ----------
+   As seções vêm de io/secoes.js; aqui só se escolhe o relatório, o nível e o
+   formato. O Excel escreve uma aba por seção — no relatório anual a ordem é a
+   das 20 abas padronizadas. O PDF empilha as mesmas tabelas em uma página, e o
+   CSV concatena as seções em um arquivo único, separadas por título. */
 
-  add("Resumo","Resumo Executivo",["Indicador","Valor"],[
-    ["Safra","2026/2027"],["Unidade","Capinópolis-MG"],
-    ["Custo total projetado", brl(R.total)],
-    ["Custo por ha plantado", brl(R.total/(P.plantio||1))],
-    ["Hectares operados", fmt(R.haOp)+" ha"],
-    ["Efetivo total", fmt(R.efetivoTotal)+" pessoas"],
-    ["Atividades programadas", R.L.filter(r=>r.total>0).length+" de "+R.L.length],
-  ]);
+const relDe = id => RELATORIOS.find(r=>r.id===id) || RELATORIOS[0];
+const nivelAtual = () => ($("#sel_report_nivel")||{value:"resumido"}).value;
+const relAtual = () => ($("#sel_report_rel")||{value:"anual"}).value;
 
-  const totEt = Object.values(R.etapas).reduce((s,e)=>s+e.total,0)||1;
-  add("Custo por etapa","Custo por etapa",
-    ["Etapa","Diesel","Mão de obra","Manutenção","Insumos","Terceirização","Arrendamento","Indireto","Total","% do total"],
-    Object.entries(R.etapas).sort((a,b)=>b[1].total-a[1].total).map(([e,d])=>
-      [e, brl(d.diesel), brl(d.mdo), brl(d.manut), brl(d.insumo+(d.irrig||0)), brl(d.terc),
-        brl(d.arrend), brl(d.indireto), brl(d.total), fmt(d.total/totEt*100,1)+"%"]));
+// nome de arquivo sem acento nem espaço, que atravessa qualquer sistema
+const slug = s => String(s).normalize("NFD").replace(/[̀-ͯ]/g,"")
+  .replace(/[^A-Za-z0-9]+/g,"_").replace(/^_|_$/g,"").toLowerCase();
 
-  add("Natureza","Composição por natureza",["Natureza","Total","%"],
-    comps(R).filter(([,v])=>v>0).map(([n,v])=>[n, brl(v), fmt(R.total>0?v/R.total*100:0,1)+"%"]));
-
-  const catLbl = {mdo:"Mão de obra",manut:"Manutenção",diesel:"Diesel",insumo:"Insumos+irrigação",
-    terc:"Terceirização+transporte",arrend:"Arrendamento",fixo:"Fixos (adm./deprec.)",espor:"Esporádicos"};
-  add("Contas por mês","Grandes contas por mês",["Conta",...MESES,"Total"],
-    Object.keys(catLbl).map(k=>{const l=R.mesesCat[k];
-      return [catLbl[k], ...l.map(v=>brl(v)), brl(l.reduce((s,v)=>s+v,0))];}));
-
-  add("Períodos","Custos por período — safra (abr a nov) e entressafra (dez a mar)",["Grande conta","Safra","Entressafra","Total"],
-    Object.keys(CAT_LBL).map(k=>[CAT_LBL[k], brl(R.PER.safra.cat[k]), brl(R.PER.entressafra.cat[k]),
-      brl(R.PER.safra.cat[k]+R.PER.entressafra.cat[k])])
-    .concat([["TOTAL", brl(R.PER.safra.total), brl(R.PER.entressafra.total), brl(R.PER.safra.total+R.PER.entressafra.total)]]));
-  add("Etapas por período","Custo por etapa — safra e entressafra",["Etapa","Safra","Entressafra","Total"],
-    Object.keys(R.etapaMes).filter(e=>R.PER.safra.etapa[e]+R.PER.entressafra.etapa[e]>0.5)
-      .map(e=>[e, brl(R.PER.safra.etapa[e]), brl(R.PER.entressafra.etapa[e]), brl(R.PER.safra.etapa[e]+R.PER.entressafra.etapa[e])]));
-
-  add("Matéria-prima","Matéria-prima por origem — moagem e custo",
-    ["Origem","Natureza contábil","Área (ha)","Toneladas","% da moagem","ATR médio","Custo","R$/t","R$/kg ATR"],
-    Object.values(R.FORN.origens).map(o=>[o.nome, o.nat, fmt(o.area), fmt(o.ton),
-      R.FORN.tonTotal>0?fmt(o.ton/R.FORN.tonTotal*100,1)+"%":"—", fmt(o.atrMedio,1), brl(o.custo),
-      o.ton>0?brl(o.rsT,2):"—", o.atrTotal>0?brl(o.rsAtr,4):"—"])
-    .concat([["MÉDIA PONDERADA","", "", fmt(R.FORN.tonTotal), "100,0%", fmt(R.FORN.atrMedio,1),
-      brl(R.FORN.custoTotal), brl(R.FORN.rsTMedio,2), brl(R.FORN.rsAtrMedio,4)]]));
-  add("Fornecedores","Fornecedores de cana — contratos",
-    ["Fornecedor","Propriedade","Origem","Modalidade","Área (ha)","TCH","t contratadas","t estimadas","ATR","Entrega","Qualidade","Custo","R$/t"],
-    R.FORN.linhas.map(l=>[l.forn, l.prop, (R.FORN.origens[l.origem]||{nome:l.origem}).nome,
-      (FORN_MODALIDADES[l.mod]||{nome:l.mod}).nome, fmt(l.area), fmt(l.tch,1), fmt(l.tonContr), fmt(l.ton),
-      fmt(l.atr,1), l.mesesEnt.join(" a "), l.qual, brl(l.custo), brl(l.rsT,2)]));
-
-  add("Arrendamentos","Arrendamentos — fazendas",
-    ["Fazenda","Grupo","Área (ha)","Forma de pagamento","R$/ha/ano","Custo anual","Custo no orçamento"],
-    R.AR.linhas.map(l=>[l.faz, l.grupo, fmt(l.area), (ARR_FORMAS[l.forma]||{nome:l.forma}).nome,
-      brl(l.rsHa,2), brl(l.anual), brl(l.periodo)])
-    .concat([["TOTAL","",fmt(R.AR.area),"",R.AR.area>0?brl(R.AR.anual/R.AR.area,2):"—",brl(R.AR.anual),brl(R.AR.total)]]));
-  add("Arrendamento por etapa","Arrendamento — rateio por etapa (referência PECEGE/USP)",["Etapa","% aplicado","Valor"],
-    ETAPAS_ORD.filter(e=>R.etapas[e]&&R.etapas[e].arrend>0).map(e=>[e,
-      fmt(R.arrT>0?R.etapas[e].arrend/R.arrT*100:0,1)+"%", brl(R.etapas[e].arrend)]));
-
-  add("Combustível","Combustível — diesel projetado",["Mês","Litros","Preço (R$/L)","Custo"],
-    MESES.map((m,i)=>[m, fmt(R.CB.litrosOperMes[i]+R.CB.litrosApoioMes[i]), brl(R.CB.preco[i],2),
-      brl(R.CB.custoOperMes[i]+R.CB.custoApoioMes[i])])
-    .concat([["TOTAL", fmt(R.CB.litrosT), R.CB.litrosT>0?brl(R.dieselT/R.CB.litrosT,2):"—", brl(R.dieselT)]]));
-
-  // o relatório pode receber o resultado de calcular() puro, que não traz o resumo de pessoas
-  const PS = R.PS || calcularCompleto().PS;
-  add("Pessoas por depto","Pessoas por departamento",["Departamento","Efetivo","Pico mensal","Custo MDO"],
-    Object.entries(PS.porDept).sort((a,b)=>deptIdx(a[0])-deptIdx(b[0]))
-      .map(([d,o])=>[d, fmt(o.qtd), fmt(o.pico), brl(o.custo)])
-      .concat([["TOTAL", fmt(PS.qtd), fmt(Math.max(...PS.qtdMes)), brl(PS.custo)]]));
-  add("Pessoas por função","Pessoas por função",["Cod","Função","Efetivo","Pico mensal","Custo MDO"],
-    Object.entries(PS.porFun).sort((a,b)=>a[0].localeCompare(b[0]))
-      .map(([f,o])=>[f, (R.MP.custoFuncao[f]||{nome:f}).nome, fmt(o.qtd), fmt(o.pico), brl(o.custo)]));
-  add("Fluxo mensal MDO","Fluxo mensal — pessoas e custo de mão de obra",["Mês","Pessoas","Custo MDO","Acumulado"],
-    (()=>{ let ac=0; return MESES.map((m,i)=>{ ac+=PS.custoMes[i]; return [m, fmt(PS.qtdMes[i]), brl(PS.custoMes[i]), brl(ac)]; }); })());
-
-  add("Frota","Frota — necessidade projetada",
-    ["Agrupamento","Especialidade","Item","Qtd necessária","Cadastrada"],
-    [...R.crmFrotaL].filter(l=>l.qtd>0).sort((a,b)=>b.qtd-a.qtd)
-      .map(l=>[agDeLinha(l), l.esp||"—", rotuloItem(l.item), fmt(l.qtd),
-               fmt(contaOrigem(l.baseProp,l.baseTerc))]));
-
-  // O plano dimensiona arquétipos; a base diz o que existe. O confronto por
-  // especialidade é o que mostra onde falta ou sobra equipamento.
-  const necEsp = {};
-  R.crmFrotaL.forEach(l=>{ if(l.esp && l.qtd>0) necEsp[l.esp]=(necEsp[l.esp]||0)+l.qtd; });
-  add("Frota cadastrada","Frota cadastrada x necessidade, por especialidade",
-    ["Agrupamento","Grupo","Especialidade","Modelos","Próprios","Terceiros","Cadastrada","Exigida","Folga"],
-    (CFG.frota_base||[])
-      .slice().sort((x,y)=> x.ag.localeCompare(y.ag) || x.grp.localeCompare(y.grp) || x.esp.localeCompare(y.esp))
-      .map(e=>{ const cad=contaOrigem(e.prop,e.terc), n=necEsp[e.esp]||0;
-        return [e.ag,e.grp,e.esp,fmt(e.mods.length),fmt(e.prop),fmt(e.terc),fmt(cad),
-                n?fmt(n):"—", n?fmt(cad-n):"—"]; }));
-
-  if(nivel==="detalhado"){
-    add("Plano Operacional","Plano Operacional",["Cod","Atividade","Un",...MESES,"Total"],
-      R.L.filter(r=>r.total>0).map(r=>[r.a.cod,r.a.nome,r.a.un,...r.meses.map(m=>fmt(num(m))),fmt(r.total)]));
-
-    add("Mão de Obra","Mão de Obra — Funções",["Cod","Função","Salário","Custo mensal","Custo hora"],
-      CFG.funcoes.map(f=>{const c=R.MP.custoFuncao[f.cod];
-        return [f.cod,f.nome,brl(f.sal),brl(c.mensal),brl(c.hora,2)];}));
-
-    add("CRM Manutenção","Manutenção de Frota — CRM",
-      ["Agrupamento","Especialidade","Item","R$/un","Frota prevista","Uso p/ CRM","CRM total"],
-      [...R.crmFrotaL].filter(l=>l.qtd>0||l.hTotPlano>0)
-        .sort((x,y)=> agDeLinha(x).localeCompare(agDeLinha(y)) || (x.esp||"").localeCompare(y.esp||"") || y.total-x.total)
-        .map(l=>[agDeLinha(l), l.esp||"—", rotuloItem(l.item), brl(l.rh,2)+"/"+l.unidade,
-                 fmt(l.qtd), fmt(l.baseUso)+" "+l.unidade, brl(l.total)]));
-
-    add("Modelos da frota","Modelos cadastrados por especialidade",
-      ["Agrupamento","Grupo","Especialidade","Modelo","Marca","Unidades","Próprias","Terceiros"],
-      (CFG.frota_base||[])
-        .slice().sort((x,y)=> x.ag.localeCompare(y.ag) || x.grp.localeCompare(y.grp) || x.esp.localeCompare(y.esp))
-        .flatMap(e=> e.mods.map(m=>
-          [e.ag,e.grp,e.esp,m.m,m.marca||"—",fmt(m.n),fmt(m.np),fmt(m.n-m.np)])));
-
-    add("Insumos","Insumos — Cadastro",["Produto","Un","Volume dem.","Estoque","Preço corrigido","Necessidade"],
-      insLista().map(i=>{const ov=INSUMO[i.prod]||{};
-        const preco=(ov.preco!=null?num(ov.preco):num(i.preco))*(1+P.ipreco/100);
-        const est=ov.est!=null?num(ov.est):num(i.est); const vol=R.volDem[i.prod]||0;
-        return [i.prod,i.un||"—",fmt(vol,1),fmt(est),brl(preco,2),fmt(Math.max(0,vol-est),1)];}));
-
-    const CV = contasValores(R);
-    add("Plano de Contas","Plano de Contas",["Conta","Descrição","Grupo","Custo projetado"],
-      CFG.contas.map(c=>{const combinada=CONTA_COMBINADA[c.conta];
-        return [c.conta,c.desc,c.grupo, combinada?"incluído em "+combinada:(CV[c.conta]!=null?brl(CV[c.conta]):"—")];}));
-  }
-  return secoes;
+function relatorioSecoes(R, nivel, relId){
+  return montarSecoes(R || calcularCompleto(), relId || "anual", nivel);
 }
 
-async function gerarExcel(nivel){
+/* ---------- Excel ---------- */
+async function gerarExcel(nivel, relId){
   if(typeof XLSX==="undefined"){ alert("A biblioteca de planilha não carregou. Verifique a conexão e tente novamente."); return; }
-  const R = calcularCompleto();
-  const secoes = relatorioSecoes(R, nivel);
+  const rel = relDe(relId);
+  const secoes = montarSecoes(calcularCompleto(), rel.id, nivel);
   const wb = XLSX.utils.book_new();
   const usados = new Set();
   secoes.forEach(s=>{
     let nome = s.aba.slice(0,31), n=2;
     while(usados.has(nome)){ nome = s.aba.slice(0,28)+" "+n; n++; }
     usados.add(nome);
-    const ws = XLSX.utils.aoa_to_sheet([[s.titulo],[],s.cab, ...s.linhas]);
+    const corpo = s.linhas.length ? s.linhas : [["Sem dados lançados."]];
+    const ws = XLSX.utils.aoa_to_sheet([[s.titulo],[],s.cab, ...corpo]);
+    ws["!cols"] = s.cab.map((c,i)=>({wch: Math.min(42, Math.max(10, String(c).length+2,
+      ...corpo.slice(0,80).map(l=>String(l[i]==null?"":l[i]).length+2)))}));
     XLSX.utils.book_append_sheet(wb, ws, nome);
   });
   const out = XLSX.write(wb,{bookType:"xlsx",type:"array"});
-  await baixar(out, `planejamento_entressafra_${nivel}.xlsx`,
+  await baixar(out, `${slug(rel.nome)}_${nivel}.xlsx`,
                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 }
 
-function gerarPDF(nivel){
-  const R = calcularCompleto();
-  const secoes = relatorioSecoes(R, nivel);
+/* ---------- CSV ----------
+   Ponto e vírgula e BOM: é o que o Excel em português abre sem pedir
+   importação, e os valores em R$ já vêm com vírgula decimal. */
+async function gerarCSV(nivel, relId){
+  const rel = relDe(relId);
+  const secoes = montarSecoes(calcularCompleto(), rel.id, nivel);
+  const cel = v => { const t = String(v==null?"":v);
+    return /[;"\n]/.test(t) ? '"'+t.replace(/"/g,'""')+'"' : t; };
+  const linha = l => l.map(cel).join(";");
+  const partes = [linha(["CRV Industrial — "+rel.nome]),
+                  linha(["Safra 2026/2027 · Unidade Capinópolis-MG · "+
+                         (nivel==="detalhado"?"detalhado":"resumido")+" · gerado em "+
+                         new Date().toLocaleDateString("pt-BR")])];
+  secoes.forEach(s=>{
+    partes.push("", linha([s.titulo]), linha(s.cab));
+    if(s.linhas.length) s.linhas.forEach(l=>partes.push(linha(l)));
+    else partes.push(linha(["Sem dados lançados."]));
+  });
+  await baixar("﻿"+partes.join("\r\n"), `${slug(rel.nome)}_${nivel}.csv`,
+               "text/csv;charset=utf-8");
+}
+
+/* ---------- PDF ---------- */
+function gerarPDF(nivel, relId){
+  const rel = relDe(relId);
+  const secoes = montarSecoes(calcularCompleto(), rel.id, nivel);
   // papel branco: logo azul original
   let html = `<img class="rel-logo" src="${LOGO}" alt="CRV Industrial">
-    <h1>CRV Industrial — Planejamento de Entressafra</h1>
+    <h1>CRV Industrial — ${rel.nome}</h1>
     <p>Safra 2026/2027 · Unidade Capinópolis-MG · Relatório ${nivel==="detalhado"?"detalhado":"resumido"} ·
     gerado em ${new Date().toLocaleDateString("pt-BR")}</p>`;
   secoes.forEach(s=>{
@@ -180,12 +85,18 @@ function gerarPDF(nivel){
   setTimeout(()=>window.print(),80);
 }
 
+/* ---------- controles ---------- */
+const selRel = $("#sel_report_rel");
+if(selRel) selRel.innerHTML = RELATORIOS.map(r=>`<option value="${r.id}">${r.nome}</option>`).join("");
+
 $("#btn_report").onclick=()=>{ $("#report_pop").hidden = !$("#report_pop").hidden; };
 document.addEventListener("click",e=>{
   if(!e.target.closest(".reportbox")) $("#report_pop").hidden = true;
 });
-$("#btn_report_pdf").onclick=()=>{ $("#report_pop").hidden=true; gerarPDF($("#sel_report_nivel").value); };
-$("#btn_report_xlsx").onclick=()=>{ $("#report_pop").hidden=true; gerarExcel($("#sel_report_nivel").value); };
+const fechaEGera = fn => ()=>{ $("#report_pop").hidden=true; fn(nivelAtual(), relAtual()); };
+$("#btn_report_pdf").onclick  = fechaEGera(gerarPDF);
+$("#btn_report_xlsx").onclick = fechaEGera(gerarExcel);
+if($("#btn_report_csv")) $("#btn_report_csv").onclick = fechaEGera(gerarCSV);
 
 
-export { gerarExcel, gerarPDF, relatorioSecoes };
+export { gerarCSV, gerarExcel, gerarPDF, relatorioSecoes };

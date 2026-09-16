@@ -60,7 +60,7 @@ public/                 FRONT — servido ao navegador
       atividade.js      linha(): horas, frota, diesel, mão de obra por atividade
       crm.js · mao-de-obra.js · arrendamento.js · irrigacao.js · ...
     ui/                 uma função pintar* por aba, só leem o resultado do cálculo
-    io/                 persistencia.js · relatorio.js · arquivo.js
+    io/                 persistencia.js · relatorio.js · secoes.js · arquivo.js
     app/                ciclo.js (render/leve) · eventos.js · acoes.js
     main.js             arranque
 

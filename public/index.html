@@ -89,10 +89,16 @@
     <div class="reportbox">
       <button class="icon-btn" id="btn_report" title="Gerar relatório em PDF ou Excel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg><span class="lbl">Relatório</span></button>
       <div class="report-pop" id="report_pop" hidden>
+        <label for="sel_report_rel">Relatório</label>
+        <select id="sel_report_rel"></select>
         <label for="sel_report_nivel">Nível do relatório</label>
         <select id="sel_report_nivel"><option value="resumido">Resumido</option><option value="detalhado">Detalhado</option></select>
         <div class="row"><button class="btn p" id="btn_report_pdf">Gerar PDF</button>
           <button class="btn" id="btn_report_xlsx">Gerar Excel</button></div>
+        <div class="row"><button class="btn" id="btn_report_csv">Gerar CSV</button></div>
+        <div class="hint" style="margin-top:8px">O Orçamento Agrícola Anual sai com as 20 abas
+          padronizadas; os demais saem focados no tema. O nível detalhado acrescenta as abas de
+          apoio ao relatório anual.</div>
       </div>
     </div>
   </div>

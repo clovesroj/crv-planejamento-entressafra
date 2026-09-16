@@ -1,5 +1,69 @@
 # Histórico de mudanças
 
+## 2.15.0 — 2026-09-16 · Relatórios e exportação
+
+Dezesseis relatórios nomeados, escolhidos no botão **Relatório** do topo, e três
+formatos de saída para cada um: PDF, Excel e CSV.
+
+### Relatórios
+
+| Relatório | O que traz |
+|---|---|
+| Orçamento Agrícola Anual | o orçamento inteiro, nas 20 abas padronizadas |
+| Orçamento por Fazenda | fazendas arrendadas, áreas próprias e fornecedores, com R$/ha |
+| Orçamento por Centro de Custo | etapa a etapa, com direto, arrendamento, administrativo e indireto |
+| Orçamento por Atividade | cada atividade com volume, horas, frota, efetivo e R$/un |
+| Orçamento por Natureza | composição por natureza e plano de contas |
+| Orçamento Mensal | mês a mês, grandes contas e períodos |
+| Orçamento de Plantio | plantio e preparo de solo, insumos e dimensionamento |
+| Orçamento de Tratos | tratos culturais, insumos e irrigação |
+| Orçamento de Colheita | colheita, transporte e combustível |
+| Orçamento de Logística | transporte de cana, de pessoal e frete de fornecedor |
+| Orçamento de Frota | necessidade, frota cadastrada, manutenção e apoio |
+| Orçamento de Mão de Obra | cargos, efetivo, departamento e fluxo mensal |
+| Orçamento de Arrendamentos | fazendas, formas de pagamento e rateio por etapa |
+| Orçamento de Fornecedores | contratos, produção por origem e logística |
+| Fluxo de Caixa Agrícola | desembolso mensal, acumulado e participação |
+| Indicadores de Custo | R$/ha, R$/t, R$/kg de ATR, L/ha, custo-hora, pesos |
+
+### As 20 abas do Excel
+
+Resumo Executivo · Premissas · Área · Produção · Plantio · Tratos · Colheita ·
+Transporte · Frota · Manutenção · Mão de Obra · Insumos · Arrendamentos ·
+Fornecedores · Administração · Custos · Plano de Contas · Fluxo de Caixa ·
+Cenários · Validação
+
+Abas novas nesta versão: **Premissas** (cada premissa com onde ela entra no
+cálculo), **Área**, **Produção**, **Transporte**, **Administração**, **Fluxo de
+Caixa** (desembolso, acumulado e percentual), **Cenários** (sensibilidade de
+±5% e ±10% em diesel, mão de obra, insumos, manutenção, arrendamento e
+administração, com o efeito no custo total e no R$/ha) e **Validação**.
+
+### Exportação
+
+- **Excel** — uma aba por seção, largura de coluna ajustada ao conteúdo e nome
+  de arquivo com o relatório escolhido.
+- **PDF** — mesmas tabelas, com o nome do relatório no cabeçalho.
+- **CSV** — arquivo único com as seções em sequência, separador `;` e BOM, que é
+  o que o Excel em português abre sem pedir importação.
+- O nível **detalhado** acrescenta ao relatório anual as abas de apoio: plano
+  operacional, dimensionamento, por atividade, por centro de custo, por fazenda,
+  mensal, períodos, natureza, combustível, apoio, irrigação, pessoas, logística,
+  indicadores, frota cadastrada e modelos da frota.
+
+### Estrutura
+
+As seções saíram de `io/relatorio.js` para `io/secoes.js`, cada uma uma função
+pura de `R` para `{aba, titulo, cab, linhas}`. `io/relatorio.js` ficou só com o
+catálogo dos relatórios e a escrita dos três formatos.
+
+### Ressalva
+
+O plano operacional não é lançado por fazenda. No Orçamento por Fazenda, a
+parcela de cada fazenda arrendada vem da proporção de área dentro do total
+arrendado — é o que o modelo sabe hoje. Para orçar fazenda a fazenda de verdade,
+o plano precisaria de área por fazenda em cada atividade.
+
 ## 2.14.0 — 2026-09-16 · Rastreabilidade dos cálculos
 
 Clicar num custo abre uma gaveta que explica a composição dele, descendo a
