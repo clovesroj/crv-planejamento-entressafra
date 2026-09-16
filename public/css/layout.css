@@ -1,0 +1,90 @@
+/* ---------- base ---------- */
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45;
+  font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+
+/* ---------- estrutura: menu lateral + área de trabalho ---------- */
+.app{display:grid;grid-template-columns:var(--side-w) minmax(0,1fr);min-height:100vh}
+.shell{min-width:0;display:flex;flex-direction:column}
+
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background-color:var(--side);color:var(--side-ink);
+  display:flex;flex-direction:column;
+  /* linhas de plantio: textura quase imperceptível */
+  background-image:repeating-linear-gradient(104deg,rgba(214,180,110,.035) 0 2px,transparent 2px 15px)}
+.brand{display:flex;align-items:center;gap:11px;padding:18px 18px 15px;border-bottom:1px solid rgba(255,255,255,.07)}
+.brand img{height:34px;width:auto;background:#fff;border-radius:6px;padding:4px 7px;flex:none}
+/* logo branco sobre fundo escuro: sem a moldura clara */
+.brand img[data-variante="branco"]{height:36px;background:none;padding:0;border-radius:0}
+.brand .bt{font-family:var(--f-display);font-weight:600;font-size:17px;line-height:1.05;color:#fff;letter-spacing:.2px}
+.brand .bs{font-size:11px;color:var(--side-mute);margin-top:2px}
+
+nav{display:flex;flex-direction:column;gap:16px;padding:16px 10px 22px}
+.navgroup{display:flex;flex-direction:column;gap:1px}
+.navgroup .gl{display:flex;align-items:center;gap:8px;font-family:var(--f-display);font-size:12px;font-weight:600;
+  text-transform:uppercase;letter-spacing:1.2px;color:var(--side-mute);padding:2px 10px 6px}
+.navgroup .gl svg{width:15px;height:15px;flex:none;color:#D6B46E}
+nav button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:0;border-radius:6px;
+  padding:7px 10px 7px 33px;font:500 13.5px/1.3 var(--f-body);color:var(--side-ink);cursor:pointer;position:relative;
+  transition:background-color .12s,color .12s}
+nav button:hover{background:var(--side-hover);color:#fff}
+nav button.on{background:var(--side-on);color:#fff;font-weight:600}
+nav button.on::before{content:"";position:absolute;left:15px;top:50%;width:7px;height:7px;margin-top:-3.5px;
+  border-radius:1.5px;background:#D6B46E;transform:rotate(45deg)}
+nav button:focus-visible{outline:2px solid #D6B46E;outline-offset:-2px}
+nav button .badge{margin-left:auto}
+.side-foot{margin-top:auto;padding:14px 18px 18px;font-size:11.5px;line-height:1.5;color:var(--side-mute);
+  border-top:1px solid rgba(255,255,255,.07)}
+.scrim{display:none;position:fixed;inset:0;background:rgba(10,17,12,.45);z-index:70}
+
+/* ---------- barra superior ---------- */
+header.topbar{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--card) 94%,transparent);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.tb{display:flex;align-items:center;gap:10px;padding:9px 28px;min-height:60px;flex-wrap:wrap}
+.crumb{display:flex;flex-direction:column;line-height:1.15;min-width:0}
+.crumb .cg{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--grey);font-weight:600}
+.crumb .ct{font-family:var(--f-display);font-size:21px;font-weight:600;color:var(--ink);white-space:nowrap}
+.spacer{flex:1}
+.chip{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:999px;
+  border:1px solid var(--line);background:var(--sunk);font-size:12px;color:var(--grey);white-space:nowrap}
+.chip b{color:var(--ink);font-weight:600}
+.menu-btn{display:none!important}
+.ghost-btn{height:34px;width:34px;display:inline-grid;place-items:center;border-radius:var(--r-sm);
+  border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;
+  transition:background-color .12s,border-color .12s}
+.ghost-btn:hover{border-color:var(--line-strong);background:var(--sunk)}
+.ghost-btn svg{width:17px;height:17px}
+.icon-btn{height:34px;padding:0 14px 0 12px;border-radius:var(--r-sm);border:1px solid var(--leaf);background:var(--leaf);
+  color:var(--on-accent);font:600 13px var(--f-body);cursor:pointer;display:inline-flex;align-items:center;gap:7px;
+  white-space:nowrap;transition:background-color .12s,border-color .12s}
+.icon-btn:hover{background:var(--leaf-hover);border-color:var(--leaf-hover)}
+.icon-btn svg{width:16px;height:16px}
+.reportbox{position:relative}
+.report-pop{position:absolute;top:42px;right:0;background:var(--card);border:1px solid var(--line);
+  border-radius:var(--r);padding:14px;width:250px;box-shadow:var(--pop-shadow);z-index:60}
+.report-pop label{margin-top:0}
+.report-pop .row{margin-top:10px}
+.report-pop .btn{flex:1}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok);display:inline-block;box-shadow:0 0 0 3px var(--ok-bg)}
+.dot.warn{background:var(--warn);box-shadow:0 0 0 3px var(--warn-bg)}
+.dot.off{background:var(--muted);box-shadow:none}
+#print_report{display:none}
+
+/* ---------- área de conteúdo ---------- */
+main{width:100%;max-width:1440px;margin:0 auto;padding:26px 28px 64px}
+section{display:none}
+section.on{display:block;animation:entra .18s ease-out}
+@keyframes entra{from{opacity:.5;transform:translateY(3px)}to{opacity:1;transform:none}}
+h2{font-family:var(--f-display);font-size:28px;font-weight:600;line-height:1.1;letter-spacing:-.2px;margin:0 0 6px;text-wrap:balance}
+.lead{color:var(--grey);font-size:13.5px;margin:0 0 20px;max-width:80ch;line-height:1.55}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px 18px 16px;margin-bottom:16px}
+.panel h3{font-family:var(--f-display);font-size:15px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;
+  color:var(--th-ink);margin:0 0 14px;display:flex;align-items:center;gap:9px}
+.panel h3::before{content:"";width:7px;height:7px;border-radius:1.5px;background:var(--straw);transform:rotate(45deg);flex:none}
+.grid{display:grid;gap:12px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+/* contagem fixa de colunas: evita um card sozinho na última linha (3 + 1) */
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:1180px){ .g4{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (max-width:560px){ .g4{grid-template-columns:minmax(0,1fr)} }
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+

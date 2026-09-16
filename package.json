@@ -1,6 +1,6 @@
 {
   "name": "crv-planejamento-entressafra",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "description": "Sistema de planejamento de entressafra da CRV Industrial — safra 2026/2027, unidade Capinópolis-MG",
   "license": "UNLICENSED",
@@ -8,7 +8,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "start": "node server.js"
+    "start": "node server/index.js"
   },
   "dependencies": {
     "pg": "^8.13.1"

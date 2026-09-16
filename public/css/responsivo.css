@@ -1,0 +1,31 @@
+/* ---------- responsivo ---------- */
+@media (max-width:1100px){
+  main{padding:22px 20px 56px}
+  .tb{padding:9px 20px}
+  footer{padding:16px 20px 22px}
+}
+@media (max-width:980px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .sidebar{position:fixed;inset:0 auto 0 0;width:min(var(--side-w),86vw);z-index:80;transform:translateX(-102%);
+    transition:transform .18s ease}
+  body.menu-open .sidebar{transform:none;box-shadow:var(--pop-shadow)}
+  body.menu-open .scrim{display:block}
+  .menu-btn{display:inline-grid!important}
+  .chip.safra{display:none}
+}
+@media (max-width:640px){
+  main{padding:16px 16px 48px}
+  .tb{padding:8px 16px;gap:8px}
+  footer{padding:14px 16px 20px}
+  .crumb .ct{font-size:18px}
+  .icon-btn .lbl{display:none}
+  .savebox #stxt{display:none}
+  h2{font-size:23px}
+  .kpi .v{font-size:24px}
+  .hero{padding:20px}
+  .hero h1{font-size:27px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+

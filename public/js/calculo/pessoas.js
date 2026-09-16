@@ -1,0 +1,64 @@
+import { CFG } from '../dados/cfg.js';
+import { MESES, NM } from '../nucleo/calendario.js';
+import { num } from '../nucleo/formato.js';
+import { ETAPAS_ORD } from './arrendamento.js';
+
+/* ================== RESUMO DE PESSOAS ================== */
+const DEPTS_ORD = [...ETAPAS_ORD, "MANUTENÇÃO", "ESTRUTURA AGRÍCOLA"];
+function deptIdx(d){ const i = DEPTS_ORD.indexOf(d); return i<0 ? 99 : i; }
+// Reúne cada fonte de efetivo do plano numa lista única (departamento, função, pessoas e custo por mês).
+// Usa os mesmos números das abas de origem, para o total conferir com a mão de obra da aba Custos.
+function pessoasCalc(R){
+  const MP = R.MP, itens = [];
+  const nomeF = c => (MP.custoFuncao[c]||{nome:c}).nome;
+  const fixo = v => Array(NM).fill(v);
+  const add = (dept, fcod, origem, qtd, qtdMes, custoMes) => itens.push({dept, fcod, fnome:nomeF(fcod), origem,
+    qtd, qtdMes, custoMes, custo:custoMes.reduce((s,x)=>s+x,0)});
+
+  // atividades do plano: a equipe conta nos meses com quantidade; o custo segue a quantidade do mês
+  R.L.forEach(r=>{
+    const tot = r.total||0; if(tot<=0) return;
+    r.partes.forEach(p=>{
+      if(p.terc || !(p.efetivo>0)) return;
+      add(r.a.etapa, p.fcod, r.a.nome, p.efetivo,
+          r.meses.map(q=>num(q)>0 ? p.efetivo : 0), r.meses.map(q=>p.cMDO*num(q)/tot));
+    });
+  });
+  // reserva do transporte de cana que o efetivo total soma à parte (sem custo de MDO próprio no modelo)
+  const fe = MP.fatorEscala, TR = R.TR;
+  const extraTot = Math.ceil(TR.frota*fe);
+  const extraCam = Math.min(extraTot, Math.ceil(((TR.camSafra.frotaR||0)+(TR.camMuda.frotaR||0))*fe));
+  const ativos = cods => MESES.map((m,i)=>cods.some(c=>{ const r=R.L.find(x=>x.a.cod===c); return r && num(r.meses[i])>0; }));
+  if(extraCam>0){ const at=ativos(["TR1","TR2"]);
+    add("COLHEITA","F03","Transporte de cana — reserva do efetivo", extraCam, at.map(b=>b?extraCam:0), fixo(0)); }
+  if(extraTot-extraCam>0){ const n=extraTot-extraCam, at=ativos(["TR3","TR4"]);
+    add("COLHEITA","F11","Transbordo — reserva do efetivo", n, at.map(b=>b?n:0), fixo(0)); }
+  // equipamentos de apoio: mesmo efetivo e custo em todos os meses
+  R.AE.linhas.forEach(l=>{ if(l.efetivo>0)
+    add("APOIO E CONSERVAÇÃO", l.fcod, l.nome, l.efetivo, fixo(l.efetivo), fixo(l.mdo/NM)); });
+  // equipe de manutenção
+  [["F09",R.EM.mec,"Mecânicos"],["F14",R.EM.ajud,"Ajudantes de mecânico"],["F13",R.EM.lider,"Líderes de manutenção"]]
+    .forEach(([f,n,o])=>{ if(n>0) add("MANUTENÇÃO", f, o, n, fixo(n), fixo(n*(MP.custoFuncao[f]||{mensal:0}).mensal)); });
+  // estrutura agrícola indireta
+  CFG.indiretos.forEach(i=>{ if(i.qtd>0)
+    add("ESTRUTURA AGRÍCOLA", i.fcod, i.nome, i.qtd, fixo(i.qtd), fixo(i.qtd*(MP.custoFuncao[i.fcod]||{mensal:0}).mensal)); });
+
+  const agrupa = chave => {
+    const g = {};
+    itens.forEach(it=>{
+      const o = g[chave(it)] = g[chave(it)] || {qtd:0, custo:0, n:0, qtdMes:fixo(0), custoMes:fixo(0)};
+      o.qtd+=it.qtd; o.custo+=it.custo; o.n++;
+      it.qtdMes.forEach((v,i)=>{ o.qtdMes[i]+=v; o.custoMes[i]+=it.custoMes[i]; });
+    });
+    Object.values(g).forEach(o=>{ o.pico=Math.max(...o.qtdMes); o.pessoasMes=o.qtdMes.reduce((s,x)=>s+x,0); });
+    return g;
+  };
+  const qtdMes = MESES.map((m,i)=>itens.reduce((s,it)=>s+it.qtdMes[i],0));
+  const custoMes = MESES.map((m,i)=>itens.reduce((s,it)=>s+it.custoMes[i],0));
+  return {itens, porDept:agrupa(it=>it.dept), porFun:agrupa(it=>it.fcod), qtdMes, custoMes,
+          qtd: itens.reduce((s,it)=>s+it.qtd,0), custo: custoMes.reduce((s,x)=>s+x,0),
+          apoio: R.AE.efetivo};
+}
+
+
+export { DEPTS_ORD, deptIdx, pessoasCalc };

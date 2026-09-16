@@ -1,0 +1,13 @@
+/* ---------- impressão (relatório PDF) ---------- */
+@media print{
+  .sidebar,.scrim,header,main,footer{display:none!important}
+  .app{display:block}
+  #print_report{display:block!important}
+  #print_report .rel-logo{height:42px;width:auto;display:block;margin:0 0 10px}
+  #print_report h1{font-size:18px;margin:0 0 4px}
+  #print_report h2{font-size:13px;margin:18px 0 6px;page-break-after:avoid}
+  #print_report p{font-size:11px;color:#555;margin:0 0 10px}
+  #print_report table{width:100%;border-collapse:collapse;font-size:9.5px;margin-bottom:6px}
+  #print_report th,#print_report td{border:1px solid #ccc;padding:3px 5px;text-align:left;background:none;color:#000;position:static}
+  #print_report thead{background:#eee}
+}

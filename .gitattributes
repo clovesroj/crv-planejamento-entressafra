@@ -1,0 +1,6 @@
+# Finais de linha deterministicos: LF no repositorio e na arvore de trabalho.
+# Sem isto o core.autocrlf de cada maquina decide, e o diff de um arquivo
+# inteiro aparece so por causa do \r.
+* text=auto eol=lf
+*.png binary
+*.apk binary

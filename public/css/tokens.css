@@ -1,0 +1,71 @@
+/* =====================================================================
+   CRV · Planejamento de Entressafra — identidade "canavial"
+   folha (verde da cana) · palha (dourado seco) · latossolo (terra roxa)
+   céu (informação). Estrutura em neutros levemente puxados para o verde.
+   ===================================================================== */
+
+/* ---------- tokens: tema claro ---------- */
+:root{
+  --leaf:#2D6A3A; --leaf-hover:#1F4F2A; --leaf-strong:#1F4F2A; --leaf-soft:#E6EFE3;
+  --on-accent:#FFFFFF;
+  --straw:#C9A45C; --straw-soft:#F7EFD9;
+  --soil:#A5503A; --sky:#2F6FB2;
+  --bg:#F2F4EF; --card:#FFFFFF; --sunk:#F6F8F3; --line:#DCE2D5; --line-strong:#C3CCBB;
+  --ink:#17231A; --grey:#5C685E; --muted:#86918A;
+  --th-bg:#E8EDE3; --th-ink:#2F3D32;
+  --edit-bg:#FBF5E4; --edit-line:#E3CF9C; --edit-ink:#2A2413;
+  --ok:#2E8540; --warn:#A96F0B; --bad:#B8392B; --info:#2F6FB2;
+  --ok-bg:rgba(46,133,64,.12); --warn-bg:rgba(201,138,18,.15); --bad-bg:rgba(184,57,43,.11); --info-bg:rgba(47,111,178,.10);
+  --pop-shadow:0 12px 32px rgba(15,25,18,.20);
+  --focus:0 0 0 3px rgba(45,106,58,.24);
+
+  /* menu lateral: escuro nos dois temas */
+  --side:#132117; --side-ink:#DCE6D8; --side-mute:#8DA18D; --side-hover:rgba(255,255,255,.06); --side-on:#223D29;
+
+  /* nomes antigos — ainda usados pelo JavaScript e por estilos inline */
+  --navy:var(--side); --navy2:var(--leaf-strong); --blue:var(--leaf); --accent:var(--leaf);
+  --teal:var(--sky); --green:var(--ok); --amber:var(--warn); --red:var(--bad);
+
+  --f-display:"Barlow Semi Condensed","Arial Narrow","Roboto Condensed",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --r:8px; --r-sm:6px; --side-w:252px;
+  color-scheme:light;
+}
+
+/* ---------- tokens: tema escuro (sistema) ---------- */
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --leaf:#6FAE6E; --leaf-hover:#86C184; --leaf-strong:#2E5A36; --leaf-soft:#1C2B1F;
+    --on-accent:#0D140F;
+    --straw:#D6B46E; --straw-soft:#2A2616;
+    --soil:#C9745A; --sky:#6FA3D8;
+    --bg:#0D140F; --card:#152018; --sunk:#111A13; --line:#26332A; --line-strong:#35463A;
+    --ink:#E3EBE0; --grey:#9AA99C; --muted:#748276;
+    --th-bg:#1B271E; --th-ink:#C9D6C8;
+    --edit-bg:#2A2515; --edit-line:#4E4327; --edit-ink:#EDE3C6;
+    --ok:#5DBB72; --warn:#E0A83E; --bad:#E0705F; --info:#6FA3D8;
+    --ok-bg:rgba(93,187,114,.16); --warn-bg:rgba(224,168,62,.16); --bad-bg:rgba(224,112,95,.16); --info-bg:rgba(111,163,216,.14);
+    --pop-shadow:0 12px 32px rgba(0,0,0,.55);
+    --focus:0 0 0 3px rgba(111,174,110,.32);
+    --side:#0A110C; --side-on:#1D3322;
+    color-scheme:dark;
+  }
+}
+/* ---------- tokens: tema escuro (escolhido no botão) ---------- */
+:root[data-theme="dark"]{
+  --leaf:#6FAE6E; --leaf-hover:#86C184; --leaf-strong:#2E5A36; --leaf-soft:#1C2B1F;
+  --on-accent:#0D140F;
+  --straw:#D6B46E; --straw-soft:#2A2616;
+  --soil:#C9745A; --sky:#6FA3D8;
+  --bg:#0D140F; --card:#152018; --sunk:#111A13; --line:#26332A; --line-strong:#35463A;
+  --ink:#E3EBE0; --grey:#9AA99C; --muted:#748276;
+  --th-bg:#1B271E; --th-ink:#C9D6C8;
+  --edit-bg:#2A2515; --edit-line:#4E4327; --edit-ink:#EDE3C6;
+  --ok:#5DBB72; --warn:#E0A83E; --bad:#E0705F; --info:#6FA3D8;
+  --ok-bg:rgba(93,187,114,.16); --warn-bg:rgba(224,168,62,.16); --bad-bg:rgba(224,112,95,.16); --info-bg:rgba(111,163,216,.14);
+  --pop-shadow:0 12px 32px rgba(0,0,0,.55);
+  --focus:0 0 0 3px rgba(111,174,110,.32);
+  --side:#0A110C; --side-on:#1D3322;
+  color-scheme:dark;
+}
+

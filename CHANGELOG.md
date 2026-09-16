@@ -1,0 +1,68 @@
+# Histórico de mudanças
+
+## 2.0.0 — 2026-09-15 · Separação em front, back e dados
+
+Reestruturação conduzida por **Caio Souza**.
+
+Nenhuma mudança de comportamento, de número ou de tela. O sistema calcula e
+renderiza exatamente o mesmo que na versão 1.0.0 — isso foi verificado por
+impressão digital, não presumido. Ver [CLAUDE.md](CLAUDE.md) para os invariantes
+e o contrato de regressão.
+
+### Estrutura
+
+De 6 arquivos para 82. O `index.html` de 3.495 linhas (273 KB) virou:
+
+| Antes | Depois |
+|---|---|
+| `index.html` — CSS, marcação, JS e dados juntos | `public/index.html` — 552 linhas, só marcação |
+| CSS embutido, 338 linhas | `public/css/` — 5 arquivos por responsabilidade |
+| `const CFG` — 46 KB **numa única linha** | `public/js/dados/` — 12 arquivos, 789 linhas legíveis |
+| `const LOGO` — 14 KB numa linha | `public/js/dados/logo.js` |
+| 2.608 linhas de JavaScript | 45 módulos ES em `nucleo/ calculo/ ui/ io/ app/` |
+| `server.js` — 297 linhas | `server/` — 8 arquivos, com `store/schema.sql` à parte |
+
+Maior arquivo JavaScript hoje: 238 linhas. O grafo de dependências é acíclico e
+sobe numa direção só: `dados → nucleo → calculo → ui → app`.
+
+### Como a equivalência foi provada
+
+- **Extração byte a byte.** O JavaScript foi recortado por um manifesto contíguo
+  e sem buracos; reconcatenar na ordem reproduz o original exatamente.
+- **Contrato de regressão** capturado do original *antes* de qualquer alteração,
+  usando os dados reais de produção como fixture. Depois: as 56 chaves de
+  `calcularCompleto()` idênticas, `total` igual ao centavo.
+- **DOM renderizado**: as 19 seções, o menu e a barra superior com hash idêntico.
+- **Interações**: digitação em premissa e em célula do plano, navegação, tema,
+  botões de adicionar e remover, debounce de gravação, montagem do relatório.
+- **Back-end**: grafo de módulos carregado e rotas exercitadas — `health`, `GET`,
+  `PATCH`, merge preservando gravação anterior, e os erros 405 / 404 / 400.
+- 97 de 97 funções do original presentes.
+
+### Corrigido no caminho
+
+- **Cache de módulos.** O `index.html` único era servido com `no-cache`, então um
+  deploy valia na hora. Fatiado em ~50 arquivos com `max-age=3600`, um usuário
+  que recarregasse após um deploy rodaria HTML novo com JavaScript velho. Agora
+  `.html`, `.js` e `.css` revalidam; imagem e fonte ficam em cache longo.
+- **Lista de arquivos ocultos eliminada.** O servidor estático recusava
+  `server.js`, `package.json` e afins um a um. Com o código do servidor fora de
+  `public/`, não há rota que chegue neles.
+- **DDL fora do código.** O esquema da tabela `plano` virou
+  `server/store/schema.sql`.
+
+### Compatibilidade
+
+- **O formato do documento salvo não mudou**: mesmas chaves em `estado()`, mesmo
+  `v:10`, mesma chave `crv_plano_v10` no `localStorage`. O plano gravado no
+  Postgres continua sendo lido sem migração.
+- `render.yaml` inalterado. O `npm start` passou a apontar para
+  `server/index.js`; [`server.js`](server.js) permanece como atalho de
+  compatibilidade caso o Start Command no painel do Render ainda seja
+  `node server.js`.
+- **Abrir `public/index.html` por `file://` deixou de funcionar** — única
+  capacidade perdida. Módulos ES exigem origem HTTP. Use `npm start`.
+
+## 1.0.0 — até 2026-09-15
+
+Sistema em arquivo único. Ver o histórico do git até `c8d4ee7`.

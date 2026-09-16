@@ -1,0 +1,17 @@
+/**
+ * Modos de aplicacao e tarifa padrao de terceirizacao.
+ *
+ * MODOS  modo -> maquina, implemento, rendimento, operadores, turnos e funcao.
+ *        terc:true marca prestador de servico (nao consome frota nem efetivo).
+ * TERC_TAR_PAD  tarifa padrao de terceirizacao em R$/ha
+ */
+
+export const MODOS = {
+  "Manual": {"maq":"Equipe manual","imp":"Pulverizador costal","rend":0.8,"ops":1,"turnos":1,"fcod":"F04"},
+  "Trator": {"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","rend":2.2,"ops":1,"turnos":2,"fcod":"F05"},
+  "Uniport": {"maq":"Uniport 3030","imp":"Barra de pulverização 24 m","rend":3.5,"ops":1,"turnos":3,"fcod":"F05"},
+  "Drone": {"maq":"Drone pulverizador","imp":"Bico rotativo","rend":1.5,"ops":1,"turnos":2,"fcod":"F05"},
+  "Terceiro": {"maq":"Prestador de serviço","imp":"—","rend":0,"ops":0,"turnos":0,"fcod":null,"terc":true}
+};
+
+export const TERC_TAR_PAD = 180;

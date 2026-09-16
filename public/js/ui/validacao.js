@@ -1,0 +1,61 @@
+import { ETAPAS_ORD, arrRat } from '../calculo/arrendamento.js';
+import { CFG } from '../dados/cfg.js';
+import { INSUMO, P } from '../nucleo/estado.js';
+import { $, brl, fmt, num } from '../nucleo/formato.js';
+import { th } from './componentes.js';
+
+/* ---------- VALIDAÇÃO ---------- */
+function validar(R){
+  const v=[]; const add=(ok,t,d)=>v.push({ok,t,d});
+  const semVol=R.L.filter(r=>r.total===0).length;
+  add(semVol===0,"Atividades sem volume programado",semVol+" de "+R.L.length);
+  const ratSoma = ETAPAS_ORD.reduce((s,e)=>s+arrRat(e),0);
+  add(Math.abs(ratSoma-100)<=0.01,"Rateio do arrendamento por etapa somando 100%",
+      Math.abs(ratSoma-100)<=0.01 ? "" : "soma "+fmt(ratSoma,1)+"% — valores normalizados no cálculo");
+  const arrSemValor = R.AR.linhas.filter(l=>l.area>0 && l.rsHa<=0);
+  add(arrSemValor.length===0,"Fazenda arrendada com área e sem valor de pagamento", arrSemValor.map(l=>l.faz).join(", "));
+  if(R.PS) add(Math.abs(R.PS.custo-R.mdoTotal)<=1,"Resumo de pessoas confere com o custo de mão de obra",
+      Math.abs(R.PS.custo-R.mdoTotal)<=1 ? "" : "diferença de "+brl(R.PS.custo-R.mdoTotal));
+  add(R.L.filter(r=>r.rend<=0).length===0,"Rendimento operacional zerado","");
+  add(R.L.filter(r=>r.util<=0||r.util>1).length===0,"Taxa de utilização fora de 0–100%","");
+  add(R.L.filter(r=>r.ehHa&&r.total>0&&!r.trat).length===0,"Atividade em ha sem tratamento vinculado",
+      R.L.filter(r=>r.ehHa&&r.total>0&&!r.trat).length+"");
+  add(R.L.filter(r=>!r.ehHa&&r.trat).length===0,"Tratamento vinculado a atividade em tonelada","");
+  add(P.dens>0&&P.tch>0,"Densidade de muda e TCH preenchidos",fmt(R.viveiro)+" ha de viveiro");
+  add(P.diesel>0,"Preço do diesel preenchido",brl(P.diesel,2));
+  add(P.hdia>0&&P.hdia<=24,"Horas efetivas/dia plausíveis",fmt(P.hdia,1)+"h");
+  add(P.disp>0&&P.disp<=100,"Disponibilidade mecânica em 0–100%",fmt(P.disp)+"%");
+  add(P.dias>0&&P.dias<=31,"Dias efetivos/mês plausíveis",fmt(P.dias));
+  add(P.diasTrab>0&&P.diasTrab<=7,"Dias trabalhados por colaborador em 1–7",fmt(P.diasTrab));
+  add(R.MP.fatorEscala>=1,"Fator de rodízio coerente com a escala",R.MP.fatorEscala.toFixed(2));
+  add(CFG.funcoes.every(f=>f.sal>0),"Todas as funções com salário preenchido","");
+  add(P.rendBomba>0&&P.rendBomba<=100,"Rendimento do conjunto motobomba em 0–100%",fmt(P.rendBomba)+"%");
+  add(R.IR.linhas.every(l=>l.Ea>0&&l.Ea<=1),"Eficiência de aplicação de irrigação em 0–100%","");
+  add(R.IR.linhas.filter(l=>l.potCV>0&&l.nConj<1).length===0,"Conjunto motobomba dimensionado","");
+  add(P.capTransb>0,"Capacidade por viagem calculada (volume × densidade)",fmt(P.capTransb,1)+" t/viagem");
+  add(CFG.insumos.every(i=>{const o=INSUMO[i.prod]||{};return (o.preco!=null?num(o.preco):i.preco)>0;}),
+      "Todos os insumos com preço","");
+  add(R.total>0,"Plano gera custo calculável",brl(R.total));
+  const somaMeses=R.meses.reduce((s,x)=>s+x,0);
+  add(Math.abs(somaMeses-R.total)<1,"Soma dos meses confere com o total",brl(somaMeses));
+  const somaEt=Object.values(R.etapas).reduce((s,e)=>s+e.total,0);
+  add(Math.abs(somaEt-R.total)<1,"Soma das etapas confere com o total",brl(somaEt));
+  add(R.L.filter(r=>r.frotaR>12).length===0,"Atividade exigindo mais de 12 equipamentos",
+      R.L.filter(r=>r.frotaR>12).length+"");
+  add(R.TP.lugares>=R.efetivoTotal,"Transporte de pessoal cobre o efetivo total",
+      fmt(R.TP.lugares)+" lugares para "+fmt(R.efetivoTotal)+" colaboradores");
+  const mixRuim = R.L.filter(r=>r.mixSoma>0 && Math.abs(r.mixSoma-100)>0.01);
+  add(mixRuim.length===0,"Mix de modos de aplicação somando 100%",
+      mixRuim.length? mixRuim.map(r=>r.a.cod+" ("+fmt(r.mixSoma,0)+"%)").join(", ") : "");
+  return v;
+}
+function pintarValida(R){
+  const v=validar(R), bad=v.filter(x=>!x.ok).length;
+  $("#vbadge").innerHTML = bad?`<span class="badge b-bad">${bad}</span>`:`<span class="badge b-ok">OK</span>`;
+  $("#t_val").innerHTML = th([["Status"],["Verificação"],["Detalhe"]])+"<tbody>"+
+    v.map(x=>`<tr><td><span class="badge ${x.ok?"b-ok":"b-bad"}">${x.ok?"OK":"!"}</span></td>
+      <td>${x.t}</td><td class="calc">${x.d||""}</td></tr>`).join("")+"</tbody>";
+}
+
+
+export { pintarValida, validar };
