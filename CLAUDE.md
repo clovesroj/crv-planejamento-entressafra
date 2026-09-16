@@ -107,13 +107,23 @@ const h = s => { let x=5381; for(let i=0;i<s.length;i++) x=((x*33)^s.charCodeAt(
 > A linha da fixture de produção não foi reconferida: exige a fixture, que não
 > está no repositório.
 
-**Invariante novo, vale a pena checar:** o CRM rateado por etapa tem de fechar com
-o CRM total. Era isto que o `conv` esquecido quebrava.
+**Dois invariantes que vale a pena checar:**
+
+1. O CRM rateado por etapa fecha com o CRM total. Era isto que o `conv` esquecido
+   quebrava.
+2. Toda linha do registro com especialidade usa a unidade que o ERP atribui a ela.
+   A categoria do app só decide para item sem frota (serviço, mão de obra).
 
 ```js
 const R = ciclo.calcularCompleto();
-Math.abs(R.crmTotal - Object.values(R.crmEtapa).reduce((a,b)=>a+b,0)) < 0.01;  // true
+Math.abs(R.crmTotal - Object.values(R.crmEtapa).reduce((a,b)=>a+b,0)) < 0.01;   // true
+R.crmFrotaL.every(l => !l.esp || l.unidade === (baseDe(l.esp)==='K' ? 'km' : 'h')); // true
 ```
+
+O alinhamento das unidades com o ERP foi feito convertendo as taxas pela mesma
+velocidade média, então **não mexeu no total** — 39.158.394,097544 antes e depois.
+Só é neutro porque a correção do `conv` veio antes: enquanto a frota de apoio
+ignorava `conv`, trocar a unidade de um item mudava o custo dele.
 
 Impressão digital do `innerHTML` das 19 seções após `render()`, com a mesma
 fixture:

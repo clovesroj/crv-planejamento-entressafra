@@ -113,11 +113,22 @@ function frotaPorItem(L, AE){
   AE.linhas.forEach(l=>{ if(num(l.qtd)>0) soma(l.maq,num(l.qtd)); });
   return f;
 }
-// Categorias tratadas como veículo: CRM é expresso por km rodado, não por hora.
-// A conversão horas->km usa a velocidade média de transporte já premissada (Transporte e Transbordo);
-// os valores de R$/h originais desses itens foram migrados para R$/km dividindo por essa mesma velocidade,
-// então o custo total projetado não muda — só passa a ser expresso na unidade correta.
+// CRM de veículo é expresso por km rodado, não por hora. A conversão horas->km usa
+// a velocidade média de transporte já premissada (Transporte e Transbordo).
+//
+// Quem decide a unidade é a base do ERP, por especialidade — não a categoria do
+// app. As duas discordavam em oito equipamentos, e o ERP está certo: caminhão
+// bombeiro, comboio, oficina e munck trabalham parados e são medidos por hora;
+// reboque canavieiro, carroceria e tanque rodam estrada e são medidos por km.
+// As taxas desses oito foram convertidas pela mesma velocidade média, de modo
+// que o custo projetado não se mexeu — só passou a ser expresso na unidade que
+// o equipamento realmente usa. Ver o campo `unERP` em dados/crm.js.
 const CAT_VEICULO = ["Veículos pesados","Veículos leves"];
+// Unidade de medida de uma especialidade, como o ERP mede a frota dela:
+// K = veículo, contado em km rodado; H = máquina, contada em hora de motor.
+// É a fonte de verdade — a categoria do app só vale para item fora da taxonomia
+// (serviço, mão de obra), que não tem frota e portanto não tem hodômetro.
+function baseDe(esp){ const e = FROTA_ESP[esp]; return e ? e.base : "H"; }
 function velMediaVeic(){ return ((P.velC||0)+(P.velV||0))/2 || 1; }
 // Para cada item: quantidade e horas/equipamento previstas (editáveis) e o CRM resultante
 function crmFrota(L, AE){
@@ -129,7 +140,7 @@ function crmFrota(L, AE){
   const vmed = velMediaVeic();
   const linhas = itens.map(item=>{
     const c = crmDe(item);
-    const isVeic = CAT_VEICULO.includes(c.cat);
+    const isVeic = c.esp ? baseDe(c.esp)==="K" : CAT_VEICULO.includes(c.cat);
     const unidade = isVeic ? "km" : "h";
     const conv = isVeic ? vmed : 1;
     const qtdDim = fPlano[item] || 0;
@@ -155,6 +166,6 @@ function crmFrota(L, AE){
 }
 
 
-export { AG_SEM_FROTA, CAT_VEICULO, CRM_COMP, CRM_LABEL, FROTA_AG, FROTA_AGS, FROTA_ESP, INFO_MODELO, SEP_MOD,
+export { AG_SEM_FROTA, CAT_VEICULO, baseDe, CRM_COMP, CRM_LABEL, FROTA_AG, FROTA_AGS, FROTA_ESP, INFO_MODELO, SEP_MOD,
          agDeLinha, agsCRM, contaOrigem, crmDe, crmDetalhe, crmEspDe, crmFrota, crmHora, espDe, frotaPorItem,
          horasPorItem, modeloNaBase, rotuloItem, velMediaVeic };
