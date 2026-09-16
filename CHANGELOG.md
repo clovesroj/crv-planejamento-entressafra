@@ -1,5 +1,45 @@
 # Histórico de mudanças
 
+## 2.13.0 — 2026-09-16 · Módulo de custos administrativos
+
+Nova aba **Custos Administrativos**. A administração deixa de ser um valor
+global nas Premissas e passa a ser um cadastro de linhas, cada uma com o seu
+critério de rateio entre as etapas do plano.
+
+### Naturezas cadastradas
+
+Estrutura administrativa; salários, encargos e benefícios da administração;
+tecnologia, softwares e comunicação; aluguel e energia; viagens, treinamentos,
+EPIs e segurança; consultorias, auditorias e serviços especializados; despesas
+gerais. Dá para incluir e remover linhas.
+
+### Critérios de rateio
+
+| Critério | Distribui |
+|---|---|
+| Hectare operado | proporcional aos hectares da etapa |
+| Tonelada | proporcional às toneladas da etapa |
+| Horas-máquina | proporcional às horas da etapa |
+| Custo direto | proporcional ao custo direto da etapa |
+| Percentual por etapa | pelos percentuais informados na aba |
+| Centro de custo | a linha inteira vai para a etapa escolhida |
+
+Linha cujo critério não tem base no plano — tonelada sem colheita lançada, por
+exemplo — fica **sem rateio** e volta para o rateio indireto geral, com aviso na
+coluna Rateio, em vez de ser distribuída por um peso inventado.
+
+### Integração
+
+O total alimenta a natureza Administração na aba Custos, a conta EST-01 no Plano
+de Contas e os fixos do Painel. O campo Administração nas Premissas virou campo
+calculado. No primeiro uso o módulo herda o valor global que estava lá, para o
+custo do plano não mudar sozinho.
+
+As etapas ganharam a coluna de horas, que serve de base ao critério por horas, e
+o custo administrativo rateado entra no total de cada etapa, ao lado do
+arrendamento.
+
+
 ## 2.12.0 — 2026-09-16 · Adubação de fundação
 
 Nova operação no Plano Operacional: **A39 Adubação de fundação**, em ha/mês,

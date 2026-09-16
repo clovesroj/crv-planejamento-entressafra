@@ -4,7 +4,7 @@ import { composicao, destravar, tratCodigos } from '../calculo/insumos.js';
 import { CFG } from '../dados/cfg.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM } from '../nucleo/calendario.js';
-import { APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, apoioLista, arrLista, fornLista, insLista, matLista, tpessLista } from '../nucleo/estado.js';
+import { APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, fornLista, insLista, matLista, tpessLista } from '../nucleo/estado.js';
 import { FROTA_ABERTO, FROTA_UN, MAQ, setFROTA_DEST, setFROTA_ORIG } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { aplicarFiltroPlano } from '../ui/plano.js';
@@ -82,6 +82,10 @@ document.addEventListener("input",e=>{
   // selects também disparam "input": os da tabela de arrendamento são tratados no "change"
   if(t.dataset.arr!==undefined && t.tagName==="INPUT"){ const l=arrLista()[+t.dataset.arr], f=t.dataset.f;
     l[f] = ["faz","grupo"].includes(f) ? t.value : num(t.value); salvar(); leve(); return; }
+  // linhas de custo administrativo: texto ou valor
+  if(t.dataset.adm!==undefined && t.tagName==="INPUT"){ const l=admLista()[+t.dataset.adm], f=t.dataset.f;
+    l[f] = f==="valor" ? num(t.value) : t.value; salvar(); leve(); return; }
+  if(t.dataset.admrat!==undefined){ ADM_RAT[t.dataset.admrat]=num(t.value); salvar(); leve(); return; }
   if(t.dataset.arp!==undefined){ ARR_PAR[t.dataset.arp]=num(t.value); salvar(); leve(); return; }
   if(t.dataset.arrat!==undefined){ ARR_RAT[t.dataset.arrat]=num(t.value); salvar(); leve(); return; }
   // selects da tabela de fornecedores sao tratados no "change"; aqui so os campos digitados
@@ -103,6 +107,10 @@ document.addEventListener("change",e=>{
   if(t.id==="p_fonte"){ lerPremissas(); salvar(); render(); return; }
   if(t.dataset.arr!==undefined && t.tagName==="SELECT"){ const l=arrLista()[+t.dataset.arr];
     l[t.dataset.f] = t.dataset.f==="mes" ? +t.value : t.value; salvar(); render(); return; }
+  if(t.dataset.adm!==undefined && t.tagName==="SELECT"){ const l=admLista()[+t.dataset.adm];
+    l[t.dataset.f] = t.value;
+    if(t.dataset.f==="crit" && t.value!=="cc") l.cc = "";   // centro de custo so vale nesse critorio
+    salvar(); render(); return; }
   if(t.id==="arp_criterio"){ ARR_PAR.criterio=t.value; salvar(); render(); return; }
   if(t.dataset.fnr!==undefined){ const l=fornLista()[+t.dataset.fnr], f=t.dataset.f;
     l[f] = ["entIni","entFim"].includes(f) ? +t.value : t.value;
@@ -140,6 +148,9 @@ document.addEventListener("click",e=>{
     render(); return; }
   const t=e.target;
   if(t.dataset.rm!==undefined){ ESPOR.splice(+t.dataset.rm,1); salvar(); render(); return; }
+  if(t.dataset.admrm!==undefined){ const l=admLista()[+t.dataset.admrm];
+    if(!confirm(`Remover "${l.desc}" dos custos administrativos?`)) return;
+    admLista().splice(+t.dataset.admrm,1); salvar(); render(); return; }
   if(t.dataset.arrm!==undefined){ const l=arrLista()[+t.dataset.arrm];
     if(!confirm(`Remover "${l.faz}" dos arrendamentos?`)) return;
     arrLista().splice(+t.dataset.arrm,1); salvar(); render(); return; }

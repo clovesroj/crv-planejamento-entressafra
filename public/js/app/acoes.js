@@ -2,10 +2,11 @@ import { calcular } from '../calculo/index.js';
 import { calcularCompleto } from './ciclo.js';
 import { CFG } from '../dados/cfg.js';
 import { FORN_LINHA } from '../dados/fornecedores.js';
+import { ADM_GRUPOS } from '../dados/administrativo.js';
 import { baixar } from '../io/arquivo.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, PERIODOS, periodoMes } from '../nucleo/calendario.js';
-import { ESPOR, P, fornLista } from '../nucleo/estado.js';
+import { ESPOR, P, admLista, fornLista } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { comps } from '../ui/custos.js';
 import { pintarPremissas } from '../ui/premissas.js';
@@ -20,6 +21,10 @@ $("#btn_theme").onclick=()=>{ const c=document.documentElement.getAttribute("dat
   document.documentElement.setAttribute("data-theme",c==="dark"?"light":"dark"); };
 $("#btn_esp").onclick=()=>{ ESPOR.push({mes:MESES[0],desc:"",cc:CFG.cc_list[0],valor:0,status:"Provisão"});
   salvar(); render(); };
+$("#btn_adm_add").onclick=()=>{
+  admLista().push({grupo:Object.keys(ADM_GRUPOS)[0], desc:"Nova linha", valor:0, crit:"direto", cc:""});
+  salvar(); render();
+};
 $("#btn_forn_add").onclick=()=>{ fornLista().push({...FORN_LINHA}); salvar(); render(); };
 $("#btn_export").onclick=async()=>{
   const R=calcular();

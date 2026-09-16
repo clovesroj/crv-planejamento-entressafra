@@ -63,6 +63,7 @@
     <div class="navgroup" data-g="Custos">
       <div class="gl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20v-8M10.5 20V5M16 20v-6M21 20V9"/><path d="M2.5 20h19"/></svg>Custos</div>
       <button data-s="arrend">Arrendamentos</button>
+      <button data-s="adm">Custos Administrativos</button>
       <button data-s="custos">Custos</button>
       <button data-s="contas">Plano de Contas</button>
     </div>
@@ -160,7 +161,7 @@
   <div class="panel"><h3>Econômicas</h3><div class="grid g4">
     <div><label>Diesel (R$/L)</label><input type="number" id="p_diesel" step="0.1"></div>
     <div><label>Arrendamento médio (R$/ha/ano)</label><input id="c_arr" disabled><div class="hint">Calculado na aba Arrendamentos</div></div>
-    <div><label>Administração (R$/mês)</label><input type="number" id="p_adm" step="10000"></div>
+    <div><label>Administração (R$/mês)</label><input id="c_adm" disabled><div class="hint">Somada na aba Custos Administrativos</div></div>
     <div><label>Imobilizado da frota (R$)</label><input type="number" id="p_imob" step="1000000"></div>
     <div><label>Depreciação anual (%)</label><input type="number" id="p_dep" step="1"></div>
     <div><label>Atualização de preço de insumos (%)</label><input type="number" id="p_ipreco" step="1"></div>
@@ -541,6 +542,40 @@
     Arrendamento da aba Custos.</div></div>
   <div class="panel"><h3>Distribuição mensal</h3><div class="tblwrap"><table id="t_arr_mes"></table></div>
     <div id="ch_arr" style="margin-top:14px"></div></div>
+</section>
+
+<!-- ===== CUSTOS ADMINISTRATIVOS ===== -->
+<section id="adm">
+  <h2>Custos Administrativos</h2>
+  <p class="lead">Estrutura, pessoal, tecnologia, instalações, serviços e despesas gerais da administração, cada
+  linha com o seu critério de rateio entre as etapas do plano. O total alimenta Custos, Plano de Contas (EST-01)
+  e Painel.</p>
+  <div class="grid g4" id="k_adm" style="margin-bottom:16px"></div>
+
+  <div class="panel"><h3>Linhas de custo</h3>
+    <div class="tblwrap"><table id="t_adm"></table></div>
+    <div class="row" style="margin-top:10px"><button class="btn p" id="btn_adm_add">Adicionar linha</button></div>
+    <div class="hint" style="margin-top:9px">Valores em R$ por mês; o total do período multiplica pelos meses do
+    orçamento. Critérios: <b>hectare</b>, <b>tonelada</b>, <b>horas-máquina</b> e <b>custo direto</b> rateiam
+    proporcionalmente à etapa; <b>percentual por etapa</b> usa os percentuais do painel ao lado;
+    <b>centro de custo</b> joga a linha inteira na etapa escolhida. Linha cujo critério não tem base no plano
+    fica sem rateio e volta para o rateio indireto geral — a coluna Rateio avisa.</div></div>
+
+  <div class="grid g2">
+    <div class="panel"><h3>Percentuais por etapa</h3>
+      <div class="tblwrap"><table id="t_adm_pct"></table></div>
+      <div class="hint" style="margin-top:9px">Valem para as linhas com critério "percentual por etapa". Se a soma
+      não fechar 100%, os valores são normalizados.</div></div>
+    <div class="panel"><h3>Composição por grupo</h3>
+      <div class="tblwrap"><table id="t_adm_grupo"></table></div>
+      <div id="ch_adm" style="margin-top:12px"></div></div>
+  </div>
+
+  <div class="panel"><h3>Rateio por etapa</h3>
+    <div class="tblwrap"><table id="t_adm_etapa"></table></div></div>
+
+  <div class="panel"><h3>Total por critério de rateio</h3>
+    <div class="tblwrap"><table id="t_adm_crit"></table></div></div>
 </section>
 
 <!-- ===== CUSTOS ===== -->

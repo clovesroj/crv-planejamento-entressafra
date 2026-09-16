@@ -3,6 +3,7 @@ import { MESES, NM, PERIODOS, periodoMes } from '../nucleo/calendario.js';
 import { ESPOR, P } from '../nucleo/estado.js';
 import { num } from '../nucleo/formato.js';
 import { apoioCalc, frotaApoio } from './apoio.js';
+import { admCalc, admRateio } from './administrativo.js';
 import { ETAPAS_ORD, arrRat, arrendCalc } from './arrendamento.js';
 import { linha } from './atividade.js';
 import { CRM_COMP, crmFrota } from './crm.js';
@@ -87,7 +88,8 @@ function calcular(){
 
   const AR = arrendCalc();
   const depMes = P.imob*(P.dep/100)/12;
-  const admMes = P.adm;
+  const ADM = admCalc();     // custos administrativos detalhados por natureza
+  const admMes = ADM.mensal;
   const fixoMes = depMes+admMes;         // arrendamento tem distribuição mensal própria (AR.mes)
   const fixoT = fixoMes*NM + AR.total;
   const espT = ESPOR.reduce((s,e)=>s+num(e.valor),0);
@@ -138,7 +140,8 @@ function calcular(){
   // custo por etapa
   const etapas = {}, tratosCult = {Soca:{direto:0,ha:0,litros:0}, Planta:{direto:0,ha:0,litros:0}};
   L.forEach(r=>{
-    const e=r.a.etapa; etapas[e]=etapas[e]||{direto:0,ha:0,ton:0,diesel:0,litros:0,mdo:0,manut:0,insumo:0,terc:0};
+    const e=r.a.etapa; etapas[e]=etapas[e]||{direto:0,ha:0,ton:0,horas:0,diesel:0,litros:0,mdo:0,manut:0,insumo:0,terc:0};
+    etapas[e].horas = (etapas[e].horas||0) + r.horas;
     etapas[e].direto+=r.direto;
     etapas[e].diesel+=r.cDiesel; etapas[e].litros+=r.litros; etapas[e].mdo+=r.cMDO; etapas[e].manut+=r.cManut;
     etapas[e].insumo+=r.cInsumo; etapas[e].terc+=r.cTerc;
@@ -164,7 +167,7 @@ function calcular(){
   const arrAloc = ratSoma>0 ? AR.total : 0;   // sem percentual nenhum, volta para o rateio indireto
   if(ratSoma>0) ETAPAS_ORD.forEach(e=>{
     const w = arrRat(e)/ratSoma; if(w<=0) return;
-    etapas[e] = etapas[e]||{direto:0,ha:0,ton:0,diesel:0,litros:0,mdo:0,manut:0,insumo:0,terc:0};
+    etapas[e] = etapas[e]||{direto:0,ha:0,ton:0,horas:0,diesel:0,litros:0,mdo:0,manut:0,insumo:0,terc:0};
     etapas[e].arrend = AR.total*w;
   });
   // dentro de tratos, soca e planta dividem a parcela do arrendamento pela área tratada
@@ -172,16 +175,22 @@ function calcular(){
   const haTr = tratosCult.Soca.ha+tratosCult.Planta.ha, dirTr = tratosCult.Soca.direto+tratosCult.Planta.direto;
   Object.values(tratosCult).forEach(c=>{
     c.arrend = arrTratos*(haTr>0 ? c.ha/haTr : dirTr>0 ? c.direto/dirTr : 0.5); });
+  // administrativo: cada linha pelo seu criterio; o que nao tem base fica no indireto
+  const AD = admRateio(ADM, etapas);
+  Object.entries(etapas).forEach(([e,d])=>{ d.admin = AD.porEtapa[e]||0; });
   const diretoSum = Object.values(etapas).reduce((s,e)=>s+e.direto,0)||1;
-  const indiretoPool = total - diretoSum - arrAloc;
+  const indiretoPool = total - diretoSum - arrAloc - AD.rateado;
   Object.values(etapas).forEach(e=>{
-    e.arrend = e.arrend||0;
+    e.arrend = e.arrend||0; e.admin = e.admin||0;
     e.indireto = indiretoPool*(e.direto/diretoSum);
-    e.total = e.direto+e.arrend+e.indireto;
+    e.total = e.direto+e.arrend+e.admin+e.indireto;
   });
+  const admTratos = etapas["TRATOS CULTURAIS"] ? (etapas["TRATOS CULTURAIS"].admin||0) : 0;
+  const dirTr2 = tratosCult.Soca.direto + tratosCult.Planta.direto;
   Object.values(tratosCult).forEach(c=>{
+    c.admin = admTratos*(dirTr2>0 ? c.direto/dirTr2 : 0.5);
     c.indireto = indiretoPool*(c.direto/diretoSum);
-    c.total = c.direto+c.arrend+c.indireto;
+    c.total = c.direto+c.arrend+c.admin+c.indireto;
   });
 
   // custo de cada etapa mês a mês, pelo mesmo critério do total mensal — base da segmentação por período
@@ -231,7 +240,7 @@ function calcular(){
           mdoDireta: mdoT, mdoApoio: AE.mdo, mdoIndirT, mdoManut: EM.total,
           mdoTotal: mdoTot,
           insumoT, irrT:IR.total, tercT:TC.total, tercAtivT, espT, apoioT: AE.total,
-          arrT:AR.total, AR, diretoSum, indiretoPool, admT:admMes*NM, depT:depMes*NM,
+          arrT:AR.total, AR, ADM, AD, diretoSum, indiretoPool, admT:ADM.total, depT:depMes*NM,
           variavel, fixoT, total, horasT: horasT+AE.horas, haOp,
           frotaT, etapas, tratosCult, crmComp, crmEtapa, crmFrotaL:CF.linhas,
           crmTotal:CF.total, crmOper:CF.oper, crmExtra, tpessT:TP.total, muda, viveiro,

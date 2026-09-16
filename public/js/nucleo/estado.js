@@ -11,6 +11,7 @@
  */
 import { PADRAO } from '../dados/padroes.js';
 import { CFG } from '../dados/cfg.js';
+import { ADM_PADRAO } from '../dados/administrativo.js';
 import { num } from './formato.js';
 
 let P = {...PADRAO};
@@ -41,6 +42,8 @@ let ARR_PAR = {};        // parâmetros de pagamento do arrendamento (ATR, preç
 let ARR_RAT = {};        // etapa -> % do arrendamento (referência PECEGE/USP)
 let FORN = null;         // [{forn,prop,origem,mod,area,tch,tonContr,tonEst,atr,preco,...}] fornecedores de cana
 let FORN_PAR = {};       // parâmetros de matéria-prima (preço do ATR, ATR próprio, frete/km, área própria)
+let ADM = null;          // [{grupo,desc,valor,crit,cc}] custos administrativos
+let ADM_RAT = {};        // etapa -> % do rateio administrativo por percentual
 let QUADRO = {};         // fcod -> {ativo, ferias, demis} quadro de pessoal informado
 let TPESS = null;        // rotas de transporte de pessoal (lista editável)
 let ENC = {};            // índice do encargo -> % ajustado
@@ -57,7 +60,7 @@ let TRAT_SEL = null;
 export {
   P, PLANO, DIM, INSUMO, ESPOR, TRATC, NIV, GRAT, APOIO, TERC_TAR, CRM, MATX,
   INSX, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, FROTA_ABERTO, APOIO_FIXO, TRAT_NOME, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
-  TPESS, QUADRO, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL,
+  TPESS, QUADRO, ADM, ADM_RAT, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL,
 };
 
 export const setP          = v => { P = v; };
@@ -90,6 +93,8 @@ export const setFORN       = v => { FORN = v; };
 export const setFORN_PAR   = v => { FORN_PAR = v; };
 export const setTPESS      = v => { TPESS = v; };
 export const setQUADRO     = v => { QUADRO = v; };
+export const setADM        = v => { ADM = v; };
+export const setADM_RAT    = v => { ADM_RAT = v; };
 export const setENC        = v => { ENC = v; };
 export const setBEN        = v => { BEN = v; };
 export const setEDITADO    = v => { EDITADO = v; };
@@ -125,3 +130,13 @@ export function arrLista(){
 }
 
 export function fornLista(){ if(!FORN) FORN = []; return FORN; }
+
+export function admLista(){
+  // primeiro uso: herda o valor global de administracao das Premissas, para o
+  // custo do plano nao mudar sozinho quando o modulo entra
+  if(!ADM){
+    ADM = ADM_PADRAO.map(l=>({...l}));
+    if(ADM[0]) ADM[0].valor = num(P.adm)||0;
+  }
+  return ADM;
+}

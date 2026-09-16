@@ -4,6 +4,7 @@ import { pessoasCalc } from '../calculo/pessoas.js';
 import { CFG } from '../dados/cfg.js';
 import { P } from '../nucleo/estado.js';
 import { $, brl, fmt } from '../nucleo/formato.js';
+import { pintarAdm } from '../ui/administrativo.js';
 import { pintarApoio } from '../ui/apoio.js';
 import { pintarArrend } from '../ui/arrendamentos.js';
 import { pintarCapa } from '../ui/capa.js';
@@ -40,10 +41,11 @@ function render(){
   const R=calcularCompleto();
   $("#c_muda").value=fmt(R.muda)+" t"; $("#c_viveiro").value=fmt(R.viveiro)+" ha";
   $("#c_capTransb").value=fmt(P.capTransb,1)+" t/viagem";
+  $("#c_adm").value=brl(R.ADM.mensal)+"/mês";
   $("#c_arr_ha").value=fmt(R.AR.area)+" ha";
   $("#c_arr").value=R.AR.area>0?brl(R.AR.anual/R.AR.area,2):"—";
   pintarCapa(R); pintarMDO(R); pintarPlano(R); pintarDim(R); pintarTransp(R); pintarApoio(R); pintarCRM(R); pintarReforma(); pintarTPess(R);
-  pintarIrrig(R); pintarInsumos(R); pintarArrend(R); pintarForn(R); pintarCustos(R); pintarContas(R); pintarCombustivel(R); pintarResumoFrota(R); pintarPessoas(R);
+  pintarIrrig(R); pintarInsumos(R); pintarArrend(R); pintarForn(R); pintarAdm(R); pintarCustos(R); pintarContas(R); pintarCombustivel(R); pintarResumoFrota(R); pintarPessoas(R);
   pintarPainel(R); pintarValida(R);
 }
 // atualização leve: recalcula tudo mas preserva o foco de quem está digitando
