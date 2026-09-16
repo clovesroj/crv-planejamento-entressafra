@@ -49,6 +49,10 @@ function render(){
   pintarIrrig(R); pintarInsumos(R); pintarArrend(R); pintarForn(R); pintarAdm(R); pintarCustos(R); pintarContas(R); pintarCombustivel(R); pintarResumoFrota(R); pintarPessoas(R);
   pintarPainel(R); pintarValida(R); pintarRastro(R);
 }
+/* O rastro se redesenha sozinho: render() inteiro custa ~500 ms porque refaz as
+   22 abas, e abrir ou descer um nível não muda nenhuma delas. Só o modal, ~8 ms. */
+function renderRastro(){ pintarRastro(calcularCompleto()); }
+
 // atualização leve: recalcula tudo mas preserva o foco de quem está digitando
 let leveTimer=null;
 function leve(){
@@ -75,4 +79,4 @@ function leve(){
 }
 
 
-export { calcularCompleto, leve, leveTimer, render };
+export { calcularCompleto, leve, leveTimer, render, renderRastro };

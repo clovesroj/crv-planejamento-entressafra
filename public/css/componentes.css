@@ -233,10 +233,15 @@ footer{display:flex;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;co
   .bloco-corpo{padding:12px}
 }
 
-/* Gaveta do rastro do calculo: abre pela direita e explica a composicao. */
-#rastro_fundo{position:fixed;inset:0;background:rgba(10,17,12,.42);z-index:90}
-#rastro{position:fixed;top:0;right:0;bottom:0;width:min(470px,94vw);z-index:95;background:var(--card);
-  border-left:1px solid var(--line);box-shadow:var(--pop-shadow);display:flex;flex-direction:column}
+/* Rastro do calculo: modal centralizado, fecha no X, no fundo ou no Esc.
+   Era uma gaveta colada na direita, que ocupava a lateral inteira e dava a
+   impressao de tela travada -- o conteudo e uma explicacao pontual, nao um
+   painel de trabalho, entao abre e fecha por cima. */
+#rastro_fundo{position:fixed;inset:0;background:rgba(10,17,12,.5);z-index:90}
+#rastro{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:min(560px,94vw);max-height:min(84vh,780px);z-index:95;background:var(--card);
+  border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--pop-shadow);
+  display:flex;flex-direction:column;overflow:hidden}
 .ra-topo{padding:15px 18px 16px;border-bottom:1px solid var(--line);background:var(--sunk)}
 .ra-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
 .ra-tit{font-family:var(--f-display);font-size:21px;font-weight:600;line-height:1.15}
@@ -263,5 +268,10 @@ footer{display:flex;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;co
 /* valor de custo que abre o rastro */
 [data-rastro]{cursor:pointer}
 tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:underline dotted;text-underline-offset:3px}
-@media (max-width:640px){#rastro{width:100vw}}
+@media (max-width:640px){#rastro{width:96vw;max-height:90vh}}
+/* o card do painel que explica um custo se anuncia como clicavel */
+.kpi[data-rastro]{cursor:pointer;transition:box-shadow .15s,transform .15s}
+.kpi[data-rastro]:hover{box-shadow:var(--pop-shadow);transform:translateY(-1px)}
+.kpi[data-rastro]:focus-visible{outline:none;box-shadow:var(--focus)}
+.kpi[data-rastro] .v::after{content:" ›";color:var(--leaf);font-weight:700}
 @media print{#rastro,#rastro_fundo{display:none!important}}

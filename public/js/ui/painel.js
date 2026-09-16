@@ -17,7 +17,7 @@ function pintarPainel(R){
   const corteTotal = corteDireto + R.indiretoPool*(corteDireto/R.diretoSum)
     + (colh && colh.direto>0 ? colh.arrend*(corteDireto/colh.direto) : 0);
   $("#k_painel").innerHTML =
-    kpi("Custo total","",brl(R.total)) +
+    kpi("Custo total","",brl(R.total),"","total") +
     kpi("Custo / ha plantado","t",brl(R.total/ha)) +
     kpi("Custo de colheita","g",corteTon>0?brl(corteTotal/corteTon,2)+"/t":"—","só corte (A01+A02), sem transporte") +
     kpi("Efetivo total","a",fmt(R.efetivoTotal)+" pessoas") +
@@ -29,12 +29,12 @@ function pintarPainel(R){
     kpi("Tratos — cana planta","g",R.tratosCult.Planta.ha>0?brl(R.tratosCult.Planta.total/R.tratosCult.Planta.ha,2)+"/ha":"—",
         brl(R.tratosCult.Planta.total)+" · "+fmt(R.tratosCult.Planta.ha)+" ha") +
     kpi("Etapa colheita (c/ transporte)","",tonEtapa>0?brl(colh.total/tonEtapa,2)+"/t":"—","corte + transporte + transbordo") +
-    kpi("CRM total","a",brl(CRM_COMP.reduce((s,k)=>s+R.crmComp[k],0))) +
+    kpi("CRM total","a",brl(CRM_COMP.reduce((s,k)=>s+R.crmComp[k],0)),"","nat:manut") +
     kpi("CRM por hora média","",R.horasT>0?brl(CRM_COMP.reduce((s,k)=>s+R.crmComp[k],0)/R.horasT,2)+"/h":"—") +
     kpi("Diesel projetado","t",fmt(R.CB.litrosT)+" L",
-        brl(R.dieselT)+(R.CB.litrosT>0?" · "+brl(R.dieselT/R.CB.litrosT,2)+"/L":"")) +
+        brl(R.dieselT)+(R.CB.litrosT>0?" · "+brl(R.dieselT/R.CB.litrosT,2)+"/L":""), "nat:diesel") +
     kpi("Arrendamento","a",R.AR.area>0?brl(R.AR.anual/R.AR.area,0)+"/ha/ano":"—",
-        brl(R.arrT)+" no orçamento · "+fmt(R.AR.area)+" ha");
+        brl(R.arrT)+" no orçamento · "+fmt(R.AR.area)+" ha", "nat:arrend");
   barras($("#ch_mes"),MESES.map((m,i)=>({l:m,v:R.meses[i]})),"#2D6A3A");
 
   const catLbl = {mdo:"Mão de obra",manut:"Manutenção (CRM)",diesel:"Diesel",insumo:"Insumos + irrigação",
