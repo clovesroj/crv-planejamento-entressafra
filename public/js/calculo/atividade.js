@@ -1,3 +1,4 @@
+import { maqDe } from './crm.js';
 import { CFG } from '../dados/cfg.js';
 import { NM } from '../nucleo/calendario.js';
 import { DIM, P, PLANO, TERC_TAR } from '../nucleo/estado.js';
@@ -85,7 +86,7 @@ function linha(a, MP){
       capMes = P.dias * P.hdia * (P.disp/100) * util;
     }
     frota = capMes>0 ? horas/(capMes*NM) : 0;
-    const mq = CFG.maquinas[f.maq] || CFG.maquinas["A definir"];
+    const mq = maqDe(f.maq);
     // a função segue o modo, salvo se o usuário tiver fixado uma função na atividade
     const fc = p.fcod ? fcod : (f.fcodPad || fcod);
     const cf = custoNivel(fc, fniv, MP);

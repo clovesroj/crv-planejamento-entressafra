@@ -1,3 +1,4 @@
+import { maqDe } from './crm.js';
 import { CFG } from '../dados/cfg.js';
 import { MESES, NM } from '../nucleo/calendario.js';
 import { APOIO_FIXO, apoioLista } from '../nucleo/estado.js';
@@ -8,7 +9,7 @@ import { custoNivel } from './mao-de-obra.js';
 /* ================== EQUIPAMENTOS DE APOIO ================== */
 function apoioCalc(MP){
   const linhas = apoioLista().map(a=>{
-    const mq = CFG.maquinas[a.maq] || CFG.maquinas["A definir"];
+    const mq = maqDe(a.maq);
     const horas = num(a.qtd)*num(a.hmes)*NM;
     const cf = custoNivel(a.fcod, a.fniv||0, MP);
     // apoio trabalha as mesmas horas todo mês: volume mensal constante, preço de cada mês

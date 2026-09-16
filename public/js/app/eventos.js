@@ -6,7 +6,7 @@ import { CFG } from '../dados/cfg.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM } from '../nucleo/calendario.js';
 import { APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, NIV, P, PLANO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, apoioLista, arrLista, fornLista, insLista, matLista, tpessLista } from '../nucleo/estado.js';
-import { setFROTA_ORIG } from '../nucleo/estado.js';
+import { FROTA_ABERTO, MAQ, setFROTA_ORIG } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { aplicarFiltroPlano } from '../ui/plano.js';
 import { lerPremissas } from '../ui/premissas.js';
@@ -36,6 +36,8 @@ document.addEventListener("input",e=>{
     CRM[m]=CRM[m]||{}; CRM[m][t.dataset.k]=num(t.value); salvar(); leve(); return; }
   if(t.dataset.crmesp!==undefined){ const e=t.dataset.crmesp;
     CRM_ESP[e]=CRM_ESP[e]||{}; CRM_ESP[e][t.dataset.k]=num(t.value); salvar(); leve(); return; }
+  if(t.dataset.maq!==undefined){ const m=t.dataset.maq;
+    MAQ[m]=MAQ[m]||{}; MAQ[m][t.dataset.k]=num(t.value); salvar(); render(); return; }
   if(t.dataset.fq!==undefined){ const m=t.dataset.fq;
     FROTA[m]=FROTA[m]||{}; FROTA[m].qtd=num(t.value); salvar(); leve(); return; }
   if(t.dataset.fh!==undefined){ const m=t.dataset.fh;
@@ -115,6 +117,11 @@ document.addEventListener("change",e=>{
   if(t.id==="sel_grat_tipo"){ GRAT[FUN_SEL]={tipo:t.value, valor:num($("#in_grat").value)}; salvar(); render(); return; }
 });
 document.addEventListener("click",e=>{
+  const ab = e.target.closest && e.target.closest("[data-abrefrota]");
+  if(ab){ const k = ab.dataset.abrefrota;
+    // abrir a lista de unidades e visao, nao dado: nao passa por salvar()
+    if(FROTA_ABERTO[k]) delete FROTA_ABERTO[k]; else FROTA_ABERTO[k]=true;
+    render(); return; }
   const t=e.target;
   if(t.dataset.rm!==undefined){ ESPOR.splice(+t.dataset.rm,1); salvar(); render(); return; }
   if(t.dataset.arrm!==undefined){ const l=arrLista()[+t.dataset.arrm];

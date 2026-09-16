@@ -1,5 +1,5 @@
 import { CFG } from '../dados/cfg.js';
-import { CRM, CRM_ESP, FROTA, FROTA_ORIG, P } from '../nucleo/estado.js';
+import { CRM, CRM_ESP, FROTA, FROTA_ORIG, MAQ, P } from '../nucleo/estado.js';
 import { num } from '../nucleo/formato.js';
 
 /* ===== CRM: custos de reparo e manutenção, estratificados ===== */
@@ -31,6 +31,25 @@ function agDeLinha(l){
 }
 // Nome curto para exibir: a especialidade já é o cabeçalho do bloco
 function rotuloItem(item){ const i = INFO_MODELO[item]; return i ? i.mod : item; }
+// Modelo da base que um item do plano declara representar. Vazio quando o item
+// é uma classe de planejamento sem modelo único correspondente — três classes de
+// trator agrícola para 28 modelos em campo não viram um modelo só.
+function modDe(item){ const c = CFG.crm[item]; return (c && c.mod) || null; }
+// Chave do registro do modelo que este item do plano representa
+function chaveDoModelo(item){
+  const c = CFG.crm[item];
+  return c && c.mod && c.esp ? c.esp+SEP_MOD+c.mod : null;
+}
+// Unidades físicas de um modelo, do mais novo ao mais velho: [cod, ano, proprio]
+function unidadesDoModelo(chave){
+  const i = INFO_MODELO[chave];
+  if(!i) return [];
+  const e = FROTA_ESP[i.esp];
+  const m = e && e.mods.find(x=>x.m===i.mod);
+  const un = (m && m.un) || [];
+  return FROTA_ORIG==="todos" ? un
+       : un.filter(u => FROTA_ORIG==="proprio" ? u[2]===1 : u[2]===0);
+}
 // Especialidade de um item: arquétipo traz `esp` no cadastro, modelo da base
 // traz na própria chave. Serviço e mão de obra não têm frota, logo não têm.
 function espDe(item){
@@ -54,6 +73,18 @@ function crmEspDe(esp){
   const o = {};
   CRM_COMP.forEach(k=> o[k] = ov[k]!=null ? num(ov[k]) : 0);
   o.total = CRM_COMP.reduce((s,k)=>s+o[k],0);
+  return o;
+}
+
+// Parâmetros de máquina do plano, com o ajuste do usuário por cima do cadastro.
+// São premissas de projeto, não medição: a mesma colhedora rende diferente
+// colhendo cana e colhendo muda, e é aqui que isso se corrige.
+const MAQ_CAMPOS = ["d","h","u"];
+function maqDe(item){
+  const base = CFG.maquinas[item] || CFG.maquinas["A definir"] || {d:0,m:0,h:0,u:1};
+  const ov = MAQ[item] || {};
+  const o = {...base};
+  MAQ_CAMPOS.forEach(k=>{ if(ov[k]!=null) o[k] = num(ov[k]); });
   return o;
 }
 
@@ -166,6 +197,6 @@ function crmFrota(L, AE){
 }
 
 
-export { AG_SEM_FROTA, CAT_VEICULO, baseDe, CRM_COMP, CRM_LABEL, FROTA_AG, FROTA_AGS, FROTA_ESP, INFO_MODELO, SEP_MOD,
-         agDeLinha, agsCRM, contaOrigem, crmDe, crmDetalhe, crmEspDe, crmFrota, crmHora, espDe, frotaPorItem,
-         horasPorItem, modeloNaBase, rotuloItem, velMediaVeic };
+export { AG_SEM_FROTA, CAT_VEICULO, MAQ_CAMPOS, baseDe, maqDe, CRM_COMP, CRM_LABEL, FROTA_AG, FROTA_AGS, FROTA_ESP, INFO_MODELO, SEP_MOD,
+         agDeLinha, agsCRM, chaveDoModelo, contaOrigem, crmDe, crmDetalhe, crmEspDe, crmFrota, crmHora, espDe, frotaPorItem,
+         horasPorItem, modDe, modeloNaBase, rotuloItem, unidadesDoModelo, velMediaVeic };

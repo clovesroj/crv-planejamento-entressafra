@@ -1,7 +1,8 @@
 import { AG_SEM_FROTA, CRM_COMP, CRM_LABEL, FROTA_ESP, SEP_MOD, agDeLinha, agsCRM,
-         contaOrigem, crmDe, crmEspDe, rotuloItem } from '../calculo/crm.js';
+         MAQ_CAMPOS, chaveDoModelo, contaOrigem, crmDe, crmEspDe, maqDe, modDe, rotuloItem,
+         unidadesDoModelo } from '../calculo/crm.js';
 import { CFG } from '../dados/cfg.js';
-import { CAT_SEL, CRM, CRM_ESP, FROTA, FROTA_ORIG } from '../nucleo/estado.js';
+import { CAT_SEL, CRM, CRM_ESP, FROTA, FROTA_ABERTO, FROTA_ORIG, MAQ } from '../nucleo/estado.js';
 import { $, brl, fmt } from '../nucleo/formato.js';
 import { kpi, th } from './componentes.js';
 import { setCAT_SEL } from '../nucleo/estado.js';
@@ -30,12 +31,22 @@ function pintarCRM(R){
   });
 
   const cel = (l,k,c)=>`<td class="num"><input data-crm="${l.item}" data-k="${k}" value="${c[k]}" inputmode="decimal"></td>`;
-  const linhaModelo = l=>{
+  // Uma linha do registro: modelo da base, ou item do plano aninhado sob ele.
+  // `recuo` distingue os dois niveis visualmente.
+  const linhaItem = (l, recuo)=>{
     const c = crmDe(l.item), alt = CRM[l.item];
     const un = contaOrigem(l.baseProp, l.baseTerc);
-    return `<tr><td style="padding-left:26px">${rotuloItem(l.item)}${
+    const chave = l.naBase ? l.item : null;
+    const unids = chave ? unidadesDoModelo(chave) : [];
+    const aberto = chave && FROTA_ABERTO[chave];
+    // Item do plano que nao declara modelo: e uma classe, nao um equipamento do
+    // cadastro. Dizer isso e mais util do que marcar como ausente da base.
+    const eClasse = !l.naBase && !modDe(l.item);
+    return `<tr><td style="padding-left:${recuo}px">${
+        unids.length?`<button class="btn xs" data-abrefrota="${chave}" style="margin-right:6px;padding:1px 6px">${aberto?"−":"+"}</button>`:""
+      }${rotuloItem(l.item)}${
         alt?' <span class="badge b-warn">taxa própria</span>':''}${
-        l.naBase?'':' <span class="badge">fora da base</span>'}${
+        eClasse?' <span class="badge">classe do plano</span>':''}${
         l.extra>0?` <span class="badge b-ok">+${l.extra} extra</span>`:''}</td>
       <td class="num calc">${un||"—"}</td>`+
       CRM_COMP.map(k=>cel(l,k,c)).join("")+
@@ -46,7 +57,27 @@ function pintarCRM(R){
        <td class="num calc">${fmt(l.baseUso)} ${l.unidade}</td>
        <td class="num calc">${brl(l.crmOper)}</td>
        <td class="num ${l.crmExced>0?"tot":"calc"}" style="${l.crmExced>0?"color:var(--amber)":""}">${l.crmExced>0?brl(l.crmExced):"—"}</td>
-       <td class="num tot">${brl(l.total)}</td></tr>`;
+       <td class="num tot">${brl(l.total)}</td></tr>`+
+      (aberto ? linhasUnidades(unids) : "");
+  };
+
+  // Frota fisica do modelo: um equipamento por linha, com o ano de fabricacao.
+  const anoAtual = new Date().getFullYear();
+  const linhasUnidades = un=>{
+    const idade = a=> a ? anoAtual-a : null;
+    return `<tr><td colspan="14" style="padding:0">
+      <div style="padding:6px 0 10px 52px">
+        <table style="width:auto;min-width:420px">
+          <thead><tr><th>Frota</th><th class="num">Ano</th><th class="num">Idade</th><th>Origem</th></tr></thead>
+          <tbody>${un.map(([cod,ano,prop])=>{
+            const i = idade(ano);
+            return `<tr><td>${cod||"—"}</td>
+              <td class="num ${i!=null&&i>=15?"tot":"calc"}" style="${i!=null&&i>=15?"color:var(--amber)":""}">${ano||"—"}</td>
+              <td class="num calc">${i!=null?i+" anos":"—"}</td>
+              <td class="calc">${prop?"Própria":"Terceiro"}</td></tr>`;}).join("")}
+          </tbody>
+        </table>
+      </div></td></tr>`;
   };
 
   let corpo = "", tQtdDim=0, tQtd=0, tUso=0, tOper=0, tExced=0, tTotal=0, tUn=0;
@@ -66,7 +97,7 @@ function pintarCRM(R){
     const semTaxa = e && un>0 && ce.total===0 && !mods.some(l=>crmDe(l.item).total>0);
     corpo += `<tr style="background:var(--bg)"><td class="tot">${esp}
         ${e?`<span class="badge">${e.grp}</span>`:""}
-        <span class="calc" style="font-weight:400">· ${mods.length} modelo${mods.length>1?"s":""}</span>
+        <span class="calc" style="font-weight:400">· ${mods.filter(l=>l.naBase).length} modelo${mods.filter(l=>l.naBase).length===1?"":"s"}</span>
         ${semTaxa?' <span class="badge b-warn">sem taxa</span>':''}</td>
       <td class="num tot">${un||"—"}</td>`+
       CRM_COMP.map(k=>`<td class="num"><input data-crmesp="${esp}" data-k="${k}" value="${ce[k]}" inputmode="decimal"></td>`).join("")+
@@ -77,7 +108,14 @@ function pintarCRM(R){
        <td class="num tot">${brl(oper)}</td>
        <td class="num tot">${exced>0?brl(exced):"—"}</td>
        <td class="num tot">${brl(tot)}</td></tr>`;
-    corpo += mods.map(linhaModelo).join("");
+    // Modelo da base primeiro; sob ele, o item do plano que declara representa-lo.
+    // Item do plano sem modelo declarado e uma classe e fecha o bloco.
+    const daBase = mods.filter(l=>l.naBase);
+    const doPlano = mods.filter(l=>!l.naBase);
+    const sob = {};
+    doPlano.forEach(l=>{ const k = chaveDoModelo(l.item); if(k) (sob[k]=sob[k]||[]).push(l); });
+    corpo += daBase.map(l=> linhaItem(l,26) + (sob[l.item]||[]).map(x=>linhaItem(x,44)).join("")).join("");
+    corpo += doPlano.filter(l=>!chaveDoModelo(l.item)).map(l=>linhaItem(l,26)).join("");
   });
 
   $("#t_crm").innerHTML = th([["Especialidade / modelo"],["Unid. base",1],["Peças",1],["Serviços 3º",1],
@@ -92,6 +130,22 @@ function pintarCRM(R){
      <td class="num tot">${brl(tOper)}</td>
      <td class="num tot">${brl(tExced)}</td>
      <td class="num tot">${brl(tTotal)}</td></tr></tbody>`;
+
+  // Parâmetros de máquina: só os itens que o plano realmente usa como máquina
+  const MAQ_LBL = {d:"Diesel (L/h)", h:"Horas/mês", u:"Utilização"};
+  const usadas = Object.keys(CFG.maquinas)
+    .filter(m=> R.crmFrotaL.some(l=>l.item===m && (l.hTotPlano>0 || l.qtd>0)))
+    .sort((a,b)=>a.localeCompare(b));
+  $("#t_maq").innerHTML = th([["Item do plano"],["Especialidade"],["Modelo na base"],
+      ...MAQ_CAMPOS.map(k=>[MAQ_LBL[k],1]),["Manut. ref. (R$/h)",1]])+"<tbody>"+
+    (usadas.length? usadas.map(m=>{
+      const q = maqDe(m), ov = MAQ[m] || {}, c = crmDe(m);
+      return `<tr><td>${m}${Object.keys(ov).length?' <span class="badge b-warn">ajustado</span>':''}</td>
+        <td class="calc">${c.esp||"—"}</td><td class="calc">${modDe(m)||"—"}</td>`+
+        MAQ_CAMPOS.map(k=>`<td class="num"><input data-maq="${m}" data-k="${k}" value="${q[k]}" inputmode="decimal"></td>`).join("")+
+        `<td class="num calc">${brl(q.m||0,2)}</td></tr>`;}).join("")
+      : `<tr><td colspan="7" class="calc">Nenhuma máquina em uso no plano.</td></tr>`)+
+    "</tbody>";
 
   $("#t_crm_comp").innerHTML = th([["Componente"],["Valor",1],["% do CRM",1],["Peso"]])+"<tbody>"+
     CRM_COMP.map(k=>{const v=R.crmComp[k], pp=crmT?v/crmT*100:0;

@@ -129,6 +129,30 @@ O mesmo modelo pode estar cadastrado em mais de uma especialidade — o mesmo tr
 de agrícola e de transbordo. Por isso a identidade de um item do registro é o par
 especialidade+modelo, não o nome do modelo.
 
+Cada modelo abre no botão **+**, mostrando a frota física: código, ano de fabricação,
+idade e se é própria ou de terceiro. Equipamento com 15 anos ou mais sai destacado.
+
+### Item do plano x modelo da base
+
+O plano dimensiona por **classe** (`Trator 4x4 150 CV`), a base cadastra **modelos**
+(`JOHN DEERE 5090E`). Os dois convivem: o item do plano declara em `mod` qual modelo da
+base representa, e aparece aninhado sob ele no registro, sem virar o modelo. Isso preserva
+os parâmetros de projeto do item — diesel, horas e utilização são dele, não do modelo.
+
+Dos 46 itens do plano com especialidade, **12 declaram um modelo**: os que têm
+correspondência inequívoca (`Colhedora CH570` → JOHN DEERE CH570), os que são o único
+modelo da especialidade, e a colheita de muda, que usa a mesma colhedora de cana. Os
+outros 34 são classes sem modelo único correspondente — três classes de trator agrícola
+para 28 modelos em campo não viram um modelo só — e aparecem marcados como *classe do
+plano*. Preencher o `mod` deles é trabalho de quem conhece a frota.
+
+### Parâmetros de máquina
+
+Diesel (L/h), horas disponíveis por mês e fator de utilização são editáveis na aba
+Manutenção de Frota, por item do plano. São premissas de projeto, não medição: a mesma
+colhedora pode entrar com números diferentes colhendo cana e colhendo muda. Em branco,
+vale o cadastro de [`dados/maquinas.js`](public/js/dados/maquinas.js).
+
 Os arquétipos do planejamento (`Trator 4x4 230 CV`, `Colhedora CH570`…) continuam
 existindo e com as taxas que já tinham: o campo `esp` em
 [`dados/crm.js`](public/js/dados/crm.js) só os liga à especialidade correspondente, para
