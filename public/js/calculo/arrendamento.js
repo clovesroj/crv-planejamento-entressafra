@@ -13,7 +13,19 @@ const ARR_PAG = ["Mensal","Semestral","Anual"];
 // parâmetros que convertem a forma de pagamento em R$ — ajustar pelo Consecana vigente
 const ARR_PAR_PADRAO = {atr:135, precoAtr:1.25, tchParc:80, criterio:"competencia"};
 // rateio do arrendamento por etapa: padrão editável, a confirmar com o relatório PECEGE/USP adotado
-const ARR_RAT_PADRAO = {"PREPARO DE SOLO":0, "PLANTIO":20, "TRATOS CULTURAIS":45, "COLHEITA":35, "APOIO E CONSERVAÇÃO":0};
+// Rateio do arrendamento entre as etapas, em %.
+//
+// O plantio nao carrega arrendamento: a terra e arrendada para produzir, e a
+// cana planta nao produz no ano em que e plantada. Jogar aluguel da area toda
+// no plantio inflava o centro de custo -- eram R$ 3,28 mi sobre 2.400 ha
+// plantados, contra ~R$ 776 mil de operacao de plantio de verdade.
+//
+// Os 20% que ficavam no plantio foram para as etapas da area em producao,
+// mantendo a proporcao que elas ja tinham entre si (45:35):
+//   tratos   45 + 20 x 45/80 = 56,25
+//   colheita 35 + 20 x 35/80 = 43,75
+// Continua editavel por etapa na aba Arrendamentos.
+const ARR_RAT_PADRAO = {"PREPARO DE SOLO":0, "PLANTIO":0, "TRATOS CULTURAIS":56.25, "COLHEITA":43.75, "APOIO E CONSERVAÇÃO":0};
 const ETAPAS_ORD = ["PREPARO DE SOLO","PLANTIO","TRATOS CULTURAIS","COLHEITA","APOIO E CONSERVAÇÃO"];
 function arrPar(k){ return ARR_PAR[k]!=null ? ARR_PAR[k] : ARR_PAR_PADRAO[k]; }
 function arrRat(e){ return ARR_RAT[e]!=null ? num(ARR_RAT[e]) : (ARR_RAT_PADRAO[e]||0); }
