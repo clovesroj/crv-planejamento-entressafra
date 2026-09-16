@@ -51,13 +51,18 @@ function pintarResumoFrota(R){
     .sort((a,b)=> b.ano-a.ano || a.cod.localeCompare(b.cod));
 
   $("#t_rf_base").innerHTML = th([["Agrupamento / especialidade"],["Modelos",1],["Próprios",1],["Terceiros",1],
-      ["Cadastrada",1],["Vai rodar",1],["Vai reformar",1],["Stand by",1],["Exigida pelo plano",1],["Folga",1]])+"<tbody>"+
+      ["Cadastrada",1],["Vai rodar",1],["Vai reformar",1],["Stand by",1],["Exigida pelo plano",1],
+      ["Folga",1],["Situação"]])+"<tbody>"+
     espsBase.map(e=>{
       const cab = e.ag!==agAtual ? (agAtual=e.ag, `<tr style="background:var(--bg)"><td class="tot" colspan="9">${e.ag}</td></tr>`) : "";
-      const cad = contaOrigem(e.prop, e.terc), n = nec[e.esp]||0, folga = cad-n;
+      const cad = contaOrigem(e.prop, e.terc), n = nec[e.esp]||0;
       const un = unidadesDaEsp(e);
       const emRef = un.filter(u=>destinoDe(u.cod)==="reforma").length;
       const emSb  = un.filter(u=>destinoDe(u.cod)==="standby").length;
+      // A folga que interessa compara o que VAI RODAR com o que o plano pede.
+      // Contra a frota cadastrada ela mente: uma especialidade com 24 equipamentos
+      // e 17 na bancada mostraria folga de 18 tendo so 6 para trabalhar.
+      const sit = situacao(un.length-emRef-emSb, nec[e.esp]||0);
       const aberto = FROTA_ABERTO["esp:"+e.esp];
       const linha = cab+`<tr><td style="padding-left:20px">${
           un.length?`<button class="btn xs" data-abrefrota="esp:${e.esp}" style="margin-right:6px;padding:1px 6px">${aberto?"−":"+"}</button>`:""
@@ -69,9 +74,10 @@ function pintarResumoFrota(R){
         <td class="num ${emRef?"tot":"calc"}" style="${emRef?"color:var(--amber)":""}">${emRef||"—"}</td>
         <td class="num ${emSb?"tot":"calc"}" style="${emSb?"color:var(--grey)":""}">${emSb||"—"}</td>
         <td class="num tot">${n?fmt(n):"—"}</td>
-        <td class="num ${folga<0?"tot":"calc"}" style="${folga<0?"color:var(--red)":""}">${n?fmt(folga):"—"}</td></tr>`;
+        <td class="num ${sit.classe}" style="${sit.cor}">${n?fmt(sit.folga):"—"}</td>
+        <td>${sit.tarja}</td></tr>`;
       if(!aberto) return linha;
-      return linha+`<tr><td colspan="10" style="padding:0"><div style="padding:6px 0 10px 46px">
+      return linha+`<tr><td colspan="11" style="padding:0"><div style="padding:6px 0 10px 46px">
         <table style="width:auto;min-width:520px"><thead><tr>
           <th>Frota</th><th>Modelo</th><th class="num">Ano</th><th class="num">Idade</th>
           <th>Origem</th><th>Destino na safra</th></tr></thead><tbody>${
@@ -94,7 +100,7 @@ function pintarResumoFrota(R){
      <td class="num tot">${fmt(espsBase.reduce((s,e)=>s+unidadesDaEsp(e).filter(u=>destinoDe(u.cod)==="roda").length,0))}</td>
      <td class="num tot">${fmt(espsBase.reduce((s,e)=>s+unidadesDaEsp(e).filter(u=>destinoDe(u.cod)==="reforma").length,0))}</td>
      <td class="num tot">${fmt(espsBase.reduce((s,e)=>s+unidadesDaEsp(e).filter(u=>destinoDe(u.cod)==="standby").length,0))}</td>
-     <td class="num tot">${fmt(Object.values(nec).reduce((a,b)=>a+b,0))}</td><td></td></tr></tbody>`;
+     <td class="num tot">${fmt(Object.values(nec).reduce((a,b)=>a+b,0))}</td><td></td><td></td></tr></tbody>`;
 
   $("#t_rf_apoio").innerHTML = th([["Veículo / Máquina"],["Utilização",1],["Disponib.",1],["Necessidade",1],["Atividade"]])+"<tbody>"+
     apoioFixo.map(a=>`<tr><td>${a.nome}</td><td class="num calc">${pct(a.util)}</td>
@@ -113,5 +119,19 @@ function pintarResumoFrota(R){
     "</tbody>";
 }
 
+
+/**
+ * Confronta a frota que vai rodar com a exigida pelo plano.
+ * Sem exigencia do plano nao ha o que comparar: a especialidade nao e usada.
+ */
+function situacao(rodando, exigida){
+  if(!exigida) return {folga:0, classe:"calc", cor:"", tarja:'<span class="calc">—</span>'};
+  const folga = rodando - exigida;
+  if(folga < 0) return {folga, classe:"tot", cor:"color:var(--red)",
+    tarja:`<span class="badge b-warn">falta ${fmt(-folga)}</span>`};
+  if(folga > 0) return {folga, classe:"calc", cor:"color:var(--grey)",
+    tarja:`<span class="badge">sobra ${fmt(folga)}</span>`};
+  return {folga:0, classe:"tot", cor:"", tarja:'<span class="badge b-ok">OK</span>'};
+}
 
 export { pintarResumoFrota };

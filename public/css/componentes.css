@@ -55,7 +55,13 @@ input.bad{border-color:var(--bad);background:var(--bad-bg)}
 .pop-in{animation:popIn .55s cubic-bezier(.22,1.12,.36,1) backwards}
 
 /* ---------- tabelas ---------- */
-.tblwrap{overflow:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--card)}
+/* O cabecalho ja e sticky, mas so gruda se a rolagem acontecer DENTRO do wrapper.
+   Sem altura maxima ele cresce, quem rola e a pagina, e o cabecalho sobe junto.
+   Tabela curta nao chega nesse limite e fica igual ao que era. */
+.tblwrap{overflow:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--card);
+  max-height:76vh}
+/* tabela aninhada (frota de um modelo, por exemplo) nao disputa o topo com a de fora */
+.tblwrap table table th{position:static}
 table{border-collapse:collapse;width:100%;font-size:13px;min-width:640px}
 th{background:var(--th-bg);color:var(--th-ink);font-weight:600;text-align:left;padding:9px 12px;font-size:11.5px;
   text-transform:uppercase;letter-spacing:.5px;position:sticky;top:0;z-index:2;white-space:nowrap;
