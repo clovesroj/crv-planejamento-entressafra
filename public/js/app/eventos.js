@@ -114,7 +114,7 @@ document.addEventListener("change",e=>{
   if(t.id==="sel_trat"){ setTRAT_SEL(t.value); render(); return; }
   if(t.id==="sel_fun"){ setFUN_SEL(t.value); render(); return; }
   if(t.id==="sel_cat"){ setCAT_SEL(t.value); render(); return; }
-  if(t.id==="sel_orig"){ setFROTA_ORIG(t.value); render(); return; }
+  if(t.id==="sel_orig"||t.id==="sel_manut_orig"){ setFROTA_ORIG(t.value); render(); return; }
   if(t.id==="sel_dest"){ setFROTA_DEST(t.value); render(); return; }
   if(t.dataset.undest!==undefined){ const c=t.dataset.undest;
     FROTA_UN[c]=FROTA_UN[c]||{}; FROTA_UN[c].st=t.value; salvar(); render(); return; }

@@ -24,6 +24,7 @@ direto. Veja [Arquitetura](#arquitetura).
 | Transporte | Transbordo e transporte de cana por raio, ciclo e capacidade |
 | Apoio | Equipamentos de apoio por quantidade e horas |
 | Combustível | Volume de diesel mês a mês, preço projetado por mês, consumo por etapa e equipamento |
+| Planejamento de Manutenção | A frota que vai rodar, para orçar o CRM e ver o que falta |
 | Manutenção de Frota | CRM por especialidade, modelo e equipamento; destino de cada frota na safra |
 | Reforma de Frota | Provisionamento da reforma, orçado por equipamento e conjunto |
 | Transporte de Pessoal | Rotas, diárias de ônibus e quilometragem |
@@ -189,6 +190,30 @@ O destino pode ser marcado em **três telas**, e é o mesmo dado nas três:
 
 Estão no Dimensionamento porque é ali que se olha quanta frota o plano exige — é onde a
 pergunta "esse aqui vai aguentar a safra ou vai para a bancada?" aparece.
+
+## Planejamento de manutenção
+
+Aba dedicada a orçar o CRM do que **vai rodar**. A Manutenção de Frota é o cadastro — tem a
+frota inteira, incluindo bancada e parados, e serve para lançar taxa em qualquer nível. Esta
+é o trabalho: só o que roda, com o buraco de orçamento à vista.
+
+Mostra, por especialidade e modelo: quantos equipamentos rodam, quantos já foram orçados um a
+um, a cobertura em %, a taxa em vigor e **de onde ela veio**:
+
+| Tarja | Origem da taxa |
+|---|---|
+| *da frota* | Média das unidades orçadas do modelo |
+| *do modelo* | Taxa própria lançada no modelo |
+| *da especialidade* | Taxa da linha-mãe |
+| *do plano* | Classe do dimensionamento que representa o modelo (`Trator 4x4 230 CV` → JOHN DEERE 7230J) |
+| *falta orçar* | Nenhuma — entra no plano custando zero |
+
+A idade média e a do equipamento mais velho aparecem ao lado, porque é o que puxa manutenção.
+Abrindo um modelo, os campos de CRM ficam editáveis equipamento a equipamento, e dá para mudar
+o destino sem sair da tela.
+
+Hoje, com a frota toda marcada para rodar: **420 equipamentos têm taxa** (herdada das classes
+do plano) e **800 não têm** — esses entram custando zero até serem orçados.
 
 ## Reforma de frota
 
