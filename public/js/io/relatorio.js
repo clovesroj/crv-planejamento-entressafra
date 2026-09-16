@@ -41,7 +41,7 @@ function relatorioSecoes(R, nivel){
     Object.keys(catLbl).map(k=>{const l=R.mesesCat[k];
       return [catLbl[k], ...l.map(v=>brl(v)), brl(l.reduce((s,v)=>s+v,0))];}));
 
-  add("Períodos","Custos por período — safra (abr–nov) e entressafra (dez–mar)",["Grande conta","Safra","Entressafra","Total"],
+  add("Períodos","Custos por período — safra (abr a nov) e entressafra (dez a mar)",["Grande conta","Safra","Entressafra","Total"],
     Object.keys(CAT_LBL).map(k=>[CAT_LBL[k], brl(R.PER.safra.cat[k]), brl(R.PER.entressafra.cat[k]),
       brl(R.PER.safra.cat[k]+R.PER.entressafra.cat[k])])
     .concat([["TOTAL", brl(R.PER.safra.total), brl(R.PER.entressafra.total), brl(R.PER.safra.total+R.PER.entressafra.total)]]));

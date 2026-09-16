@@ -21,8 +21,8 @@ function pintarPainel(R){
     kpi("Custo / ha plantado","t",brl(R.total/ha)) +
     kpi("Custo de colheita","g",corteTon>0?brl(corteTotal/corteTon,2)+"/t":"—","só corte (A01+A02), sem transporte") +
     kpi("Efetivo total","a",fmt(R.efetivoTotal)+" pessoas") +
-    kpi("Custo na safra","g",brl(R.PER.safra.total),"abr–nov · "+R.PER.safra.meses.length+" meses no orçamento") +
-    kpi("Custo na entressafra","a",brl(R.PER.entressafra.total),"dez–mar · "+R.PER.entressafra.meses.length+" meses no orçamento");
+    kpi("Custo na safra","g",brl(R.PER.safra.total),"abr a nov · "+R.PER.safra.meses.length+" meses no orçamento") +
+    kpi("Custo na entressafra","a",brl(R.PER.entressafra.total),"dez a mar · "+R.PER.entressafra.meses.length+" meses no orçamento");
   $("#k_tratos").innerHTML =
     kpi("Tratos — cana soca","t",R.tratosCult.Soca.ha>0?brl(R.tratosCult.Soca.total/R.tratosCult.Soca.ha,2)+"/ha":"—",
         brl(R.tratosCult.Soca.total)+" · "+fmt(R.tratosCult.Soca.ha)+" ha") +

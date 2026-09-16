@@ -19,7 +19,7 @@ function pintarCustos(R){
     kpi("Custo total","",brl(R.total)) + kpi("Custo variável","t",brl(R.variavel)) +
     kpi("Custo fixo","a",brl(R.fixoT)) + kpi("Custo por ha plantado","g",brl(R.total/ha));
 
-  // safra (abr–nov) × entressafra (dez–mar)
+  // safra (abril a novembro) × entressafra (dezembro a março)
   const PR = R.PER, perTot = PR.safra.total + PR.entressafra.total;
   const nomeP = p => p==="safra" ? "safra" : "entressafra";
   $("#k_per").innerHTML =
