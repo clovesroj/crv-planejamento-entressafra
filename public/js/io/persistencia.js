@@ -1,7 +1,7 @@
 import { CFG } from '../dados/cfg.js';
-import { APOIO, APOIO_FIXO, ARREND, ARR_PAR, ARR_RAT, BEN, CRM, DIESEL_MES, DIM, EDITADO, ENC, ESPOR, FROTA, GRAT, INSUMO, INSX, MATX, NIV, P, PLANO, TERC_TAR, TPESS, TRATC, TRAT_NOME } from '../nucleo/estado.js';
+import { APOIO, APOIO_FIXO, ARREND, ARR_PAR, ARR_RAT, BEN, CRM, DIESEL_MES, DIM, EDITADO, ENC, ESPOR, FORN, FORN_PAR, FROTA, GRAT, INSUMO, INSX, MATX, NIV, P, PLANO, TERC_TAR, TPESS, TRATC, TRAT_NOME } from '../nucleo/estado.js';
 import { setAPOIO, setAPOIO_FIXO, setARREND, setARR_PAR, setARR_RAT, setBEN, setCRM,
-         setDIESEL_MES, setDIM, setEDITADO, setENC, setESPOR, setFROTA, setGRAT, setINSUMO,
+         setDIESEL_MES, setDIM, setEDITADO, setFORN, setFORN_PAR, setENC, setESPOR, setFROTA, setGRAT, setINSUMO,
          setINSX, setMATX, setNIV, setP, setPLANO, setTERC_TAR, setTPESS, setTRATC,
          setTRAT_NOME } from '../nucleo/estado.js';
 import { $ } from '../nucleo/formato.js';
@@ -13,7 +13,7 @@ import { PADRAO } from '../dados/padroes.js';
 let REMOTO = null, saveTimer = null;
 /* ---------- persistência ---------- */
 function estado(){
-  const s = {P,PLANO,DIM,INSUMO,ESPOR,TRATC,TRAT_NOME,DIESEL_MES,ARREND,ARR_PAR,ARR_RAT,ENC,BEN,NIV,GRAT,APOIO,APOIO_FIXO,
+  const s = {P,PLANO,DIM,INSUMO,ESPOR,TRATC,TRAT_NOME,DIESEL_MES,ARREND,ARR_PAR,ARR_RAT,FORN,FORN_PAR,ENC,BEN,NIV,GRAT,APOIO,APOIO_FIXO,
              TERC_TAR,CRM,MATX,INSX,FROTA,TPESS,FUN:CFG.funcoes.map(f=>f.sal),v:10};
   // Campos que esta sessão nunca tocou ficam nulos ou vazios em memória. Enviá-los
   // apagava no servidor o que outra sessão já tinha preenchido — por isso são omitidos.
@@ -118,6 +118,8 @@ function aplicar(d){
   if(d.ARREND) setARREND(d.ARREND);
   if(d.ARR_PAR) setARR_PAR(d.ARR_PAR);
   if(d.ARR_RAT) setARR_RAT(d.ARR_RAT);
+  if(d.FORN) setFORN(d.FORN);
+  if(d.FORN_PAR) setFORN_PAR(d.FORN_PAR);
   if(d.ENC) setENC(d.ENC);
   if(d.BEN) setBEN(d.BEN);
   if(d.NIV) setNIV(d.NIV);

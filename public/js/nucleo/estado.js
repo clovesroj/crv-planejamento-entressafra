@@ -33,6 +33,8 @@ let DIESEL_MES = {};     // índice do mês -> preço projetado do diesel (R$/L)
 let ARREND = null;       // [{faz, grupo, area, forma, qtd, pag, mes}] fazendas ou grupos arrendados
 let ARR_PAR = {};        // parâmetros de pagamento do arrendamento (ATR, preços, critério)
 let ARR_RAT = {};        // etapa -> % do arrendamento (referência PECEGE/USP)
+let FORN = null;         // [{forn,prop,origem,mod,area,tch,tonContr,tonEst,atr,preco,...}] fornecedores de cana
+let FORN_PAR = {};       // parâmetros de matéria-prima (preço do ATR, ATR próprio, frete/km, área própria)
 let TPESS = null;        // rotas de transporte de pessoal (lista editável)
 let ENC = {};            // índice do encargo -> % ajustado
 let BEN = {};            // índice do benefício -> valor ajustado
@@ -47,7 +49,7 @@ let TRAT_SEL = null;
 
 export {
   P, PLANO, DIM, INSUMO, ESPOR, TRATC, NIV, GRAT, APOIO, TERC_TAR, CRM, MATX,
-  INSX, FROTA, APOIO_FIXO, TRAT_NOME, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT,
+  INSX, FROTA, APOIO_FIXO, TRAT_NOME, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
   TPESS, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL,
 };
 
@@ -71,6 +73,8 @@ export const setDIESEL_MES = v => { DIESEL_MES = v; };
 export const setARREND     = v => { ARREND = v; };
 export const setARR_PAR    = v => { ARR_PAR = v; };
 export const setARR_RAT    = v => { ARR_RAT = v; };
+export const setFORN       = v => { FORN = v; };
+export const setFORN_PAR   = v => { FORN_PAR = v; };
 export const setTPESS      = v => { TPESS = v; };
 export const setENC        = v => { ENC = v; };
 export const setBEN        = v => { BEN = v; };
@@ -105,3 +109,5 @@ export function arrLista(){
     a.qtd = num(a.qtd)*num(ARR_PAR.precoSoja!=null ? ARR_PAR.precoSoja : 120); a.forma = "rsha"; } });
   return ARREND;
 }
+
+export function fornLista(){ if(!FORN) FORN = []; return FORN; }

@@ -1,5 +1,50 @@
 # Histórico de mudanças
 
+## 2.1.0 — 2026-09-16 · Módulo de fornecedores de cana
+
+Nova aba **Fornecedores de Cana** e consolidação da matéria-prima por origem.
+
+### Cadastro
+
+Fornecedor, propriedade, área, toneladas contratadas e estimadas, TCH, ATR,
+distância, período de entrega, modalidade de contrato, preço, prêmio, descontos,
+frete, logística, qualidade e histórico da safra anterior.
+
+Modalidades: Consecana (ATR × preço do kg), preço fixo por tonelada, parceria
+(% da produção) e permuta (cana por área, valorada pelo Consecana). Tonelada
+estimada em branco usa área × TCH; frete em branco usa distância × tarifa/km.
+
+### Origens, sem misturar naturezas contábeis
+
+| Origem | Natureza | De onde vem o custo |
+|---|---|---|
+| Cana própria | Custo de produção — área própria | plano agrícola, parcela da área própria |
+| Cana arrendada | Custo de produção + arrendamento | plano agrícola + todo o arrendamento |
+| Cana de fornecedor | Aquisição de matéria-prima | contrato de compra |
+| Cana de parceria | Aquisição — partilha da produção | contrato de parceria |
+
+Própria e arrendada somadas reproduzem exatamente o custo total do plano — não há
+dupla contagem. A aquisição de terceiros fica à parte e só se junta no custo médio
+ponderado da tonelada.
+
+### Indicadores
+
+Custo da cana própria, custo da cana de fornecedor, custo médio ponderado, R$/t,
+R$/kg de ATR e participação percentual por origem, em tonelada e em custo. Também
+a entrada de cana por mês e origem.
+
+O custo médio ponderado considera só origem com tonelada lançada: enquanto a
+colheita (A01) não estiver no Plano Operacional, o custo agrícola aparece à parte
+em vez de inflar o R$/t.
+
+### Arquivos
+
+`public/js/dados/fornecedores.js` (cadastro), `public/js/calculo/fornecedores.js`
+(cálculo puro), `public/js/ui/fornecedores.js` (tela), seção em `public/index.html`
+e campos `FORN` e `FORN_PAR` em `nucleo/estado.js` e `io/persistencia.js`.
+Relatório, CSV e Validação incluídos. O motor de custo do plano não foi alterado.
+
+
 ## 2.0.0 — 2026-09-15 · Separação em front, back e dados
 
 Reestruturação conduzida por **Caio Souza**.

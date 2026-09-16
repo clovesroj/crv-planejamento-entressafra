@@ -1,5 +1,6 @@
 import { calcularCompleto } from '../app/ciclo.js';
 import { ARR_FORMAS, ETAPAS_ORD } from '../calculo/arrendamento.js';
+import { FORN_MODALIDADES } from '../dados/fornecedores.js';
 import { deptIdx } from '../calculo/pessoas.js';
 import { CFG } from '../dados/cfg.js';
 import { LOGO } from '../dados/logo.js';
@@ -48,6 +49,19 @@ function relatorioSecoes(R, nivel){
   add("Etapas por período","Custo por etapa — safra e entressafra",["Etapa","Safra","Entressafra","Total"],
     Object.keys(R.etapaMes).filter(e=>R.PER.safra.etapa[e]+R.PER.entressafra.etapa[e]>0.5)
       .map(e=>[e, brl(R.PER.safra.etapa[e]), brl(R.PER.entressafra.etapa[e]), brl(R.PER.safra.etapa[e]+R.PER.entressafra.etapa[e])]));
+
+  add("Matéria-prima","Matéria-prima por origem — moagem e custo",
+    ["Origem","Natureza contábil","Área (ha)","Toneladas","% da moagem","ATR médio","Custo","R$/t","R$/kg ATR"],
+    Object.values(R.FORN.origens).map(o=>[o.nome, o.nat, fmt(o.area), fmt(o.ton),
+      R.FORN.tonTotal>0?fmt(o.ton/R.FORN.tonTotal*100,1)+"%":"—", fmt(o.atrMedio,1), brl(o.custo),
+      o.ton>0?brl(o.rsT,2):"—", o.atrTotal>0?brl(o.rsAtr,4):"—"])
+    .concat([["MÉDIA PONDERADA","", "", fmt(R.FORN.tonTotal), "100,0%", fmt(R.FORN.atrMedio,1),
+      brl(R.FORN.custoTotal), brl(R.FORN.rsTMedio,2), brl(R.FORN.rsAtrMedio,4)]]));
+  add("Fornecedores","Fornecedores de cana — contratos",
+    ["Fornecedor","Propriedade","Origem","Modalidade","Área (ha)","TCH","t contratadas","t estimadas","ATR","Entrega","Qualidade","Custo","R$/t"],
+    R.FORN.linhas.map(l=>[l.forn, l.prop, (R.FORN.origens[l.origem]||{nome:l.origem}).nome,
+      (FORN_MODALIDADES[l.mod]||{nome:l.mod}).nome, fmt(l.area), fmt(l.tch,1), fmt(l.tonContr), fmt(l.ton),
+      fmt(l.atr,1), l.mesesEnt.join(" a "), l.qual, brl(l.custo), brl(l.rsT,2)]));
 
   add("Arrendamentos","Arrendamentos — fazendas",
     ["Fazenda","Grupo","Área (ha)","Forma de pagamento","R$/ha/ano","Custo anual","Custo no orçamento"],

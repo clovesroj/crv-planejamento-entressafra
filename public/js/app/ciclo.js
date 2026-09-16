@@ -1,4 +1,5 @@
 import { calcular } from '../calculo/index.js';
+import { fornCalc } from '../calculo/fornecedores.js';
 import { pessoasCalc } from '../calculo/pessoas.js';
 import { CFG } from '../dados/cfg.js';
 import { P } from '../nucleo/estado.js';
@@ -11,6 +12,7 @@ import { pintarContas } from '../ui/contas.js';
 import { pintarCustos } from '../ui/custos.js';
 import { pintarDim } from '../ui/dimensionamento.js';
 import { pintarCRM } from '../ui/frota.js';
+import { pintarForn } from '../ui/fornecedores.js';
 import { pintarInsumos } from '../ui/insumos.js';
 import { pintarIrrig } from '../ui/irrigacao.js';
 import { pintarMDO } from '../ui/mao-de-obra.js';
@@ -29,6 +31,8 @@ function calcularCompleto(){
     + CFG.indiretos.reduce((s,i)=>s+i.qtd,0) + R.EM.efetivo
     + Math.ceil(R.TR.frota*R.MP.fatorEscala);
   R.PS = pessoasCalc(R);
+  // matéria-prima depende do custo do plano, por isso vem depois de calcular()
+  R.FORN = fornCalc(R);
   return R;
 }
 function render(){
@@ -38,7 +42,7 @@ function render(){
   $("#c_arr_ha").value=fmt(R.AR.area)+" ha";
   $("#c_arr").value=R.AR.area>0?brl(R.AR.anual/R.AR.area,2):"—";
   pintarCapa(R); pintarMDO(R); pintarPlano(R); pintarDim(R); pintarTransp(R); pintarApoio(R); pintarCRM(R); pintarTPess(R);
-  pintarIrrig(R); pintarInsumos(R); pintarArrend(R); pintarCustos(R); pintarContas(R); pintarCombustivel(R); pintarResumoFrota(R); pintarPessoas(R);
+  pintarIrrig(R); pintarInsumos(R); pintarArrend(R); pintarForn(R); pintarCustos(R); pintarContas(R); pintarCombustivel(R); pintarResumoFrota(R); pintarPessoas(R);
   pintarPainel(R); pintarValida(R);
 }
 // atualização leve: recalcula tudo mas preserva o foco de quem está digitando

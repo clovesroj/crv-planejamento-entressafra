@@ -45,6 +45,7 @@
       <div class="gl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21V4"/><path d="M12 9.5C9 9.5 6.5 7.5 5.5 4.5c3 0 5.5 2 6.5 5z"/><path d="M12 14.5c3 0 5.5-2 6.5-5-3 0-5.5 2-6.5 5z"/><path d="M8.5 21h7"/></svg>Agricultura</div>
       <button data-s="insumos">Insumos</button>
       <button data-s="irrig">Irrigação</button>
+      <button data-s="forn">Fornecedores de Cana</button>
     </div>
     <div class="navgroup" data-g="Frota e logística">
       <div class="gl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6.5h11v9.5h-11z"/><path d="M13.5 10h4.2l3 3.2V16h-7.2"/><circle cx="6.5" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg>Frota e logística</div>
@@ -359,6 +360,44 @@
     <div class="tblwrap"><table id="t_mat"></table></div>
     <div class="row" style="margin-top:10px"><button class="btn p" id="btn_mat_add">Adicionar material</button></div>
     <div class="hint" style="margin-top:9px">Lista livre — inclua qualquer material projetado além dos padrões.</div></div>
+</section>
+
+<!-- ===== FORNECEDORES DE CANA ===== -->
+<section id="forn">
+  <h2>Fornecedores de Cana</h2>
+  <p class="lead">Matéria-prima das quatro origens — cana própria, arrendada, de fornecedor e de parceria — com
+  contrato, entrega, qualidade e logística de cada fornecedor. As origens são consolidadas sem misturar a
+  natureza contábil: própria e arrendada são custo de produção do plano; fornecedor e parceria são aquisição.</p>
+  <div class="grid g4" id="k_forn" style="margin-bottom:16px"></div>
+
+  <div class="panel"><h3>Parâmetros de matéria-prima</h3><div class="grid g4">
+    <div><label for="fnp_precoAtr">Preço do kg de ATR (R$)</label><input data-fnp="precoAtr" id="fnp_precoAtr" inputmode="decimal"><div class="hint">Usado quando a linha não traz preço próprio</div></div>
+    <div><label for="fnp_atrPropria">ATR da cana própria (kg/t)</label><input data-fnp="atrPropria" id="fnp_atrPropria" inputmode="decimal"></div>
+    <div><label for="fnp_freteKm">Frete (R$/t por km)</label><input data-fnp="freteKm" id="fnp_freteKm" inputmode="decimal"><div class="hint">Aplicado à distância quando o frete fica em branco</div></div>
+    <div><label for="fnp_areaPropria">Área própria (ha)</label><input data-fnp="areaPropria" id="fnp_areaPropria" inputmode="decimal"><div class="hint">O resto da área do plano é tratado como arrendada</div></div>
+  </div></div>
+
+  <div class="panel"><h3>Cadastro de fornecedores</h3>
+    <div class="tblwrap"><table id="t_forn"></table></div>
+    <div class="row" style="margin-top:10px"><button class="btn p" id="btn_forn_add">Adicionar fornecedor</button></div>
+    <div class="hint" style="margin-top:9px">Toneladas estimadas em branco usam área × TCH. O preço segue a
+    modalidade: <b>Consecana</b> em R$/kg de ATR, <b>preço fixo</b> em R$/t, <b>parceria</b> em % da produção e
+    <b>permuta</b> valorada pelo Consecana. Custo da linha = cana + prêmio − descontos + frete + logística.</div></div>
+
+  <div class="panel"><h3>Entrega, qualidade e histórico</h3>
+    <div class="tblwrap"><table id="t_forn_qual"></table></div>
+    <div class="hint" style="margin-top:9px">Frete marcado com * foi calculado pela distância × tarifa por km.
+    A variação compara a tonelada estimada com a entregue na safra anterior.</div></div>
+
+  <div class="panel"><h3>Consolidado por origem</h3>
+    <div class="tblwrap"><table id="t_forn_orig"></table></div>
+    <div id="ch_forn" style="margin-top:14px"></div>
+    <div class="hint" style="margin-top:9px" id="forn_nota"></div></div>
+
+  <div class="panel"><h3>Entrada de cana por mês</h3>
+    <div class="tblwrap"><table id="t_forn_mes"></table></div>
+    <div class="hint" style="margin-top:9px">A cana própria e a arrendada seguem a colheita do Plano Operacional;
+    a de terceiros, o período de entrega de cada contrato.</div></div>
 </section>
 
 <!-- ===== ARRENDAMENTOS ===== -->

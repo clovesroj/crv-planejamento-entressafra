@@ -5,7 +5,7 @@ import { destravarNiv } from '../calculo/mao-de-obra.js';
 import { CFG } from '../dados/cfg.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM } from '../nucleo/calendario.js';
-import { APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, NIV, P, PLANO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, apoioLista, arrLista, insLista, matLista, tpessLista } from '../nucleo/estado.js';
+import { APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, NIV, P, PLANO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, apoioLista, arrLista, fornLista, insLista, matLista, tpessLista } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { lerPremissas } from '../ui/premissas.js';
 import { leve, render } from './ciclo.js';
@@ -69,6 +69,10 @@ document.addEventListener("input",e=>{
     l[f] = ["faz","grupo"].includes(f) ? t.value : num(t.value); salvar(); leve(); return; }
   if(t.dataset.arp!==undefined){ ARR_PAR[t.dataset.arp]=num(t.value); salvar(); leve(); return; }
   if(t.dataset.arrat!==undefined){ ARR_RAT[t.dataset.arrat]=num(t.value); salvar(); leve(); return; }
+  // selects da tabela de fornecedores sao tratados no "change"; aqui so os campos digitados
+  if(t.dataset.fn!==undefined && t.tagName==="INPUT"){ const l=fornLista()[+t.dataset.fn], f=t.dataset.f;
+    l[f] = ["forn","prop"].includes(f) ? t.value : num(t.value); salvar(); leve(); return; }
+  if(t.dataset.fnp!==undefined){ FORN_PAR[t.dataset.fnp]=num(t.value); salvar(); leve(); return; }
   if(t.dataset.enc!==undefined){ ENC[t.dataset.enc]=num(t.value); salvar(); leve(); return; }
   if(t.dataset.ben!==undefined){ BEN[t.dataset.ben]=num(t.value); salvar(); leve(); return; }
 });
@@ -82,6 +86,12 @@ document.addEventListener("change",e=>{
   if(t.dataset.arr!==undefined && t.tagName==="SELECT"){ const l=arrLista()[+t.dataset.arr];
     l[t.dataset.f] = t.dataset.f==="mes" ? +t.value : t.value; salvar(); render(); return; }
   if(t.id==="arp_criterio"){ ARR_PAR.criterio=t.value; salvar(); render(); return; }
+  if(t.dataset.fn!==undefined && t.tagName==="SELECT"){ const l=fornLista()[+t.dataset.fn], f=t.dataset.f;
+    l[f] = ["entIni","entFim"].includes(f) ? +t.value : t.value;
+    // o fim da entrega nunca fica antes do inicio
+    if(f==="entIni" && +l.entFim < +l.entIni) l.entFim = l.entIni;
+    if(f==="entFim" && +l.entFim < +l.entIni) l.entIni = l.entFim;
+    salvar(); render(); return; }
   if(t.id==="sel_trat"){ setTRAT_SEL(t.value); render(); return; }
   if(t.id==="sel_fun"){ setFUN_SEL(t.value); render(); return; }
   if(t.id==="sel_cat"){ setCAT_SEL(t.value); render(); return; }
@@ -104,6 +114,9 @@ document.addEventListener("click",e=>{
   if(t.dataset.arrm!==undefined){ const l=arrLista()[+t.dataset.arrm];
     if(!confirm(`Remover "${l.faz}" dos arrendamentos?`)) return;
     arrLista().splice(+t.dataset.arrm,1); salvar(); render(); return; }
+  if(t.dataset.fnrm!==undefined){ const l=fornLista()[+t.dataset.fnrm];
+    if(!confirm(`Remover "${l.forn}" dos fornecedores?`)) return;
+    fornLista().splice(+t.dataset.fnrm,1); salvar(); render(); return; }
   if(t.dataset.tr!==undefined){ const c=destravar(TRAT_SEL); c.splice(+t.dataset.tr,1); salvar(); render(); return; }
   if(t.dataset.aprm!==undefined){ apoioLista().splice(+t.dataset.aprm,1); salvar(); render(); return; }
   if(t.dataset.mtrm!==undefined){ matLista().splice(+t.dataset.mtrm,1); salvar(); render(); return; }

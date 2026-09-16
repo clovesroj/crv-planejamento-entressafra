@@ -47,6 +47,19 @@ function validar(R){
   const mixRuim = R.L.filter(r=>r.mixSoma>0 && Math.abs(r.mixSoma-100)>0.01);
   add(mixRuim.length===0,"Mix de modos de aplicação somando 100%",
       mixRuim.length? mixRuim.map(r=>r.a.cod+" ("+fmt(r.mixSoma,0)+"%)").join(", ") : "");
+  // matéria-prima: contrato sem valor, estimativa muito distante do contratado, ATR ausente
+  const F = R.FORN || {linhas:[], areaPlano:0, fracArr:0,
+    origens:{propria:{ton:0}, arrendada:{ton:0}, fornecedor:{ton:0}, parceria:{ton:0}}};
+  const semPreco = F.linhas.filter(l=>l.ton>0 && l.cana<=0);
+  add(semPreco.length===0,"Fornecedor com entrega e sem preço de contrato", semPreco.map(l=>l.forn).join(", "));
+  const semAtr = F.linhas.filter(l=>l.ton>0 && l.atr<=0);
+  add(semAtr.length===0,"Fornecedor sem ATR informado", semAtr.map(l=>l.forn).join(", "));
+  const foraContr = F.linhas.filter(l=>l.tonContr>0 && Math.abs(l.aderContr-1)>0.1);
+  add(foraContr.length===0,"Estimativa dentro de 10% do contratado",
+      foraContr.map(l=>l.forn+" ("+fmt(l.aderContr*100,0)+"%)").join(", "));
+  add(!(F.origens.arrendada.ton>0 && !(F.areaPlano>0 && F.fracArr<1)) || F.origens.propria.ton>0,
+      "Área própria informada para separar a cana própria da arrendada",
+      F.origens.propria.ton>0 ? "" : "sem área própria, o plano inteiro conta como cana arrendada");
   return v;
 }
 function pintarValida(R){
