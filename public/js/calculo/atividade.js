@@ -1,7 +1,7 @@
 import { maqDe } from './crm.js';
 import { CFG } from '../dados/cfg.js';
 import { fatorEscala } from '../dados/escalas.js';
-import { NM } from '../nucleo/calendario.js';
+import { NM, mesesEntre } from '../nucleo/calendario.js';
 import { DIM, P, PLANO, TERC_TAR } from '../nucleo/estado.js';
 import { num, pct } from '../nucleo/formato.js';
 import { precoDiesel } from './diesel.js';
@@ -56,12 +56,13 @@ function janelaDe(cod, meses){
     if(!isNaN(i) && !isNaN(f) && f >= i){
       const dias = (f - i) / 86400000 + 1;          // fim inclusivo
       return {meses: Math.max(dias / DIAS_MES, 1 / DIAS_MES), dias, fonte: "datas",
-              ini: d.ini, fim: d.fim};
+              ini: d.ini, fim: d.fim, idx: mesesEntre(d.ini, d.fim)};
     }
   }
   const comVol = meses.reduce((n, q) => n + (num(q) > 0 ? 1 : 0), 0);
-  if(comVol > 0) return {meses: comVol, dias: comVol * DIAS_MES, fonte: "meses do plano"};
-  return {meses: NM, dias: NM * DIAS_MES, fonte: "ano inteiro"};
+  if(comVol > 0) return {meses: comVol, dias: comVol * DIAS_MES, fonte: "meses do plano",
+    idx: meses.map((q,i)=>num(q)>0?i:-1).filter(i=>i>=0)};
+  return {meses: NM, dias: NM * DIAS_MES, fonte: "ano inteiro", idx: []};
 }
 
 function linha(a, MP){

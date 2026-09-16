@@ -3,7 +3,7 @@ import { AG_SEM_FROTA, FROTA_AG, FROTA_ESP, SEP_MOD, crmDe, espDe } from '../cal
 import { composicao, destravar, tratCodigos } from '../calculo/insumos.js';
 import { CFG } from '../dados/cfg.js';
 import { salvar } from '../io/persistencia.js';
-import { MESES, NM } from '../nucleo/calendario.js';
+import { MESES, NM, mesesEntre } from '../nucleo/calendario.js';
 import { APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL } from '../nucleo/estado.js';
 import { FROTA_ABERTO, FROTA_UN, MAQ, setFROTA_DEST, setFROTA_ORIG } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
@@ -137,7 +137,9 @@ document.addEventListener("change",e=>{
     DIM[c]=DIM[c]||{};
     // data em branco volta a janela para os meses com volume lançado
     if(!t.value) delete DIM[c][t.dataset.f]; else DIM[c][t.dataset.f]=t.value;
-    salvar(); render(); return; }
+    // leve() preserva o foco; render() reconstruia a tabela e derrubava a
+    // digitacao no meio da data
+    salvar(); leve(); return; }
   if(t.dataset.fc!==undefined){ const c=t.dataset.fc;
     PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""};
     PLANO[c].fcod=t.value; salvar(); render(); return; }
@@ -166,6 +168,23 @@ document.addEventListener("click",e=>{
   if(e.target.closest && e.target.closest("#ra_voltar")){ voltarRastro(); renderRastro(); return; }
   if((e.target.closest && e.target.closest("#ra_fechar")) || e.target.id==="rastro_fundo"){
     fecharRastro(); renderRastro(); return; }
+  // ratear: espalha o total da atividade igualmente pelos meses da janela de datas
+  const alvoRat = e.target.closest && e.target.closest("[data-ratear]");
+  if(alvoRat){
+    const c = alvoRat.dataset.ratear, d = DIM[c]||{};
+    const idx = mesesEntre(d.ini, d.fim);
+    if(!idx.length){ alert("Defina início e fim dentro do ano agrícola para ratear."); return; }
+    const p0 = PLANO[c] || {m:Array(NM).fill(0), trat:""};
+    const total = (p0.m||[]).reduce((s,q)=>s+num(q),0);
+    if(total<=0){ alert("Lance o total da atividade em qualquer mês; o rateio o distribui pela janela."); return; }
+    const m = Array(NM).fill(0);
+    // o resto da divisao vai no primeiro mes, para a soma fechar com o total lancado
+    const base = Math.floor(total/idx.length*100)/100;
+    idx.forEach(i=> m[i]=base);
+    m[idx[0]] = +(total - base*(idx.length-1)).toFixed(2);
+    PLANO[c] = {...p0, m};
+    salvar(); render(); return;
+  }
   const ab = e.target.closest && e.target.closest("[data-abrefrota]");
   if(ab){ const k = ab.dataset.abrefrota;
     // abrir a lista de unidades e visao, nao dado: nao passa por salvar()

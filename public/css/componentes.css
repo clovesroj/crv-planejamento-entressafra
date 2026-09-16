@@ -298,3 +298,8 @@ tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:under
 .per-sel button.on{background:var(--leaf);color:#fff}
 .per-sel button:focus-visible{outline:none;box-shadow:var(--focus)}
 @media (max-width:900px){.per-sel{display:none}}
+
+/* Mes fora da janela de datas da atividade: nao aceita lancamento. Fica apagado
+   em vez de sumir, para nao dar a impressao de que o mes deixou de existir. */
+td.fora-janela{background:var(--sunk);opacity:.45}
+td.fora-janela input{cursor:not-allowed}

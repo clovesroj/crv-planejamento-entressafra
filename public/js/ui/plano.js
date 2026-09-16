@@ -50,25 +50,31 @@ function pintarPlano(R){
   // cada coluna de mês carrega a classe do seu período: é o que dá a cor e o que o filtro usa
   const clsMes = j => "mes-"+periodoMes(j);
   const parcial = FILTRO_MES!=="todos";
-  let h = th([["Cod"],["Atividade"],["Un."],
+  let h = th([["Cod"],["Atividade"],["Início"],["Fim"],["Un."],
               ...MESES.map((m,j)=>[m,1,clsMes(j)]),[parcial?"Total do período":"Total",1],
-              ["Modo de execução"],["Início"],["Fim"],["Equip."],["Tratamento"],["Insumo",1]])+"<tbody>";
+              ["Modo de execução"],["Equip."],["Tratamento"],["Insumo",1]])+"<tbody>";
   let et="";
   R.L.forEach(r=>{
-    if(r.a.etapa!==et){et=r.a.etapa; h+=`<tr class="stage"><td colspan="${NM+9}">${et}</td></tr>`;}
+    if(r.a.etapa!==et){et=r.a.etapa; h+=`<tr class="stage"><td colspan="${NM+10}">${et}</td></tr>`;}
     const opts=['<option value="">—</option>'].concat(TL.map(t=>
       `<option value="${t.cod}" ${t.cod===r.trat?"selected":""}>${t.cod}${TRAT_NOME[t.cod]?" — "+TRAT_NOME[t.cod]:""} · ${brl(t.custo_ha,0)}/ha</option>`)).join("");
     const auto = r.a.tipo==="transp";
+    // janela de datas: define em que meses a atividade pode ser lancada
+    const jIdx = r.janela.fonte==="datas" ? r.janela.idx : null;
+    const dentro = j => !jIdx || jIdx.includes(j);
     h+=`<tr><td>${r.a.cod}</td><td>${r.a.nome}${auto?' <span class="badge b-ok">auto</span>':''}</td>
+        <td><input type="date" data-dt="${r.a.cod}" data-f="ini" value="${r.janela.ini||""}" title="Início da execução"></td>
+        <td><input type="date" data-dt="${r.a.cod}" data-f="fim" value="${r.janela.fim||""}" title="Fim da execução">${
+          jIdx && !auto ? `<button class="btn xs" data-ratear="${r.a.cod}" style="margin-left:5px;padding:1px 6px"
+            title="Distribuir o total igualmente nos meses da janela">ratear</button>` : ""}</td>
         <td class="calc">${r.a.un}</td>`+
       r.meses.map((q,j)=> auto
         ? `<td class="num calc ${clsMes(j)}">${q?fmt(num(q)):""}</td>`
-        : `<td class="num ${clsMes(j)}"><input data-c="${r.a.cod}" data-m="${j}" value="${q||""}" inputmode="decimal"></td>`).join("")+
+        : `<td class="num ${clsMes(j)}${dentro(j)?"":" fora-janela"}"><input data-c="${r.a.cod}" data-m="${j}" value="${q||""}" inputmode="decimal"${
+            dentro(j)?"":' disabled title="Fora da janela de datas desta atividade"'}></td>`).join("")+
       `<td class="num tot" style="color:${totalNoFiltro(r)>0?'var(--green)':'var(--grey)'}"${
           parcial && r.total>0 ? ` title="No ano: ${fmt(r.total)}"` : ""}>${fmt(totalNoFiltro(r))}</td>
        <td>${r.a.modoOn ? mixEditor(r) : '<span class="calc">—</span>'}</td>
-       <td><input type="date" data-dt="${r.a.cod}" data-f="ini" value="${r.janela.ini||""}" title="Início da execução"></td>
-       <td><input type="date" data-dt="${r.a.cod}" data-f="fim" value="${r.janela.fim||""}" title="Fim da execução"></td>
        <td class="num ${r.frotaR>0?"tot":"calc"}" data-rastro="ativ:${r.a.cod}" role="button" tabindex="0"
            title="Como se chegou nessa frota">${r.frotaR ? r.frotaR+" ›" : "—"}</td>
        <td><select data-t="${r.a.cod}" ${r.ehHa?"":"disabled"}>${opts}</select></td>

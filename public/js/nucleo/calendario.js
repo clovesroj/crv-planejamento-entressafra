@@ -21,9 +21,27 @@ function periodoMes(i){
 // para continuar certo se o horizonte do orçamento mudar de doze meses.
 const NM_PER = MESES.reduce((a,_,i)=>{ a[periodoMes(i)]++; return a; }, {safra:0, entressafra:0});
 
+/* Indice do mes do ano agricola em que uma data ISO cai; -1 fora do horizonte.
+   O rotulo carrega mes e ano ("Abr/26"), entao da para casar sem tabela extra. */
+function indiceDaData(iso){
+  if(!iso) return -1;
+  const d = new Date(iso + "T00:00:00");
+  if(isNaN(d)) return -1;
+  const m = d.getMonth() + 1, a = d.getFullYear() % 100;
+  return MESES.findIndex(r => (MES_NUM[r.slice(0,3)]||0) === m && +r.slice(-2) === a);
+}
+/* Indices dos meses cobertos por uma janela de datas. Vazio quando a janela nao
+   toca o horizonte do orcamento. */
+function mesesEntre(ini, fim){
+  const a = indiceDaData(ini), b = indiceDaData(fim);
+  if(a < 0 || b < 0 || b < a) return [];
+  return MESES.map((_,i)=>i).filter(i => i >= a && i <= b);
+}
+
 function perTag(i){ const p = periodoMes(i); return `<span class="per per-${p}">${p==="safra"?"Safra":"Entressafra"}</span>`; }
 
 const CAT_LBL = {mdo:"Mão de obra", manut:"Manutenção (CRM)", diesel:"Diesel", insumo:"Insumos + irrigação",
   terc:"Terceirização + transporte", arrend:"Arrendamento", fixo:"Fixos (adm./deprec.)", espor:"Esporádicos"};
 
-export { CAT_LBL, MESES, MESES_ENTRESSAFRA, MESES_SAFRA, MES_NUM, NM, NM_PER, PERIODOS, PERIODO_MESES, perTag, periodoMes };
+export { CAT_LBL, MESES, MESES_ENTRESSAFRA, MESES_SAFRA, MES_NUM, NM, NM_PER, PERIODOS, PERIODO_MESES,
+         indiceDaData, mesesEntre, perTag, periodoMes };
