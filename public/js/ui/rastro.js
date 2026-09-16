@@ -65,17 +65,17 @@ function pintarRastro(R){
           ${d.sub?`<div class="ra-dest-sub">${d.sub}</div>`:""}
         </div>`).join("")}
       </div>` : ""}
-      ${r.tabela ? `<div class="ra-bloco">
-        <div class="ra-bloco-tit">${r.tabela.titulo}</div>
+      ${(r.tabelas||[]).map(t=>`<div class="ra-bloco">
+        <div class="ra-bloco-tit">${t.titulo}</div>
         <div class="tblwrap ra-tbl"><table>
-          <thead><tr>${r.tabela.cab.map((c,i)=>`<th${i?' class="num"':""}>${c}</th>`).join("")}</tr></thead>
-          <tbody>${r.tabela.linhas.map(l=>`<tr>${l.map((c,i)=>
+          <thead><tr>${t.cab.map((c,i)=>`<th${i?' class="num"':""}>${c}</th>`).join("")}</tr></thead>
+          <tbody>${t.linhas.map(l=>`<tr>${l.map((c,i)=>
             `<td${i?' class="num"':""}>${c}</td>`).join("")}</tr>`).join("")}
-          ${r.tabela.rodape ? `<tr>${r.tabela.rodape.map((c,i)=>
+          ${t.rodape ? `<tr>${t.rodape.map((c,i)=>
             `<td class="tot${i?" num":""}">${c}</td>`).join("")}</tr>` : ""}
           </tbody></table></div>
-        ${r.tabela.nota?`<div class="hint" style="margin-top:8px">${r.tabela.nota}</div>`:""}
-      </div>` : ""}
+        ${t.nota?`<div class="hint" style="margin-top:8px">${t.nota}</div>`:""}
+      </div>`).join("")}
       ${(r.blocos||[]).map(b=>`<div class="ra-bloco">
         <div class="ra-bloco-tit">${b.titulo}</div>
         ${b.linhas.map(linha).join("")}

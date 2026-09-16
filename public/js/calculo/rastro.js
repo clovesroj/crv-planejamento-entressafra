@@ -153,6 +153,31 @@ function apresentacao(r, un){
   } : null;
 
   const dias = num(P.dias) * r.janela.meses;
+
+  /* Meta por equipamento. O plano fala em frota e total; quem opera precisa
+     saber o que UMA maquina entrega por dia, por mes e no periodo -- e e esse
+     o numero que vira meta de acompanhamento no campo. */
+  const n = r.frotaR || 0;
+  const hPeriodo = n > 0 ? r.horas/n : 0;
+  const qPeriodo = n > 0 ? total/n : 0;
+  const jm = r.janela.meses || 0;
+  const porEquip = n > 0 && dias > 0 && jm > 0 ? {
+    titulo: `Meta por equipamento · ${n} ${n>1?"equipamentos":"equipamento"} a ${fmt(r.rend,2)} ${un}/h`,
+    cab: ["Ritmo", "Horas por equipamento", "Produção por equipamento", "Horas da frota", "Produção da frota"],
+    linhas: [
+      ["Por dia",      fmt(hPeriodo/dias,1)+" h", fmt(qPeriodo/dias,1)+" "+un,
+                       fmt(r.horas/dias,1)+" h",  fmt(total/dias,1)+" "+un],
+      ["Por mês",      fmt(hPeriodo/jm,0)+" h",   fmt(qPeriodo/jm,0)+" "+un,
+                       fmt(r.horas/jm,0)+" h",    fmt(total/jm,0)+" "+un],
+    ],
+    rodape: ["No período", fmt(hPeriodo,0)+" h", fmt(qPeriodo,0)+" "+un,
+             fmt(r.horas,0)+" h", fmt(total,0)+" "+un],
+    nota: `Hora produtiva é o tempo de máquina efetivamente operando: ${un} ÷ rendimento de ${fmt(r.rend,2)} ${un}/h. `+
+          `Cabe nas ${fmt(num(P.hdia)*(num(P.disp)/100),1)} h disponíveis por dia — ${fmt(P.hdia,1)} h de jornada × ${pct(num(P.disp)/100)} de disponibilidade mecânica. `+
+          `A folga é a utilização de ${pct(r.util)} premissada mais o arredondamento da frota, e é ela que absorve chuva, quebra e deslocamento. `+
+          `Base de calendário: ${fmt(P.dias)} dias efetivos por mês × ${fmt(jm,1)} meses = ${fmt(dias,0)} dias.`,
+  } : null;
+
   const destaques = [
     {rot: r.ehHa ? "Área" : "Volume", val: fmt(total)+" "+un,
      sub: r.janela.fonte==="datas" ? `de ${r.janela.ini} a ${r.janela.fim}`
@@ -166,7 +191,7 @@ function apresentacao(r, un){
     {rot: "Efetivo", val: fmt(r.efetivo)+" pessoas",
      sub: (r.partes[0] ? r.partes[0].turnosEf : r.a.turnos)+" turno(s) · fator "+fmt(r.fator,2)},
   ];
-  return {destaques, tabela};
+  return {destaques, tabelas: [porEquip, tabela].filter(Boolean)};
 }
 
 /* ===== Meta diaria da atividade =====
@@ -263,7 +288,7 @@ function rastroAtividade(R, cod){
 
   const cf = R.MP.custoFuncao[r.fcod] || {};
   return {
-    largo:true, destaques:apres.destaques, tabela:apres.tabela,
+    largo:true, destaques:apres.destaques, tabelas:apres.tabelas,
     titulo:`${r.a.cod} · ${r.a.nome}`, subtitulo:"Atividade do Plano Operacional",
     valor:brl(r.direto), blocos,
     premissas: premissasGerais().concat([
