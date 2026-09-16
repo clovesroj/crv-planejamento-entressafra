@@ -59,7 +59,11 @@ function calcular(){
     if(l.horas<=0) return;
     const it = crmItem[l.maq];
     if(!it) return;
-    const v = l.horas*it.rh;
+    // `conv` converte hora em km nos itens cotados por quilometragem, como já faz
+    // o rateio do plano operacional acima. Sem ele a taxa em R$/km era cobrada
+    // como se fosse R$/h, e o CRM da frota de apoio saía dividido pela velocidade
+    // média — o que não fosse cobrado ficava calculado e sem etapa nenhuma.
+    const v = l.horas*it.conv*it.rh;
     l.manut = v; l.total += v; crmAlocado += v;
     addCrm("APOIO", v);
   });

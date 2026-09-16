@@ -98,8 +98,22 @@ const h = s => { let x=5381; for(let i=0;i<s.length;i++) x=((x*33)^s.charCodeAt(
 > **A linha "plano vazio" acima está defasada.** Ela foi capturada antes dos commits
 > de arrendamentos, fornecedores, combustível e segmentação safra/entressafra, que
 > mudaram o total legitimamente. Remedido na árvore limpa em `050a344`:
-> **38.897.437,297543995**, com `crmTotal` 402.033,5999999999. A linha da fixture de
-> produção não foi reconferida — exige a fixture, que não está no repositório.
+> 38.897.437,297543995, com `crmTotal` 402.033,5999999999.
+>
+> **Valor corrente, a partir da correção do `conv` na frota de apoio:**
+> plano vazio = **39.158.394,097544**, `crmTotal` 402.033,5999999999.
+> A alta de 260.956,80 (+0,671%) é a correção, não regressão — ver o commit.
+>
+> A linha da fixture de produção não foi reconferida: exige a fixture, que não
+> está no repositório.
+
+**Invariante novo, vale a pena checar:** o CRM rateado por etapa tem de fechar com
+o CRM total. Era isto que o `conv` esquecido quebrava.
+
+```js
+const R = ciclo.calcularCompleto();
+Math.abs(R.crmTotal - Object.values(R.crmEtapa).reduce((a,b)=>a+b,0)) < 0.01;  // true
+```
 
 Impressão digital do `innerHTML` das 19 seções após `render()`, com a mesma
 fixture:
