@@ -1,5 +1,19 @@
 # Histórico de mudanças
 
+## 2.12.0 — 2026-09-16 · Adubação de fundação
+
+Nova operação no Plano Operacional: **A39 Adubação de fundação**, em ha/mês,
+dentro de PLANTIO, logo depois do Plantio, classificada como cana planta.
+
+Trator 4x4 150 CV com distribuidor de sólidos, operador de máquinas agrícolas
+II, rendimento de partida 4,0 ha/h. Aceita os mesmos dois modos das outras
+aplicações de sólidos: **trator** próprio ou **terceiro** pela tarifa em R$/ha,
+com divisão de área entre os dois.
+
+O adubo em si entra por tratamento, na aba Insumos — MAP, KCL e ureia já estão
+no cadastro.
+
+
 ## 2.11.0 — 2026-09-16 · As funções do plano passam a ser os cargos do ERP
 
 O cadastro de 14 funções inventadas (F01 a F14) sai. Entram os **31 cargos

@@ -78,7 +78,7 @@ export const INDIRETOS = [
 ];
 
 export const FUNCAO_POR_ATIVIDADE = {
-  "Aplicação de calcário":"918","Aplicação de gesso":"918","Colheita safra 2026": "919",
+  "Adubação de fundação":"918","Aplicação de calcário":"918","Aplicação de gesso":"918","Colheita safra 2026": "919",
   "Colheita muda": "919",
   "Dessecação": "918",
   "1ª Gradagem pesada": "918",
