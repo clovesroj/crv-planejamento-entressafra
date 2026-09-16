@@ -1,5 +1,6 @@
 import { ETAPAS_ORD, arrRat } from '../calculo/arrendamento.js';
 import { CFG } from '../dados/cfg.js';
+import { SEP_MOD, crmDe, crmEspDe } from '../calculo/crm.js';
 import { INSUMO, P } from '../nucleo/estado.js';
 import { $, brl, fmt, num } from '../nucleo/formato.js';
 import { th } from './componentes.js';
@@ -29,6 +30,16 @@ function validar(R){
   add(P.diasTrab>0&&P.diasTrab<=7,"Dias trabalhados por colaborador em 1–7",fmt(P.diasTrab));
   add(R.MP.fatorEscala>=1,"Fator de rodízio coerente com a escala",R.MP.fatorEscala.toFixed(2));
   add(CFG.funcoes.every(f=>f.sal>0),"Todas as funções com salário preenchido","");
+  // A base traz 81 especialidades; o cadastro de CRM só cobria os arquétipos do
+  // planejamento. O que ficou sem taxa entra no custo como zero — precisa aparecer.
+  const espSemTaxa = (CFG.frota_base||[]).filter(e=>
+    e.prop+e.terc>0 && crmEspDe(e.esp).total===0 &&
+    !e.mods.some(m=>crmDe(e.esp+SEP_MOD+m.m).total>0) &&
+    !Object.keys(CFG.crm).some(k=>CFG.crm[k].esp===e.esp));
+  add(espSemTaxa.length===0,"Especialidades da frota com custo de manutenção preenchido",
+      espSemTaxa.length ? espSemTaxa.length+" de "+(CFG.frota_base||[]).length+" sem taxa: "+
+        espSemTaxa.slice(0,4).map(e=>e.esp).join(", ")+(espSemTaxa.length>4?"…":"")
+      : "todas as "+(CFG.frota_base||[]).length+" preenchidas");
   add(P.rendBomba>0&&P.rendBomba<=100,"Rendimento do conjunto motobomba em 0–100%",fmt(P.rendBomba)+"%");
   add(R.IR.linhas.every(l=>l.Ea>0&&l.Ea<=1),"Eficiência de aplicação de irrigação em 0–100%","");
   add(R.IR.linhas.filter(l=>l.potCV>0&&l.nConj<1).length===0,"Conjunto motobomba dimensionado","");

@@ -24,14 +24,14 @@ direto. Veja [Arquitetura](#arquitetura).
 | Transporte | Transbordo e transporte de cana por raio, ciclo e capacidade |
 | Apoio | Equipamentos de apoio por quantidade e horas |
 | Combustível | Volume de diesel mês a mês, preço projetado por mês, consumo por etapa e equipamento |
-| Manutenção de Frota | CRM por equipamento (R$/h máquinas, R$/km veículos) |
+| Manutenção de Frota | CRM por especialidade e modelo, com filtro próprio/terceiro |
 | Transporte de Pessoal | Rotas, diárias de ônibus e quilometragem |
 | Irrigação | Dimensionamento hidráulico e energia por modalidade |
 | Insumos | Cadastro, composição de tratamentos e volume demandado |
 | Arrendamentos | Fazendas e grupos arrendados, forma de pagamento, custo mensal e rateio por etapa (referência PECEGE/USP) |
 | Custos | Custo por etapa, por natureza e mensal |
 | Plano de Contas | Custo projetado por conta contábil |
-| Resumo de Frota | Necessidade consolidada de veículos e equipamentos |
+| Resumo de Frota | Necessidade do plano confrontada com a frota cadastrada |
 | Resumo de Pessoas | Efetivo por departamento e função, mobilização e custo de mão de obra mês a mês |
 | Painel | Indicadores, custo de colheita R$/t, grandes contas por mês |
 | Validação | Checagens automáticas de consistência |
@@ -106,6 +106,40 @@ Quem importa `P` enxerga a troca — são bindings vivos. Esquecer o setter dá
 | Campo novo que precisa ser salvo | `nucleo/estado.js` + `io/persistencia.js` (`estado()` e `aplicar()`) |
 | Rota da API, autenticação | `server/api.js` |
 | Esquema do banco | `server/store/schema.sql` |
+
+## Base de frota
+
+A frota real vem do cadastro do ERP e mora em
+[`public/js/dados/frota-base.js`](public/js/dados/frota-base.js): **1.220 unidades
+ativas**, 980 próprias e 240 de terceiros, em **408 modelos** e **81 especialidades**.
+A taxonomia é a do próprio cadastro, em três níveis:
+
+```
+agrupamento (8)  >  grupo (18)  >  especialidade (81)  >  modelo (408)
+OPERACIONAIS     >  TRATOR      >  TRATOR - TRANSBORDO >  JOHN DEERE 6110J
+```
+
+Especialidade é a unidade de trabalho: é nela que se lança o custo de manutenção, e todo
+modelo dela herda a taxa. Um modelo só precisa de número próprio quando foge da média —
+aí o valor dele prevalece. As abas Manutenção de Frota e Resumo de Frota filtram por
+**próprios / terceiros**, e o relatório sai agrupado pela mesma taxonomia, com duas abas
+novas: *Frota cadastrada* (necessidade x existente) e *Modelos da frota*.
+
+O mesmo modelo pode estar cadastrado em mais de uma especialidade — o mesmo trator serve
+de agrícola e de transbordo. Por isso a identidade de um item do registro é o par
+especialidade+modelo, não o nome do modelo.
+
+Os arquétipos do planejamento (`Trator 4x4 230 CV`, `Colhedora CH570`…) continuam
+existindo e com as taxas que já tinham: o campo `esp` em
+[`dados/crm.js`](public/js/dados/crm.js) só os liga à especialidade correspondente, para
+agrupar. **Nenhum número de custo mudou com a carga da base.**
+
+### Taxas ainda não levantadas
+
+Das 81 especialidades, 31 já têm taxa pelos equipamentos que estavam cadastrados; as
+outras **50 estão zeradas** e aparecem na aba Validação. Entram no custo como zero — o
+orçamento não é inflado por estimativa, mas também não está completo enquanto não forem
+preenchidas.
 
 ## Persistência
 

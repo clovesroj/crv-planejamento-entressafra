@@ -27,6 +27,8 @@ let CRM = {};            // item -> {pecas,terc,consumo,lubrif} ajustados
 let MATX = null;         // materiais de manutenção (lista editável)
 let INSX = null;         // cadastro de insumos (lista editável: incluir/alterar/remover)
 let FROTA = {};          // item -> {qtd, hmes} frota prevista para manutenção
+let CRM_ESP = {};        // especialidade -> taxa padrão herdada pelos modelos dela
+let FROTA_ORIG = "todos"; // filtro próprio/terceiro das abas de frota (não é salvo: é visão, não dado)
 let APOIO_FIXO = {};     // nome do item -> qtd ajustada (frota de apoio de utilização fixa)
 let TRAT_NOME = {};      // cod do tratamento -> nome descritivo editável
 let DIESEL_MES = {};     // índice do mês -> preço projetado do diesel (R$/L); vazio = preço base
@@ -49,7 +51,7 @@ let TRAT_SEL = null;
 
 export {
   P, PLANO, DIM, INSUMO, ESPOR, TRATC, NIV, GRAT, APOIO, TERC_TAR, CRM, MATX,
-  INSX, FROTA, APOIO_FIXO, TRAT_NOME, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
+  INSX, FROTA, CRM_ESP, FROTA_ORIG, APOIO_FIXO, TRAT_NOME, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
   TPESS, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL,
 };
 
@@ -67,6 +69,8 @@ export const setCRM        = v => { CRM = v; };
 export const setMATX       = v => { MATX = v; };
 export const setINSX       = v => { INSX = v; };
 export const setFROTA      = v => { FROTA = v; };
+export const setCRM_ESP    = v => { CRM_ESP = v; };
+export const setFROTA_ORIG = v => { FROTA_ORIG = v; };
 export const setAPOIO_FIXO = v => { APOIO_FIXO = v; };
 export const setTRAT_NOME  = v => { TRAT_NOME = v; };
 export const setDIESEL_MES = v => { DIESEL_MES = v; };

@@ -243,6 +243,11 @@
   <div class="tblwrap"><table id="t_dim"></table></div>
   <div class="panel" style="margin-top:16px"><h3>Frota por tipo de máquina</h3>
     <div class="tblwrap"><table id="t_frota"></table></div></div>
+  <div class="panel"><h3>Necessidade do plano x frota cadastrada, por especialidade</h3>
+    <div class="tblwrap"><table id="t_rf_base"></table></div>
+    <div class="hint" style="margin-top:9px">"Cadastrada" vem da base de frota do ERP: unidades ativas, separadas
+    entre próprias e de terceiros. Folga negativa indica especialidade em que o plano pede mais equipamento do
+    que a empresa tem hoje.</div></div>
   <div class="panel"><h3>Frota de apoio (utilização fixa)</h3>
     <div class="tblwrap"><table id="t_apoio"></table></div></div>
 </section>
@@ -292,11 +297,18 @@
   <p class="lead">Custos de reparos e manutenção por modelo, estratificados em peças, serviços de terceiros,
   materiais de uso e consumo e lubrificantes. O valor por hora alimenta todas as atividades que usam o equipamento.</p>
   <div class="grid g4" id="k_crm" style="margin-bottom:16px"></div>
-  <div class="panel"><h3>Parâmetros por equipamento (R$/hora)</h3>
+  <div class="panel"><h3>Parâmetros por especialidade e modelo</h3>
     <div class="row" style="margin-bottom:12px">
-      <div style="min-width:220px"><label>Categoria</label><select id="sel_cat"></select></div>
-      <div style="align-self:flex-end"><button class="btn" id="btn_crm_reset">Restaurar padrões da categoria</button></div>
+      <div style="min-width:240px"><label>Agrupamento</label><select id="sel_cat"></select></div>
+      <div style="min-width:180px"><label>Origem</label><select id="sel_orig">
+        <option value="todos">Próprios e terceiros</option>
+        <option value="proprio">Somente próprios</option>
+        <option value="terceiro">Somente terceiros</option></select></div>
+      <div style="align-self:flex-end"><button class="btn" id="btn_crm_reset">Restaurar padrões do agrupamento</button></div>
     </div>
+    <div class="hint" style="margin-bottom:10px">A taxa lançada na linha da <b>especialidade</b> vale para todos
+    os modelos dela. Um modelo só precisa de número próprio quando foge da média da especialidade — nesse caso o
+    valor dele prevalece. A contagem de unidades vem da base cadastral da frota.</div>
     <div class="tblwrap"><table id="t_crm"></table></div></div>
   <div class="panel"><h3>CRM projetado por componente</h3>
     <div class="tblwrap"><table id="t_crm_comp"></table></div></div>

@@ -18,6 +18,7 @@
  *   transporte.js          parametros de referencia do transporte de cana
  *   modos.js               modos de aplicacao e tarifa de terceirizacao
  *   crm.js                 custos de reparo e manutencao por item
+ *   frota-base.js          frota real cadastrada, por especialidade e modelo
  *   transporte-pessoal.js  rotas de onibus
  *
  * CFG e o cadastro de referencia; o que o usuario ajusta vive em
@@ -36,6 +37,7 @@ import { INSUMOS, TRAT_DET } from './insumos.js';
 import { TRANSP_PAR } from './transporte.js';
 import { MODOS, TERC_TAR_PAD } from './modos.js';
 import { CRM_ITENS, CRM_CATS } from './crm.js';
+import { FROTA_BASE } from './frota-base.js';
 import { TPESS_ROTAS } from './transporte-pessoal.js';
 
 export const CFG = {
@@ -61,5 +63,6 @@ export const CFG = {
   terc_tar_pad: TERC_TAR_PAD,
   crm:          CRM_ITENS,
   crm_cats:     CRM_CATS,
+  frota_base:   FROTA_BASE,
   tpess:        TPESS_ROTAS,
 };

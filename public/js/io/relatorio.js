@@ -1,3 +1,4 @@
+import { FROTA_ESP, agDeLinha, contaOrigem, rotuloItem } from '../calculo/crm.js';
 import { calcularCompleto } from '../app/ciclo.js';
 import { ARR_FORMAS, ETAPAS_ORD } from '../calculo/arrendamento.js';
 import { FORN_MODALIDADES } from '../dados/fornecedores.js';
@@ -89,8 +90,23 @@ function relatorioSecoes(R, nivel){
   add("Fluxo mensal MDO","Fluxo mensal — pessoas e custo de mão de obra",["Mês","Pessoas","Custo MDO","Acumulado"],
     (()=>{ let ac=0; return MESES.map((m,i)=>{ ac+=PS.custoMes[i]; return [m, fmt(PS.qtdMes[i]), brl(PS.custoMes[i]), brl(ac)]; }); })());
 
-  add("Frota","Frota — necessidade projetada",["Categoria","Item","Qtd necessária"],
-    [...R.crmFrotaL].filter(l=>l.qtd>0).sort((a,b)=>b.qtd-a.qtd).map(l=>[l.cat,l.item,fmt(l.qtd)]));
+  add("Frota","Frota — necessidade projetada",
+    ["Agrupamento","Especialidade","Item","Qtd necessária","Cadastrada"],
+    [...R.crmFrotaL].filter(l=>l.qtd>0).sort((a,b)=>b.qtd-a.qtd)
+      .map(l=>[agDeLinha(l), l.esp||"—", rotuloItem(l.item), fmt(l.qtd),
+               fmt(contaOrigem(l.baseProp,l.baseTerc))]));
+
+  // O plano dimensiona arquétipos; a base diz o que existe. O confronto por
+  // especialidade é o que mostra onde falta ou sobra equipamento.
+  const necEsp = {};
+  R.crmFrotaL.forEach(l=>{ if(l.esp && l.qtd>0) necEsp[l.esp]=(necEsp[l.esp]||0)+l.qtd; });
+  add("Frota cadastrada","Frota cadastrada x necessidade, por especialidade",
+    ["Agrupamento","Grupo","Especialidade","Modelos","Próprios","Terceiros","Cadastrada","Exigida","Folga"],
+    (CFG.frota_base||[])
+      .slice().sort((x,y)=> x.ag.localeCompare(y.ag) || x.grp.localeCompare(y.grp) || x.esp.localeCompare(y.esp))
+      .map(e=>{ const cad=contaOrigem(e.prop,e.terc), n=necEsp[e.esp]||0;
+        return [e.ag,e.grp,e.esp,fmt(e.mods.length),fmt(e.prop),fmt(e.terc),fmt(cad),
+                n?fmt(n):"—", n?fmt(cad-n):"—"]; }));
 
   if(nivel==="detalhado"){
     add("Plano Operacional","Plano Operacional",["Cod","Atividade","Un",...MESES,"Total"],
@@ -101,9 +117,18 @@ function relatorioSecoes(R, nivel){
         return [f.cod,f.nome,brl(f.sal),brl(c.mensal),brl(c.hora,2)];}));
 
     add("CRM Manutenção","Manutenção de Frota — CRM",
-      ["Categoria","Item","Frota prevista","Uso p/ CRM","CRM total"],
-      [...R.crmFrotaL].filter(l=>l.qtd>0||l.hTotPlano>0).map(l=>
-        [l.cat,l.item,fmt(l.qtd),fmt(l.baseUso)+" "+l.unidade,brl(l.total)]));
+      ["Agrupamento","Especialidade","Item","R$/un","Frota prevista","Uso p/ CRM","CRM total"],
+      [...R.crmFrotaL].filter(l=>l.qtd>0||l.hTotPlano>0)
+        .sort((x,y)=> agDeLinha(x).localeCompare(agDeLinha(y)) || (x.esp||"").localeCompare(y.esp||"") || y.total-x.total)
+        .map(l=>[agDeLinha(l), l.esp||"—", rotuloItem(l.item), brl(l.rh,2)+"/"+l.unidade,
+                 fmt(l.qtd), fmt(l.baseUso)+" "+l.unidade, brl(l.total)]));
+
+    add("Modelos da frota","Modelos cadastrados por especialidade",
+      ["Agrupamento","Grupo","Especialidade","Modelo","Marca","Unidades","Próprias","Terceiros"],
+      (CFG.frota_base||[])
+        .slice().sort((x,y)=> x.ag.localeCompare(y.ag) || x.grp.localeCompare(y.grp) || x.esp.localeCompare(y.esp))
+        .flatMap(e=> e.mods.map(m=>
+          [e.ag,e.grp,e.esp,m.m,m.marca||"—",fmt(m.n),fmt(m.np),fmt(m.n-m.np)])));
 
     add("Insumos","Insumos — Cadastro",["Produto","Un","Volume dem.","Estoque","Preço corrigido","Necessidade"],
       insLista().map(i=>{const ov=INSUMO[i.prod]||{};

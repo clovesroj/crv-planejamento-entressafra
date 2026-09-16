@@ -95,6 +95,12 @@ const h = s => { let x=5381; for(let i=0;i<s.length;i++) x=((x*33)^s.charCodeAt(
 | Fixture de produção (2026-09-15) | `8af884c9`, 94.322 chars | 37.921.587,66733203 |
 | Plano vazio (só `PADRAO`) | — | 29.260.997,973158002 |
 
+> **A linha "plano vazio" acima está defasada.** Ela foi capturada antes dos commits
+> de arrendamentos, fornecedores, combustível e segmentação safra/entressafra, que
+> mudaram o total legitimamente. Remedido na árvore limpa em `050a344`:
+> **38.897.437,297543995**, com `crmTotal` 402.033,5999999999. A linha da fixture de
+> produção não foi reconferida — exige a fixture, que não está no repositório.
+
 Impressão digital do `innerHTML` das 19 seções após `render()`, com a mesma
 fixture:
 

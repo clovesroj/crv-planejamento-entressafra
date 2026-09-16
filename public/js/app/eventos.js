@@ -1,11 +1,12 @@
 import { ETAPAS_ORD } from '../calculo/arrendamento.js';
-import { crmDe } from '../calculo/crm.js';
+import { AG_SEM_FROTA, FROTA_AG, FROTA_ESP, SEP_MOD, crmDe, espDe } from '../calculo/crm.js';
 import { composicao, destravar, tratCodigos } from '../calculo/insumos.js';
 import { destravarNiv } from '../calculo/mao-de-obra.js';
 import { CFG } from '../dados/cfg.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM } from '../nucleo/calendario.js';
-import { APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, NIV, P, PLANO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, apoioLista, arrLista, fornLista, insLista, matLista, tpessLista } from '../nucleo/estado.js';
+import { APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, NIV, P, PLANO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, apoioLista, arrLista, fornLista, insLista, matLista, tpessLista } from '../nucleo/estado.js';
+import { setFROTA_ORIG } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { aplicarFiltroPlano } from '../ui/plano.js';
 import { lerPremissas } from '../ui/premissas.js';
@@ -33,6 +34,8 @@ document.addEventListener("input",e=>{
   if(t.dataset.tt!==undefined){ TERC_TAR[t.dataset.tt]=num(t.value); salvar(); leve(); return; }
   if(t.dataset.crm!==undefined){ const m=t.dataset.crm;
     CRM[m]=CRM[m]||{}; CRM[m][t.dataset.k]=num(t.value); salvar(); leve(); return; }
+  if(t.dataset.crmesp!==undefined){ const e=t.dataset.crmesp;
+    CRM_ESP[e]=CRM_ESP[e]||{}; CRM_ESP[e][t.dataset.k]=num(t.value); salvar(); leve(); return; }
   if(t.dataset.fq!==undefined){ const m=t.dataset.fq;
     FROTA[m]=FROTA[m]||{}; FROTA[m].qtd=num(t.value); salvar(); leve(); return; }
   if(t.dataset.fh!==undefined){ const m=t.dataset.fh;
@@ -97,6 +100,7 @@ document.addEventListener("change",e=>{
   if(t.id==="sel_trat"){ setTRAT_SEL(t.value); render(); return; }
   if(t.id==="sel_fun"){ setFUN_SEL(t.value); render(); return; }
   if(t.id==="sel_cat"){ setCAT_SEL(t.value); render(); return; }
+  if(t.id==="sel_orig"){ setFROTA_ORIG(t.value); render(); return; }
   if(t.dataset.fc!==undefined){ const c=t.dataset.fc;
     PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""};
     PLANO[c].fcod=t.value; PLANO[c].fniv=0; salvar(); render(); return; }
@@ -167,10 +171,18 @@ $("#btn_mat_add").onclick=()=>{
   salvar(); render();
 };
 $("#btn_crm_reset").onclick=()=>{
-  const itens = Object.keys(CFG.crm).filter(m=>crmDe(m).cat===CAT_SEL);
-  if(!itens.some(m=>CRM[m])){ alert("Esta categoria já está com os valores padrão."); return; }
-  if(!confirm("Restaurar os valores padrão de "+CAT_SEL+"?")) return;
-  itens.forEach(m=>delete CRM[m]); salvar(true); render();
+  const esps = FROTA_AG[CAT_SEL] || [];
+  // itens do agrupamento: modelos da base mais os arquétipos cuja especialidade é dele
+  const itens = [...new Set([
+    ...esps.flatMap(e=>(FROTA_ESP[e].mods||[]).map(m=>e+SEP_MOD+m.m)),
+    ...Object.keys(CFG.crm).filter(m=>{ const e=espDe(m);
+      return CAT_SEL===AG_SEM_FROTA ? !e : (e && FROTA_ESP[e] && FROTA_ESP[e].ag===CAT_SEL); })
+  ])];
+  const sujos = itens.filter(m=>CRM[m]).length + esps.filter(e=>CRM_ESP[e]).length;
+  if(!sujos){ alert("Este agrupamento já está com os valores padrão."); return; }
+  if(!confirm("Restaurar os valores padrão de "+CAT_SEL+"? Isso apaga as taxas por especialidade e por modelo deste agrupamento.")) return;
+  itens.forEach(m=>delete CRM[m]); esps.forEach(e=>delete CRM_ESP[e]);
+  salvar(true); render();
 };
 
 $("#btn_ap_add").onclick=()=>{
