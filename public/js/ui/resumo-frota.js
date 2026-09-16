@@ -1,5 +1,5 @@
 import { CFG } from '../dados/cfg.js';
-import { FROTA_ESP, contaOrigem, destinoDe, rotuloItem } from '../calculo/crm.js';
+import { FROTA_ESP, contaOrigem, destinoDe, opcoesDestino, rotuloItem } from '../calculo/crm.js';
 import { FROTA_ABERTO, FROTA_ORIG } from '../nucleo/estado.js';
 import { $, fmt, num, pct } from '../nucleo/formato.js';
 import { kpi, th } from './componentes.js';
@@ -51,12 +51,13 @@ function pintarResumoFrota(R){
     .sort((a,b)=> b.ano-a.ano || a.cod.localeCompare(b.cod));
 
   $("#t_rf_base").innerHTML = th([["Agrupamento / especialidade"],["Modelos",1],["Próprios",1],["Terceiros",1],
-      ["Cadastrada",1],["Vai rodar",1],["Vai reformar",1],["Exigida pelo plano",1],["Folga",1]])+"<tbody>"+
+      ["Cadastrada",1],["Vai rodar",1],["Vai reformar",1],["Stand by",1],["Exigida pelo plano",1],["Folga",1]])+"<tbody>"+
     espsBase.map(e=>{
       const cab = e.ag!==agAtual ? (agAtual=e.ag, `<tr style="background:var(--bg)"><td class="tot" colspan="9">${e.ag}</td></tr>`) : "";
       const cad = contaOrigem(e.prop, e.terc), n = nec[e.esp]||0, folga = cad-n;
       const un = unidadesDaEsp(e);
       const emRef = un.filter(u=>destinoDe(u.cod)==="reforma").length;
+      const emSb  = un.filter(u=>destinoDe(u.cod)==="standby").length;
       const aberto = FROTA_ABERTO["esp:"+e.esp];
       const linha = cab+`<tr><td style="padding-left:20px">${
           un.length?`<button class="btn xs" data-abrefrota="esp:${e.esp}" style="margin-right:6px;padding:1px 6px">${aberto?"−":"+"}</button>`:""
@@ -64,12 +65,13 @@ function pintarResumoFrota(R){
         <td class="num calc">${e.mods.length}</td>
         <td class="num calc">${e.prop||"—"}</td><td class="num calc">${e.terc||"—"}</td>
         <td class="num tot">${cad||"—"}</td>
-        <td class="num calc">${un.length-emRef||"—"}</td>
+        <td class="num calc">${un.length-emRef-emSb||"—"}</td>
         <td class="num ${emRef?"tot":"calc"}" style="${emRef?"color:var(--amber)":""}">${emRef||"—"}</td>
+        <td class="num ${emSb?"tot":"calc"}" style="${emSb?"color:var(--grey)":""}">${emSb||"—"}</td>
         <td class="num tot">${n?fmt(n):"—"}</td>
         <td class="num ${folga<0?"tot":"calc"}" style="${folga<0?"color:var(--red)":""}">${n?fmt(folga):"—"}</td></tr>`;
       if(!aberto) return linha;
-      return linha+`<tr><td colspan="9" style="padding:0"><div style="padding:6px 0 10px 46px">
+      return linha+`<tr><td colspan="10" style="padding:0"><div style="padding:6px 0 10px 46px">
         <table style="width:auto;min-width:520px"><thead><tr>
           <th>Frota</th><th>Modelo</th><th class="num">Ano</th><th class="num">Idade</th>
           <th>Origem</th><th>Destino na safra</th></tr></thead><tbody>${
@@ -78,9 +80,7 @@ function pintarResumoFrota(R){
               <td class="num ${i!=null&&i>=15?"tot":"calc"}" style="${i!=null&&i>=15?"color:var(--amber)":""}">${u.ano||"—"}</td>
               <td class="num calc">${i!=null?i+" anos":"—"}</td>
               <td class="calc">${u.prop?"Própria":"Terceiro"}</td>
-              <td><select data-undest="${u.cod}">
-                <option value="roda"${d==="roda"?" selected":""}>Vai rodar</option>
-                <option value="reforma"${d==="reforma"?" selected":""}>Vai reformar</option></select></td></tr>`;}).join("")
+              <td><select data-undest="${u.cod}">${opcoesDestino(d)}</select></td></tr>`;}).join("")
         }</tbody></table>
         <div class="hint" style="margin-top:6px">O destino vale para as duas telas: o que for marcado aqui
         aparece igual na Manutenção de Frota. Quem vai reformar sai da conta do CRM e entra no
@@ -91,8 +91,9 @@ function pintarResumoFrota(R){
      <td class="num tot">${fmt(espsBase.reduce((s,e)=>s+e.prop,0))}</td>
      <td class="num tot">${fmt(espsBase.reduce((s,e)=>s+e.terc,0))}</td>
      <td class="num tot">${fmt(espsBase.reduce((s,e)=>s+contaOrigem(e.prop,e.terc),0))}</td>
-     <td class="num tot">${fmt(espsBase.reduce((s,e)=>s+unidadesDaEsp(e).filter(u=>destinoDe(u.cod)!=="reforma").length,0))}</td>
+     <td class="num tot">${fmt(espsBase.reduce((s,e)=>s+unidadesDaEsp(e).filter(u=>destinoDe(u.cod)==="roda").length,0))}</td>
      <td class="num tot">${fmt(espsBase.reduce((s,e)=>s+unidadesDaEsp(e).filter(u=>destinoDe(u.cod)==="reforma").length,0))}</td>
+     <td class="num tot">${fmt(espsBase.reduce((s,e)=>s+unidadesDaEsp(e).filter(u=>destinoDe(u.cod)==="standby").length,0))}</td>
      <td class="num tot">${fmt(Object.values(nec).reduce((a,b)=>a+b,0))}</td><td></td></tr></tbody>`;
 
   $("#t_rf_apoio").innerHTML = th([["Veículo / Máquina"],["Utilização",1],["Disponib.",1],["Necessidade",1],["Atividade"]])+"<tbody>"+

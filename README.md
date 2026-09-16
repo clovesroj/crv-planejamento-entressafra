@@ -169,10 +169,15 @@ Cada equipamento tem um destino, escolhido na mesma linha:
 |---|---|
 | **Vai rodar** | Carrega CRM de safra e entra na média do modelo |
 | **Vai reformar** | Sai da conta do CRM e entra no provisionamento da aba Reforma de Frota |
+| **Stand by** | Não gera custo nenhum — nem CRM, nem reforma |
 
-São excludentes: o equipamento que vai à bancada não roda na operação, e cobrar CRM de safra
-dele seria contar o mesmo custo duas vezes. O filtro **Destino na safra** isola um ou outro —
-é assim que se abre "somente o que vai rodar" para orçar a manutenção da safra.
+São excludentes: só o equipamento marcado como *vai rodar* gera CRM. O que está na bancada
+entra na reforma, e o que está parado não entra em lugar nenhum. Cobrar manutenção de safra
+de um equipamento em reforma contaria o mesmo custo duas vezes; de um parado, contaria custo
+que não existe. Nos dois casos os campos de CRM ficam travados na linha.
+
+O filtro **Destino na safra** isola um dos três — é assim que se abre "somente o que vai
+rodar" para orçar a manutenção da safra.
 
 O destino pode ser marcado em **três telas**, e é o mesmo dado nas três:
 
@@ -180,7 +185,7 @@ O destino pode ser marcado em **três telas**, e é o mesmo dado nas três:
 |---|---|
 | Dimensionamento | *Frota por tipo de máquina* — abre a frota real da máquina no **+** |
 | Manutenção de Frota | Ao abrir o modelo, junto dos campos de CRM |
-| Resumo de Frota | Ao abrir a especialidade, com colunas de quantos rodam e quantos reformam |
+| Resumo de Frota | Ao abrir a especialidade, com colunas de quantos rodam, reformam e estão parados |
 
 Estão no Dimensionamento porque é ali que se olha quanta frota o plano exige — é onde a
 pergunta "esse aqui vai aguentar a safra ou vai para a bancada?" aparece.

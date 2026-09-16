@@ -1,5 +1,5 @@
 import { AG_SEM_FROTA, CRM_COMP, CRM_LABEL, FROTA_ESP, SEP_MOD, agDeLinha, agsCRM,
-         MAQ_CAMPOS, chaveDoModelo, contaOrigem, crmDe, crmEspDe, crmUnDe, destinoDe,
+         MAQ_CAMPOS, chaveDoModelo, contaOrigem, crmDe, crmEspDe, crmUnDe, destinoDe, opcoesDestino,
          maqDe, modDe, rotuloItem, unidadesDoModelo } from '../calculo/crm.js';
 import { CFG } from '../dados/cfg.js';
 import { CAT_SEL, CRM, CRM_ESP, FROTA, FROTA_ABERTO, FROTA_DEST, FROTA_ORIG, FROTA_UN as FROTA_UN_REF, MAQ } from '../nucleo/estado.js';
@@ -78,21 +78,19 @@ function pintarCRM(R){
           <tbody>${un.map(([cod,ano,prop])=>{
             const i = ano ? anoAtual-ano : null;
             const c = crmUnDe(cod), dest = destinoDe(cod);
-            const emReforma = dest==="reforma";
-            return `<tr${emReforma?' style="opacity:.62"':''}>
+            const semCusto = dest!=="roda";   // reforma ou stand by: nao carrega CRM
+            return `<tr${semCusto?' style="opacity:.62"':''}>
               <td>${cod||"—"}</td>
               <td class="num ${i!=null&&i>=15?"tot":"calc"}" style="${i!=null&&i>=15?"color:var(--amber)":""}">${ano||"—"}</td>
               <td class="num calc">${i!=null?i+" anos":"—"}</td>
               <td class="calc">${prop?"Própria":"Terceiro"}</td>
-              <td><select data-undest="${cod}">
-                <option value="roda"${dest==="roda"?" selected":""}>Vai rodar</option>
-                <option value="reforma"${emReforma?" selected":""}>Vai reformar</option></select></td>
-              ${CRM_COMP.map(k=>`<td class="num"><input data-uncrm="${cod}" data-k="${k}" value="${(unRaw(cod)[k]!=null?unRaw(cod)[k]:"")}" placeholder="—" inputmode="decimal"${emReforma?" disabled":""}></td>`).join("")}
+              <td><select data-undest="${cod}">${opcoesDestino(dest)}</select></td>
+              ${CRM_COMP.map(k=>`<td class="num"><input data-uncrm="${cod}" data-k="${k}" value="${(unRaw(cod)[k]!=null?unRaw(cod)[k]:"")}" placeholder="—" inputmode="decimal"${semCusto?" disabled":""}></td>`).join("")}
               <td class="num ${c.preenchida?"tot":"calc"}">${c.preenchida?brl(c.total,2):"—"}</td></tr>`;}).join("")}
           </tbody>
         </table>
-        <div class="hint" style="margin-top:6px">Unidade marcada para reforma não carrega CRM de safra —
-        ela entra no provisionamento da aba Reforma de Frota.</div>
+        <div class="hint" style="margin-top:6px">Só quem vai rodar carrega CRM de safra. Quem vai reformar
+        entra no provisionamento da aba Reforma de Frota; quem fica em stand by não gera custo nenhum.</div>
       </div></td></tr>`;
   };
 

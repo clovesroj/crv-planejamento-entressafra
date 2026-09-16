@@ -44,7 +44,18 @@ function chaveDoModelo(item){
    O equipamento fisico e a menor unidade do cadastro. Cada um tem um destino na
    safra: roda na operacao, e ai carrega custo de manutencao, ou vai para
    reforma, e ai entra no provisionamento de reforma em vez do CRM. */
+// Destino de um equipamento na safra. Sao exclusivos entre si, e so "roda"
+// gera CRM: o que esta na bancada ou parado nao consome manutencao de safra.
+const DESTINOS = [
+  {v:"roda",    rotulo:"Vai rodar",    curto:"Rodando",    custo:"CRM de safra"},
+  {v:"reforma", rotulo:"Vai reformar", curto:"Reforma",    custo:"Provisionamento de reforma"},
+  {v:"standby", rotulo:"Stand by",     curto:"Stand by",   custo:"Sem custo"},
+];
 const DESTINO_PADRAO = "roda";
+// <option> dos tres lugares que editam destino, para nao divergirem
+function opcoesDestino(sel){
+  return DESTINOS.map(d=>`<option value="${d.v}"${d.v===sel?" selected":""}>${d.rotulo}</option>`).join("");
+}
 function unDe(cod){ return FROTA_UN[cod] || {}; }
 function destinoDe(cod){ return unDe(cod).st || DESTINO_PADRAO; }
 // CRM proprio da unidade, quando alguem digitou algum componente nela
@@ -247,5 +258,6 @@ function crmFrota(L, AE){
 
 
 export { AG_SEM_FROTA, CAT_VEICULO, MAQ_CAMPOS, baseDe, maqDe, CRM_COMP, CRM_LABEL, FROTA_AG, FROTA_AGS, FROTA_ESP, INFO_MODELO, SEP_MOD,
-         agDeLinha, agsCRM, chaveDoModelo, contaOrigem, crmDasUnidades, crmDe, crmUnDe, destinoDe, crmDetalhe, crmEspDe, crmFrota, crmHora, espDe, frotaPorItem,
+         DESTINOS, agDeLinha, agsCRM, chaveDoModelo, contaOrigem, crmDasUnidades, crmDe, crmUnDe,
+         destinoDe, opcoesDestino, crmDetalhe, crmEspDe, crmFrota, crmHora, espDe, frotaPorItem,
          horasPorItem, modDe, modeloNaBase, rotuloItem, unidadesDoModelo, velMediaVeic };

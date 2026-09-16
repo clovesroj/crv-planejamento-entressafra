@@ -1,4 +1,4 @@
-import { FROTA_ESP, SEP_MOD, chaveDoModelo, destinoDe, espDe, modDe,
+import { FROTA_ESP, SEP_MOD, chaveDoModelo, destinoDe, espDe, modDe, opcoesDestino,
          unidadesDoModelo } from '../calculo/crm.js';
 import { FROTA_ABERTO } from '../nucleo/estado.js';
 import { $, brl, fmt, pct } from '../nucleo/formato.js';
@@ -53,10 +53,11 @@ function pintarDim(R){
       const un = chave ? unidadesDoModelo(chave, true) : [];
       const k = "dim:"+m, aberto = FROTA_ABERTO[k];
       const emRef = un.filter(u=>destinoDe(u[0])==="reforma").length;
+      const emSb  = un.filter(u=>destinoDe(u[0])==="standby").length;
       const linha = `<tr><td>${
           un.length?`<button class="btn xs" data-abrefrota="${k}" style="margin-right:6px;padding:1px 6px">${aberto?"−":"+"}</button>`:""
         }${m}${un.length?` <span class="calc" style="font-weight:400">· ${un.length} na frota${
-          emRef?`, ${emRef} em reforma`:""}</span>`:""}</td>
+          emRef?`, ${emRef} em reforma`:""}${emSb?`, ${emSb} em stand by`:""}</span>`:""}</td>
         <td class="num calc">${d.n}</td><td class="num calc">${fmt(d.h)}</td>
         <td class="num tot">${Math.ceil(d.f)}</td><td class="num calc">${brl(d.d)}</td>
         <td class="num calc">${brl(d.m)}</td></tr>`;
@@ -70,13 +71,11 @@ function pintarDim(R){
               <td class="num ${i!=null&&i>=15?"tot":"calc"}" style="${i!=null&&i>=15?"color:var(--amber)":""}">${ano||"—"}</td>
               <td class="num calc">${i!=null?i+" anos":"—"}</td>
               <td class="calc">${prop?"Própria":"Terceiro"}</td>
-              <td><select data-undest="${cod}">
-                <option value="roda"${dst==="roda"?" selected":""}>Vai rodar</option>
-                <option value="reforma"${dst==="reforma"?" selected":""}>Vai reformar</option></select></td></tr>`;}).join("")
+              <td><select data-undest="${cod}">${opcoesDestino(dst)}</select></td></tr>`;}).join("")
         }</tbody></table>
         <div class="hint" style="margin-top:6px">Frota cadastrada como
-        <b>${espDe(m)||"—"} › ${modDe(m)||"—"}</b>. Marcar reforma tira o equipamento da conta do CRM e
-        joga no provisionamento da aba Reforma de Frota.</div>
+        <b>${espDe(m)||"—"} › ${modDe(m)||"—"}</b>. Só quem vai rodar carrega CRM: reforma vai para o
+        provisionamento da aba Reforma de Frota, e stand by não gera custo nenhum.</div>
       </div></td></tr>`;
     }).join("")+"</tbody>";
 
