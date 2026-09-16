@@ -19,6 +19,7 @@ import './ui/logo.js';           // aplica o logo e gera a versao branca
 import './io/persistencia.js';   // listeners de visibilitychange / pagehide / blur
 import './ui/navegacao.js';      // menu lateral, abas, botao de tema
 import './ui/interacao.js';      // glow interativo dos cards (kpi/hero)
+import './ui/usuarios.js';       // aba Usuarios (so-admin) e seu proprio listener
 import './app/eventos.js';       // delegacao de input / change / click
 import './app/acoes.js';         // botoes de acao (restaurar, exportar, tema)
 
@@ -26,7 +27,19 @@ import './app/acoes.js';         // botoes de acao (restaurar, exportar, tema)
 import { pintarPremissas } from './ui/premissas.js';
 import { render } from './app/ciclo.js';
 import { carregar } from './io/persistencia.js';
+import { iniciarTelaLogin, aplicarChromeUsuario } from './ui/login.js';
+import { quemSou } from './io/autenticacao.js';
+import { setUSUARIO } from './nucleo/sessao.js';
 
-/* ---------- arranque ---------- */
-pintarPremissas(); render();
-carregar().then(()=>{ pintarPremissas(); render(); });
+/* ---------- arranque ----------
+   So chama pintarPremissas/render/carregar depois de confirmar sessao — sem
+   isso o app so mostraria a tela de login por cima, mas ja teria pedido
+   /api/plano (que 401 de qualquer forma, so ruido). */
+function arrancar(){
+  pintarPremissas(); render();
+  carregar().then(()=>{ pintarPremissas(); render(); });
+}
+quemSou().then(usuario=>{
+  if(usuario){ setUSUARIO(usuario); aplicarChromeUsuario(usuario); arrancar(); }
+  else iniciarTelaLogin(arrancar);
+});

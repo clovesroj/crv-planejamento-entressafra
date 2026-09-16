@@ -78,6 +78,70 @@ function storePostgres(url) {
         [DOC_ID, JSON.stringify(doc)]));
     },
     async checar() { await garantirTabela(); await pool.query('SELECT 1'); },
+
+    // ---------- usuários ----------
+    async criarUsuario({ login, senha_hash, nome, papel }) {
+      await garantirTabela();
+      const r = await pool.query(
+        `INSERT INTO usuarios (login, senha_hash, nome, papel) VALUES ($1,$2,$3,$4)
+         RETURNING id, login, nome, papel, ativo, criado_em, ultimo_acesso`,
+        [login, senha_hash, nome || null, papel || 'usuario']);
+      return r.rows[0];
+    },
+    async listarUsuarios() {
+      await garantirTabela();
+      const r = await pool.query(
+        `SELECT id, login, nome, papel, ativo, criado_em, ultimo_acesso
+           FROM usuarios ORDER BY criado_em`);
+      return r.rows;
+    },
+    async contarUsuarios() {
+      await garantirTabela();
+      return Number((await pool.query('SELECT count(*)::int AS n FROM usuarios')).rows[0].n);
+    },
+    async usuarioPorLogin(login) {
+      await garantirTabela();
+      const r = await pool.query('SELECT * FROM usuarios WHERE login = $1', [login]);
+      return r.rows[0] || null;
+    },
+    async usuarioPorId(id) {
+      await garantirTabela();
+      const r = await pool.query('SELECT * FROM usuarios WHERE id = $1', [id]);
+      return r.rows[0] || null;
+    },
+    async definirAtivo(id, ativo) {
+      await garantirTabela();
+      await pool.query('UPDATE usuarios SET ativo = $2 WHERE id = $1', [id, ativo]);
+      // desativar mata as sessões abertas na hora, não só no próximo login
+      if (!ativo) await pool.query('DELETE FROM sessoes WHERE usuario_id = $1', [id]);
+    },
+    async redefinirSenha(id, senha_hash) {
+      await garantirTabela();
+      await pool.query('UPDATE usuarios SET senha_hash = $2 WHERE id = $1', [id, senha_hash]);
+      await pool.query('DELETE FROM sessoes WHERE usuario_id = $1', [id]); // força novo login
+    },
+    async marcarAcesso(id) {
+      await pool.query('UPDATE usuarios SET ultimo_acesso = now() WHERE id = $1', [id]);
+    },
+
+    // ---------- sessões ----------
+    async criarSessao(usuario_id, token, expira_em) {
+      await garantirTabela();
+      await pool.query('INSERT INTO sessoes (token, usuario_id, expira_em) VALUES ($1,$2,$3)',
+        [token, usuario_id, expira_em]);
+    },
+    async sessaoValida(token) {
+      await garantirTabela();
+      const r = await pool.query(
+        `SELECT u.id, u.login, u.nome, u.papel, u.ativo
+           FROM sessoes s JOIN usuarios u ON u.id = s.usuario_id
+          WHERE s.token = $1 AND s.expira_em > now() AND u.ativo`,
+        [token]);
+      return r.rows[0] || null;
+    },
+    async apagarSessao(token) {
+      await pool.query('DELETE FROM sessoes WHERE token = $1', [token]);
+    },
   };
 }
 

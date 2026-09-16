@@ -27,10 +27,10 @@ function logoBranco(src){
     img.src = src;
   });
 }
-document.getElementById("logo").src=LOGO;document.getElementById("herologo").src=LOGO;
+["logo","herologo","login_logo"].forEach(id=>{ document.getElementById(id).src=LOGO; });
 logoBranco(LOGO).then(branco=>{
   if(!branco) return;
-  ["logo","herologo"].forEach(id=>{ const el=document.getElementById(id); el.src=branco; el.dataset.variante="branco"; });
+  ["logo","herologo","login_logo"].forEach(id=>{ const el=document.getElementById(id); el.src=branco; el.dataset.variante="branco"; });
 });
 
 export { logoBranco };

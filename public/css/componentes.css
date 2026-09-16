@@ -173,6 +173,28 @@ footer{display:flex;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;co
   color:#fff;text-wrap:balance}
 .hero p{margin:0;color:#B7C7B3;font-size:13.5px}
 
+/* ---------- login ---------- */
+/* mesmo gradiente do .hero — é a mesma identidade, tela de entrada */
+.tela-login{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(115deg,#132117 0%,#1F3A26 58%,#2D5A33 100%);overflow:hidden}
+/* especificidade de .tela-login empataria com [hidden] do navegador, e regra
+   de autor vence a do UA — sem isto, hidden=true não escondia a tela */
+.tela-login[hidden]{display:none}
+.tela-login canvas{position:absolute;inset:0;width:100%;height:100%}
+.login-card{position:relative;z-index:1;width:100%;max-width:360px;margin:0 18px;padding:30px 28px 26px;
+  border-radius:var(--r);background:rgba(19,33,23,.72);border:1px solid rgba(255,255,255,.1);
+  box-shadow:0 24px 60px -12px rgba(0,0,0,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.login-card img{height:40px;width:auto;background:#fff;padding:7px 11px;border-radius:7px;margin-bottom:16px}
+.login-card img[data-variante="branco"]{height:44px;background:none;padding:0;border-radius:0}
+.login-card .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:1.3px;color:#D6B46E;font-weight:600;margin-bottom:4px}
+.login-card h1{font-family:var(--f-display);font-size:24px;font-weight:600;line-height:1.15;margin:0 0 20px;color:#fff}
+.login-card label{color:#B7C7B3;margin-top:12px}
+.login-card label:first-of-type{margin-top:0}
+.login-card input{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.16);color:#fff}
+.login-card input:focus{background:rgba(255,255,255,.1)}
+.login-card .btn{width:100%;margin-top:18px}
+.login-erro{margin-top:12px;padding:8px 11px;border-radius:var(--r-sm);background:var(--bad-bg);color:#F3B4AA;font-size:12.5px}
+
 /* Plano Operacional: cor por período do ano agrícola e filtro de meses.
    A cor fica na célula, não no campo: o campo continua em palha, que é a
    convenção de "aqui se digita" em todo o sistema. */

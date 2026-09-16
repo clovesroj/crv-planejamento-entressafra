@@ -10,18 +10,45 @@ const fsp = require('node:fs/promises');
 const path = require('node:path');
 const { DIR_DADOS } = require('../config');
 
-function storeArquivo() {
-  const dir = DIR_DADOS;
-  const arq = path.join(dir, 'plano.json');
-
-  // Uma fila serializa as gravações: sem ela, dois PATCH simultâneos leriam o
-  // mesmo estado e o último apagaria o campo que o primeiro acabou de gravar.
+// Uma fila por arquivo serializa as gravações: sem ela, duas escritas
+// simultâneas leriam o mesmo estado e a última apagaria o que a primeira
+// acabou de gravar. Cada storeArquivo() cria a sua (plano e usuários não
+// competem entre si).
+function criarFila() {
   let fila = Promise.resolve();
-  const enfileirar = fn => {
+  return fn => {
     const r = fila.then(fn, fn);
     fila = r.catch(() => {});
     return r;
   };
+}
+
+async function escritaAtomica(arq, dir, doc) {
+  await fsp.mkdir(dir, { recursive: true });
+  const tmp = `${arq}.tmp`;
+  await fsp.writeFile(tmp, JSON.stringify(doc));
+  await fsp.rename(tmp, arq);   // troca atômica: nunca deixa um JSON pela metade
+  return doc;
+}
+
+async function leituraDisco(arq) {
+  try { return JSON.parse(await fsp.readFile(arq, 'utf8')); }
+  catch (e) { if (e.code === 'ENOENT') return null; throw e; }
+}
+
+function storeArquivo() {
+  const dir = DIR_DADOS;
+  const arq = path.join(dir, 'plano.json');
+  const arqUsu = path.join(dir, 'usuarios.json');
+
+  const enfileirar = criarFila();
+  const enfileirarUsu = criarFila();
+
+  // {lista:[usuario...], sessoes:[{token,usuario_id,expira_em}]}
+  async function usuariosDoDisco() {
+    return (await leituraDisco(arqUsu)) || { lista: [], sessoes: [] };
+  }
+  const proxId = lista => 1 + lista.reduce((m, u) => Math.max(m, u.id), 0);
 
   async function doDisco() {
     try {
@@ -52,6 +79,69 @@ function storeArquivo() {
     mesclar: doc => enfileirar(async () => paraDisco({ ...(await doDisco()), ...doc })),
     substituir: doc => enfileirar(() => paraDisco(doc)),
     async checar() { await fsp.mkdir(dir, { recursive: true }); },
+
+    // ---------- usuários ----------
+    criarUsuario: ({ login, senha_hash, nome, papel }) => enfileirarUsu(async () => {
+      const doc = await usuariosDoDisco();
+      const usuario = { id: proxId(doc.lista), login, senha_hash, nome: nome || null,
+        papel: papel || 'usuario', ativo: true, criado_em: new Date().toISOString(), ultimo_acesso: null };
+      doc.lista.push(usuario);
+      await escritaAtomica(arqUsu, dir, doc);
+      const { senha_hash: _s, ...semSenha } = usuario;
+      return semSenha;
+    }),
+    async listarUsuarios() {
+      const doc = await usuariosDoDisco();
+      return doc.lista.map(({ senha_hash, ...u }) => u);
+    },
+    async contarUsuarios() { return (await usuariosDoDisco()).lista.length; },
+    async usuarioPorLogin(login) {
+      return (await usuariosDoDisco()).lista.find(u => u.login === login) || null;
+    },
+    async usuarioPorId(id) {
+      return (await usuariosDoDisco()).lista.find(u => u.id === id) || null;
+    },
+    definirAtivo: (id, ativo) => enfileirarUsu(async () => {
+      const doc = await usuariosDoDisco();
+      const u = doc.lista.find(x => x.id === id);
+      if (u) u.ativo = ativo;
+      if (!ativo) doc.sessoes = doc.sessoes.filter(s => s.usuario_id !== id);
+      await escritaAtomica(arqUsu, dir, doc);
+    }),
+    redefinirSenha: (id, senha_hash) => enfileirarUsu(async () => {
+      const doc = await usuariosDoDisco();
+      const u = doc.lista.find(x => x.id === id);
+      if (u) u.senha_hash = senha_hash;
+      doc.sessoes = doc.sessoes.filter(s => s.usuario_id !== id);
+      await escritaAtomica(arqUsu, dir, doc);
+    }),
+    marcarAcesso: id => enfileirarUsu(async () => {
+      const doc = await usuariosDoDisco();
+      const u = doc.lista.find(x => x.id === id);
+      if (u) u.ultimo_acesso = new Date().toISOString();
+      await escritaAtomica(arqUsu, dir, doc);
+    }),
+
+    // ---------- sessões ----------
+    criarSessao: (usuario_id, token, expira_em) => enfileirarUsu(async () => {
+      const doc = await usuariosDoDisco();
+      doc.sessoes.push({ token, usuario_id, expira_em: expira_em.toISOString() });
+      await escritaAtomica(arqUsu, dir, doc);
+    }),
+    async sessaoValida(token) {
+      const doc = await usuariosDoDisco();
+      const s = doc.sessoes.find(x => x.token === token);
+      if (!s || new Date(s.expira_em) <= new Date()) return null;
+      const u = doc.lista.find(x => x.id === s.usuario_id);
+      if (!u || !u.ativo) return null;
+      const { senha_hash, ...semSenha } = u;
+      return semSenha;
+    },
+    apagarSessao: token => enfileirarUsu(async () => {
+      const doc = await usuariosDoDisco();
+      doc.sessoes = doc.sessoes.filter(s => s.token !== token);
+      await escritaAtomica(arqUsu, dir, doc);
+    }),
   };
 }
 

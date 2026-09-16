@@ -1,5 +1,51 @@
 # Histórico de mudanças
 
+## 2.9.0 — 2026-09-16 · Login e gestão de usuários
+
+O sistema deixa de ficar aberto na internet — resolve a dívida nº1 do
+[CLAUDE.md](CLAUDE.md). Tela de login, aba **Usuários** (só-admin) e sessão
+por cookie.
+
+### Autenticação
+
+Hash de senha com `crypto.scrypt` nativo do Node — nenhuma dependência nova
+(`package.json` segue só com `pg`). Sessão é um token opaco guardado na tabela
+`sessoes`, não JWT: cada requisição confere contra o banco, então desativar um
+usuário ou fazer logout derruba o acesso na hora. Cookie `httpOnly`,
+`SameSite=Lax`, validade de 30 dias.
+
+Duas tabelas novas em [schema.sql](server/store/schema.sql): `usuarios` e
+`sessoes`. Implementado nos dois destinos de armazenamento — Postgres e o
+modo arquivo local (`.data/usuarios.json`), mesma interface das duas.
+
+### Primeiro usuário, sem senha no código
+
+`POST /api/auth/bootstrap` cria o primeiro usuário (sempre admin) e só
+funciona uma vez, enquanto a tabela estiver vazia — depois disso é sempre
+409. Não há login nem senha fixos em nenhum arquivo do repositório.
+
+### Papéis
+
+**admin**: tudo, inclusive a aba Usuários (criar, ativar/desativar, redefinir
+senha de qualquer um). **usuário**: lê e edita o plano normalmente, e pode
+trocar a própria senha.
+
+### Tela de login
+
+Fundo animado exclusivo dessa tela — grade de pontos que reage ao cursor
+(proximidade esquenta a cor, clique empurra com física de mola-amortecedor),
+portado pra canvas + JS vanilla sem dependência nova.
+
+### Arquivos
+
+`server/auth.js` (novo), métodos de usuário/sessão em `server/store/postgres.js`
+e `server/store/arquivo.js`, rotas novas em `server/api.js`.
+`public/js/nucleo/sessao.js`, `public/js/io/autenticacao.js`,
+`public/js/ui/login.js`, `public/js/ui/usuarios.js`,
+`public/js/ui/fundo-login.js` (todos novos). O motor de cálculo não foi
+alterado.
+
+
 ## 2.8.0 — 2026-09-16 · Turnos por atividade e necessidade mês a mês
 
 ### Turnos na atividade
@@ -81,7 +127,6 @@ O quadro informado é gravado no documento (`QUADRO`, por função).
 Falta o modelo do cliente para estender: nível e escala por linha, colunas por
 período (entressafra e safra) e o par equipamento/pessoas da planilha de mão de
 obra agrícola.
-
 
 ## 2.3.0 — 2026-09-16 · Calcário e gesso em tratos culturais
 

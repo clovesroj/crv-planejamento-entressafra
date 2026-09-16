@@ -158,28 +158,52 @@ h(canon(R)) + ':' + canon(R).length;
 | Rateio entre etapas, consolidação | `public/js/calculo/index.js` |
 | Layout ou colunas de uma aba | `public/js/ui/<aba>.js` |
 | Campo novo que precisa ser salvo | `nucleo/estado.js` → `io/persistencia.js` (`estado()` e `aplicar()`) |
-| Rota da API, autenticação | `server/api.js` |
-| Esquema do banco | `server/store/schema.sql` |
+| Rota da API | `server/api.js` |
+| Hash de senha, sessão, guardas de rota | `server/auth.js` |
+| Esquema do banco (`plano`, `usuarios`, `sessoes`) | `server/store/schema.sql` |
+
+## Autenticação
+
+Desde 2026-09-16 o acesso exige login — `server/auth.js` (hash de senha com
+`crypto.scrypt` nativo, sem dependência nova) + tabelas `usuarios` e `sessoes`
+em [schema.sql](server/store/schema.sql). Sessão é um **token opaco em
+cookie** (`httpOnly`, `SameSite=Lax`), não JWT: cada requisição confere o
+token contra `store.sessaoValida()`, então desativar um usuário ou fazer
+logout mata a sessão na hora, não só no próximo login.
+
+`POST /api/auth/bootstrap` cria o primeiro usuário (sempre `admin`) e só
+funciona **uma vez**, enquanto a tabela `usuarios` estiver vazia — depois
+disso responde sempre 409. É assim que o primeiro admin é criado sem senha
+nenhuma em texto puro no código-fonte, schema ou histórico do git.
+
+Sessão do usuário logado mora em `public/js/nucleo/sessao.js`, deliberadamente
+**fora** de `estado()`/`aplicar()` em `io/persistencia.js` — não é dado do
+plano, não entra no documento salvo (não conflita com o invariante nº5).
 
 ## Dívidas conhecidas
 
 Não são descuido — foram levantadas, documentadas e deixadas para depois de
 propósito. Em ordem de gravidade:
 
-1. **Sem autenticação.** O serviço está aberto na internet: qualquer pessoa com
-   o endereço lê e grava o plano, incluindo salários. `server/api.js` é o ponto
-   de entrada e hoje tem menos de 60 linhas — a mudança é pequena.
-2. **Escape de HTML inconsistente.** Campos de texto livre (fazenda, insumo,
-   rota) vão para `innerHTML` sem escapar na maioria das telas; só duas definem
-   um `esc` local. Combinado com o item 1, é XSS armazenado.
-3. **O merge não é campo a campo como o README dá a entender.** O `||` do `jsonb`
+1. **Escape de HTML inconsistente.** Campos de texto livre (fazenda, insumo,
+   rota) vão para `innerHTML` sem escapar na maioria das telas; só algumas
+   (`arrendamentos.js`, `usuarios.js`, ...) definem um `esc` local. Menos grave
+   agora que só usuário autenticado grava, mas continua sendo XSS armazenado
+   em potencial entre usuários do mesmo sistema.
+2. **O merge não é campo a campo como o README dá a entender.** O `||` do `jsonb`
    mescla apenas o primeiro nível, e o cliente envia o objeto inteiro. Duas
    pessoas editando atividades diferentes ao mesmo tempo: a última grava por cima.
-4. **Sem `package-lock.json`, sem testes, sem lint, sem CI** — num motor de
+3. **Sem `package-lock.json`, sem testes, sem lint, sem CI** — num motor de
    cálculo que define orçamento.
-5. **Postgres gratuito do Render expira em 30 dias** e apaga os dados.
-6. **Um blob, uma linha, uma safra.** Não há histórico, usuário, auditoria, nem
-   suporte a mais de uma safra ou unidade.
+4. **Postgres gratuito do Render expira em 30 dias** e apaga os dados —
+   inclusive os usuários agora.
+5. **Um blob, uma linha, uma safra.** Não há histórico nem auditoria de quem
+   mudou o quê (autenticação sabe *quem está logado*, não guarda *quem editou
+   cada campo*), nem suporte a mais de uma safra ou unidade.
+6. **Sem token CSRF dedicado, sem rate-limit de login.** O `SameSite=Lax` do
+   cookie cobre o vetor clássico de CSRF, e a mensagem de erro do login não
+   distingue usuário inexistente de senha errada — mitigação proporcional ao
+   resto da postura de segurança atual, não blindagem completa.
 
 ## Ambiente de desenvolvimento
 

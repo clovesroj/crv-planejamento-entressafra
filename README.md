@@ -68,12 +68,13 @@ server/                 BACK
   index.js              monta o HTTP, roteia, trata SIGTERM
   config.js             porta, caminhos, limites
   http.js               erro com status, resposta JSON, leitura de corpo
-  api.js                /api/health e /api/plano  ← pôr autenticação aqui
+  auth.js               hash de senha, cookie de sessão, guardas de rota
+  api.js                /api/health, /api/plano, /api/auth/*, /api/usuarios
   estatico.js           arquivos de public/
   store/                BANCO
     index.js            escolhe o destino por DATABASE_URL
     postgres.js         produção · arquivo.js  local
-    schema.sql          DDL da tabela plano
+    schema.sql          DDL de plano, usuarios, sessoes
 ```
 
 O grafo de dependências é **acíclico** e sobe numa só direção:
@@ -105,8 +106,9 @@ Quem importa `P` enxerga a troca — são bindings vivos. Esquecer o setter dá
 | Rateio entre etapas, consolidação | `public/js/calculo/index.js` |
 | Layout ou colunas de uma aba | `public/js/ui/<aba>.js` |
 | Campo novo que precisa ser salvo | `nucleo/estado.js` + `io/persistencia.js` (`estado()` e `aplicar()`) |
-| Rota da API, autenticação | `server/api.js` |
-| Esquema do banco | `server/store/schema.sql` |
+| Rota da API | `server/api.js` |
+| Hash de senha, sessão, guardas de rota | `server/auth.js` |
+| Esquema do banco (`plano`, `usuarios`, `sessoes`) | `server/store/schema.sql` |
 
 ## Base de frota
 
@@ -322,9 +324,20 @@ DATABASE_URL=postgres://usuario:senha@host:5432/banco npm start
 
 ## Acesso
 
-O serviço fica **aberto na internet**: qualquer pessoa com o endereço lê e edita o plano,
-incluindo salários, custos e programação de safra. Se isso mudar, o ponto de entrada para
-colocar autenticação é a função `api()` de [`server/api.js`](server/api.js).
+O sistema exige login. Sessão por cookie (`httpOnly`, `SameSite=Lax`, 30 dias),
+token opaco conferido contra a tabela `sessoes` a cada requisição — desativar
+um usuário ou fazer logout derruba o acesso na hora, não só no próximo login.
+Detalhes de implementação (hash de senha, guardas de rota) estão no
+[CLAUDE.md](CLAUDE.md#autenticação).
+
+Dois papéis: **admin** (tudo, inclusive a aba Usuários — criar, desativar,
+redefinir senha de qualquer um) e **usuário** (lê e edita o plano normalmente).
+Qualquer usuário pode trocar a própria senha na aba Usuários.
+
+**Primeiro acesso**: com o banco vazio, `POST /api/auth/bootstrap
+{"login":"...","senha":"..."}` cria o primeiro usuário como admin — e só
+funciona essa vez; depois disso responde sempre 409. Não há usuário nem senha
+fixos no código-fonte.
 
 ## Premissas a confirmar
 

@@ -66,6 +66,10 @@
       <button data-s="custos">Custos</button>
       <button data-s="contas">Plano de Contas</button>
     </div>
+    <div class="navgroup" data-g="Administração" data-admin hidden>
+      <div class="gl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3.2v5c0 4.5-3 7.8-7 9.8-4-2-7-5.3-7-9.8v-5z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>Administração</div>
+      <button data-s="usuarios">Usuários</button>
+    </div>
   </nav>
   <div class="side-foot">Safra 2026/2027<br>Unidade Capinópolis-MG · Departamento Agrícola</div>
 </aside>
@@ -78,6 +82,8 @@
     <div class="spacer"></div>
     <span class="chip safra">Safra <b>2026/2027</b> · Capinópolis-MG</span>
     <div class="savebox chip" title="Situação da gravação"><span class="dot off" id="sdot"></span><span id="stxt">Carregando…</span></div>
+    <div class="chip" id="chip_usuario" title="Usuário autenticado" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c1-3.6 3.8-5.6 7.5-5.6s6.5 2 7.5 5.6"/></svg><b id="chip_usuario_nome"></b></div>
+    <button class="ghost-btn" id="btn_logout" title="Sair" aria-label="Sair" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h9"/><path d="M10 12h11m0 0l-3.5-3.5M21 12l-3.5 3.5"/></svg></button>
     <button class="ghost-btn" id="btn_tema_top" title="Alternar tema claro/escuro" aria-label="Alternar tema claro/escuro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg></button>
     <div class="reportbox">
       <button class="icon-btn" id="btn_report" title="Gerar relatório em PDF ou Excel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg><span class="lbl">Relatório</span></button>
@@ -674,10 +680,55 @@
   <div class="tblwrap"><table id="t_val"></table></div>
 </section>
 
+<!-- ===== USUÁRIOS ===== -->
+<section id="usuarios">
+  <h2>Usuários</h2>
+  <p class="lead">Quem acessa o sistema. Desativar tira o acesso na hora, sem apagar o histórico do usuário.</p>
+  <div class="panel"><h3>Novo usuário</h3>
+    <div class="row">
+      <div style="min-width:160px"><label>Login</label><input id="us_login" autocomplete="off"></div>
+      <div style="min-width:200px"><label>Nome</label><input id="us_nome" autocomplete="off"></div>
+      <div style="width:150px"><label>Senha inicial</label><input id="us_senha" type="password" autocomplete="new-password"></div>
+      <div style="width:150px"><label>Papel</label><select id="us_papel"><option value="usuario">Usuário</option><option value="admin">Administrador</option></select></div>
+      <div style="align-self:flex-end"><button class="btn p" id="btn_us_add">Criar usuário</button></div>
+    </div>
+    <div class="hint" id="us_erro" style="margin-top:9px;color:var(--bad)"></div>
+  </div>
+  <div class="panel"><h3>Usuários cadastrados</h3>
+    <div class="tblwrap"><table id="t_usuarios"></table></div></div>
+  <div class="panel"><h3>Minha senha</h3>
+    <div class="row">
+      <div style="width:180px"><label>Senha atual</label><input id="us_senha_atual" type="password" autocomplete="current-password"></div>
+      <div style="width:180px"><label>Nova senha</label><input id="us_senha_nova" type="password" autocomplete="new-password"></div>
+      <div style="align-self:flex-end"><button class="btn" id="btn_us_trocar_senha">Trocar minha senha</button></div>
+    </div>
+    <div class="hint" id="us_senha_msg" style="margin-top:9px"></div>
+  </div>
+</section>
+
 </main>
 <footer><span>CRV Industrial — Açúcar, Etanol e Energia · Departamento Agrícola</span><span>Planejamento de Entressafra · Safra 2026/2027</span></footer>
 </div><!-- /.shell -->
 </div><!-- /.app -->
+
+<!-- ===== LOGIN ===== -->
+<div id="tela_login" class="tela-login" hidden>
+  <canvas id="fundo_login"></canvas>
+  <div class="login-card">
+    <img id="login_logo" alt="CRV Industrial">
+    <div class="eyebrow">Safra 2026/2027 · Unidade Capinópolis-MG</div>
+    <h1>Planejamento de Entressafra</h1>
+    <form id="form_login">
+      <label for="login_usuario">Usuário</label>
+      <input id="login_usuario" autocomplete="username" autofocus>
+      <label for="login_senha">Senha</label>
+      <input id="login_senha" type="password" autocomplete="current-password">
+      <button class="btn p" type="submit" id="btn_login">Entrar</button>
+      <div class="login-erro" id="login_erro" hidden></div>
+    </form>
+  </div>
+</div>
+
 <div id="print_report"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
