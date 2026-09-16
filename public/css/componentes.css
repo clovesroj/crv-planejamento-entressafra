@@ -324,3 +324,24 @@ tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:under
    em vez de sumir, para nao dar a impressao de que o mes deixou de existir. */
 td.fora-janela{background:var(--sunk);opacity:.45}
 td.fora-janela input{cursor:not-allowed}
+
+/* ===== Rastro em modo apresentacao =====
+   A explicacao de uma atividade e material de reuniao: abre larga, com os
+   numeros de decisao em destaque no topo e o mes a mes logo abaixo, antes da
+   memoria de calculo. */
+.ra-modal.ra-largo{width:min(1240px,96vw);max-height:92vh}
+.ra-faixa{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;
+  margin-bottom:20px}
+.ra-dest{background:var(--sunk);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.ra-dest-rot{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--grey)}
+.ra-dest-val{font-family:var(--f-display);font-size:25px;font-weight:600;line-height:1.1;margin-top:5px;
+  color:var(--leaf);font-variant-numeric:tabular-nums}
+.ra-dest-sub{font-size:11px;color:var(--grey);margin-top:4px;line-height:1.4}
+.ra-tbl{margin-top:2px;max-height:none}
+.ra-tbl table{min-width:0;font-size:12.5px}
+.ra-tbl th{font-size:10.5px;padding:7px 10px}
+.ra-tbl td{padding:6px 10px}
+@media (max-width:760px){
+  .ra-modal.ra-largo{width:96vw}
+  .ra-dest-val{font-size:21px}
+}

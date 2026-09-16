@@ -118,6 +118,57 @@ function rastroEtapa(R, etapa){
 }
 
 /* ---------- nível 3: atividade, descendo até a premissa ---------- */
+/* ===== Abertura de apresentacao da atividade =====
+   O que um diretor precisa ver antes da memoria de calculo: os numeros de
+   decisao em destaque e o mes a mes da execucao.
+
+   O custo do mes segue o mesmo criterio do motor: diesel entra pelo preco de
+   cada mes, e o resto do custo direto pela fracao da quantidade -- e o rateio
+   que index.js usa para distribuir o custo no tempo. */
+function apresentacao(r, un){
+  const total = r.total || 0;
+  const custo = r.direto || 0;
+  const naoDiesel = custo - (r.cDiesel || 0);
+  const linhas = [], acum = {q:0, h:0, c:0, l:0};
+
+  MESES.forEach((m, i)=>{
+    const q = num(r.meses[i]);
+    if(!(q > 0)) return;
+    const fr = total > 0 ? q/total : 0;
+    const h  = r.rend > 0 ? q/r.rend : 0;
+    const c  = naoDiesel*fr + (r.dieselMes[i] || 0);
+    const l  = r.litrosMes[i] || 0;
+    acum.q += q; acum.h += h; acum.c += c; acum.l += l;
+    linhas.push([m, fmt(q)+" "+un, fmt(h)+" h", fmt(l)+" L", brl(c),
+                 q > 0 ? brl(c/q, 2) : "—"]);
+  });
+
+  const tabela = linhas.length ? {
+    titulo: "Execução mês a mês",
+    cab: ["Mês", "Área ou volume", "Horas", "Diesel", "Custo", "Custo/"+un],
+    linhas,
+    rodape: ["TOTAL", fmt(acum.q)+" "+un, fmt(acum.h)+" h", fmt(acum.l)+" L", brl(acum.c),
+             acum.q > 0 ? brl(acum.c/acum.q, 2) : "—"],
+    nota: "Diesel entra pelo preço de cada mês; o restante do custo direto acompanha a quantidade lançada — o mesmo critério que distribui o custo no tempo em Custos.",
+  } : null;
+
+  const dias = num(P.dias) * r.janela.meses;
+  const destaques = [
+    {rot: r.ehHa ? "Área" : "Volume", val: fmt(total)+" "+un,
+     sub: r.janela.fonte==="datas" ? `de ${r.janela.ini} a ${r.janela.fim}`
+        : `${fmt(r.janela.meses,1)} meses de execução`},
+    {rot: "Custo por "+un, val: total > 0 ? brl(custo/total, 2) : "—",
+     sub: brl(custo)+" no total"},
+    {rot: "Frota", val: (r.frotaR || 0)+" equip.",
+     sub: r.maqEfetiva || "—"},
+    {rot: "Meta diária", val: dias > 0 ? fmt(total/dias, 1)+" "+un+"/dia" : "—",
+     sub: dias > 0 ? `${fmt(dias,0)} dias efetivos na janela` : "sem janela definida"},
+    {rot: "Efetivo", val: fmt(r.efetivo)+" pessoas",
+     sub: (r.partes[0] ? r.partes[0].turnosEf : r.a.turnos)+" turno(s) · fator "+fmt(r.fator,2)},
+  ];
+  return {destaques, tabela};
+}
+
 /* ===== Meta diaria da atividade =====
    Traduz o dimensionamento no ritmo que o campo tem de manter: quantas horas
    cada equipamento roda por dia e quanto entrega por dia, sozinho e em frota.
@@ -159,6 +210,7 @@ function rastroAtividade(R, cod){
   const escala = r.escala ? (ESCALAS[r.escala]||{}).nome || r.escala : "padrão das premissas";
   const trat = r.trat ? tratCusto(r.trat) : 0;
   const meta = metaDiaria(r, un);
+  const apres = apresentacao(r, un);
 
   const blocos = [
     {titulo:"Onde entra", linhas:[
@@ -210,7 +262,9 @@ function rastroAtividade(R, cod){
   ];
 
   const cf = R.MP.custoFuncao[r.fcod] || {};
-  return {titulo:`${r.a.cod} · ${r.a.nome}`, subtitulo:"Atividade do Plano Operacional",
+  return {
+    largo:true, destaques:apres.destaques, tabela:apres.tabela,
+    titulo:`${r.a.cod} · ${r.a.nome}`, subtitulo:"Atividade do Plano Operacional",
     valor:brl(r.direto), blocos,
     premissas: premissasGerais().concat([
       {rot:"Salário do cargo "+(cf.nome||r.fcod), val:brl(cf.salCad||cf.sal||0,2)},

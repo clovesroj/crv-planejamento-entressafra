@@ -41,7 +41,7 @@ function pintarRastro(R){
   jaAberto = true;
 
   cont.innerHTML = `
-    <div class="ra-modal${entrando?" pop-in":""}">
+    <div class="ra-modal${r.largo?" ra-largo":""}${entrando?" pop-in":""}">
     <div class="ra-topo">
       <div class="ra-nav">
         ${pilha.length>1 ? '<button class="btn" id="ra_voltar">‹ Voltar</button>' : ""}
@@ -58,6 +58,24 @@ function pintarRastro(R){
       </div>` : ""}
     </div>
     <div class="ra-corpo">
+      ${(r.destaques||[]).length ? `<div class="ra-faixa">
+        ${r.destaques.map(d=>`<div class="ra-dest">
+          <div class="ra-dest-rot">${d.rot}</div>
+          <div class="ra-dest-val">${d.val}</div>
+          ${d.sub?`<div class="ra-dest-sub">${d.sub}</div>`:""}
+        </div>`).join("")}
+      </div>` : ""}
+      ${r.tabela ? `<div class="ra-bloco">
+        <div class="ra-bloco-tit">${r.tabela.titulo}</div>
+        <div class="tblwrap ra-tbl"><table>
+          <thead><tr>${r.tabela.cab.map((c,i)=>`<th${i?' class="num"':""}>${c}</th>`).join("")}</tr></thead>
+          <tbody>${r.tabela.linhas.map(l=>`<tr>${l.map((c,i)=>
+            `<td${i?' class="num"':""}>${c}</td>`).join("")}</tr>`).join("")}
+          ${r.tabela.rodape ? `<tr>${r.tabela.rodape.map((c,i)=>
+            `<td class="tot${i?" num":""}">${c}</td>`).join("")}</tr>` : ""}
+          </tbody></table></div>
+        ${r.tabela.nota?`<div class="hint" style="margin-top:8px">${r.tabela.nota}</div>`:""}
+      </div>` : ""}
       ${(r.blocos||[]).map(b=>`<div class="ra-bloco">
         <div class="ra-bloco-tit">${b.titulo}</div>
         ${b.linhas.map(linha).join("")}
