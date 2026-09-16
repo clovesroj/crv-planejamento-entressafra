@@ -18,23 +18,23 @@ function pintarPainel(R){
     + (colh && colh.direto>0 ? colh.arrend*(corteDireto/colh.direto) : 0);
   $("#k_painel").innerHTML =
     kpi("Custo total","",brl(R.total),"","total") +
-    kpi("Custo / ha plantado","t",brl(R.total/ha)) +
-    kpi("Custo de colheita","g",corteTon>0?brl(corteTotal/corteTon,2)+"/t":"—","só corte (A01+A02), sem transporte") +
-    kpi("Efetivo total","a",fmt(R.efetivoTotal)+" pessoas") +
-    kpi("Custo na safra","g",brl(R.PER.safra.total),"abr a nov · "+R.PER.safra.meses.length+" meses no orçamento") +
-    kpi("Custo na entressafra","a",brl(R.PER.entressafra.total),"dez a mar · "+R.PER.entressafra.meses.length+" meses no orçamento");
+    kpi("Custo / ha plantado","t",brl(R.total/ha),"","total") +
+    kpi("Custo de colheita","g",corteTon>0?brl(corteTotal/corteTon,2)+"/t":"—","só corte (A01+A02), sem transporte","etapa:COLHEITA") +
+    kpi("Efetivo total","a",fmt(R.efetivoTotal)+" pessoas","","pessoas:total") +
+    kpi("Custo na safra","g",brl(R.PER.safra.total),"abr a nov · "+R.PER.safra.meses.length+" meses no orçamento","total") +
+    kpi("Custo na entressafra","a",brl(R.PER.entressafra.total),"dez a mar · "+R.PER.entressafra.meses.length+" meses no orçamento","total");
   $("#k_tratos").innerHTML =
     kpi("Tratos — cana soca","t",R.tratosCult.Soca.ha>0?brl(R.tratosCult.Soca.total/R.tratosCult.Soca.ha,2)+"/ha":"—",
-        brl(R.tratosCult.Soca.total)+" · "+fmt(R.tratosCult.Soca.ha)+" ha") +
+        brl(R.tratosCult.Soca.total)+" · "+fmt(R.tratosCult.Soca.ha)+" ha","etapa:TRATOS CULTURAIS") +
     kpi("Tratos — cana planta","g",R.tratosCult.Planta.ha>0?brl(R.tratosCult.Planta.total/R.tratosCult.Planta.ha,2)+"/ha":"—",
-        brl(R.tratosCult.Planta.total)+" · "+fmt(R.tratosCult.Planta.ha)+" ha") +
-    kpi("Etapa colheita (c/ transporte)","",tonEtapa>0?brl(colh.total/tonEtapa,2)+"/t":"—","corte + transporte + transbordo") +
-    kpi("CRM total","a",brl(CRM_COMP.reduce((s,k)=>s+R.crmComp[k],0)),"","nat:manut") +
-    kpi("CRM por hora média","",R.horasT>0?brl(CRM_COMP.reduce((s,k)=>s+R.crmComp[k],0)/R.horasT,2)+"/h":"—") +
+        brl(R.tratosCult.Planta.total)+" · "+fmt(R.tratosCult.Planta.ha)+" ha","etapa:TRATOS CULTURAIS") +
+    kpi("Etapa colheita (c/ transporte)","",tonEtapa>0?brl(colh.total/tonEtapa,2)+"/t":"—","corte + transporte + transbordo","etapa:COLHEITA") +
+    kpi("CRM total","a",brl(CRM_COMP.reduce((s,k)=>s+R.crmComp[k],0)),"","frota:crm") +
+    kpi("CRM por hora média","",R.horasT>0?brl(CRM_COMP.reduce((s,k)=>s+R.crmComp[k],0)/R.horasT,2)+"/h":"—","","frota:crm") +
     kpi("Diesel projetado","t",fmt(R.CB.litrosT)+" L",
-        brl(R.dieselT)+(R.CB.litrosT>0?" · "+brl(R.dieselT/R.CB.litrosT,2)+"/L":""), "nat:diesel") +
+        brl(R.dieselT)+(R.CB.litrosT>0?" · "+brl(R.dieselT/R.CB.litrosT,2)+"/L":""),"diesel:total") +
     kpi("Arrendamento","a",R.AR.area>0?brl(R.AR.anual/R.AR.area,0)+"/ha/ano":"—",
-        brl(R.arrT)+" no orçamento · "+fmt(R.AR.area)+" ha", "nat:arrend");
+        brl(R.arrT)+" no orçamento · "+fmt(R.AR.area)+" ha","nat:arrend");
   barras($("#ch_mes"),MESES.map((m,i)=>({l:m,v:R.meses[i]})),"#2D6A3A");
 
   const catLbl = {mdo:"Mão de obra",manut:"Manutenção (CRM)",diesel:"Diesel",insumo:"Insumos + irrigação",

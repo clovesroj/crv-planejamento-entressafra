@@ -10,9 +10,9 @@ function pintarInsumos(R){
   const TL = tratLista();
   const custom = Object.keys(TRATC).length;
   $("#k_ins").innerHTML =
-    kpi("Produtos cadastrados","",insLista().length) +
+    kpi("Produtos cadastrados","",insLista().length,"","insumos:total") +
     kpi("Tratamentos","t",tratCodigos().length, custom?custom+" com composição ajustada":"composições originais") +
-    kpi("Custo de insumos no plano","g",brl(R.insumoT)) +
+    kpi("Custo de insumos no plano","g",brl(R.insumoT),"","nat:insumo") +
     kpi("Materiais de manutenção","a",brl(R.MT.total));
 
   // --- 1. cadastro de insumos (topo) — incluir, alterar, remover ---

@@ -11,11 +11,11 @@ function pintarMDO(R){
   const M=R.MP;
   $("#c_escala").value = M.fatorEscala.toFixed(2);
   $("#k_mdo").innerHTML =
-    kpi("Encargos sociais","",pct(M.encTot),"sobre o salário") +
-    kpi("Benefícios","t",brl(M.benTot),"por colaborador/mês") +
-    kpi("MDO total do período","g",brl(R.mdoTotal)) +
+    kpi("Encargos sociais","",pct(M.encTot),"sobre o salário","nat:mdo") +
+    kpi("Benefícios","t",brl(M.benTot),"por colaborador/mês","nat:mdo") +
+    kpi("MDO total do período","g",brl(R.mdoTotal),"","nat:mdo") +
     kpi("Equipe de manutenção","a",R.EM.efetivo+" pessoas",
-        `${R.EM.mec} mec · ${R.EM.ajud} ajud · ${R.EM.lider} líder`);
+        `${R.EM.mec} mec · ${R.EM.ajud} ajud · ${R.EM.lider} líder`,"pessoas:total");
 
   $("#t_enc").innerHTML = th([["Encargo"],["Base legal"],["% aplicado",1],["Original",1],["Impacto p/ F01",1]]) + "<tbody>" +
     CFG.encargos.map((e,i)=>{

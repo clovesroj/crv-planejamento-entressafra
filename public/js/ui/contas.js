@@ -46,9 +46,9 @@ function pintarContas(R){
   const CV = contasValores(R);
   const mapeado = CFG.contas.reduce((s,c)=>s+(CV[c.conta]||0),0);
   $("#k_cc").innerHTML =
-    kpi("Contas cadastradas","",CFG.contas.length) +
-    kpi("Variáveis","t",vari) + kpi("Fixas","a",fix) +
-    kpi("Custo mapeado às contas","g",brl(mapeado),fmt(R.total>0?mapeado/R.total*100:0,0)+"% do custo total");
+    kpi("Contas cadastradas","",CFG.contas.length,"","contas:total") +
+    kpi("Variáveis","t",vari,"","contas:total") + kpi("Fixas","a",fix,"","contas:total") +
+    kpi("Custo mapeado às contas","g",brl(mapeado),fmt(R.total>0?mapeado/R.total*100:0,0)+"% do custo total","contas:total");
 
   $("#t_terc").innerHTML = th([["Cod"],["Serviço"],["Centro de custo"],["Un."],["Tarifa",1],["Volume",1],["Total",1]])+"<tbody>"+
     R.TC.itens.map(i=>`<tr><td>${i.cod}</td><td>${i.desc}</td><td class="calc">${i.cc}</td>

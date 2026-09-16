@@ -9,11 +9,11 @@ function pintarReforma(){
   const R = reforma();
 
   $("#k_reforma").innerHTML =
-    kpi("Provisionamento de reforma", "", brl(R.total), "soma do orçado por conjunto") +
+    kpi("Provisionamento de reforma", "", brl(R.total), "soma do orçado por conjunto","frota:reforma") +
     kpi("Equipamentos em reforma", "t", fmt(R.unidades) + " un",
-        R.unidades ? R.orcadas + " já com orçamento" : "nenhum marcado ainda") +
-    kpi("Custo médio por equipamento", "g", R.unidades ? brl(R.media) : "—") +
-    kpi("Especialidades envolvidas", "a", fmt(R.esps.length));
+        R.unidades ? R.orcadas + " já com orçamento" : "nenhum marcado ainda","frota:reforma") +
+    kpi("Custo médio por equipamento", "g", R.unidades ? brl(R.media) : "—","","frota:reforma") +
+    kpi("Especialidades envolvidas", "a", fmt(R.esps.length),"","frota:reforma");
 
   if(!R.esps.length){
     $("#t_ref_resumo").innerHTML =

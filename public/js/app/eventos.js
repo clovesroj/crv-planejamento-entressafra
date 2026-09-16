@@ -10,7 +10,7 @@ import { $, num } from '../nucleo/formato.js';
 import { aplicarFiltroPlano } from '../ui/plano.js';
 import { lerPremissas } from '../ui/premissas.js';
 import { leve, render, renderRastro } from './ciclo.js';
-import { abrirRastro, aberto as rastroAberto, fecharRastro, voltarRastro } from '../ui/rastro.js';
+import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarRastro, voltarRastro } from '../ui/rastro.js';
 import { setAPOIO, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
 
 /* ---------- entrada ---------- */
@@ -148,6 +148,10 @@ document.addEventListener("change",e=>{
   if(t.id==="sel_grat_tipo"){ GRAT[FUN_SEL]={tipo:t.value, valor:num($("#in_grat").value)}; salvar(); render(); return; }
 });
 document.addEventListener("click",e=>{
+  // filtro de periodo do rastro (ano todo / safra / entressafra) — checa antes do
+  // data-rastro geral, pois os botoes do filtro moram dentro do proprio modal
+  const alvoPeriodo = e.target.closest && e.target.closest("[data-ra-periodo]");
+  if(alvoPeriodo){ filtrarRastro(alvoPeriodo.dataset.raPeriodo); return; }
   // rastro do calculo: qualquer elemento com data-rastro abre ou desce um nivel
   const alvoRastro = e.target.closest && e.target.closest("[data-rastro]");
   if(alvoRastro){ abrirRastro(alvoRastro.dataset.rastro); renderRastro(); return; }

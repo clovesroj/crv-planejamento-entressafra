@@ -7,10 +7,10 @@ import { validar } from './validacao.js';
 function pintarCapa(R){
   const prog=R.L.filter(r=>r.total>0).length, bad=validar(R).filter(v=>!v.ok).length;
   $("#k_capa").innerHTML =
-    kpi("Custo total projetado","",brl(R.total)) +
-    kpi("Custo por ha plantado","t",brl(R.total/(P.plantio||1))) +
-    kpi("Hectares operados","g",fmt(R.haOp)+" ha") +
-    kpi("Efetivo total","a",fmt(R.efetivoTotal||0)+" pessoas");
+    kpi("Custo total projetado","",brl(R.total),"","total") +
+    kpi("Custo por ha plantado","t",brl(R.total/(P.plantio||1)),"","total") +
+    kpi("Hectares operados","g",fmt(R.haOp)+" ha","","hect:total") +
+    kpi("Efetivo total","a",fmt(R.efetivoTotal||0)+" pessoas","","pessoas:total");
   $("#capa_status").innerHTML = `
     <div class="statusrow">
       <span class="badge ${bad?'b-bad':'b-ok'}">${bad?bad+" pendência(s)":"Sem pendências"}</span>

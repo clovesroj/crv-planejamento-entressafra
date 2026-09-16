@@ -8,10 +8,10 @@ function pintarArrend(R){
   const A = R.AR;
   const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
   $("#k_arr").innerHTML =
-    kpi("Área arrendada","",fmt(A.area)+" ha", A.linhas.length+" fazenda(s) cadastrada(s)") +
-    kpi("Custo anual","t",brl(A.anual), A.area>0?brl(A.anual/A.area,2)+"/ha/ano":"") +
-    kpi("Custo no orçamento","g",brl(A.total), NM+" meses · "+(arrPar("criterio")==="caixa"?"regime de caixa":"competência")) +
-    kpi("Peso no custo total","a",R.total>0?fmt(A.total/R.total*100,1)+"%":"—","conta ARR-01");
+    kpi("Área arrendada","",fmt(A.area)+" ha", A.linhas.length+" fazenda(s) cadastrada(s)","nat:arrend") +
+    kpi("Custo anual","t",brl(A.anual), A.area>0?brl(A.anual/A.area,2)+"/ha/ano":"","nat:arrend") +
+    kpi("Custo no orçamento","g",brl(A.total), NM+" meses · "+(arrPar("criterio")==="caixa"?"regime de caixa":"competência"),"nat:arrend") +
+    kpi("Peso no custo total","a",R.total>0?fmt(A.total/R.total*100,1)+"%":"—","conta ARR-01","nat:arrend");
   ["atr","precoAtr","tchParc"].forEach(k=>{ $("#arp_"+k).value = +num(arrPar(k)).toFixed(4); });
   $("#arp_criterio").value = arrPar("criterio");
 

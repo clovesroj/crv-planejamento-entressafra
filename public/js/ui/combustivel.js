@@ -12,10 +12,10 @@ function pintarCombustivel(R){
   const iPico = litrosMes.indexOf(Math.max(...litrosMes));
 
   $("#k_comb").innerHTML =
-    kpi("Volume de diesel necessário","",fmt(litrosT)+" L", fmt(litrosT/NM)+" L/mês em média") +
-    kpi("Custo de diesel","t",brl(custoT),"conta 200-110 · Combustível") +
-    kpi("Preço médio ponderado","g",brl(litrosT>0?custoT/litrosT:P.diesel,2)+"/L","ponderado pelo volume mensal") +
-    kpi("Mês de pico","a",litrosT>0?MESES[iPico]:"—", litrosT>0?fmt(litrosMes[iPico])+" L":"sem volume lançado");
+    kpi("Volume de diesel necessário","",fmt(litrosT)+" L", fmt(litrosT/NM)+" L/mês em média","diesel:total") +
+    kpi("Custo de diesel","t",brl(custoT),"conta 200-110 · Combustível","nat:diesel") +
+    kpi("Preço médio ponderado","g",brl(litrosT>0?custoT/litrosT:P.diesel,2)+"/L","ponderado pelo volume mensal","diesel:total") +
+    kpi("Mês de pico","a",litrosT>0?MESES[iPico]:"—", litrosT>0?fmt(litrosMes[iPico])+" L":"sem volume lançado","diesel:total");
 
   $("#t_comb_preco").innerHTML = th([[""],...MESES.map(m=>[m,1])]) + "<tbody>" +
     `<tr><td>Preço (R$/L)</td>` + MESES.map((m,i)=>{

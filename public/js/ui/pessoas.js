@@ -15,10 +15,10 @@ function pintarPessoas(R){
   const porPessoa = o => o.pessoasMes>0 ? brl(o.custo/o.pessoasMes,0) : "—";
 
   $("#k_pes").innerHTML =
-    kpi("Efetivo dimensionado","",fmt(S.qtd)+" pessoas", depts.length+" departamentos · "+funs.length+" funções") +
-    kpi("Pico de mobilização","a",fmt(S.qtdMes[iPico]||0)+" pessoas", S.qtd>0?MESES[iPico]:"") +
-    kpi("Custo de mão de obra","t",brl(S.custo), NM+" meses") +
-    kpi("Custo médio por pessoa","g",pm>0?brl(S.custo/pm,0)+"/mês":"—","pessoa mobilizada no mês");
+    kpi("Efetivo dimensionado","",fmt(S.qtd)+" pessoas", depts.length+" departamentos · "+funs.length+" funções","pessoas:total") +
+    kpi("Pico de mobilização","a",fmt(S.qtdMes[iPico]||0)+" pessoas", S.qtd>0?MESES[iPico]:"","pessoas:pico") +
+    kpi("Custo de mão de obra","t",brl(S.custo), NM+" meses","nat:mdo") +
+    kpi("Custo médio por pessoa","g",pm>0?brl(S.custo/pm,0)+"/mês":"—","pessoa mobilizada no mês","pessoas:total");
 
   $("#t_pes_dept").innerHTML = th([["Departamento"],["Funções",1],["Efetivo",1],["% do efetivo",1],["Pico mensal",1],
     ["Custo MDO",1],["% do custo",1],["R$/pessoa/mês",1]])+"<tbody>"+

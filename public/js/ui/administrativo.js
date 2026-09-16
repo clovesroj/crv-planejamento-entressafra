@@ -12,11 +12,11 @@ function pintarAdm(R){
   const A = R.ADM, AD = R.AD, ha = P.plantio||1;
 
   $("#k_adm").innerHTML =
-    kpi("Custo administrativo","",brl(A.total), A.linhas.filter(l=>l.mensal>0).length+" linhas lançadas") +
-    kpi("Por mês","t",brl(A.mensal),"conta EST-01") +
-    kpi("Por hectare plantado","g",brl(A.total/ha,2)+"/ha", fmt(ha)+" ha de plantio") +
+    kpi("Custo administrativo","",brl(A.total), A.linhas.filter(l=>l.mensal>0).length+" linhas lançadas","nat:admin") +
+    kpi("Por mês","t",brl(A.mensal),"conta EST-01","nat:admin") +
+    kpi("Por hectare plantado","g",brl(A.total/ha,2)+"/ha", fmt(ha)+" ha de plantio","nat:admin") +
     kpi("Peso no custo total","a",R.total>0?fmt(A.total/R.total*100,1)+"%":"—",
-        AD.semRateio>0 ? brl(AD.semRateio)+" sem rateio" : "tudo rateado nas etapas");
+        AD.semRateio>0 ? brl(AD.semRateio)+" sem rateio" : "tudo rateado nas etapas","nat:admin");
 
   /* ---- cadastro das linhas ---- */
   const grupoOpts = sel => Object.entries(ADM_GRUPOS)

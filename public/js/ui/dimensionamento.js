@@ -10,10 +10,10 @@ import { quadroBase } from '../calculo/quadro.js';
 /* ---------- DIMENSIONAMENTO ---------- */
 function pintarDim(R){
   $("#k_dim").innerHTML =
-    kpi("Horas-máquina","",fmt(R.horasT)) +
-    kpi("Frota operacional","t",fmt(R.frotaT)+" un") +
-    kpi("Frota de apoio","g",fmt(Math.ceil(R.AP.total))+" un") +
-    kpi("Transbordos","a",fmt(R.TR.frota)+" un");
+    kpi("Horas-máquina","",fmt(R.horasT),"","frota:horas") +
+    kpi("Frota operacional","t",fmt(R.frotaT)+" un","","frota:oper") +
+    kpi("Frota de apoio","g",fmt(Math.ceil(R.AP.total))+" un","","frota:apoiofixo") +
+    kpi("Transbordos","a",fmt(R.TR.frota)+" un","","frota:transbordo");
 
   $("#t_dim").innerHTML = th([["Cod"],["Atividade / frente"],["Modo"],["Área/Volume",1],["Rend. (un/h)",1],["Utiliz.",1],
     ["Horas",1],["Frota",1],["Efetivo",1],["Função"],["Máquina"],["Implemento"]])+"<tbody>"+
@@ -231,13 +231,13 @@ function pintarDimPessoas(R){
 
   const iPicoGeral = PS.qtdMes.indexOf(Math.max(...PS.qtdMes));
   $("#k_dim_pes").innerHTML =
-    kpi("Efetivo dimensionado","",fmt(PS.qtd)+" pessoas", funcoes.length+" funções") +
-    kpi("Pico de mobilização","t",fmt(PS.qtdMes[iPicoGeral]||0)+" pessoas", PS.qtd>0?MESES[iPicoGeral]:"") +
+    kpi("Efetivo dimensionado","",fmt(PS.qtd)+" pessoas", funcoes.length+" funções","pessoas:total") +
+    kpi("Pico de mobilização","t",fmt(PS.qtdMes[iPicoGeral]||0)+" pessoas", PS.qtd>0?MESES[iPicoGeral]:"","pessoas:pico") +
     kpi("Quadro ativo","g",fmt(tot.ativo)+" pessoas",
-        `nas ${funcoes.length} funções dimensionadas · ${fmt(BASE.mapeado)} mapeados no ERP · ${fmt(BASE.afastados)} afastados fora`) +
+        `nas ${funcoes.length} funções dimensionadas · ${fmt(BASE.mapeado)} mapeados no ERP · ${fmt(BASE.afastados)} afastados fora`,"pessoas:total") +
     (tot.contratar>0
-      ? kpi("A contratar","r",fmt(tot.contratar)+" pessoas","soma das funções com falta")
-      : kpi("Excedente","a",fmt(tot.exced)+" pessoas","nenhuma função com falta"));
+      ? kpi("A contratar","r",fmt(tot.contratar)+" pessoas","soma das funções com falta","pessoas:total")
+      : kpi("Excedente","a",fmt(tot.exced)+" pessoas","nenhuma função com falta","pessoas:total"));
 
   $("#bl_pes_sub").textContent = `${fmt(PS.qtd)} pessoas dimensionadas · pico ${fmt(PS.qtdMes[iPicoGeral]||0)}`
     + (tot.contratar>0 ? ` · faltam ${fmt(tot.contratar)}` : "");

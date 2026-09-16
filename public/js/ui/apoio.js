@@ -7,10 +7,10 @@ import { optFuncao } from './plano.js';
 function pintarApoio(R){
   const A=R.AE;
   $("#k_apoio").innerHTML =
-    kpi("Equipamentos","",fmt(A.equip)+" un") +
-    kpi("Horas no período","t",fmt(A.horas)) +
-    kpi("Efetivo","g",fmt(A.efetivo)+" pessoas") +
-    kpi("Custo total","a",brl(A.total));
+    kpi("Equipamentos","",fmt(A.equip)+" un","","frota:apoio") +
+    kpi("Horas no período","t",fmt(A.horas),"","frota:apoio") +
+    kpi("Efetivo","g",fmt(A.efetivo)+" pessoas","","pessoas:total") +
+    kpi("Custo total","a",brl(A.total),"","frota:apoio");
 
   $("#sel_ap_maq").innerHTML = Object.keys(CFG.maquinas).sort()
     .map(m=>`<option value="${m}">${m}</option>`).join("");

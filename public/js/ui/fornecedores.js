@@ -14,13 +14,13 @@ function pintarForn(R){
 
   $("#k_forn").innerHTML =
     kpi("Custo da cana própria","g", O.propria.ton>0?brl(O.propria.rsT,2)+"/t":"—",
-        fmt(O.propria.ton)+" t · custo de produção") +
+        fmt(O.propria.ton)+" t · custo de produção","forn:total") +
     kpi("Custo da cana de fornecedor","a", O.fornecedor.ton>0?brl(O.fornecedor.rsT,2)+"/t":"—",
-        fmt(O.fornecedor.ton)+" t · aquisição") +
+        fmt(O.fornecedor.ton)+" t · aquisição","forn:total") +
     kpi("Custo médio ponderado","", F.tonTotal>0?brl(F.rsTMedio,2)+"/t":"—",
-        fmt(F.tonTotal)+" t com tonelada lançada"+(F.custoSemTon>0?" · "+brl(F.custoSemTon)+" sem tonelada":"")) +
+        fmt(F.tonTotal)+" t com tonelada lançada"+(F.custoSemTon>0?" · "+brl(F.custoSemTon)+" sem tonelada":""),"forn:total") +
     kpi("Custo por kg de ATR","t", F.atrTotal>0?brl(F.rsAtrMedio,4)+"/kg":"—",
-        F.tonTotal>0?"ATR médio "+fmt(F.atrMedio,1)+" kg/t":"");
+        F.tonTotal>0?"ATR médio "+fmt(F.atrMedio,1)+" kg/t":"","forn:total");
 
   ["precoAtr","atrPropria","freteKm","areaPropria"].forEach(k=>{
     const e = $("#fnp_"+k); if(e) e.value = +fornPar(k).toFixed(4);

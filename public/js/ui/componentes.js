@@ -1,8 +1,8 @@
 import { brl, fmt } from '../nucleo/formato.js';
 
-// `ra` opcional: a chave do rastro. Com ela o card vira botão e abre a
-// explicação daquele custo — é por onde se entra na composição.
-const kpi=(l,c,v,s,ra)=>`<div class="kpi ${c}"${ra?` data-rastro="${ra}" tabindex="0" role="button" title="Ver como este número é composto"`:""}><div class="l">${l}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:""}</div>`;
+// chave opcional: a chave do rastro. Com ela o card vira botão e abre a
+// explicação daquele número — é por onde se entra na composição.
+const kpi=(l,c,v,s,chave)=>`<div class="kpi ${c}"${chave?` data-rastro="${chave}" tabindex="0" role="button" title="Ver como este número é composto"`:""}><div class="l">${l}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:""}</div>`;
 // [rotulo, alinhaDireita, classeExtra] — a classe extra serve, por exemplo, para marcar o periodo do mes
 const th=a=>`<thead><tr>${a.map(x=>{
   const c=[x[1]?"num":"", x[2]||""].filter(Boolean).join(" ");

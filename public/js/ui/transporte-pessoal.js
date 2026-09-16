@@ -7,11 +7,11 @@ function pintarTPess(R){
   const T = R.TP;
   const cobertura = R.efetivoTotal>0 ? T.lugares/R.efetivoTotal*100 : 0;
   $("#k_tp").innerHTML =
-    kpi("Custo total","",brl(T.total)) +
-    kpi("Veículos / lugares","t",fmt(T.veic)+" / "+fmt(T.lugares), "no mês de pico") +
-    kpi("Safra","g",brl(T.porPeriodo.safra), NM_PER.safra+" meses · "+PERIODO_MESES.safra) +
+    kpi("Custo total","",brl(T.total),"","tpess:total") +
+    kpi("Veículos / lugares","t",fmt(T.veic)+" / "+fmt(T.lugares), "no mês de pico","tpess:total") +
+    kpi("Safra","g",brl(T.porPeriodo.safra), NM_PER.safra+" meses · "+PERIODO_MESES.safra,"tpess:total") +
     kpi("Entressafra","a",brl(T.porPeriodo.entressafra),
-        NM_PER.entressafra+" meses · "+PERIODO_MESES.entressafra);
+        NM_PER.entressafra+" meses · "+PERIODO_MESES.entressafra,"tpess:total");
 
   // Cada rota ocupa três linhas: a identificação e o preço de contrato ficam na
   // linha-mãe, e a operação — quantos veículos, quantos km, quantos dias —

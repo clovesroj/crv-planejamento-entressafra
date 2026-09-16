@@ -21,8 +21,8 @@ const NAT_RASTRO = {"Combustível (diesel)":"diesel","Mão de obra direta":"mdo"
 function pintarCustos(R){
   const ha=P.plantio||1;
   $("#k_custo").innerHTML =
-    kpi("Custo total","",brl(R.total)) + kpi("Custo variável","t",brl(R.variavel)) +
-    kpi("Custo fixo","a",brl(R.fixoT)) + kpi("Custo por ha plantado","g",brl(R.total/ha));
+    kpi("Custo total","",brl(R.total),"","total") + kpi("Custo variável","t",brl(R.variavel),"","total") +
+    kpi("Custo fixo","a",brl(R.fixoT),"","total") + kpi("Custo por ha plantado","g",brl(R.total/ha),"","total");
 
   // safra (abril a novembro) × entressafra (dezembro a março)
   const PR = R.PER, perTot = PR.safra.total + PR.entressafra.total;
@@ -30,10 +30,10 @@ function pintarCustos(R){
   $("#k_per").innerHTML =
     ["safra","entressafra"].map(p=>{ const o=PR[p];
       return kpi("Custo na "+nomeP(p), p==="safra"?"g":"a", brl(o.total),
-        o.meses.join(" · ")+(perTot>0?" — "+fmt(o.total/perTot*100,1)+"% do total":"")); }).join("") +
+        o.meses.join(" · ")+(perTot>0?" — "+fmt(o.total/perTot*100,1)+"% do total":""),"total"); }).join("") +
     ["safra","entressafra"].map(p=>{ const o=PR[p];
       return kpi("Média mensal — "+nomeP(p), p==="safra"?"g":"a", o.meses.length?brl(o.total/o.meses.length):"—",
-        o.meses.length+(o.meses.length===1?" mês":" meses")+" no orçamento"); }).join("");
+        o.meses.length+(o.meses.length===1?" mês":" meses")+" no orçamento","total"); }).join("");
 
   $("#t_per_cat").innerHTML = th([["Grande conta"],["Safra",1],["% safra",1],["Entressafra",1],["% entressafra",1],["Total",1]])+"<tbody>"+
     Object.keys(CAT_LBL).map(k=>{ const s=PR.safra.cat[k], e=PR.entressafra.cat[k], t=s+e;

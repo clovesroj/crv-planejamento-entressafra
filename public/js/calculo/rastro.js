@@ -1,12 +1,18 @@
 import { ADM_CRITERIOS } from '../dados/administrativo.js';
 import { CFG } from '../dados/cfg.js';
 import { ESCALAS } from '../dados/escalas.js';
-import { MESES, NM } from '../nucleo/calendario.js';
-import { P } from '../nucleo/estado.js';
+import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
+import { P, insLista } from '../nucleo/estado.js';
 import { brl, fmt, num, pct } from '../nucleo/formato.js';
 import { ETAPAS_ORD, arrRat } from './arrendamento.js';
 import { tarifaTerc } from './atividade.js';
 import { tratCusto } from './insumos.js';
+import { reforma } from './reforma.js';
+
+// soma um array de NM meses respeitando o filtro de período (mesmo critério de R.PER)
+const somaPeriodo = (arr, periodo) => !arr ? 0
+  : periodo==="todos" ? arr.reduce((s,v)=>s+num(v),0)
+  : arr.reduce((s,v,i)=>s+(periodoMes(i)===periodo?num(v):0),0);
 
 /* ================== RASTRO DOS CÁLCULOS ==================
    Monta a explicação de um custo, descendo a cadeia:
@@ -44,7 +50,7 @@ function rastroTotal(R){
   return {
     titulo: "Custo total projetado",
     subtitulo: "Todo o plano, por centro de custo",
-    valor: R.total,
+    valor: brl(R.total),
     blocos: [
       {titulo:"Centros de custo (etapas do plano)", linhas: etapas.map(([e,d])=>({
         rot:e, val:brl(d.total), ir:"etapa:"+e,
@@ -107,7 +113,7 @@ function rastroEtapa(R, etapa){
     {rot:`Custo por ${base.un}`, val:brl(d.total/base.q,2)+"/"+base.un},
   ]});
 
-  return {titulo:etapa, subtitulo:"Centro de custo · etapa do plano", valor:d.total, blocos,
+  return {titulo:etapa, subtitulo:"Centro de custo · etapa do plano", valor:brl(d.total), blocos,
           premissas:premissasGerais(), voltar:"total"};
 }
 
@@ -161,7 +167,7 @@ function rastroAtividade(R, cod){
 
   const cf = R.MP.custoFuncao[r.fcod] || {};
   return {titulo:`${r.a.cod} · ${r.a.nome}`, subtitulo:"Atividade do Plano Operacional",
-    valor:r.direto, blocos,
+    valor:brl(r.direto), blocos,
     premissas: premissasGerais().concat([
       {rot:"Salário do cargo "+(cf.nome||r.fcod), val:brl(cf.salCad||cf.sal||0,2)},
       {rot:"Custo mensal do cargo, com encargos e benefícios", val:brl(cf.mensal||0,2)},
@@ -190,12 +196,12 @@ function rastroNatureza(R, nat){
       {rot:"Equipe de manutenção", val:brl(R.mdoManut)},
     ]});
     return {titulo:NAT[nat]||nat, subtitulo:"Natureza de custo, somada no plano",
-            valor: nat==="mdo" ? R.mdoTotal : soma, blocos,
+            valor: brl(nat==="mdo" ? R.mdoTotal : soma), blocos,
             premissas:premissasGerais(), voltar:"total"};
   }
   if(nat==="arrend"){
     const A = R.AR;
-    return {titulo:"Arrendamento", subtitulo:"Custo da terra arrendada", valor:R.arrT,
+    return {titulo:"Arrendamento", subtitulo:"Custo da terra arrendada", valor:brl(R.arrT),
       blocos:[
         {titulo:"Fazendas", linhas:A.linhas.map(l=>({rot:l.faz+(l.grupo?" · "+l.grupo:""),
           val:brl(l.periodo), sub:`${fmt(l.area)} ha × ${brl(l.rsHa,2)}/ha/ano`}))},
@@ -208,7 +214,7 @@ function rastroNatureza(R, nat){
   }
   if(nat==="admin"){
     const A = R.ADM;
-    return {titulo:"Administração", subtitulo:"Custos administrativos rateados", valor:R.admT,
+    return {titulo:"Administração", subtitulo:"Custos administrativos rateados", valor:brl(R.admT),
       blocos:[
         {titulo:"Linhas lançadas", linhas:A.linhas.filter(l=>l.total>0).map(l=>({
           rot:l.desc, val:brl(l.total),
@@ -228,7 +234,7 @@ function rastroMes(R, i){
   const idx = +i;
   const itens = R.L.map(r=>({r, v:(r.direto-r.cDiesel)*(r.total>0?num(r.meses[idx])/r.total:0)+r.dieselMes[idx]}))
     .filter(x=>x.v>0).sort((a,b)=>b.v-a.v);
-  return {titulo:MESES[idx], subtitulo:"Custo do mês", valor:R.meses[idx],
+  return {titulo:MESES[idx], subtitulo:"Custo do mês", valor:brl(R.meses[idx]),
     blocos:[
       {titulo:"Grandes contas do mês", linhas:Object.entries(R.mesesCat)
         .map(([k,a])=>({rot:k, val:brl(a[idx])}))},
@@ -240,13 +246,244 @@ function rastroMes(R, i){
     premissas:premissasGerais(), voltar:"total"};
 }
 
-function rastro(R, chave){
-  const [tipo, arg] = String(chave||"total").split(":");
+/* ---------- pessoas: efetivo dimensionado pelo plano ---------- */
+function rastroPessoasTotal(R){
+  const PS = R.PS;
+  const porDept = Object.entries(PS.porDept).sort((a,b)=>b[1].qtd-a[1].qtd);
+  const porFun  = Object.entries(PS.porFun).sort((a,b)=>b[1].qtd-a[1].qtd);
+  const somaDept = porDept.reduce((s,[,d])=>s+d.qtd,0);
+  const fora = R.efetivoTotal - somaDept;
+  return {titulo:"Efetivo total", subtitulo:"Pessoas dimensionadas pelo plano inteiro", valor:fmt(R.efetivoTotal)+" pessoas",
+    blocos:[
+      {titulo:"Por departamento", linhas: porDept.map(([d,o])=>({rot:d, val:fmt(o.qtd)+" pessoas", ir:"pessoas:dept:"+d,
+          sub:`pico de ${fmt(o.pico)} em algum mês`}))
+        .concat(Math.abs(fora)>0.5 ? [{rot:"Fora do detalhamento por departamento", val:fmt(fora)+" pessoas"}] : [])},
+      {titulo:"Por função", linhas: porFun.map(([f,o])=>({rot:(PS.itens.find(i=>i.fcod===f)||{}).fnome||f,
+          val:fmt(o.qtd)+" pessoas", ir:"pessoas:fun:"+f}))},
+    ],
+    premissas:premissasGerais()};
+}
+function rastroPessoasDept(R, dept){
+  const o = R.PS.porDept[dept]; if(!o) return null;
+  const itens = R.PS.itens.filter(i=>i.dept===dept);
+  return {titulo:dept, subtitulo:"Departamento · efetivo dimensionado", valor:fmt(o.qtd)+" pessoas",
+    blocos:[{titulo:"Origem do efetivo", linhas: itens.map(i=>({rot:i.origem, val:fmt(i.qtd)+" pessoas", sub:i.fnome}))}],
+    premissas:premissasGerais(), voltar:"pessoas:total"};
+}
+function rastroPessoasFun(R, fcod){
+  const o = R.PS.porFun[fcod]; if(!o) return null;
+  const itens = R.PS.itens.filter(i=>i.fcod===fcod);
+  return {titulo:(itens[0]||{}).fnome||fcod, subtitulo:"Função · efetivo dimensionado", valor:fmt(o.qtd)+" pessoas",
+    blocos:[{titulo:"Onde esta função é usada", linhas: itens.map(i=>({rot:i.origem, val:fmt(i.qtd)+" pessoas", sub:i.dept}))}],
+    premissas:premissasGerais(), voltar:"pessoas:total"};
+}
+function rastroPessoasPico(R, periodo){
+  const PS = R.PS;
+  const idxs = MESES.map((m,i)=>i).filter(i=>periodo==="todos"||periodoMes(i)===periodo);
+  const pico = idxs.length ? Math.max(0,...idxs.map(i=>PS.qtdMes[i])) : 0;
+  const iPico = idxs.find(i=>PS.qtdMes[i]===pico);
+  return {titulo:"Pico de mobilização", subtitulo:"Maior necessidade simultânea de pessoas", valor:fmt(pico)+" pessoas",
+    blocos:[{titulo:"Pessoas mobilizadas, por mês", linhas: idxs.map(i=>({rot:MESES[i], val:fmt(PS.qtdMes[i])+" pessoas"}))}],
+    nota: iPico!=null&&pico>0 ? `Pico em ${MESES[iPico]}.` : "",
+    premissas:premissasGerais(), temPeriodo:true};
+}
+
+/* ---------- frota: horas, equipamentos, CRM ---------- */
+function rastroFrotaHoras(R){
+  const ativs = R.L.filter(r=>r.horas>0).sort((a,b)=>b.horas-a.horas);
+  return {titulo:"Horas-máquina", subtitulo:"Horas de uso da frota, todas as atividades", valor:fmt(R.horasT)+" h",
+    blocos:[{titulo:"Atividades que mais usam frota", linhas: ativs.slice(0,25).map(r=>({
+      rot:`${r.a.cod} · ${r.a.nome}`, val:fmt(r.horas)+" h", ir:"ativ:"+r.a.cod, sub:(r.frotaR||0)+" equip."}))}],
+    premissas:premissasGerais()};
+}
+function rastroFrotaOper(R){
+  const itens = [...R.crmFrotaL].filter(l=>l.qtd>0).sort((a,b)=>b.qtd-a.qtd);
+  return {titulo:"Frota operacional", subtitulo:"Equipamentos necessários pelo plano", valor:fmt(R.frotaT)+" un",
+    blocos:[{titulo:"Por item de frota", linhas: itens.map(l=>({rot:l.item, val:fmt(l.qtd)+" un",
+      sub:`${fmt(l.hTotPlano)} ${l.unidade==="km"?"km":"h"} de uso pelo plano`}))}],
+    premissas:premissasGerais()};
+}
+function rastroFrotaApoioFixo(R){
+  const itens = R.AP.linhas.filter(l=>l.nec>0.01).sort((a,b)=>b.nec-a.nec);
+  return {titulo:"Frota de apoio", subtitulo:"Utilização fixa, fora do CRM por horas do plano", valor:fmt(Math.ceil(R.AP.total))+" un",
+    blocos:[{titulo:"Itens", linhas: itens.map(l=>({rot:l.nome||l.item, val:fmt(l.nec,1)+" un",
+      sub:`${l.ativ?l.ativ+" · ":""}disponibilidade ${fmt((l.disp||0)*100,0)}%, utilização ${fmt((l.util||0)*100,0)}%`}))}],
+    premissas:premissasGerais()};
+}
+function rastroTransbordo(R){
+  const TR = R.TR;
+  const blocos = ["camSafra","camMuda","trbSafra","trbMuda"].map(k=>TR[k])
+    .filter(b=>b.frotaR>0).map(b=>({rot:b.nome, val:fmt(b.frotaR)+" un",
+      sub:`${fmt(b.ton)} t · ciclo de ${fmt(b.ciclo,1)} min · ${fmt(b.viagens,0)} viagens`}));
+  return {titulo:"Transbordos", subtitulo:"Frota de transporte e transbordo de cana", valor:fmt(TR.frota)+" un",
+    blocos:[{titulo:"Por bloco (colheita/muda × caminhão/transbordo)", linhas: blocos.length?blocos:[{rot:"Nada dimensionado", val:"—"}]}],
+    premissas: premissasGerais().concat([
+      {rot:"Raio médio — safra", val:fmt(P.raioSafra)+" km"}, {rot:"Raio médio — muda", val:fmt(P.raioMuda)+" km"},
+    ])};
+}
+function rastroApoio(R){
+  const AE = R.AE;
+  const itens = [...AE.linhas].sort((a,b)=>b.total-a.total);
+  return {titulo:"Equipamentos de apoio", subtitulo:"Utilização fixa, por número de equipamentos e horas", valor:fmt(AE.equip)+" un",
+    blocos:[{titulo:"Equipamentos", linhas: itens.map(l=>({rot:l.nome, val:fmt(num(l.qtd))+" un",
+      sub:`${fmt(l.horas)} h · ${l.efetivo} pessoas · ${brl(l.total)}`}))}],
+    premissas:premissasGerais()};
+}
+function rastroCRM(R){
+  const itens = [...R.crmFrotaL].filter(l=>l.total>0.01).sort((a,b)=>b.total-a.total);
+  return {titulo:"CRM total projetado", subtitulo:"Manutenção — peças, terceiros, materiais e lubrificantes", valor:brl(R.crmTotal),
+    blocos:[
+      {titulo:"Por componente", linhas: CRM_COMP_LBL.map(([k,n])=>({rot:n, val:brl(R.crmComp[k])}))},
+      {titulo:"Por item de frota", linhas: itens.slice(0,25).map(l=>({rot:l.item, val:brl(l.total),
+        sub:`${fmt(l.baseUso)} ${l.unidade} a ${brl(l.rh,2)}/${l.unidade}`}))},
+    ],
+    premissas:premissasGerais()};
+}
+function rastroCRMExced(R){
+  const itens = [...R.crmFrotaL].filter(l=>l.crmExced>0.01).sort((a,b)=>b.crmExced-a.crmExced);
+  return {titulo:"CRM de frota excedente", subtitulo:"Frota prevista além do que o plano efetivamente usa", valor:brl(R.crmExtra),
+    blocos:[{titulo:"Itens com excedente", linhas: itens.length ? itens.map(l=>({rot:l.item, val:brl(l.crmExced),
+      sub:`${fmt(l.horasExced)} ${l.unidade} não usados pelo plano`})) : [{rot:"Nenhum excedente", val:"—"}]}],
+    premissas:premissasGerais()};
+}
+function rastroReforma(){
+  const R = reforma();
+  const conj = Object.entries(R.porConjunto||{}).sort((a,b)=>b[1]-a[1]);
+  return {titulo:"Provisionamento de reforma", subtitulo:"Orçamento de reforma por conjunto/especialidade", valor:brl(R.total),
+    blocos:[
+      {titulo:"Por especialidade", linhas: (R.esps||[]).filter(e=>e.total>0).sort((a,b)=>b.total-a.total).map(e=>({
+        rot:e.esp, val:brl(e.total), sub:`${e.unidades} equip. · ${e.orcadas} orçados · média ${brl(e.media||0)}`}))},
+      {titulo:"Onde concentra o gasto (conjunto)", linhas: conj.length ? conj.map(([c,v])=>({rot:c, val:brl(v)}))
+        : [{rot:"Nenhum conjunto orçado ainda", val:"—"}]},
+    ],
+    nota:"Marque o destino de cada equipamento em Manutenção de Frota — botão + do modelo, opção \"Vai reformar\".",
+    premissas:premissasGerais()};
+}
+
+/* ---------- diesel ---------- */
+function rastroDiesel(R, periodo){
+  const CB = R.CB;
+  const idxs = MESES.map((m,i)=>i).filter(i=>periodo==="todos"||periodoMes(i)===periodo);
+  const litros = somaPeriodo(idxs.map(i=>CB.litrosOperMes[i]+CB.litrosApoioMes[i]), "todos");
+  const custo  = somaPeriodo(idxs.map(i=>CB.custoOperMes[i]+CB.custoApoioMes[i]), "todos");
+  return {titulo:"Volume de diesel necessário", subtitulo:"Combustível projetado pela frota do plano", valor:fmt(litros)+" L",
+    blocos:[{titulo:"Litros, por mês", linhas: idxs.map(i=>({rot:MESES[i],
+      val:fmt(CB.litrosOperMes[i]+CB.litrosApoioMes[i])+" L", sub:brl(CB.preco[i],2)+"/L"}))}],
+    nota: litros>0 ? `Custo no período: ${brl(custo)}.` : "",
+    premissas: premissasGerais(), temPeriodo:true};
+}
+
+/* ---------- insumos ---------- */
+function rastroInsumos(R){
+  const lista = insLista();
+  const itens = lista.slice().sort((a,b)=>(R.volDem[b.prod]||0)-(R.volDem[a.prod]||0));
+  return {titulo:"Produtos cadastrados", subtitulo:"Insumos agronômicos no cadastro", valor:fmt(lista.length),
+    blocos:[{titulo:"Com maior volume demandado no plano", linhas: itens.filter(i=>(R.volDem[i.prod]||0)>0).slice(0,20).map(i=>({
+      rot:i.prod, val:fmt(R.volDem[i.prod],1)+" "+(i.un||""), sub:brl(i.preco,2)+"/"+(i.un||"un")}))
+      .concat(itens.some(i=>(R.volDem[i.prod]||0)>0)?[]:[{rot:"Nenhum volume demandado ainda", val:"—"}])}],
+    premissas:premissasGerais()};
+}
+
+/* ---------- fornecedores / matéria-prima ---------- */
+function rastroForn(R){
+  const F = R.FORN;
+  const origens = Object.entries(F.origens||{}).sort((a,b)=>b[1].custo-a[1].custo);
+  return {titulo:"Matéria-prima", subtitulo:"Custo médio ponderado por tonelada, todas as origens", valor: F.tonTotal>0?brl(F.rsTMedio,2)+"/t":"—",
+    blocos:[{titulo:"Por origem", linhas: origens.map(([nome,o])=>({rot:o.nome||nome, val:o.ton>0?brl(o.rsT,2)+"/t":"—",
+      sub:`${fmt(o.ton)} t · ${brl(o.custo)} · ${o.nat}`}))}],
+    premissas: premissasGerais().concat([{rot:"ATR médio ponderado", val:fmt(F.atrMedio,1)+" kg/t"}])};
+}
+
+/* ---------- transporte de pessoal ---------- */
+function rastroTPess(R){
+  const TP = R.TP;
+  const itens = [...TP.linhas].sort((a,b)=>b.total-a.total);
+  return {titulo:"Transporte de pessoal", subtitulo:"Rotas de ônibus/van dos colaboradores", valor:brl(TP.total),
+    blocos:[{titulo:"Por rota", linhas: itens.map(l=>({rot:l.rota, val:brl(l.total),
+      sub:`${fmt(num(l.qtd))} veíc. · ${fmt(l.lugares)} lugares · ${fmt(l.kmRota+l.kmEx)} km`}))}],
+    premissas:premissasGerais()};
+}
+
+/* ---------- plano de contas ---------- */
+function rastroContas(R){
+  const CV = contasValoresRastro(R);
+  const mapeado = CFG.contas.reduce((s,c)=>s+(CV[c.conta]||0),0);
+  const linhas = CFG.contas.filter(c=>CV[c.conta]>0).sort((a,b)=>CV[b.conta]-CV[a.conta]);
+  return {titulo:"Plano de Contas", subtitulo:"Custo projetado mapeado às contas contábeis", valor:brl(mapeado),
+    blocos:[{titulo:"Contas com maior valor", linhas: linhas.slice(0,20).map(c=>({rot:c.conta+" · "+c.desc,
+      val:brl(CV[c.conta]), sub:c.grupo}))}],
+    nota:`${CFG.contas.length} contas cadastradas · ${fmt(R.total>0?mapeado/R.total*100:0,0)}% do custo total mapeado.`,
+    premissas:premissasGerais()};
+}
+// versão local, sem depender de ui/contas.js (calculo/ não importa de ui/)
+function contasValoresRastro(R){
+  const efet = R.efetivoTotal||0, encTot = R.MP.encTot, benTot = R.MP.benTot;
+  const totalBenef = benTot*efet*NM;
+  const totalBase = (1+encTot)>0 ? (R.mdoTotal-totalBenef)/(1+encTot) : 0;
+  const totalEnc = totalBase*encTot;
+  const encPctNome = nome => (CFG.encargos.find(e=>e.nome.includes(nome))||{pct:0}).pct;
+  const encVal = nome => encTot>0 ? totalEnc*(encPctNome(nome)/encTot) : 0;
+  const benVal = conta => { const b=CFG.beneficios.find(x=>x.conta===conta); return b? b.valor*efet*NM : 0; };
+  const mdoMaq   = R.L.filter(r=>r.a.maq!=="Equipe manual").reduce((s,r)=>s+r.cMDO,0);
+  const mdoManual= R.L.filter(r=>r.a.maq==="Equipe manual").reduce((s,r)=>s+r.cMDO,0);
+  const tc = cod => (R.TC.itens.find(i=>i.cod===cod)||{total:0}).total;
+  return {
+    "200-15": R.mdoIndirT, "200-16": R.mdoManut, "200-17": mdoMaq, "200-18": mdoManual,
+    "200-35": encVal("INSS"), "200-36": encVal("FGTS"),
+    "200-51": benVal("200-51 / 200-52"), "200-53": benVal("200-53"),
+    "200-54": benVal("200-54"), "200-55": benVal("200-55"),
+    "200-72": benVal("200-72 / 200-73"), "200-77": benVal("200-79 / 200-77"),
+    "200-93": R.crmComp.pecas, "200-94": R.crmComp.terc,
+    "200-95": R.crmComp.consumo+R.MT.total, "200-98": R.crmComp.lubrif,
+    "200-110": R.dieselT, "200-124": tc("T02")+tc("T03")+R.tercAtivT, "200-126": tc("T01"), "200-127": R.tpessT,
+    "INS-05": R.irrT, "DEP-01": R.depT, "EST-01": R.admT, "ARR-01": R.arrT,
+  };
+}
+
+/* ---------- hectares operados ---------- */
+function rastroHectares(R){
+  const ativs = R.L.filter(r=>r.ehHa && r.total>0).sort((a,b)=>b.total-a.total);
+  return {titulo:"Hectares operados", subtitulo:"Área lançada no Plano Operacional, atividades em ha", valor:fmt(R.haOp)+" ha",
+    blocos:[{titulo:"Por atividade", linhas: ativs.map(r=>({rot:`${r.a.cod} · ${r.a.nome}`, val:fmt(r.total)+" ha",
+      ir:"ativ:"+r.a.cod, sub:r.a.etapa}))}],
+    premissas:premissasGerais()};
+}
+
+const CRM_COMP_LBL = [["pecas","Peças"],["terc","Serviços de terceiros"],["consumo","Materiais de uso e consumo"],["lubrif","Lubrificantes"]];
+
+function rastro(R, chave, periodo){
+  const s = String(chave||"total");
+  const i = s.indexOf(":");
+  const tipo = i<0 ? s : s.slice(0,i);
+  const arg  = i<0 ? "" : s.slice(i+1);
+  const p = periodo || "todos";
   if(tipo==="total") return rastroTotal(R);
   if(tipo==="etapa") return rastroEtapa(R, arg);
   if(tipo==="ativ")  return rastroAtividade(R, arg);
   if(tipo==="nat")   return rastroNatureza(R, arg);
   if(tipo==="mes")   return rastroMes(R, arg);
+  if(tipo==="pessoas"){
+    if(arg==="total" || !arg) return rastroPessoasTotal(R);
+    if(arg==="pico") return rastroPessoasPico(R, p);
+    if(arg.startsWith("dept:")) return rastroPessoasDept(R, arg.slice(5));
+    if(arg.startsWith("fun:"))  return rastroPessoasFun(R, arg.slice(4));
+  }
+  if(tipo==="frota"){
+    if(arg==="horas") return rastroFrotaHoras(R);
+    if(arg==="oper") return rastroFrotaOper(R);
+    if(arg==="apoiofixo") return rastroFrotaApoioFixo(R);
+    if(arg==="transbordo") return rastroTransbordo(R);
+    if(arg==="apoio") return rastroApoio(R);
+    if(arg==="crm") return rastroCRM(R);
+    if(arg==="crmexced") return rastroCRMExced(R);
+    if(arg==="reforma") return rastroReforma();
+  }
+  if(tipo==="diesel") return rastroDiesel(R, p);
+  if(tipo==="insumos") return rastroInsumos(R);
+  if(tipo==="forn") return rastroForn(R);
+  if(tipo==="tpess") return rastroTPess(R);
+  if(tipo==="contas") return rastroContas(R);
+  if(tipo==="hect") return rastroHectares(R);
   return rastroTotal(R);
 }
 

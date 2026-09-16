@@ -1,5 +1,44 @@
 # Histórico de mudanças
 
+## 2.16.0 — 2026-09-16 · KPIs interativos em todo o app
+
+Todo cartão de indicador (82 KPIs, nas 19 abas) agora abre a explicação de
+onde o número vem — estende a gaveta de rastreabilidade da versão anterior
+em vez de duplicá-la.
+
+### Modal com blur, no lugar da gaveta lateral
+
+`#rastro`/`#rastro_fundo` deixam de ser uma gaveta fixa na lateral e viram
+um modal centralizado (`.ra-modal`) com blur no fundo (`backdrop-filter`) e
+entrada animada — só na transição fechado→aberto, não a cada tecla digitada
+em outro campo (`pintarRastro()` roda a cada `render()`, então sem esse
+cuidado a animação piscaria o tempo todo com o modal já aberto).
+
+### Filtro de período
+
+Indicadores com granularidade mensal (diesel, pico de mobilização) ganham
+um seletor **Ano todo / Safra / Entressafra** dentro do próprio modal, que
+recalcula a partir do último resultado já computado — sem recalcular o
+plano inteiro.
+
+### Famílias novas em `calculo/rastro.js`
+
+O rastro só cobria composição de custo (R$). Oito famílias novas cobrem o
+que não é custo: `pessoas:*` (efetivo, com drill-down por departamento e
+função), `frota:*` (horas, frota operacional/apoio, CRM, transbordos,
+reforma), `diesel:*`, `insumos:*`, `forn:*` (matéria-prima), `tpess:*`
+(transporte de pessoal), `contas:*` (plano de contas) e `hect:*` (hectares
+operados). Cada uma só **lê** o objeto que o `calculo/<domínio>.js`
+correspondente já calcula — nenhuma lógica de cálculo foi tocada.
+
+### Arquivos
+
+`kpi()` em [componentes.js](public/js/ui/componentes.js) ganha um 5º
+argumento opcional (a chave do rastro). As 17 telas com KPI (`ui/*.js`)
+passam a chave certa em cada chamada — mecânico, sem mudar nenhum número
+exibido.
+
+
 ## 2.15.0 — 2026-09-16 · Relatórios e exportação
 
 Dezesseis relatórios nomeados, escolhidos no botão **Relatório** do topo, e três

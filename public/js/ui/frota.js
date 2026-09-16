@@ -17,10 +17,10 @@ function pintarCRM(R){
 
   const crmT = R.crmTotal;
   $("#k_crm").innerHTML =
-    kpi("CRM total projetado","",brl(crmT), "frota prevista x uso x R$/h (máquinas) ou R$/km (veículos)") +
-    kpi("CRM de frota excedente", R.crmExtra>0?"a":"g", brl(R.crmExtra), "tratado em separado") +
-    kpi("Peças + serviços 3º","t",brl(R.crmComp.pecas+R.crmComp.terc)) +
-    kpi("Materiais + lubrificantes","g",brl(R.crmComp.consumo+R.crmComp.lubrif));
+    kpi("CRM total projetado","",brl(crmT), "frota prevista x uso x R$/h (máquinas) ou R$/km (veículos)","frota:crm") +
+    kpi("CRM de frota excedente", R.crmExtra>0?"a":"g", brl(R.crmExtra), "tratado em separado","frota:crmexced") +
+    kpi("Peças + serviços 3º","t",brl(R.crmComp.pecas+R.crmComp.terc),"","frota:crm") +
+    kpi("Materiais + lubrificantes","g",brl(R.crmComp.consumo+R.crmComp.lubrif),"","frota:crm");
 
   const doAg = R.crmFrotaL.filter(l=>agDeLinha(l)===CAT_SEL);
   const porEsp = {};

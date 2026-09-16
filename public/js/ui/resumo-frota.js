@@ -16,9 +16,9 @@ function pintarResumoFrota(R){
   const totIrrig = irrig.reduce((s,l)=>s+l.nConj,0);
 
   $("#k_resfrota").innerHTML =
-    kpi("Frota operacional + apoio","",fmt(totOper)+" un","máquinas e implementos") +
-    kpi("Apoio de utilização fixa","t",fmt(totApoio)+" un") +
-    kpi("Transporte de pessoal","g",fmt(R.TP.veic)+" un",fmt(R.TP.lugares)+" lugares") +
+    kpi("Frota operacional + apoio","",fmt(totOper)+" un","máquinas e implementos","frota:oper") +
+    kpi("Apoio de utilização fixa","t",fmt(totApoio)+" un","","frota:apoiofixo") +
+    kpi("Transporte de pessoal","g",fmt(R.TP.veic)+" un",fmt(R.TP.lugares)+" lugares","tpess:total") +
     kpi("Conjuntos de irrigação","a",fmt(totIrrig)+" un") +
     kpi("Frota cadastrada (base)","t",
         fmt((CFG.frota_base||[]).reduce((s,e)=>s+contaOrigem(e.prop,e.terc),0))+" un",
