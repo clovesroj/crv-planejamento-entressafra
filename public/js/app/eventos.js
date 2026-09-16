@@ -119,7 +119,7 @@ document.addEventListener("change",e=>{
     if(f==="entIni" && +l.entFim < +l.entIni) l.entFim = l.entIni;
     if(f==="entFim" && +l.entFim < +l.entIni) l.entIni = l.entFim;
     salvar(); render(); return; }
-  if(t.id==="sel_plano_mes"){ aplicarFiltroPlano(t.value); return; }
+  if(t.id==="sel_plano_mes"){ aplicarFiltroPlano(t.value); render(); return; }
   if(t.id==="sel_trat"){ setTRAT_SEL(t.value); render(); return; }
   if(t.id==="sel_fun"){ setFUN_SEL(t.value); render(); return; }
   if(t.id==="sel_cat"){ setCAT_SEL(t.value); render(); return; }
