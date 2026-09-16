@@ -1,8 +1,8 @@
 import { CFG } from '../dados/cfg.js';
-import { APOIO, APOIO_FIXO, ARREND, ARR_PAR, ARR_RAT, BEN, CRM, DIESEL_MES, DIM, EDITADO, ENC, ESPOR, FORN, FORN_PAR, FROTA, CRM_ESP, MAQ, FROTA_UN, GRAT, INSUMO, INSX, MATX, NIV, P, PLANO, TERC_TAR, TPESS, TRATC, TRAT_NOME } from '../nucleo/estado.js';
+import { APOIO, APOIO_FIXO, ARREND, ARR_PAR, ARR_RAT, BEN, CRM, DIESEL_MES, DIM, EDITADO, ENC, ESPOR, FORN, FORN_PAR, FROTA, CRM_ESP, MAQ, FROTA_UN, GRAT, INSUMO, INSX, MATX, NIV, P, PLANO, QUADRO, TERC_TAR, TPESS, TRATC, TRAT_NOME } from '../nucleo/estado.js';
 import { setAPOIO, setAPOIO_FIXO, setARREND, setARR_PAR, setARR_RAT, setBEN, setCRM,
          setDIESEL_MES, setDIM, setEDITADO, setFORN, setFORN_PAR, setENC, setESPOR, setFROTA, setCRM_ESP, setMAQ, setFROTA_UN, setGRAT, setINSUMO,
-         setINSX, setMATX, setNIV, setP, setPLANO, setTERC_TAR, setTPESS, setTRATC,
+         setINSX, setMATX, setNIV, setP, setPLANO, setQUADRO, setTERC_TAR, setTPESS, setTRATC,
          setTRAT_NOME } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { MESES, NM } from '../nucleo/calendario.js';
@@ -15,7 +15,7 @@ let REMOTO = null, saveTimer = null;
 /* ---------- persistência ---------- */
 function estado(){
   const s = {P,PLANO,DIM,INSUMO,ESPOR,TRATC,TRAT_NOME,DIESEL_MES,ARREND,ARR_PAR,ARR_RAT,FORN,FORN_PAR,ENC,BEN,NIV,GRAT,APOIO,APOIO_FIXO,
-             TERC_TAR,CRM,CRM_ESP,MAQ,FROTA_UN,MATX,INSX,FROTA,TPESS,FUN:CFG.funcoes.map(f=>f.sal),v:10};
+             TERC_TAR,CRM,CRM_ESP,MAQ,FROTA_UN,MATX,INSX,FROTA,TPESS,QUADRO,FUN:CFG.funcoes.map(f=>f.sal),v:10};
   // Campos que esta sessão nunca tocou ficam nulos ou vazios em memória. Enviá-los
   // apagava no servidor o que outra sessão já tinha preenchido — por isso são omitidos.
   Object.keys(s).forEach(k=>{
@@ -137,6 +137,7 @@ function aplicar(d){
   if(d.INSX) setINSX(d.INSX);
   if(d.FROTA) setFROTA(d.FROTA);
   if(d.TPESS) setTPESS(d.TPESS);
+  if(d.QUADRO) setQUADRO(d.QUADRO);
   if(d.FUN) d.FUN.forEach((s,i)=>{ if(CFG.funcoes[i]) CFG.funcoes[i].sal=s; });
 }
 /* ---------------------------------------------------------------------------

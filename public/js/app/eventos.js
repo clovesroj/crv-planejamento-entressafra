@@ -5,7 +5,7 @@ import { destravarNiv } from '../calculo/mao-de-obra.js';
 import { CFG } from '../dados/cfg.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM } from '../nucleo/calendario.js';
-import { APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, NIV, P, PLANO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, apoioLista, arrLista, fornLista, insLista, matLista, tpessLista } from '../nucleo/estado.js';
+import { APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, NIV, P, PLANO, QUADRO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, apoioLista, arrLista, fornLista, insLista, matLista, tpessLista } from '../nucleo/estado.js';
 import { FROTA_ABERTO, FROTA_UN, MAQ, setFROTA_DEST, setFROTA_ORIG } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { aplicarFiltroPlano } from '../ui/plano.js';
@@ -91,6 +91,9 @@ document.addEventListener("input",e=>{
   if(t.dataset.fn!==undefined && t.tagName==="INPUT"){ const l=fornLista()[+t.dataset.fn], f=t.dataset.f;
     l[f] = ["forn","prop"].includes(f) ? t.value : num(t.value); salvar(); leve(); return; }
   if(t.dataset.fnp!==undefined){ FORN_PAR[t.dataset.fnp]=num(t.value); salvar(); leve(); return; }
+  // quadro de pessoal por funcao: ativo, ferias e demissoes programadas
+  if(t.dataset.qd!==undefined){ const f=t.dataset.qd;
+    QUADRO[f]=QUADRO[f]||{}; QUADRO[f][t.dataset.f]=num(t.value); salvar(); leve(); return; }
   if(t.dataset.enc!==undefined){ ENC[t.dataset.enc]=num(t.value); salvar(); leve(); return; }
   if(t.dataset.ben!==undefined){ BEN[t.dataset.ben]=num(t.value); salvar(); leve(); return; }
 });

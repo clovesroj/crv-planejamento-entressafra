@@ -1,5 +1,38 @@
 # Histórico de mudanças
 
+## 2.6.0 — 2026-09-16 · Dimensionamento em três blocos
+
+A aba Dimensionamento passa a ter três dimensionamentos separados, cada um num
+bloco recolhível com título destacado e um resumo que continua legível com o
+bloco fechado. São `<details>` nativos: recolhem sem JavaScript e respondem ao
+teclado.
+
+| Bloco | Conteúdo |
+|---|---|
+| Dimensionamento por atividade | indicadores e a tabela de atividades e frentes |
+| Dimensionamento de frota | frota por tipo de máquina, necessidade x base do ERP, frota de apoio |
+| Dimensionamento de pessoas | **novo** |
+
+### Dimensionamento de pessoas
+
+Primeira tabela: atividade › especialidade › função › pessoas, uma linha por
+frente, com frota e horas. A especialidade vem da base de frota do ERP quando a
+máquina está cadastrada lá.
+
+Segunda tabela, por função: necessidade dimensionada, pico mensal (com o mês),
+quadro ativo, férias programadas e demissões programadas — os três editáveis —
+mais disponível, a contratar e excedente. Disponível = ativo − férias −
+demissões; a contratar compara o disponível com o **pico mensal**, não com a
+soma do dimensionamento, que contrataria gente para mês em que a atividade não
+roda.
+
+O quadro informado é gravado no documento (`QUADRO`, por função).
+
+Falta o modelo do cliente para estender: nível e escala por linha, colunas por
+período (entressafra e safra) e o par equipamento/pessoas da planilha de mão de
+obra agrícola.
+
+
 ## 2.3.0 — 2026-09-16 · Calcário e gesso em tratos culturais
 
 Duas operações novas no Plano Operacional, dentro de TRATOS CULTURAIS:

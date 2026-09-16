@@ -41,6 +41,7 @@ let ARR_PAR = {};        // parâmetros de pagamento do arrendamento (ATR, preç
 let ARR_RAT = {};        // etapa -> % do arrendamento (referência PECEGE/USP)
 let FORN = null;         // [{forn,prop,origem,mod,area,tch,tonContr,tonEst,atr,preco,...}] fornecedores de cana
 let FORN_PAR = {};       // parâmetros de matéria-prima (preço do ATR, ATR próprio, frete/km, área própria)
+let QUADRO = {};         // fcod -> {ativo, ferias, demis} quadro de pessoal informado
 let TPESS = null;        // rotas de transporte de pessoal (lista editável)
 let ENC = {};            // índice do encargo -> % ajustado
 let BEN = {};            // índice do benefício -> valor ajustado
@@ -56,7 +57,7 @@ let TRAT_SEL = null;
 export {
   P, PLANO, DIM, INSUMO, ESPOR, TRATC, NIV, GRAT, APOIO, TERC_TAR, CRM, MATX,
   INSX, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, FROTA_ABERTO, APOIO_FIXO, TRAT_NOME, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
-  TPESS, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL,
+  TPESS, QUADRO, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL,
 };
 
 export const setP          = v => { P = v; };
@@ -88,6 +89,7 @@ export const setARR_RAT    = v => { ARR_RAT = v; };
 export const setFORN       = v => { FORN = v; };
 export const setFORN_PAR   = v => { FORN_PAR = v; };
 export const setTPESS      = v => { TPESS = v; };
+export const setQUADRO     = v => { QUADRO = v; };
 export const setENC        = v => { ENC = v; };
 export const setBEN        = v => { BEN = v; };
 export const setEDITADO    = v => { EDITADO = v; };

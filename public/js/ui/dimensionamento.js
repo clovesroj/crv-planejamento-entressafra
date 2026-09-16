@@ -1,7 +1,8 @@
 import { FROTA_ESP, SEP_MOD, chaveDoModelo, destinoDe, espDe, modDe, opcoesDestino,
          unidadesDoModelo } from '../calculo/crm.js';
-import { FROTA_ABERTO } from '../nucleo/estado.js';
-import { $, brl, fmt, pct } from '../nucleo/formato.js';
+import { FROTA_ABERTO, QUADRO } from '../nucleo/estado.js';
+import { $, brl, fmt, num, pct } from '../nucleo/formato.js';
+import { MESES } from '../nucleo/calendario.js';
 import { kpi, th } from './componentes.js';
 
 /* ---------- DIMENSIONAMENTO ---------- */
@@ -84,7 +85,87 @@ function pintarDim(R){
       <td class="num calc">${pct(a.util)}</td><td class="num calc">${pct(a.disp)}</td>
       <td class="num tot">${a.nec.toFixed(2)}</td><td class="calc">${a.ativ}</td></tr>`).join("")+
     `<tr><td class="tot">TOTAL</td><td colspan="3"></td><td class="num tot">${R.AP.total.toFixed(2)}</td><td></td></tr></tbody>`;
+
+  pintarDimPessoas(R);
+  // cada titulo de bloco carrega o resumo do que esta dentro, para ler com o bloco recolhido
+  $("#bl_ativ_sub").textContent = `${R.L.filter(r=>r.total>0).length} de ${R.L.length} atividades · ${fmt(R.horasT)} horas`;
+  $("#bl_frota_sub").textContent = `${fmt(R.frotaT)} equipamentos na operação · ${fmt(Math.ceil(R.AP.total))} de apoio`;
 }
 
 
-export { pintarDim };
+/* ---------- DIMENSIONAMENTO DE PESSOAS ----------
+   Vai de atividade para especialidade, dela para funcao e termina na
+   quantidade de pessoas daquela frente. O segundo quadro confronta essa
+   necessidade com o quadro ativo informado, ja descontando ferias e
+   demissoes programadas, e diz quanto falta contratar.
+   O pico mensal e a referencia da contratacao: dimensionamento somado
+   inteiro contrataria gente para meses em que a atividade nem roda. */
+function pintarDimPessoas(R){
+  const PS = R.PS;
+  const qv = (f,k) => num((QUADRO[f]||{})[k]);
+
+  const linhas = [];
+  R.L.forEach(r=>r.partes.forEach(p=>{
+    if(p.terc || !(p.efetivo>0)) return;
+    linhas.push({cod:r.a.cod, ativ:r.a.nome, etapa:r.a.etapa, modo:p.modo,
+      esp: espDe(p.maq) || p.maq, fcod:p.fcod, fnome:p.fnome,
+      pessoas:p.efetivo, frota:p.frotaR, horas:p.horas});
+  }));
+
+  $("#t_dim_pes").innerHTML = th([["Cod"],["Atividade"],["Etapa"],["Especialidade"],["Função"],
+    ["Frota",1],["Horas",1],["Pessoas",1]])+"<tbody>"+
+    (linhas.length ? linhas.map(l=>`<tr><td>${l.cod}</td>
+      <td>${l.ativ}${l.modo?` <span class="calc">· ${l.modo}</span>`:""}</td>
+      <td class="calc">${l.etapa}</td><td class="calc">${l.esp}</td>
+      <td>${l.fcod} — ${l.fnome}</td>
+      <td class="num calc">${l.frota||"—"}</td><td class="num calc">${fmt(l.horas)}</td>
+      <td class="num tot">${fmt(l.pessoas)}</td></tr>`).join("")
+    : `<tr><td colspan="8" class="calc">Sem frente com efetivo: lance quantidades no Plano Operacional.</td></tr>`)+
+    `<tr><td class="tot" colspan="7">TOTAL NAS ATIVIDADES</td>
+     <td class="num tot">${fmt(linhas.reduce((s,l)=>s+l.pessoas,0))}</td></tr></tbody>`;
+
+  const funcoes = Object.keys(PS.porFun).sort();
+  const tot = {nec:0, pico:0, ativo:0, ferias:0, demis:0, disp:0, contratar:0, exced:0};
+  const corpo = funcoes.map(f=>{
+    const o = PS.porFun[f];
+    const ativo = qv(f,"ativo"), ferias = qv(f,"ferias"), demis = qv(f,"demis");
+    const disp = ativo - ferias - demis;
+    const contratar = Math.max(0, o.pico - disp), exced = Math.max(0, disp - o.pico);
+    const iPico = o.qtdMes.indexOf(o.pico);
+    tot.nec+=o.qtd; tot.pico+=o.pico; tot.ativo+=ativo; tot.ferias+=ferias; tot.demis+=demis;
+    tot.disp+=disp; tot.contratar+=contratar; tot.exced+=exced;
+    return `<tr><td>${f} — ${(R.MP.custoFuncao[f]||{nome:f}).nome}</td>
+      <td class="num calc">${fmt(o.qtd)}</td>
+      <td class="num tot">${fmt(o.pico)}<span class="calc" style="font-size:10px"> ${o.pico>0?MESES[iPico]:""}</span></td>
+      <td class="num"><input data-qd="${f}" data-f="ativo" value="${ativo||""}" inputmode="decimal"></td>
+      <td class="num"><input data-qd="${f}" data-f="ferias" value="${ferias||""}" inputmode="decimal"></td>
+      <td class="num"><input data-qd="${f}" data-f="demis" value="${demis||""}" inputmode="decimal"></td>
+      <td class="num calc">${fmt(disp)}</td>
+      <td class="num">${contratar>0?`<span class="badge b-bad">+${fmt(contratar)}</span>`:"—"}</td>
+      <td class="num">${exced>0?`<span class="badge b-warn">${fmt(exced)}</span>`:"—"}</td></tr>`;
+  }).join("");
+
+  $("#t_pes_quadro").innerHTML = th([["Função"],["Necessidade",1],["Pico mensal",1],["Quadro ativo",1],
+    ["Férias program.",1],["Demissões program.",1],["Disponível",1],["A contratar",1],["Excedente",1]])+"<tbody>"+
+    (funcoes.length ? corpo : `<tr><td colspan="9" class="calc">Sem função dimensionada.</td></tr>`)+
+    `<tr><td class="tot">TOTAL</td><td class="num tot">${fmt(tot.nec)}</td><td class="num tot">${fmt(tot.pico)}</td>
+     <td class="num tot">${fmt(tot.ativo)}</td><td class="num tot">${fmt(tot.ferias)}</td>
+     <td class="num tot">${fmt(tot.demis)}</td><td class="num tot">${fmt(tot.disp)}</td>
+     <td class="num tot">${tot.contratar>0?"+"+fmt(tot.contratar):"—"}</td>
+     <td class="num tot">${tot.exced>0?fmt(tot.exced):"—"}</td></tr></tbody>`;
+
+  const iPicoGeral = PS.qtdMes.indexOf(Math.max(...PS.qtdMes));
+  $("#k_dim_pes").innerHTML =
+    kpi("Efetivo dimensionado","",fmt(PS.qtd)+" pessoas", funcoes.length+" funções") +
+    kpi("Pico de mobilização","t",fmt(PS.qtdMes[iPicoGeral]||0)+" pessoas", PS.qtd>0?MESES[iPicoGeral]:"") +
+    kpi("Quadro ativo informado","g",fmt(tot.ativo)+" pessoas",
+        tot.ferias+tot.demis>0 ? fmt(tot.ferias)+" em férias · "+fmt(tot.demis)+" em demissão" : "sem férias ou demissão programadas") +
+    (tot.contratar>0
+      ? kpi("A contratar","r",fmt(tot.contratar)+" pessoas","soma das funções com falta")
+      : kpi("Excedente","a",fmt(tot.exced)+" pessoas","nenhuma função com falta"));
+
+  $("#bl_pes_sub").textContent = `${fmt(PS.qtd)} pessoas dimensionadas · pico ${fmt(PS.qtdMes[iPicoGeral]||0)}`
+    + (tot.contratar>0 ? ` · faltam ${fmt(tot.contratar)}` : "");
+}
+
+export { pintarDim, pintarDimPessoas };
