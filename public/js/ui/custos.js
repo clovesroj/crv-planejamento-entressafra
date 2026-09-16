@@ -13,6 +13,11 @@ function comps(R){
     ["Custos esporádicos",R.espT],["Arrendamento",R.arrT],
     ["Administração",R.admT],["Depreciação",R.depT]];
 }
+/* natureza do custo -> chave do rastro, para a linha abrir a explicacao */
+const NAT_RASTRO = {"Combustível (diesel)":"diesel","Mão de obra direta":"mdo","Manutenção e materiais":"manut",
+  "Insumos agronômicos":"insumo","Terceirização de aplicações":"terc","Arrendamento":"arrend",
+  "Administração":"admin"};
+
 function pintarCustos(R){
   const ha=P.plantio||1;
   $("#k_custo").innerHTML =
@@ -52,8 +57,8 @@ function pintarCustos(R){
     ? `Custos gerais sem nenhuma etapa com custo direto para absorvê-los (${brl(R.total-(eS+eE))}) aparecem só nas grandes contas.` : "";
 
   $("#t_custo").innerHTML = th([["Natureza"],["Total",1],["%",1],["R$/ha",1],["Peso"]])+"<tbody>"+
-    comps(R).map(([n,v])=>{const p=R.total>0?v/R.total*100:0;
-      return `<tr><td>${n}</td><td class="num">${brl(v)}</td><td class="num calc">${fmt(p,1)}%</td>
+    comps(R).map(([n,v])=>{const p=R.total>0?v/R.total*100:0; const k=NAT_RASTRO[n];
+      return `<tr${k?` data-rastro="nat:${k}" title="Clique para ver a composição"`:""}><td>${n}</td><td class="num">${brl(v)}</td><td class="num calc">${fmt(p,1)}%</td>
         <td class="num calc">${brl(v/ha,0)}</td>
         <td><div class="bar"><i style="width:${Math.min(p,100)}%"></i></div></td></tr>`;}).join("")+
     `<tr><td class="tot">TOTAL</td><td class="num tot">${brl(R.total)}</td>
@@ -62,7 +67,7 @@ function pintarCustos(R){
   $("#t_mensal").innerHTML = th([["Mês"],["Período"],["Custo",1],["% do total",1],["Acumulado",1],["Curva"]])+"<tbody>"+
     (()=>{let ac=0; return MESES.map((m,i)=>{ac+=R.meses[i];
       const p=R.total>0?R.meses[i]/R.total*100:0, pa=R.total>0?ac/R.total*100:0;
-      return `<tr><td>${m}</td><td>${perTag(i)}</td><td class="num">${brl(R.meses[i])}</td>
+      return `<tr data-rastro="mes:${i}" title="Clique para ver a composição do mês"><td>${m}</td><td>${perTag(i)}</td><td class="num">${brl(R.meses[i])}</td>
         <td class="num calc">${fmt(p,1)}%</td><td class="num calc">${brl(ac)}</td>
         <td><div class="bar"><i style="width:${pa}%"></i></div></td></tr>`;}).join("");})()+"</tbody>";
 
@@ -77,7 +82,8 @@ function pintarCustos(R){
         <td class="num calc">${brl(d.diesel)}</td><td class="num calc">${brl(d.mdo)}</td>
         <td class="num calc">${brl(d.manut)}</td>
         <td class="num calc">${brl(d.insumo+(d.irrig||0))}</td><td class="num calc">${brl(d.terc)}</td>
-        <td class="num calc">${brl(d.arrend)}</td><td class="num calc">${brl(d.indireto)}</td><td class="num tot">${brl(d.total)}</td>
+        <td class="num calc">${brl(d.arrend)}</td><td class="num calc">${brl(d.indireto)}</td>
+        <td class="num tot" data-rastro="etapa:${e}" title="Clique para ver a composição da etapa">${brl(d.total)}</td>
         <td class="num calc">${fmt(pp,1)}%</td>
         <td class="num calc">${fmt(base)} ${un}</td>
         <td class="num tot">${base>0?brl(d.total/base,2)+"/"+un:"—"}</td></tr>`;

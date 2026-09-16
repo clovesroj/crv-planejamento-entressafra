@@ -21,6 +21,7 @@ import { pintarMDO } from '../ui/mao-de-obra.js';
 import { pintarPainel } from '../ui/painel.js';
 import { pintarPessoas } from '../ui/pessoas.js';
 import { pintarPlano } from '../ui/plano.js';
+import { pintarRastro } from '../ui/rastro.js';
 import { pintarResumoFrota } from '../ui/resumo-frota.js';
 import { pintarTPess } from '../ui/transporte-pessoal.js';
 import { pintarTransp } from '../ui/transporte.js';
@@ -46,7 +47,7 @@ function render(){
   $("#c_arr").value=R.AR.area>0?brl(R.AR.anual/R.AR.area,2):"—";
   pintarCapa(R); pintarMDO(R); pintarPlano(R); pintarDim(R); pintarTransp(R); pintarApoio(R); pintarCRM(R); pintarReforma(); pintarTPess(R);
   pintarIrrig(R); pintarInsumos(R); pintarArrend(R); pintarForn(R); pintarAdm(R); pintarCustos(R); pintarContas(R); pintarCombustivel(R); pintarResumoFrota(R); pintarPessoas(R);
-  pintarPainel(R); pintarValida(R);
+  pintarPainel(R); pintarValida(R); pintarRastro(R);
 }
 // atualização leve: recalcula tudo mas preserva o foco de quem está digitando
 let leveTimer=null;

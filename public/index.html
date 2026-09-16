@@ -584,6 +584,11 @@
   <p class="lead">Custo por etapa, calculado automaticamente a partir do Plano Operacional, seguido da composição
   consolidada por natureza e da evolução mensal.</p>
   <div class="grid g4" id="k_custo" style="margin-bottom:16px"></div>
+  <div class="row" style="margin-bottom:14px">
+    <button class="btn p" data-rastro="total">Explicar o custo total</button>
+    <span class="hint" style="margin:0;align-self:center">Clique em qualquer etapa, natureza ou mês das
+    tabelas para abrir a composição, e desça até a premissa.</span>
+  </div>
 
   <div class="panel"><h3>Custos por período — safra × entressafra</h3>
     <div class="grid g4" id="k_per" style="margin-bottom:14px"></div>
@@ -703,6 +708,9 @@
   <p class="lead">Visão executiva e aderência às referências do setor.</p>
   <div class="panel"><h3>Indicadores gerais</h3>
     <div class="grid g4" id="k_painel"></div></div>
+  <div class="row" style="margin:-4px 0 14px">
+    <button class="btn" data-rastro="total">Por que o custo é este? Abrir o rastro</button>
+  </div>
   <div class="panel"><h3>Tratos culturais e manutenção</h3>
     <div class="grid g4" id="k_tratos"></div></div>
   <div class="panel"><h3>Custo mensal</h3><div id="ch_mes"></div></div>
@@ -772,6 +780,8 @@
   </div>
 </div>
 
+<div id="rastro_fundo" hidden></div>
+<aside id="rastro" aria-label="Rastro do cálculo" hidden></aside>
 <div id="print_report"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>

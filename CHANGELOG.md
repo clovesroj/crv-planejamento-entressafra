@@ -1,5 +1,40 @@
 # Histórico de mudanças
 
+## 2.14.0 — 2026-09-16 · Rastreabilidade dos cálculos
+
+Clicar num custo abre uma gaveta que explica a composição dele, descendo a
+cadeia até a premissa:
+
+    custo total → centro de custo → etapa → atividade → área → horas
+    → equipamento → consumo → preço → premissa
+
+### Onde se clica
+
+| Ponto | Abre |
+|---|---|
+| Botão "Explicar o custo total", em Custos e no Painel | o plano inteiro por centro de custo, natureza e período |
+| Total de uma etapa, na tabela de custo por etapa | atividades, naturezas e os rateios que a etapa recebe |
+| Linha de natureza, na composição por natureza | as atividades que geram aquele custo |
+| Linha de mês, no custo mensal | grandes contas e atividades lançadas no mês |
+| Qualquer linha com seta, dentro da gaveta | desce um nível |
+
+### O que a gaveta mostra numa atividade
+
+Centro de custo e etapa; área ou volume lançado mês a mês; rendimento,
+utilização, horas, capacidade por equipamento, frota, turnos, escala e efetivo;
+uma linha por frente com máquina, implemento, horas, litros e consumo em L/h;
+diesel com o preço médio ponderado dos meses, mão de obra com o custo-hora do
+cargo, CRM, insumos com o tratamento e a dose por hectare, e a tarifa de
+terceirização. No pé, as premissas usadas — dias, horas por dia,
+disponibilidade, preço do diesel, salário do cargo, encargos.
+
+A gaveta tem caminho de navegação, botão voltar, fecha com Esc ou clique fora,
+e é redesenhada a cada recálculo, então acompanha qualquer edição.
+
+`calculo/rastro.js` monta a explicação como função pura do resultado
+consolidado; `ui/rastro.js` só desenha.
+
+
 ## 2.13.0 — 2026-09-16 · Módulo de custos administrativos
 
 Nova aba **Custos Administrativos**. A administração deixa de ser um valor

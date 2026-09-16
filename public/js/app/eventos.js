@@ -10,6 +10,7 @@ import { $, num } from '../nucleo/formato.js';
 import { aplicarFiltroPlano } from '../ui/plano.js';
 import { lerPremissas } from '../ui/premissas.js';
 import { leve, render } from './ciclo.js';
+import { abrirRastro, aberto as rastroAberto, fecharRastro, voltarRastro } from '../ui/rastro.js';
 import { setAPOIO, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
 
 /* ---------- entrada ---------- */
@@ -141,6 +142,12 @@ document.addEventListener("change",e=>{
   if(t.id==="sel_grat_tipo"){ GRAT[FUN_SEL]={tipo:t.value, valor:num($("#in_grat").value)}; salvar(); render(); return; }
 });
 document.addEventListener("click",e=>{
+  // rastro do calculo: qualquer elemento com data-rastro abre ou desce um nivel
+  const alvoRastro = e.target.closest && e.target.closest("[data-rastro]");
+  if(alvoRastro){ abrirRastro(alvoRastro.dataset.rastro); render(); return; }
+  if(e.target.closest && e.target.closest("#ra_voltar")){ voltarRastro(); render(); return; }
+  if((e.target.closest && e.target.closest("#ra_fechar")) || e.target.id==="rastro_fundo"){
+    fecharRastro(); render(); return; }
   const ab = e.target.closest && e.target.closest("[data-abrefrota]");
   if(ab){ const k = ab.dataset.abrefrota;
     // abrir a lista de unidades e visao, nao dado: nao passa por salvar()
@@ -297,4 +304,14 @@ document.addEventListener("keydown", e=>{
     alvo = coluna[coluna.indexOf(t) + (e.key==="ArrowUp" ? -1 : 1)];
   }
   if(alvo){ e.preventDefault(); alvo.focus(); alvo.select(); }
+});
+
+/* Enter e espaco abrem o rastro de uma linha navegavel; Esc fecha a gaveta. */
+document.addEventListener("keydown", e=>{
+  if(e.key==="Escape" && rastroAberto()){ fecharRastro(); render(); return; }
+  if(e.key!=="Enter" && e.key!==" ") return;
+  const alvo = e.target.closest && e.target.closest("[data-rastro]");
+  if(alvo && e.target.getAttribute && e.target.getAttribute("role")==="button"){
+    e.preventDefault(); abrirRastro(alvo.dataset.rastro); render();
+  }
 });
