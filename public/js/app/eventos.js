@@ -1,11 +1,10 @@
 import { ETAPAS_ORD } from '../calculo/arrendamento.js';
 import { AG_SEM_FROTA, FROTA_AG, FROTA_ESP, SEP_MOD, crmDe, espDe } from '../calculo/crm.js';
 import { composicao, destravar, tratCodigos } from '../calculo/insumos.js';
-import { destravarNiv } from '../calculo/mao-de-obra.js';
 import { CFG } from '../dados/cfg.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM } from '../nucleo/calendario.js';
-import { APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, NIV, P, PLANO, QUADRO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, apoioLista, arrLista, fornLista, insLista, matLista, tpessLista } from '../nucleo/estado.js';
+import { APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, apoioLista, arrLista, fornLista, insLista, matLista, tpessLista } from '../nucleo/estado.js';
 import { FROTA_ABERTO, FROTA_UN, MAQ, setFROTA_DEST, setFROTA_ORIG } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { aplicarFiltroPlano } from '../ui/plano.js';
@@ -23,10 +22,8 @@ document.addEventListener("input",e=>{
   if(t.dataset.r!==undefined){ DIM[t.dataset.r]=DIM[t.dataset.r]||{}; DIM[t.dataset.r].rend=num(t.value); salvar(); leve(); return; }
   if(t.dataset.u!==undefined){ DIM[t.dataset.u]=DIM[t.dataset.u]||{}; DIM[t.dataset.u].util=num(t.value)/100; salvar(); leve(); return; }
   if(t.dataset.fs!==undefined){ const f=CFG.funcoes.find(x=>x.cod===t.dataset.fs);
-    if(f){ f.sal=num(t.value); const n=destravarNiv(f.cod); n[0].sal=f.sal; if(!num(n[0].qtd)) n[0].qtd=1; }
+    if(f) f.sal=num(t.value);
     salvar(); leve(); return; }
-  if(t.dataset.ns!==undefined){ const n=destravarNiv(FUN_SEL); n[+t.dataset.ns].sal=num(t.value); salvar(); leve(); return; }
-  if(t.dataset.nq!==undefined){ const n=destravarNiv(FUN_SEL); n[+t.dataset.nq].qtd=num(t.value); salvar(); leve(); return; }
   if(t.id==="in_grat"){ GRAT[FUN_SEL]={tipo:$("#sel_grat_tipo").value, valor:num(t.value)}; salvar(); leve(); return; }
   if(t.dataset.ap!==undefined){ const l=apoioLista()[+t.dataset.ap];
     l[t.dataset.f] = (t.dataset.f==="nome") ? t.value : num(t.value); salvar(); leve(); return; }
@@ -123,22 +120,15 @@ document.addEventListener("change",e=>{
     FROTA_UN[c]=FROTA_UN[c]||{}; FROTA_UN[c].st=t.value; salvar(); render(); return; }
   if(t.dataset.fc!==undefined){ const c=t.dataset.fc;
     PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""};
-    PLANO[c].fcod=t.value; PLANO[c].fniv=0; salvar(); render(); return; }
+    PLANO[c].fcod=t.value; salvar(); render(); return; }
 
   // nivel da funcao e escala escolhidos no dimensionamento de pessoas, por atividade
-  if(t.dataset.niv!==undefined){ const c=t.dataset.niv;
-    PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""};
-    PLANO[c].fniv=+t.value; salvar(); render(); return; }
   if(t.dataset.tur!==undefined){ const c=t.dataset.tur;
     DIM[c]=DIM[c]||{}; DIM[c].turnos=t.value==="" ? null : +t.value; salvar(); render(); return; }
   if(t.dataset.esc!==undefined){ const c=t.dataset.esc;
     DIM[c]=DIM[c]||{}; DIM[c].esc=t.value; salvar(); render(); return; }
-  if(t.dataset.fn!==undefined){ const c=t.dataset.fn;
-    PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""};
-    PLANO[c].fniv=+t.value; salvar(); render(); return; }
   if(t.dataset.ap!==undefined){ const l=apoioLista()[+t.dataset.ap];
-    l[t.dataset.f] = (t.dataset.f==="fniv") ? +t.value : t.value;
-    if(t.dataset.f==="fcod") l.fniv=0;
+    l[t.dataset.f] = t.value;
     salvar(); render(); return; }
   if(t.id==="sel_grat_tipo"){ GRAT[FUN_SEL]={tipo:t.value, valor:num($("#in_grat").value)}; salvar(); render(); return; }
 });
@@ -223,7 +213,7 @@ $("#btn_ap_add").onclick=()=>{
   const qtd=num($("#in_ap_qtd").value), h=num($("#in_ap_h").value);
   if(!nome){ alert("Informe o nome do equipamento."); return; }
   if(qtd<=0||h<=0){ alert("Quantidade e horas/mês devem ser maiores que zero."); return; }
-  apoioLista().push({nome, maq, qtd, hmes:h, fcod:"F01", fniv:0});
+  apoioLista().push({nome, maq, qtd, hmes:h, fcod:"918"});
   $("#in_ap_nome").value=""; salvar(); render();
 };
 $("#btn_ap_reset").onclick=()=>{
@@ -232,9 +222,9 @@ $("#btn_ap_reset").onclick=()=>{
 };
 
 $("#btn_niv_reset").onclick=()=>{
-  if(!NIV[FUN_SEL] && !GRAT[FUN_SEL]){ alert("Esta função já está com os valores originais."); return; }
+  if(!GRAT[FUN_SEL]){ alert("Este cargo não tem gratificação lançada."); return; }
   if(!confirm("Restaurar níveis e gratificação de "+FUN_SEL+"?")) return;
-  delete NIV[FUN_SEL]; delete GRAT[FUN_SEL]; salvar(true); render();
+  delete GRAT[FUN_SEL]; salvar(true); render();
 };
 
 $("#btn_mdo_reset").onclick=()=>{

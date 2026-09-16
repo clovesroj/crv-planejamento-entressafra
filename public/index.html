@@ -202,21 +202,21 @@
       <button class="btn" id="btn_mdo_reset">Restaurar encargos e benefícios originais</button></div></div>
   <div class="panel"><h3>Quadro de funções</h3>
     <div class="tblwrap"><table id="t_fun"></table></div>
-    <div class="hint" style="margin-top:9px">O salário exibido é a média ponderada pelos níveis configurados
-    abaixo. A gratificação variável entra na base de cálculo dos encargos.</div></div>
+    <div class="hint" style="margin-top:9px">Cargos como estão cadastrados no ERP. O salário é editável e veio
+    por herança do cargo equivalente do cadastro anterior — é valor de partida, a confirmar com a folha.</div></div>
 
-  <div class="panel"><h3>Níveis salariais e gratificação</h3>
-    <div class="row" style="margin-bottom:12px">
-      <div style="min-width:280px"><label>Função</label><select id="sel_fun"></select></div>
-      <div style="width:150px"><label>Gratificação</label><select id="sel_grat_tipo">
+  <div class="panel"><h3>Gratificação por cargo</h3>
+    <div class="row">
+      <div style="min-width:320px"><label for="sel_fun">Cargo</label><select id="sel_fun"></select></div>
+      <div style="width:150px"><label for="sel_grat_tipo">Gratificação</label><select id="sel_grat_tipo">
         <option value="R$">Valor fixo (R$)</option><option value="%">Percentual (%)</option></select></div>
-      <div style="width:130px"><label>Valor da gratificação</label>
+      <div style="width:130px"><label for="in_grat">Valor da gratificação</label>
         <input type="number" id="in_grat" step="0.01" value="0"></div>
-      <div style="align-self:flex-end"><button class="btn" id="btn_niv_reset">Restaurar função</button></div>
+      <div style="align-self:flex-end"><button class="btn" id="btn_niv_reset">Remover gratificação</button></div>
     </div>
-    <div class="tblwrap"><table id="t_niv"></table></div>
-    <div class="hint" style="margin-top:9px">Cada função admite até 5 níveis. Informe o salário e o efetivo
-    de cada nível — o custo usa a média ponderada. Se nenhum efetivo for informado, vale o nível I.</div></div>
+    <div class="hint" style="margin-top:9px">A gratificação é remuneração e entra na base de cálculo dos encargos.
+    O nível está no próprio cargo do ERP (Motorista II e III, Op. Máquinas I, II e III), então não há mais faixa
+    I a V por função.</div></div>
   <div class="panel"><h3>Estrutura indireta e equipe de manutenção</h3><div class="tblwrap"><table id="t_ind"></table></div></div>
 </section>
 
@@ -290,10 +290,10 @@
       <div class="panel"><h3>Quadro ativo do ERP</h3>
         <div class="tblwrap"><table id="t_pes_base"></table></div>
         <div class="hint" style="margin-top:9px">Base de pessoal do ERP em 16/09/2026, por cargo e especialidade.
-        Só contagem: nome, matrícula e datas não entram no sistema. Afastados e desistentes aparecem à parte,
-        porque contam no quadro da empresa mas não estão disponíveis para a operação. A extração é da área
-        agrícola: mecânicos e ajudantes de oficina não vêm nela, então essas funções aparecem com zero até
-        serem informadas no ajuste.</div></div>
+        Só contagem: nome, matrícula e datas não entram no sistema. Cada cargo do ERP é uma função do plano,
+        então não há mais cargo sem equivalente. Afastados e desistentes aparecem à parte, porque contam no
+        quadro da empresa mas não estão disponíveis para a operação. A extração é da área agrícola: os três
+        cargos de oficina não vêm nela e aparecem com zero até serem informados no ajuste.</div></div>
 
       <div class="panel"><h3>Necessidade x quadro ativo, por função</h3>
         <div class="tblwrap"><table id="t_pes_quadro"></table></div>

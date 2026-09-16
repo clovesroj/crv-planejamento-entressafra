@@ -6,7 +6,6 @@ import { MESES, NM } from '../nucleo/calendario.js';
 import { kpi, th } from './componentes.js';
 import { ESCALAS } from '../dados/escalas.js';
 import { quadroBase } from '../calculo/quadro.js';
-import { optNivel } from './plano.js';
 
 /* ---------- DIMENSIONAMENTO ---------- */
 function pintarDim(R){
@@ -130,7 +129,6 @@ function pintarDimPessoas(R){
     corpoAtiv += `<tr><td>${r.a.cod}</td><td>${r.a.nome}</td><td class="calc">${r.a.etapa}</td>
       <td class="calc">${multi?`<span class="badge b-warn">${frentes.length} frentes</span>`:(espDe(frentes[0].maq)||frentes[0].maq)}</td>
       <td class="calc">${multi?"—":r.fcod+" — "+frentes[0].fnome}</td>
-      <td><select data-niv="${r.a.cod}" style="min-width:70px">${optNivel(r.fcod, r.fniv)}</select></td>
       <td><select data-esc="${r.a.cod}" style="min-width:150px">${escOpts(r.escala)}</select></td>
       <td><select data-tur="${r.a.cod}" style="min-width:74px">${turOpts(r.turnosOv)}</select></td>
       <td class="num calc">${fmt(r.fator,2)}</td>
@@ -148,11 +146,11 @@ function pintarDimPessoas(R){
   });
 
   $("#t_dim_pes").innerHTML = th([["Cod"],["Atividade / frente"],["Etapa"],["Especialidade"],["Função"],
-    ["Nível"],["Escala"],["Turnos"],["Fator",1],["Frota",1],["Horas",1],["Pessoas",1],
+    ["Escala"],["Turnos"],["Fator",1],["Frota",1],["Horas",1],["Pessoas",1],
     ["Ativos da função",1]])+"<tbody>"+
     (comGente.length ? corpoAtiv
-    : `<tr><td colspan="13" class="calc">Sem frente com efetivo: lance quantidades no Plano Operacional.</td></tr>`)+
-    `<tr><td class="tot" colspan="11">TOTAL NAS ATIVIDADES</td>
+    : `<tr><td colspan="12" class="calc">Sem frente com efetivo: lance quantidades no Plano Operacional.</td></tr>`)+
+    `<tr><td class="tot" colspan="10">TOTAL NAS ATIVIDADES</td>
      <td class="num tot">${fmt(totPessoas)}</td><td></td></tr></tbody>`;
 
   const funcoes = Object.keys(PS.porFun).sort();

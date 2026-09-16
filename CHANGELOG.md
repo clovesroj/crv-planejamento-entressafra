@@ -1,5 +1,47 @@
 # Histórico de mudanças
 
+## 2.11.0 — 2026-09-16 · As funções do plano passam a ser os cargos do ERP
+
+O cadastro de 14 funções inventadas (F01 a F14) sai. Entram os **31 cargos
+ativos do ERP**, com o código e o nome como estão lá, mais os **3 cargos de
+oficina** — mecânico, líder de equipe e ajudante — que a extração agrícola não
+traz mas o plano precisa para a equipe de manutenção. Total: 34 cargos.
+
+### Salários
+
+Cada cargo herdou salário e adicional do cargo equivalente do cadastro
+anterior, e o valor ficou **editável na aba Mão de Obra**. São valores de
+partida, a confirmar com a folha:
+
+| Cargo do ERP | Herdou de | Salário |
+|---|---|---|
+| OP. DE MAQUINAS AGRICOLAS I | F01 operador de máquinas | 1.895,50 |
+| OP. DE MAQUINAS AGRICOLAS II | F11 operador de transbordo | 2.900,00 |
+| OP. DE MAQUINAS AGRICOLAS III | F02 operador de colhedora | 3.348,46 |
+| MOTORISTA II e III | F03 motorista de caminhão | 1.895,50 |
+| MOTORISTA I e de diretoria | F12 motorista de veículo leve | 1.895,50 |
+| TRABALHADOR RURAL | F04 operário rural | 1.621,00 |
+| AUXILIAR AGRICOLA | F06 auxiliar rural | 1.621,00 |
+| LIDER AGRICOLA I a IV | F07 líder de turma | 4.200,00 |
+| ASSISTENTE e AUXILIAR ADMINISTRATIVO | F08 assistente agrícola | 2.703,71 |
+| FISCAL, SUPERVISOR, COORDENADOR, GERENTE, TOPOGRAFO | F10 técnico agrícola | 5.200,00 |
+
+### Níveis I a V saem
+
+O nível agora está no próprio cargo (Motorista II e III, Op. Máquinas I, II e
+III), como no ERP. Sumiram o seletor de nível do Plano Operacional, do
+Dimensionamento e do Apoio, e o editor de cinco faixas da aba Mão de Obra. A
+**gratificação por cargo** continua, em painel próprio.
+
+O quadro de funções passa a mostrar o salário do cargo, editável ali mesmo.
+
+### Quadro ativo
+
+`funcionarios-base.js` foi regerado: cada linha aponta para o próprio cargo do
+ERP, então não existe mais "cargo sem função equivalente" — todos os 871 ativos
+caem numa função, e os 33 afastados seguem à parte.
+
+
 ## 2.10.0 — 2026-09-16 · Base de funcionários ativos do ERP
 
 `dados/funcionarios-base.js`: quadro ativo da CRV-MG em 16/09/2026, **904

@@ -4,14 +4,14 @@ import { MESES, NM } from '../nucleo/calendario.js';
 import { APOIO_FIXO, apoioLista } from '../nucleo/estado.js';
 import { num } from '../nucleo/formato.js';
 import { precoDiesel } from './diesel.js';
-import { custoNivel } from './mao-de-obra.js';
+import { custoDaFuncao } from './mao-de-obra.js';
 
 /* ================== EQUIPAMENTOS DE APOIO ================== */
 function apoioCalc(MP){
   const linhas = apoioLista().map(a=>{
     const mq = maqDe(a.maq);
     const horas = num(a.qtd)*num(a.hmes)*NM;
-    const cf = custoNivel(a.fcod, a.fniv||0, MP);
+    const cf = custoDaFuncao(a.fcod, MP);
     // apoio trabalha as mesmas horas todo mês: volume mensal constante, preço de cada mês
     const litrosMes = Array(NM).fill(num(a.qtd)*num(a.hmes)*mq.d);
     const dieselMes = litrosMes.map((l,i)=>l*precoDiesel(i));

@@ -22,13 +22,13 @@ export const APOIO_FROTA = [
 ];
 
 export const APOIO_EQ = [
-  {"nome":"Caminhão bombeiro","maq":"Caminhão bombeiro","qtd":1,"hmes":180,"fcod":"F03","fniv":0},
-  {"nome":"Caçamba basculante","maq":"Caçamba basculante","qtd":1,"hmes":60,"fcod":"F03","fniv":0},
-  {"nome":"Motoniveladora","maq":"Motoniveladora","qtd":1,"hmes":90,"fcod":"F01","fniv":1},
-  {"nome":"Pá mecânica / carregadeira","maq":"Pá mecânica / carregadeira","qtd":1,"hmes":120,"fcod":"F01","fniv":1},
-  {"nome":"Retroescavadeira","maq":"Retroescavadeira","qtd":1,"hmes":90,"fcod":"F01","fniv":0},
-  {"nome":"Escavadeira hidráulica","maq":"Escavadeira hidráulica","qtd":1,"hmes":60,"fcod":"F01","fniv":2},
-  {"nome":"Veículo leve de apoio","maq":"Veículo leve de apoio","qtd":8,"hmes":150,"fcod":"F12","fniv":0},
-  {"nome":"Caminhão comboio (abastecimento)","maq":"Caminhão comboio","qtd":1,"hmes":180,"fcod":"F03","fniv":0},
+  {"nome":"Caminhão bombeiro","maq":"Caminhão bombeiro","qtd":1,"hmes":180,"fcod":"902","fniv":0},
+  {"nome":"Caçamba basculante","maq":"Caçamba basculante","qtd":1,"hmes":60,"fcod":"902","fniv":0},
+  {"nome":"Motoniveladora","maq":"Motoniveladora","qtd":1,"hmes":90,"fcod":"918","fniv":1},
+  {"nome":"Pá mecânica / carregadeira","maq":"Pá mecânica / carregadeira","qtd":1,"hmes":120,"fcod":"918","fniv":1},
+  {"nome":"Retroescavadeira","maq":"Retroescavadeira","qtd":1,"hmes":90,"fcod":"918","fniv":0},
+  {"nome":"Escavadeira hidráulica","maq":"Escavadeira hidráulica","qtd":1,"hmes":60,"fcod":"918","fniv":2},
+  {"nome":"Veículo leve de apoio","maq":"Veículo leve de apoio","qtd":8,"hmes":150,"fcod":"900","fniv":0},
+  {"nome":"Caminhão comboio (abastecimento)","maq":"Caminhão comboio","qtd":1,"hmes":180,"fcod":"902","fniv":0},
   {"nome":"Caminhão oficina","maq":"Caminhão oficina","qtd":1,"hmes":180,"fcod":"F09","fniv":1}
 ];

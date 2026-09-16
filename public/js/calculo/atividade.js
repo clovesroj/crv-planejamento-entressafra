@@ -6,7 +6,7 @@ import { DIM, P, PLANO, TERC_TAR } from '../nucleo/estado.js';
 import { num, pct } from '../nucleo/formato.js';
 import { precoDiesel } from './diesel.js';
 import { tratCusto } from './insumos.js';
-import { custoNivel } from './mao-de-obra.js';
+import { custoDaFuncao } from './mao-de-obra.js';
 
 
 /* ================== ATIVIDADE ================== */
@@ -66,8 +66,7 @@ function linha(a, MP){
                 ops:a.ops, turnos:a.turnos, fcodPad:null}];
   }
 
-  const fcod = p.fcod || (frentes[0].fcodPad) || CFG.func_at[a.nome] || "F06";
-  const fniv = p.fniv!=null ? p.fniv : 0;
+  const fcod = p.fcod || (frentes[0].fcodPad) || CFG.func_at[a.nome] || "596";
 
   // fração de cada mês na quantidade da atividade: distribui litros e aplica o preço do mês
   const fracMes = total>0 ? meses.map(q=>num(q)/total) : Array(NM).fill(0);
@@ -99,7 +98,7 @@ function linha(a, MP){
     const mq = maqDe(f.maq);
     // a função segue o modo, salvo se o usuário tiver fixado uma função na atividade
     const fc = p.fcod ? fcod : (f.fcodPad || fcod);
-    const cf = custoNivel(fc, fniv, MP);
+    const cf = custoDaFuncao(fc, MP);
     const litros  = horas*mq.d;
     const cDiesel = litros*precoMed;
     const cManut  = 0;   // alocado adiante, a partir do CRM da frota prevista
@@ -120,7 +119,7 @@ function linha(a, MP){
           horas:soma("horas"), capMes:partes[0].capMes, frota:soma("frota"),
           frotaR:partes.reduce((s,x)=>s+x.frotaR,0),
           cDiesel:soma("cDiesel"), cManut:soma("cManut"), cMDO:soma("cMDO"), cTerc:soma("cTerc"), cInsumo,
-          fcod, fniv, fnome:partes[0].fnome, efetivo:soma("efetivo"),
+          fcod, fnome:partes[0].fnome, efetivo:soma("efetivo"),
           modo: M ? "mix" : "", maqEfetiva: partes.map(x=>x.maq).join(" + "),
           impEfetivo: partes.map(x=>x.imp).join(" + "),
           direto: soma("direto")+cInsumo, trat:p.trat, ehHa,

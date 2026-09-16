@@ -1,6 +1,5 @@
 import { MODOS_ORD, modosDe } from '../calculo/atividade.js';
 import { tratLista } from '../calculo/insumos.js';
-import { ROMANOS, niveis } from '../calculo/mao-de-obra.js';
 import { CFG } from '../dados/cfg.js';
 import { NM } from '../nucleo/calendario.js';
 import { TRAT_NOME } from '../nucleo/estado.js';
@@ -25,12 +24,6 @@ function mixEditor(r){
 function optFuncao(sel){
   return CFG.funcoes.map(f=>`<option value="${f.cod}" ${f.cod===sel?"selected":""}>${f.cod} · ${f.nome}</option>`).join("");
 }
-function optNivel(fcod, sel){
-  return niveis(fcod).map((n,i)=>{
-    const vazio = !(num(n.sal)>0);
-    return `<option value="${i}" ${i===sel?"selected":""} ${vazio&&i>0?"disabled":""}>${ROMANOS[i]}${vazio&&i>0?" (sem salário)":""}</option>`;
-  }).join("");
-}
 /* Filtro de meses da aba: some com as colunas do outro período, sem tocar nos dados.
    Fica no elemento da tabela (e não no innerHTML), então sobrevive ao re-render. */
 let FILTRO_MES = "todos";
@@ -47,7 +40,7 @@ function pintarPlano(R){
   const clsMes = j => "mes-"+periodoMes(j);
   let h = th([["Cod"],["Atividade"],["Un."],
               ...MESES.map((m,j)=>[m,1,clsMes(j)]),["Total",1],
-              ["Modo de execução"],["Função"],["Nível"],["Tratamento"],["Insumo",1]])+"<tbody>";
+              ["Modo de execução"],["Função"],["Tratamento"],["Insumo",1]])+"<tbody>";
   let et="";
   R.L.forEach(r=>{
     if(r.a.etapa!==et){et=r.a.etapa; h+=`<tr class="stage"><td colspan="${NM+9}">${et}</td></tr>`;}
@@ -62,7 +55,6 @@ function pintarPlano(R){
       `<td class="num tot" style="color:${r.total>0?'var(--green)':'var(--grey)'}">${fmt(r.total)}</td>
        <td>${r.a.modoOn ? mixEditor(r) : '<span class="calc">—</span>'}</td>
        <td><select data-fc="${r.a.cod}">${optFuncao(r.fcod)}</select></td>
-       <td><select data-fn="${r.a.cod}" style="min-width:70px">${optNivel(r.fcod,r.fniv)}</select></td>
        <td><select data-t="${r.a.cod}" ${r.ehHa?"":"disabled"}>${opts}</select></td>
        <td class="num calc">${r.cInsumo?brl(r.cInsumo):"—"}</td></tr>`;
   });
@@ -75,4 +67,4 @@ function pintarPlano(R){
 }
 
 
-export { aplicarFiltroPlano, mixEditor, optFuncao, optNivel, pintarPlano };
+export { aplicarFiltroPlano, mixEditor, optFuncao, pintarPlano };

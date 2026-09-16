@@ -30,9 +30,9 @@ function pessoasCalc(R){
   const extraCam = Math.min(extraTot, Math.ceil(((TR.camSafra.frotaR||0)+(TR.camMuda.frotaR||0))*fe));
   const ativos = cods => MESES.map((m,i)=>cods.some(c=>{ const r=R.L.find(x=>x.a.cod===c); return r && num(r.meses[i])>0; }));
   if(extraCam>0){ const at=ativos(["TR1","TR2"]);
-    add("COLHEITA","F03","Transporte de cana — reserva do efetivo", extraCam, at.map(b=>b?extraCam:0), fixo(0)); }
+    add("COLHEITA","902","Transporte de cana — reserva do efetivo", extraCam, at.map(b=>b?extraCam:0), fixo(0)); }
   if(extraTot-extraCam>0){ const n=extraTot-extraCam, at=ativos(["TR3","TR4"]);
-    add("COLHEITA","F11","Transbordo — reserva do efetivo", n, at.map(b=>b?n:0), fixo(0)); }
+    add("COLHEITA","918","Transbordo — reserva do efetivo", n, at.map(b=>b?n:0), fixo(0)); }
   // equipamentos de apoio: mesmo efetivo e custo em todos os meses
   R.AE.linhas.forEach(l=>{ if(l.efetivo>0)
     add("APOIO E CONSERVAÇÃO", l.fcod, l.nome, l.efetivo, fixo(l.efetivo), fixo(l.mdo/NM)); });

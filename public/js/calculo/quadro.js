@@ -2,10 +2,10 @@ import { FUNCIONARIOS_BASE } from '../dados/funcionarios-base.js';
 
 /* ================== QUADRO ATIVO ==================
    Consolida a base de pessoal do ERP por função do dimensionamento.
+   Cada cargo do ERP virou função do plano, então todo ativo cai numa função.
    Afastados e desistentes contam no quadro da empresa, mas não entram como
-   disponíveis para a operação; cargo sem função equivalente no plano
-   (supervisão, coordenação, gerência, administrativo, motorista de ônibus)
-   fica à parte, para o total do ERP continuar conferindo. */
+   disponíveis para a operação — por isso ficam à parte, e o total do ERP
+   continua conferindo. */
 
 function quadroBase(){
   const porFuncao = {};

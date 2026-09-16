@@ -1,40 +1,19 @@
 import { CFG } from '../dados/cfg.js';
 import { NM } from '../nucleo/calendario.js';
-import { BEN, ENC, GRAT, NIV, P } from '../nucleo/estado.js';
+import { BEN, ENC, GRAT, P } from '../nucleo/estado.js';
 import { num } from '../nucleo/formato.js';
 
 /* ================== MÃO DE OBRA ================== */
 function encPct(i){ return ENC[i]!=null ? num(ENC[i])/100 : CFG.encargos[i].pct; }
 function benVal(i){ return BEN[i]!=null ? num(BEN[i]) : CFG.beneficios[i].valor; }
 
-const ROMANOS = ["I","II","III","IV","V"];
-// níveis de uma função: 5 faixas. Se nunca editada, o nível I recebe o salário
-// do cadastro e os demais ficam zerados (sem efetivo, logo sem efeito no custo).
-function niveis(fcod){
-  if(NIV[fcod]) return NIV[fcod];
-  const f = CFG.funcoes.find(x=>x.cod===fcod) || {sal:0};
-  return [{sal:f.sal, qtd:1},{sal:0,qtd:0},{sal:0,qtd:0},{sal:0,qtd:0},{sal:0,qtd:0}];
-}
-function destravarNiv(fcod){
-  if(!NIV[fcod]) NIV[fcod] = niveis(fcod).map(n=>({...n}));
-  return NIV[fcod];
-}
-// salário médio ponderado pelo efetivo de cada nível
-function salarioMedio(fcod){
-  const ns = niveis(fcod);
-  const qt = ns.reduce((s,n)=>s+num(n.qtd),0);
-  if(qt>0) return ns.reduce((s,n)=>s+num(n.sal)*num(n.qtd),0)/qt;
-  const f = CFG.funcoes.find(x=>x.cod===fcod)||{sal:0};
-  return num(ns[0].sal) || f.sal;
-}
-// custo mensal de um nível específico (I..V) — usado quando a atividade
-// aponta para um nível, em vez da média ponderada da função
-function custoNivel(fcod, idx, MP){
+/* Custo mensal de um cargo. O nivel agora esta no proprio cargo do ERP
+   (MOTORISTA II e III, OP. MAQUINAS I, II e III), entao nao ha mais faixa
+   I..V por funcao: o salario e o do cadastro, ajustavel na aba Mao de Obra. */
+function custoDaFuncao(fcod, MP){
   const f = CFG.funcoes.find(x=>x.cod===fcod);
   if(!f) return {mensal:0, hora:0, sal:0, nome:"—"};
-  const ns = niveis(fcod);
-  const n  = ns[idx] || ns[0];
-  const sal = num(n.sal)>0 ? num(n.sal) : salarioMedio(fcod);
+  const sal = num(f.sal);
   const comAdic = sal*(1+f.adic);
   const grat = gratif(fcod, comAdic);
   const base = comAdic+grat;
@@ -55,7 +34,7 @@ function mdoParams(){
   const fatorEscala = P.diasTrab>0 ? P.diasOper/P.diasTrab : 1;
   const custoFuncao = {};
   CFG.funcoes.forEach(f=>{
-    const salMed  = salarioMedio(f.cod);
+    const salMed  = num(f.sal);
     const comAdic = salMed*(1+f.adic);
     // gratificação variável é remuneração: entra na base de encargos
     const grat    = gratif(f.cod, comAdic);
@@ -64,8 +43,7 @@ function mdoParams(){
       nome:f.nome, conta:f.conta, sal:salMed, salCad:f.sal, adic:f.adic,
       comAdic, grat, base,
       encargos: base*encTot, beneficios: benTot,
-      mensal: base*(1+encTot) + benTot,
-      efetivoNiv: niveis(f.cod).reduce((s,n)=>s+num(n.qtd),0)
+      mensal: base*(1+encTot) + benTot
     };
   });
   // custo-hora médio do operador direto (F01), base para as atividades
@@ -87,4 +65,4 @@ function equipeManut(horasFrota, frotaTotal, MP){
 }
 
 
-export { ROMANOS, benVal, custoNivel, destravarNiv, encPct, equipeManut, gratif, mdoParams, niveis, salarioMedio };
+export { benVal, custoDaFuncao, encPct, equipeManut, gratif, mdoParams };

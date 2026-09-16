@@ -1,7 +1,7 @@
 import { CFG } from '../dados/cfg.js';
 import { $, brl, fmt } from '../nucleo/formato.js';
 import { kpi, th } from './componentes.js';
-import { optFuncao, optNivel } from './plano.js';
+import { optFuncao } from './plano.js';
 
 /* ---------- APOIO ---------- */
 function pintarApoio(R){
@@ -16,7 +16,7 @@ function pintarApoio(R){
     .map(m=>`<option value="${m}">${m}</option>`).join("");
 
   $("#t_apoio_eq").innerHTML = th([["Equipamento"],["Máquina base"],["Qtd",1],["Horas/mês",1],
-    ["Função"],["Nível"],["Horas totais",1],["Diesel",1],["Manutenção",1],["MDO",1],["Total",1],[""]])+"<tbody>"+
+    ["Função"],["Horas totais",1],["Diesel",1],["Manutenção",1],["MDO",1],["Total",1],[""]])+"<tbody>"+
     A.linhas.map((l,i)=>`<tr>
       <td><input data-ap="${i}" data-f="nome" value="${l.nome}" style="text-align:left;min-width:170px"></td>
       <td><select data-ap="${i}" data-f="maq" style="min-width:170px">${
@@ -24,7 +24,6 @@ function pintarApoio(R){
       <td class="num"><input data-ap="${i}" data-f="qtd" value="${l.qtd}" inputmode="decimal"></td>
       <td class="num"><input data-ap="${i}" data-f="hmes" value="${l.hmes}" inputmode="decimal"></td>
       <td><select data-ap="${i}" data-f="fcod">${optFuncao(l.fcod)}</select></td>
-      <td><select data-ap="${i}" data-f="fniv" style="min-width:70px">${optNivel(l.fcod,l.fniv||0)}</select></td>
       <td class="num calc">${fmt(l.horas)}</td><td class="num calc">${brl(l.diesel)}</td>
       <td class="num calc">${brl(l.manut)}</td><td class="num calc">${brl(l.mdo)}</td>
       <td class="num tot">${brl(l.total)}</td>
