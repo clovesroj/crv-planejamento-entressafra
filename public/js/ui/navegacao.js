@@ -19,16 +19,59 @@ function cascatear(secao){
     el.classList.add("pop-in");
   });
 }
-document.querySelectorAll("nav button").forEach(b=>{
-  b.onclick=()=>{
-    document.querySelectorAll("nav button").forEach(x=>x.classList.remove("on"));
-    document.querySelectorAll("section").forEach(x=>x.classList.remove("on"));
-    b.classList.add("on");
-    const secao = $("#"+b.dataset.s);
-    secao.classList.add("on");
-    cascatear(secao);
-    window.scrollTo({top:0,behavior:"instant"});
-  };
+function irPara(b){
+  document.querySelectorAll("nav button").forEach(x=>x.classList.remove("on"));
+  document.querySelectorAll("section").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on");
+  const secao = $("#"+b.dataset.s);
+  secao.classList.add("on");
+  cascatear(secao);
+  window.scrollTo({top:0,behavior:"instant"});
+}
+document.querySelectorAll("nav button").forEach(b=>{ b.onclick=()=>irPara(b); });
+
+/* ---------- sub-navegação: blocos recolhíveis de uma aba viram itens do
+   menu, tipo uma pasta abrindo pros arquivos de dentro. Genérico — qualquer
+   aba com <details class="bloco" id="..."> como filho direto ganha isso
+   sozinha (hoje só Dimensionamento; se outra aba adotar o mesmo padrão de
+   blocos, o menu acompanha sem precisar cadastrar nada aqui). */
+document.querySelectorAll("nav button[data-s]").forEach(b=>{
+  const secao = document.getElementById(b.dataset.s);
+  const blocos = secao ? [...secao.querySelectorAll(":scope > details.bloco[id]")] : [];
+  if(!blocos.length) return;
+
+  b.classList.add("tem-sub");
+  b.insertAdjacentHTML("beforeend",
+    `<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>`);
+  b.setAttribute("aria-expanded","false");
+
+  const sub = document.createElement("div");
+  sub.className = "subnav"; sub.inert = true;   // fechado: fora do layout de Tab, mas anima (não é [hidden])
+  sub.innerHTML = `<div class="subnav-in">${blocos.map(bl=>{
+    const tit = bl.querySelector(":scope > summary .bl-tit");
+    return `<button type="button">${tit ? tit.textContent : bl.id}</button>`;
+  }).join("")}</div>`;
+  b.insertAdjacentElement("afterend", sub);
+
+  [...sub.querySelectorAll("button")].forEach((item,i)=>{
+    item.onclick = e=>{
+      e.stopPropagation();               // não deixa isto tocar o toggle do botão-pai
+      irPara(b);
+      const alvo = blocos[i];
+      alvo.open = true;
+      alvo.scrollIntoView({behavior:"smooth", block:"start"});
+    };
+  });
+
+  // clique no botão-pai também abre/fecha a listinha, além de navegar —
+  // é o "abrir a pasta" que foi pedido
+  b.addEventListener("click", ()=>{
+    const abrindo = !sub.classList.contains("aberto");
+    sub.classList.toggle("aberto", abrindo);
+    sub.inert = !abrindo;
+    b.setAttribute("aria-expanded", String(abrindo));
+  });
 });
 // a barra superior diz onde o usuário está; no celular o menu lateral fecha ao escolher a aba
 function marcarLocal(b){
