@@ -5,6 +5,7 @@ import { $, brl, fmt, num, pct } from '../nucleo/formato.js';
 import { MESES, NM } from '../nucleo/calendario.js';
 import { kpi, th } from './componentes.js';
 import { ESCALAS } from '../dados/escalas.js';
+import { quadroBase } from '../calculo/quadro.js';
 import { optNivel } from './plano.js';
 
 /* ---------- DIMENSIONAMENTO ---------- */
@@ -105,6 +106,10 @@ function pintarDim(R){
 function pintarDimPessoas(R){
   const PS = R.PS;
   const qv = (f,k) => num((QUADRO[f]||{})[k]);
+  const BASE = quadroBase();
+  // o ativo vem do ERP; o campo da tela e um ajuste opcional que sobrepoe a base
+  const informado = f => { const v=(QUADRO[f]||{}).ativo; return v!=null && v!=="" ? num(v) : null; };
+  const ativoDe = f => { const v=informado(f); return v!=null ? v : (BASE.porFuncao[f]||0); };
 
   // uma linha por atividade, com nivel da funcao e escala escolhidos ali mesmo;
   // as frentes da atividade entram como sub-linhas
@@ -131,7 +136,7 @@ function pintarDimPessoas(R){
       <td class="num calc">${fmt(r.fator,2)}</td>
       <td class="num calc">${frota||"—"}</td><td class="num calc">${fmt(horas)}</td>
       <td class="num tot">${fmt(pessoas)}</td>
-      <td class="num calc">${qv(r.fcod,"ativo")||"—"}</td></tr>`;
+      <td class="num calc">${ativoDe(r.fcod)||"—"}</td></tr>`;
     if(multi) frentes.forEach(p=>{
       corpoAtiv += `<tr class="sub"><td></td><td class="calc">↳ ${p.modo}</td><td></td>
         <td class="calc">${espDe(p.maq)||p.maq}</td><td class="calc">${p.fcod} — ${p.fnome}</td>
@@ -155,7 +160,8 @@ function pintarDimPessoas(R){
   const disponivel = {};
   const corpo = funcoes.map(f=>{
     const o = PS.porFun[f];
-    const ativo = qv(f,"ativo"), ferias = qv(f,"ferias"), demis = qv(f,"demis");
+    const base = BASE.porFuncao[f]||0, ajuste = informado(f);
+    const ativo = ativoDe(f), ferias = qv(f,"ferias"), demis = qv(f,"demis");
     const disp = ativo - ferias - demis;
     disponivel[f] = disp;
     const contratar = Math.max(0, o.pico - disp), exced = Math.max(0, disp - o.pico);
@@ -163,7 +169,9 @@ function pintarDimPessoas(R){
     tot.nec+=o.qtd; tot.pico+=o.pico; tot.ativo+=ativo; tot.ferias+=ferias; tot.demis+=demis;
     tot.disp+=disp; tot.contratar+=contratar; tot.exced+=exced;
     return `<tr><td>${f} — ${(R.MP.custoFuncao[f]||{nome:f}).nome}</td>
-      <td class="num"><input data-qd="${f}" data-f="ativo" value="${ativo||""}" inputmode="decimal"></td>
+      <td class="num calc">${base||"—"}</td>
+      <td class="num"><input data-qd="${f}" data-f="ativo" value="${ajuste!=null?ajuste:""}"
+          placeholder="${base}" inputmode="decimal" title="Em branco usa o quadro do ERP"></td>
       <td class="num"><input data-qd="${f}" data-f="ferias" value="${ferias||""}" inputmode="decimal"></td>
       <td class="num"><input data-qd="${f}" data-f="demis" value="${demis||""}" inputmode="decimal"></td>
       <td class="num calc">${fmt(disp)}</td>
@@ -173,14 +181,26 @@ function pintarDimPessoas(R){
       <td class="num">${exced>0?`<span class="badge b-warn">${fmt(exced)}</span>`:"—"}</td></tr>`;
   }).join("");
 
-  $("#t_pes_quadro").innerHTML = th([["Função"],["Quadro ativo",1],["Férias program.",1],["Demissões program.",1],
+  $("#t_pes_quadro").innerHTML = th([["Função"],["Ativos ERP",1],["Ajuste",1],["Férias program.",1],["Demissões program.",1],
     ["Disponível",1],["Necessidade",1],["Pico mensal",1],["A contratar",1],["Excedente",1]])+"<tbody>"+
-    (funcoes.length ? corpo : `<tr><td colspan="9" class="calc">Sem função dimensionada.</td></tr>`)+
-    `<tr><td class="tot">TOTAL</td><td class="num tot">${fmt(tot.ativo)}</td><td class="num tot">${fmt(tot.ferias)}</td>
+    (funcoes.length ? corpo : `<tr><td colspan="10" class="calc">Sem função dimensionada.</td></tr>`)+
+    `<tr><td class="tot">TOTAL</td><td class="num tot">${fmt(tot.ativo)}</td><td></td><td class="num tot">${fmt(tot.ferias)}</td>
      <td class="num tot">${fmt(tot.demis)}</td><td class="num tot">${fmt(tot.disp)}</td>
      <td class="num tot">${fmt(tot.nec)}</td><td class="num tot">${fmt(tot.pico)}</td>
      <td class="num tot">${tot.contratar>0?"+"+fmt(tot.contratar):"—"}</td>
      <td class="num tot">${tot.exced>0?fmt(tot.exced):"—"}</td></tr></tbody>`;
+
+  /* base do ERP, como veio: cargo, especialidade, departamento e a funcao do plano */
+  const nomeF = f => (R.MP.custoFuncao[f]||{}).nome || "";
+  $("#t_pes_base").innerHTML = th([["Cargo no ERP"],["Especialidade"],["Departamento"],["Função no plano"],["Pessoas",1]])+"<tbody>"+
+    BASE.linhas.map(l=>`<tr><td>${l.cargo}</td><td class="calc">${l.esp}</td><td class="calc">${l.dep}</td>
+      <td>${l.afast ? '<span class="badge b-warn">afastado</span>'
+        : (l.fcod ? l.fcod+" — "+nomeF(l.fcod) : '<span class="calc">sem função no plano</span>')}</td>
+      <td class="num tot">${fmt(l.qtd)}</td></tr>`).join("")+
+    `<tr><td class="tot" colspan="4">DISPONÍVEL PARA A OPERAÇÃO</td><td class="num tot">${fmt(BASE.mapeado)}</td></tr>
+     <tr><td class="calc" colspan="4">Cargo sem função equivalente no plano</td><td class="num calc">${fmt(BASE.semFuncao)}</td></tr>
+     <tr><td class="calc" colspan="4">Afastados e desistentes</td><td class="num calc">${fmt(BASE.afastados)}</td></tr>
+     <tr><td class="tot" colspan="4">TOTAL NO ERP</td><td class="num tot">${fmt(BASE.total)}</td></tr></tbody>`;
 
   /* Necessidade mes a mes contra o disponivel informado: e aqui que se ve em
      qual mes falta gente, e quanta. O pico e apenas o pior desses meses. */
@@ -215,8 +235,8 @@ function pintarDimPessoas(R){
   $("#k_dim_pes").innerHTML =
     kpi("Efetivo dimensionado","",fmt(PS.qtd)+" pessoas", funcoes.length+" funções") +
     kpi("Pico de mobilização","t",fmt(PS.qtdMes[iPicoGeral]||0)+" pessoas", PS.qtd>0?MESES[iPicoGeral]:"") +
-    kpi("Quadro ativo informado","g",fmt(tot.ativo)+" pessoas",
-        tot.ferias+tot.demis>0 ? fmt(tot.ferias)+" em férias · "+fmt(tot.demis)+" em demissão" : "sem férias ou demissão programadas") +
+    kpi("Quadro ativo","g",fmt(tot.ativo)+" pessoas",
+        `nas ${funcoes.length} funções dimensionadas · ${fmt(BASE.mapeado)} mapeados no ERP · ${fmt(BASE.afastados)} afastados fora`) +
     (tot.contratar>0
       ? kpi("A contratar","r",fmt(tot.contratar)+" pessoas","soma das funções com falta")
       : kpi("Excedente","a",fmt(tot.exced)+" pessoas","nenhuma função com falta"));

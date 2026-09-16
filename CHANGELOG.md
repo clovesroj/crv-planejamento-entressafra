@@ -1,5 +1,42 @@
 # Histórico de mudanças
 
+## 2.10.0 — 2026-09-16 · Base de funcionários ativos do ERP
+
+`dados/funcionarios-base.js`: quadro ativo da CRV-MG em 16/09/2026, **904
+pessoas**, por cargo, especialidade e departamento — 120 combinações.
+
+**Sem dado pessoal.** A planilha de origem traz nome, matrícula e datas de
+nascimento e admissão de cada pessoa, e este repositório é público. Só a
+contagem entrou.
+
+### Mapeamento para as funções do plano
+
+Cada combinação de cargo e especialidade aponta para a função equivalente:
+colhedora para F02, trator transbordo para F11, caminhão para F03, máquinas
+herbicida e uniport para F05, demais operadores para F01, trabalhador rural
+para F04, auxiliar agrícola para F06, liderança para F07, fiscal e topografia
+para F10, assistente agrícola para F08, veículo leve para F12.
+
+| | Pessoas |
+|---|---|
+| Disponível para a operação | 836 |
+| Cargo sem função equivalente (supervisão, coordenação, gerência, administrativo, ônibus) | 35 |
+| Afastados e desistentes | 33 |
+| **Total no ERP** | **904** |
+
+### Na tela
+
+No bloco Dimensionamento de pessoas entrou a tabela **Quadro ativo do ERP**, com
+a base como veio e os três totais acima.
+
+A tabela por função ganhou a coluna **Ativos ERP**, que alimenta o disponível
+direto da base, e a coluna **Ajuste**, opcional, que sobrepõe a base quando
+preenchida — em branco, vale o ERP. A comparação mês a mês passa a rodar contra
+o quadro real.
+
+A extração é da área agrícola: mecânicos e ajudantes de oficina (F09, F13, F14)
+não vêm nela e aparecem com zero até serem informados no ajuste.
+
 ## 2.9.0 — 2026-09-16 · Login e gestão de usuários
 
 O sistema deixa de ficar aberto na internet — resolve a dívida nº1 do
