@@ -63,7 +63,7 @@ input.bad{border-color:var(--bad);background:var(--bad-bg)}
 /* tabela aninhada (frota de um modelo, por exemplo) nao disputa o topo com a de fora */
 .tblwrap table table th{position:static}
 table{border-collapse:collapse;width:100%;font-size:13px;min-width:640px}
-th{background:var(--th-bg);color:var(--th-ink);font-weight:600;text-align:left;padding:9px 12px;font-size:11.5px;
+th{background:var(--th-bg);color:var(--th-ink);font-weight:600;text-align:center;padding:9px 12px;font-size:11.5px;
   text-transform:uppercase;letter-spacing:.5px;position:sticky;top:0;z-index:2;white-space:nowrap;
   border-bottom:1px solid var(--line-strong)}
 td{padding:7px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
@@ -74,7 +74,7 @@ tbody tr:has(> td.tot:first-child) td{background:var(--sunk);border-top:1px soli
 tr.stage td{background:var(--leaf-strong);color:#fff;font-family:var(--f-display);font-weight:600;font-size:13px;
   text-transform:uppercase;letter-spacing:.9px;padding:7px 12px}
 tbody tr.stage:hover td{background:var(--leaf-strong)}
-td.num,th.num{text-align:right}
+td.num{text-align:right}
 td input{height:28px;padding:0 8px;font-size:13px;text-align:right;min-width:70px;
   background:var(--edit-bg);border-color:var(--edit-line);color:var(--edit-ink)}
 td input:focus{background:var(--card)}
