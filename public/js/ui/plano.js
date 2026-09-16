@@ -6,7 +6,7 @@ import { NM } from '../nucleo/calendario.js';
 import { TRAT_NOME } from '../nucleo/estado.js';
 import { $, brl, fmt, num } from '../nucleo/formato.js';
 import { th } from './componentes.js';
-import { MESES } from '../nucleo/calendario.js';
+import { MESES, periodoMes } from '../nucleo/calendario.js';
 
 /* ---------- PLANO ---------- */
 // editor compacto do mix de modos: 4 percentuais numa célula só
@@ -30,9 +30,22 @@ function optNivel(fcod, sel){
     return `<option value="${i}" ${i===sel?"selected":""} ${vazio&&i>0?"disabled":""}>${ROMANOS[i]}${vazio&&i>0?" (sem salário)":""}</option>`;
   }).join("");
 }
+/* Filtro de meses da aba: some com as colunas do outro período, sem tocar nos dados.
+   Fica no elemento da tabela (e não no innerHTML), então sobrevive ao re-render. */
+let FILTRO_MES = "todos";
+function aplicarFiltroPlano(v){
+  FILTRO_MES = ["safra","entressafra"].includes(v) ? v : "todos";
+  const tab = $("#t_plano");
+  if(tab) tab.className = FILTRO_MES==="todos" ? "" : "so-"+FILTRO_MES;
+  const sel = $("#sel_plano_mes");
+  if(sel && sel.value !== FILTRO_MES) sel.value = FILTRO_MES;
+}
 function pintarPlano(R){
   const TL = tratLista();
-  let h = th([["Cod"],["Atividade"],["Un."],...MESES.map(m=>[m,1]),["Total",1],
+  // cada coluna de mês carrega a classe do seu período: é o que dá a cor e o que o filtro usa
+  const clsMes = j => "mes-"+periodoMes(j);
+  let h = th([["Cod"],["Atividade"],["Un."],
+              ...MESES.map((m,j)=>[m,1,clsMes(j)]),["Total",1],
               ["Modo de execução"],["Função"],["Nível"],["Tratamento"],["Insumo",1]])+"<tbody>";
   let et="";
   R.L.forEach(r=>{
@@ -43,8 +56,8 @@ function pintarPlano(R){
     h+=`<tr><td>${r.a.cod}</td><td>${r.a.nome}${auto?' <span class="badge b-ok">auto</span>':''}</td>
         <td class="calc">${r.a.un}</td>`+
       r.meses.map((q,j)=> auto
-        ? `<td class="num calc">${q?fmt(num(q)):""}</td>`
-        : `<td class="num"><input data-c="${r.a.cod}" data-m="${j}" value="${q||""}" inputmode="decimal"></td>`).join("")+
+        ? `<td class="num calc ${clsMes(j)}">${q?fmt(num(q)):""}</td>`
+        : `<td class="num ${clsMes(j)}"><input data-c="${r.a.cod}" data-m="${j}" value="${q||""}" inputmode="decimal"></td>`).join("")+
       `<td class="num tot" style="color:${r.total>0?'var(--green)':'var(--grey)'}">${fmt(r.total)}</td>
        <td>${r.a.modoOn ? mixEditor(r) : '<span class="calc">—</span>'}</td>
        <td><select data-fc="${r.a.cod}">${optFuncao(r.fcod)}</select></td>
@@ -53,6 +66,7 @@ function pintarPlano(R){
        <td class="num calc">${r.cInsumo?brl(r.cInsumo):"—"}</td></tr>`;
   });
   $("#t_plano").innerHTML = h+"</tbody>";
+  aplicarFiltroPlano(FILTRO_MES);
   const prog=R.L.filter(r=>r.total>0).length;
   $("#plano_resumo").innerHTML=`<b>${prog}</b>/<b>${R.L.length}</b> atividades · <b>${fmt(R.haOp)}</b> ha-operação · `+
     `insumos <b>${brl(R.insumoT)}</b> · horas <b>${fmt(R.horasT)}</b> · `+
@@ -60,4 +74,4 @@ function pintarPlano(R){
 }
 
 
-export { mixEditor, optFuncao, optNivel, pintarPlano };
+export { aplicarFiltroPlano, mixEditor, optFuncao, optNivel, pintarPlano };

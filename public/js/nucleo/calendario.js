@@ -1,4 +1,6 @@
-const MESES = ["Out/26","Nov/26","Dez/26","Jan/27","Fev/27","Mar/27","Abr/27","Mai/27","Jun/27"];
+// Ano agrícola de abril a março: os oito meses de safra seguidos dos quatro de entressafra.
+const MESES = ["Abr/26","Mai/26","Jun/26","Jul/26","Ago/26","Set/26","Out/26","Nov/26",
+               "Dez/26","Jan/27","Fev/27","Mar/27"];
 const NM = MESES.length;
 const MES_NUM = {Jan:1,Fev:2,Mar:3,Abr:4,Mai:5,Jun:6,Jul:7,Ago:8,Set:9,Out:10,Nov:11,Dez:12};
 

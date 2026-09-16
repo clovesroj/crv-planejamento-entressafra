@@ -4,7 +4,8 @@ import { setAPOIO, setAPOIO_FIXO, setARREND, setARR_PAR, setARR_RAT, setBEN, set
          setDIESEL_MES, setDIM, setEDITADO, setFORN, setFORN_PAR, setENC, setESPOR, setFROTA, setGRAT, setINSUMO,
          setINSX, setMATX, setNIV, setP, setPLANO, setTERC_TAR, setTPESS, setTRATC,
          setTRAT_NOME } from '../nucleo/estado.js';
-import { $ } from '../nucleo/formato.js';
+import { $, num } from '../nucleo/formato.js';
+import { MESES, NM } from '../nucleo/calendario.js';
 import { claudeUse } from './arquivo.js';
 import { PADRAO } from '../dados/padroes.js';
 
@@ -105,6 +106,7 @@ function aplicar(d){
   // o banco entrega o documento congelado (somente leitura): editar direto nele falhava
   // em silêncio e toda alteração "voltava ao original" — trabalhar sempre numa cópia
   d = JSON.parse(JSON.stringify(d));
+  d = migrarJanela(d);   // documento de 9 meses -> janela de 12 meses
   // setX() em vez de X=... : um modulo nao pode atribuir a um binding importado.
   // O efeito e o mesmo — quem importa X passa a enxergar o valor novo.
   if(d.P) setP({...PADRAO,...d.P});
@@ -133,6 +135,50 @@ function aplicar(d){
   if(d.FROTA) setFROTA(d.FROTA);
   if(d.TPESS) setTPESS(d.TPESS);
   if(d.FUN) d.FUN.forEach((s,i)=>{ if(CFG.funcoes[i]) CFG.funcoes[i].sal=s; });
+}
+/* ---------------------------------------------------------------------------
+   Migração da janela do orçamento.
+   Até 2026-09-16 o plano tinha 9 meses (Out/26 a Jun/27); passou a ter os 12
+   do ano agrícola (Abr/26 a Mar/27). Documento gravado antes disso traz vetor
+   de 9 posições, e a posição 0 não é mais o mesmo mês. O remapeamento é pelo
+   NOME do mês, não pelo índice. Abr/27, Mai/27 e Jun/27 não existem na janela
+   nova: o valor vai para o mesmo mês do ano anterior (Abr/26, Mai/26, Jun/26),
+   que é o mês equivalente dentro do novo ano agrícola — assim nada se perde.
+   --------------------------------------------------------------------------- */
+const MESES_9 = ["Out/26","Nov/26","Dez/26","Jan/27","Fev/27","Mar/27","Abr/27","Mai/27","Jun/27"];
+function idxMes(rotulo){
+  const i = MESES.indexOf(rotulo);
+  if(i >= 0) return i;
+  return MESES.findIndex(m => m.slice(0,3) === String(rotulo).slice(0,3));
+}
+function migrarJanela(d){
+  const precisa = Object.values(d.PLANO || {}).some(v => Array.isArray(v.m) && v.m.length === MESES_9.length);
+  if(!precisa) return d;
+  const remapa = velho => {
+    const novo = Array(NM).fill(0);
+    MESES_9.forEach((rotulo,i)=>{
+      const j = idxMes(rotulo);
+      if(j >= 0) novo[j] += num(velho[i]);
+    });
+    return novo;
+  };
+  Object.values(d.PLANO || {}).forEach(v=>{
+    if(Array.isArray(v.m) && v.m.length === MESES_9.length) v.m = remapa(v.m);
+  });
+  if(d.DIESEL_MES){
+    const dm = {};
+    Object.entries(d.DIESEL_MES).forEach(([k,v])=>{
+      const j = idxMes(MESES_9[+k]); if(j >= 0) dm[j] = v;
+    });
+    d.DIESEL_MES = dm;
+  }
+  (d.ARREND || []).forEach(a=>{
+    if(a.mes != null && +a.mes >= 0 && +a.mes < MESES_9.length) a.mes = idxMes(MESES_9[+a.mes]);
+  });
+  (d.ESPOR || []).forEach(e=>{
+    if(e.mes && MESES.indexOf(e.mes) < 0){ const j = idxMes(e.mes); e.mes = MESES[j >= 0 ? j : 0]; }
+  });
+  return d;
 }
 let salvePendente = false;
 async function gravar(full){

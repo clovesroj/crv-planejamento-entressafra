@@ -1,5 +1,40 @@
 # Histórico de mudanças
 
+## 2.2.0 — 2026-09-16 · Ano agrícola completo no Plano Operacional
+
+### Janela do orçamento: 9 para 12 meses
+
+De Out/26–Jun/27 para **Abr/26 a Mar/27**, o ano agrícola inteiro: oito meses de
+safra (abr a nov) seguidos dos quatro de entressafra (dez a mar).
+
+**O orçamento muda de tamanho.** Custos mensais e fixos — administração,
+depreciação, arrendamento, estrutura indireta, equipe de manutenção, apoio —
+passam a contar 12 meses em vez de 9. O total projetado sobe por consequência.
+
+### Migração do documento gravado
+
+`io/persistencia.js` remapeia o documento de 9 meses pelo **nome** do mês, não
+pelo índice: Out/26 continua em Out/26. Abr/27, Mai/27 e Jun/27 não existem na
+janela nova e vão para o mês equivalente do novo ano (Abr/26, Mai/26, Jun/26) —
+nada se perde. Remapeia `PLANO`, `DIESEL_MES`, o mês de pagamento de `ARREND` e
+o mês dos lançamentos esporádicos.
+
+### Plano Operacional
+
+- Colunas de safra em verde e de entressafra em palha, com legenda.
+- Filtro **Mostrar meses**: todos, só safra ou só entressafra. Esconde colunas,
+  nunca apaga lançamento.
+- Setas do teclado, Tab e Enter andam entre as células como numa planilha. As
+  setas laterais só trocam de célula quando o cursor está na ponta do texto, e
+  pulam as colunas escondidas pelo filtro.
+
+### Atenção
+
+O contrato de regressão em [CLAUDE.md](CLAUDE.md) foi capturado com a janela de
+9 meses. Os totais e as impressões digitais de lá não valem mais e precisam ser
+recapturados.
+
+
 ## 2.1.0 — 2026-09-16 · Módulo de fornecedores de cana
 
 Nova aba **Fornecedores de Cana** e consolidação da matéria-prima por origem.

@@ -7,6 +7,7 @@ import { salvar } from '../io/persistencia.js';
 import { MESES, NM } from '../nucleo/calendario.js';
 import { APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, NIV, P, PLANO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, apoioLista, arrLista, fornLista, insLista, matLista, tpessLista } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
+import { aplicarFiltroPlano } from '../ui/plano.js';
 import { lerPremissas } from '../ui/premissas.js';
 import { leve, render } from './ciclo.js';
 import { setAPOIO, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
@@ -92,6 +93,7 @@ document.addEventListener("change",e=>{
     if(f==="entIni" && +l.entFim < +l.entIni) l.entFim = l.entIni;
     if(f==="entFim" && +l.entFim < +l.entIni) l.entIni = l.entFim;
     salvar(); render(); return; }
+  if(t.id==="sel_plano_mes"){ aplicarFiltroPlano(t.value); return; }
   if(t.id==="sel_trat"){ setTRAT_SEL(t.value); render(); return; }
   if(t.id==="sel_fun"){ setFUN_SEL(t.value); render(); return; }
   if(t.id==="sel_cat"){ setCAT_SEL(t.value); render(); return; }
@@ -223,3 +225,30 @@ $("#btn_diesel_base").onclick=()=>{
   salvar(); render();
 };
 
+/* ---------- teclado no Plano Operacional ----------
+   As celulas de mes andam como numa planilha: cima e baixo sempre trocam de
+   linha; esquerda e direita so trocam de coluna quando o cursor ja esta na
+   ponta do texto, para nao atrapalhar a edicao do numero; Enter desce. Tab
+   segue sendo do navegador, que ja pula sozinho as colunas escondidas pelo
+   filtro. Colunas escondidas sao ignoradas pelo teste de offsetParent. */
+const visivelPlano = el => el && el.offsetParent !== null;
+document.addEventListener("keydown", e=>{
+  const t = e.target;
+  if(!(t.tagName==="INPUT" && t.dataset.c!==undefined && t.dataset.m!==undefined)) return;
+  if(e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+  if(!["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Enter"].includes(e.key)) return;
+  if(e.key==="ArrowRight" && t.selectionStart < t.value.length) return;
+  if(e.key==="ArrowLeft"  && t.selectionStart > 0) return;
+  let alvo = null;
+  if(e.key==="ArrowLeft" || e.key==="ArrowRight"){
+    const passo = e.key==="ArrowRight" ? 1 : -1;
+    for(let j=(+t.dataset.m)+passo; j>=0 && j<NM; j+=passo){
+      const c = document.querySelector(`#t_plano input[data-c="${t.dataset.c}"][data-m="${j}"]`);
+      if(visivelPlano(c)){ alvo = c; break; }
+    }
+  }else{
+    const coluna = [...document.querySelectorAll(`#t_plano input[data-m="${t.dataset.m}"]`)].filter(visivelPlano);
+    alvo = coluna[coluna.indexOf(t) + (e.key==="ArrowUp" ? -1 : 1)];
+  }
+  if(alvo){ e.preventDefault(); alvo.focus(); alvo.select(); }
+});

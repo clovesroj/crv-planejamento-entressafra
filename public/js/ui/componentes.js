@@ -1,7 +1,11 @@
 import { brl, fmt } from '../nucleo/formato.js';
 
 const kpi=(l,c,v,s)=>`<div class="kpi ${c}"><div class="l">${l}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:""}</div>`;
-const th=a=>`<thead><tr>${a.map(x=>`<th${x[1]?' class="num"':''}>${x[0]}</th>`).join("")}</tr></thead>`;
+// [rotulo, alinhaDireita, classeExtra] — a classe extra serve, por exemplo, para marcar o periodo do mes
+const th=a=>`<thead><tr>${a.map(x=>{
+  const c=[x[1]?"num":"", x[2]||""].filter(Boolean).join(" ");
+  return `<th${c?` class="${c}"`:""}>${x[0]}</th>`;
+}).join("")}</tr></thead>`;
 
 /* ---------- GRÁFICOS ---------- */
 function barras(el,dados,cor,un){

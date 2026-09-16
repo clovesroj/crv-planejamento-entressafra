@@ -129,3 +129,17 @@ footer{display:flex;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;co
   color:#fff;text-wrap:balance}
 .hero p{margin:0;color:#B7C7B3;font-size:13.5px}
 
+/* Plano Operacional: cor por período do ano agrícola e filtro de meses.
+   A cor fica na célula, não no campo: o campo continua em palha, que é a
+   convenção de "aqui se digita" em todo o sistema. */
+#t_plano th.mes-safra{background:var(--leaf-soft);color:var(--leaf)}
+#t_plano th.mes-entressafra{background:var(--straw-soft);color:var(--warn)}
+#t_plano td.mes-safra{background:color-mix(in srgb,var(--leaf-soft) 55%,var(--card))}
+#t_plano td.mes-entressafra{background:color-mix(in srgb,var(--straw-soft) 55%,var(--card))}
+#t_plano tbody tr:hover td.mes-safra{background:var(--leaf-soft)}
+#t_plano tbody tr:hover td.mes-entressafra{background:var(--straw-soft)}
+#t_plano td.mes-safra input{border-color:#B9CDB6}
+#t_plano td.mes-entressafra input{border-color:var(--edit-line)}
+/* o filtro apenas esconde as colunas do outro período */
+#t_plano.so-safra .mes-entressafra{display:none}
+#t_plano.so-entressafra .mes-safra{display:none}

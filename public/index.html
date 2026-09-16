@@ -213,8 +213,25 @@
 <!-- ===== PLANO ===== -->
 <section id="plano">
   <h2>Plano Operacional</h2>
-  <p class="lead">Lance a quantidade de cada atividade por mês e vincule o tratamento. Campos amarelos são de digitação.</p>
+  <p class="lead">Lance a quantidade de cada atividade por mês e vincule o tratamento. O ano agrícola vai de abril
+  a março: os meses de safra aparecem em verde e os de entressafra em palha. Setas, Tab e Enter andam entre as
+  células como numa planilha.</p>
   <div class="note" id="plano_resumo"></div>
+  <div class="row" style="margin-bottom:12px">
+    <div style="width:250px">
+      <label for="sel_plano_mes">Mostrar meses</label>
+      <select id="sel_plano_mes">
+        <option value="todos">Todos os 12 meses</option>
+        <option value="safra">Só safra — abr a nov</option>
+        <option value="entressafra">Só entressafra — dez a mar</option>
+      </select>
+    </div>
+    <div class="legend" style="align-self:flex-end;margin:0">
+      <span><i style="background:var(--leaf)"></i>Safra (abr–nov)</span>
+      <span><i style="background:var(--straw)"></i>Entressafra (dez–mar)</span>
+      <span class="calc">O filtro só esconde colunas — nenhum lançamento é apagado.</span>
+    </div>
+  </div>
   <div class="tblwrap"><table id="t_plano"></table></div>
 </section>
 
