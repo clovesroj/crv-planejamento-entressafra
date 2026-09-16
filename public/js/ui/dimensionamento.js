@@ -24,9 +24,11 @@ function pintarDim(R){
         <td class="calc">${multi?`<span class="badge b-warn">${r.partes.length} frentes</span>`:(r.a.modoOn?"padrão":"—")}</td>
         <td class="num calc">${fmt(r.total)} <span style="font-size:10px">${un}</span></td>
         <td class="num">${multi?`<span class="calc">${fmt(r.rend,2)} ${un}/h</span>`
-          :`<input data-r="${r.a.cod}" value="${r.rend}" inputmode="decimal"><span class="calc" style="font-size:9.5px;margin-left:3px">${un}/h</span>
-            <button class="btn xs" data-rendmes="${r.a.cod}" style="margin-left:5px;padding:1px 6px"
-              title="Rendimento por mês">${Array.isArray((DIM[r.a.cod]||{}).rendM)&&(DIM[r.a.cod].rendM||[]).some(v=>num(v)>0)?"mês •":"mês"}</button>`}</td>
+          :`<input data-r="${r.a.cod}" value="${r.rend}" inputmode="decimal">
+            <div class="rend-extra"><span class="calc">${un}/h</span>
+              <button class="btn xs" data-rendmes="${r.a.cod}" title="Rendimento por mês">${
+                Array.isArray((DIM[r.a.cod]||{}).rendM)&&(DIM[r.a.cod].rendM||[]).some(v=>num(v)>0)?"mês •":"mês"}</button>
+            </div>`}</td>
         <td class="num"><input data-u="${r.a.cod}" value="${Math.round(r.util*100)}" inputmode="decimal"></td>
         <td class="num calc">${fmt(r.horas)}</td><td class="num tot">${r.frotaR||"—"}</td>
         <td class="num calc">${r.efetivo||"—"}</td><td class="calc">${r.fcod}</td>

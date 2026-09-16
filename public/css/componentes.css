@@ -294,6 +294,10 @@ tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:under
 #rendm{position:fixed;inset:0;z-index:95;display:flex;align-items:center;justify-content:center;padding:24px}
 #rendm[hidden]{display:none}
 .rm-modal{width:min(620px,100%)}
+/* o botao "mes" some atras da coluna vizinha se ficar na mesma linha do input —
+   td tem white-space:nowrap global (auto-cresce a linha inteira, nao quebra), entao
+   o extra vai num bloco proprio embaixo do input, numa linha nova de verdade */
+.rend-extra{display:flex;align-items:center;gap:5px;margin-top:3px}
 .rm-grade{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .rm-mes label{display:block;font-size:11px;color:var(--grey);margin-bottom:4px}
 .rm-mes input{width:100%}
