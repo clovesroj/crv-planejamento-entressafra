@@ -17,9 +17,13 @@ function periodoMes(i){
   const m = MES_NUM[MESES[i].slice(0,3)] || 0;
   return MESES_SAFRA.includes(m) ? "safra" : "entressafra";
 }
+// Quantos meses do ano agrícola caem em cada período. Sai do próprio calendário
+// para continuar certo se o horizonte do orçamento mudar de doze meses.
+const NM_PER = MESES.reduce((a,_,i)=>{ a[periodoMes(i)]++; return a; }, {safra:0, entressafra:0});
+
 function perTag(i){ const p = periodoMes(i); return `<span class="per per-${p}">${p==="safra"?"Safra":"Entressafra"}</span>`; }
 
 const CAT_LBL = {mdo:"Mão de obra", manut:"Manutenção (CRM)", diesel:"Diesel", insumo:"Insumos + irrigação",
   terc:"Terceirização + transporte", arrend:"Arrendamento", fixo:"Fixos (adm./deprec.)", espor:"Esporádicos"};
 
-export { CAT_LBL, MESES, MESES_ENTRESSAFRA, MESES_SAFRA, MES_NUM, NM, PERIODOS, PERIODO_MESES, perTag, periodoMes };
+export { CAT_LBL, MESES, MESES_ENTRESSAFRA, MESES_SAFRA, MES_NUM, NM, NM_PER, PERIODOS, PERIODO_MESES, perTag, periodoMes };

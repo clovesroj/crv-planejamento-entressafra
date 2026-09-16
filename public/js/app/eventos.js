@@ -52,6 +52,12 @@ document.addEventListener("input",e=>{
     FROTA[m]=FROTA[m]||{}; FROTA[m].qtd=num(t.value); salvar(); leve(); return; }
   if(t.dataset.fh!==undefined){ const m=t.dataset.fh;
     FROTA[m]=FROTA[m]||{}; FROTA[m].hmes=num(t.value); salvar(); leve(); return; }
+  if(t.dataset.tpe!==undefined){ const l=tpessLista()[+t.dataset.tpe], f=t.dataset.f;
+    l.ent = l.ent || {};
+    // campo vazio volta a herdar a safra, em vez de gravar zero
+    if(t.value.trim()==="") delete l.ent[f]; else l.ent[f]=num(t.value);
+    if(!Object.keys(l.ent).length) delete l.ent;
+    salvar(); leve(); return; }
   if(t.dataset.tp!==undefined){ const l=tpessLista()[+t.dataset.tp], f=t.dataset.f;
     l[f] = ["rota","veic"].includes(f) ? t.value : num(t.value);
     salvar(); leve(); return; }
