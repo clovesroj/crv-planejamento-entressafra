@@ -78,9 +78,13 @@ function pintarResumoFrota(R){
               <td class="num ${i!=null&&i>=15?"tot":"calc"}" style="${i!=null&&i>=15?"color:var(--amber)":""}">${u.ano||"—"}</td>
               <td class="num calc">${i!=null?i+" anos":"—"}</td>
               <td class="calc">${u.prop?"Própria":"Terceiro"}</td>
-              <td class="${d==="reforma"?"tot":"calc"}">${d==="reforma"?"Vai reformar":"Vai rodar"}</td></tr>`;}).join("")
+              <td><select data-undest="${u.cod}">
+                <option value="roda"${d==="roda"?" selected":""}>Vai rodar</option>
+                <option value="reforma"${d==="reforma"?" selected":""}>Vai reformar</option></select></td></tr>`;}).join("")
         }</tbody></table>
-        <div class="hint" style="margin-top:6px">O destino é definido na aba Manutenção de Frota.</div>
+        <div class="hint" style="margin-top:6px">O destino vale para as duas telas: o que for marcado aqui
+        aparece igual na Manutenção de Frota. Quem vai reformar sai da conta do CRM e entra no
+        provisionamento da aba Reforma de Frota.</div>
       </div></td></tr>`;
     }).join("")+
     `<tr><td class="tot">TOTAL</td><td class="num tot">${fmt(espsBase.reduce((s,e)=>s+e.mods.length,0))}</td>

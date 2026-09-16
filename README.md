@@ -174,8 +174,16 @@ São excludentes: o equipamento que vai à bancada não roda na operação, e co
 dele seria contar o mesmo custo duas vezes. O filtro **Destino na safra** isola um ou outro —
 é assim que se abre "somente o que vai rodar" para orçar a manutenção da safra.
 
-O Resumo de Frota também desce ao equipamento, com colunas de quantos vão rodar e quantos
-vão reformar por especialidade.
+O destino pode ser marcado em **três telas**, e é o mesmo dado nas três:
+
+| Tela | Onde |
+|---|---|
+| Dimensionamento | *Frota por tipo de máquina* — abre a frota real da máquina no **+** |
+| Manutenção de Frota | Ao abrir o modelo, junto dos campos de CRM |
+| Resumo de Frota | Ao abrir a especialidade, com colunas de quantos rodam e quantos reformam |
+
+Estão no Dimensionamento porque é ali que se olha quanta frota o plano exige — é onde a
+pergunta "esse aqui vai aguentar a safra ou vai para a bancada?" aparece.
 
 ## Reforma de frota
 

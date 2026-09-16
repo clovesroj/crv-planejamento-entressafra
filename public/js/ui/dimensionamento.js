@@ -1,3 +1,6 @@
+import { FROTA_ESP, SEP_MOD, chaveDoModelo, destinoDe, espDe, modDe,
+         unidadesDoModelo } from '../calculo/crm.js';
+import { FROTA_ABERTO } from '../nucleo/estado.js';
 import { $, brl, fmt, pct } from '../nucleo/formato.js';
 import { kpi, th } from './componentes.js';
 
@@ -40,11 +43,42 @@ function pintarDim(R){
     fr[p.maq]=fr[p.maq]||{h:0,f:0,n:0,d:0,m:0};
     fr[p.maq].h+=p.horas; fr[p.maq].f+=p.frota; fr[p.maq].n++;
     fr[p.maq].d+=p.cDiesel; fr[p.maq].m+=p.cManut;}));
+  // Cada maquina do plano abre na frota real que a representa, para marcar ali
+  // mesmo quem vai rodar e quem vai reformar -- e aqui que se olha o
+  // dimensionamento, entao e aqui que a duvida aparece.
+  const anoAtual = new Date().getFullYear();
   $("#t_frota").innerHTML = th([["Máquina"],["Frentes",1],["Horas",1],["Frota",1],["Diesel",1],["Manutenção",1]])+"<tbody>"+
-    Object.entries(fr).sort((a,b)=>b[1].h-a[1].h).map(([m,d])=>
-      `<tr><td>${m}</td><td class="num calc">${d.n}</td><td class="num calc">${fmt(d.h)}</td>
-       <td class="num tot">${Math.ceil(d.f)}</td><td class="num calc">${brl(d.d)}</td>
-       <td class="num calc">${brl(d.m)}</td></tr>`).join("")+"</tbody>";
+    Object.entries(fr).sort((a,b)=>b[1].h-a[1].h).map(([m,d])=>{
+      const chave = chaveDoModelo(m);
+      const un = chave ? unidadesDoModelo(chave, true) : [];
+      const k = "dim:"+m, aberto = FROTA_ABERTO[k];
+      const emRef = un.filter(u=>destinoDe(u[0])==="reforma").length;
+      const linha = `<tr><td>${
+          un.length?`<button class="btn xs" data-abrefrota="${k}" style="margin-right:6px;padding:1px 6px">${aberto?"−":"+"}</button>`:""
+        }${m}${un.length?` <span class="calc" style="font-weight:400">· ${un.length} na frota${
+          emRef?`, ${emRef} em reforma`:""}</span>`:""}</td>
+        <td class="num calc">${d.n}</td><td class="num calc">${fmt(d.h)}</td>
+        <td class="num tot">${Math.ceil(d.f)}</td><td class="num calc">${brl(d.d)}</td>
+        <td class="num calc">${brl(d.m)}</td></tr>`;
+      if(!aberto) return linha;
+      return linha+`<tr><td colspan="6" style="padding:0"><div style="padding:6px 0 10px 40px">
+        <table style="width:auto;min-width:520px"><thead><tr>
+          <th>Frota</th><th class="num">Ano</th><th class="num">Idade</th>
+          <th>Origem</th><th>Destino na safra</th></tr></thead><tbody>${
+          un.map(([cod,ano,prop])=>{ const i = ano?anoAtual-ano:null, dst = destinoDe(cod);
+            return `<tr${dst==="reforma"?' style="opacity:.62"':''}><td>${cod}</td>
+              <td class="num ${i!=null&&i>=15?"tot":"calc"}" style="${i!=null&&i>=15?"color:var(--amber)":""}">${ano||"—"}</td>
+              <td class="num calc">${i!=null?i+" anos":"—"}</td>
+              <td class="calc">${prop?"Própria":"Terceiro"}</td>
+              <td><select data-undest="${cod}">
+                <option value="roda"${dst==="roda"?" selected":""}>Vai rodar</option>
+                <option value="reforma"${dst==="reforma"?" selected":""}>Vai reformar</option></select></td></tr>`;}).join("")
+        }</tbody></table>
+        <div class="hint" style="margin-top:6px">Frota cadastrada como
+        <b>${espDe(m)||"—"} › ${modDe(m)||"—"}</b>. Marcar reforma tira o equipamento da conta do CRM e
+        joga no provisionamento da aba Reforma de Frota.</div>
+      </div></td></tr>`;
+    }).join("")+"</tbody>";
 
   $("#t_apoio").innerHTML = th([["Veículo / Máquina"],["Qtd",1],["Utilização",1],["Disponib.",1],["Necessidade",1],["Atividade"]])+"<tbody>"+
     R.AP.linhas.map(a=>`<tr><td>${a.nome}</td><td class="num"><input data-apf="${a.nome}" value="${a.qtd}" inputmode="decimal"></td>
