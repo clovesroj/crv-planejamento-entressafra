@@ -24,8 +24,9 @@ function pintarDim(R){
         <td class="calc">${multi?`<span class="badge b-warn">${r.partes.length} frentes</span>`:(r.a.modoOn?"padrão":"—")}</td>
         <td class="num calc">${fmt(r.total)} <span style="font-size:10px">${un}</span></td>
         <td class="num">${multi?`<span class="calc">${fmt(r.rend,2)} ${un}/h</span>`
-          :`<input data-r="${r.a.cod}" value="${r.rend}" inputmode="decimal">
-            <div class="rend-extra"><span class="calc">${un}/h</span>
+          :`<div class="rend-cel">
+              <input data-r="${r.a.cod}" value="${r.rend}" inputmode="decimal">
+              <span class="calc">${un}/h</span>
               <button class="btn xs" data-rendmes="${r.a.cod}" title="Rendimento por mês">${
                 Array.isArray((DIM[r.a.cod]||{}).rendM)&&(DIM[r.a.cod].rendM||[]).some(v=>num(v)>0)?"mês •":"mês"}</button>
             </div>`}</td>
