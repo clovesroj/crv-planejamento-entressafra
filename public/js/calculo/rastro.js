@@ -118,6 +118,39 @@ function rastroEtapa(R, etapa){
 }
 
 /* ---------- nível 3: atividade, descendo até a premissa ---------- */
+/* ===== Meta diaria da atividade =====
+   Traduz o dimensionamento no ritmo que o campo tem de manter: quantas horas
+   cada equipamento roda por dia e quanto entrega por dia, sozinho e em frota.
+
+   A meta sempre cabe na jornada, por construcao -- a frota sai dessa mesma
+   conta. O que interessa e o quanto ela ocupa do dia: a sobra e a taxa de
+   utilizacao ja premissada mais o arredondamento da frota para cima, e e essa
+   sobra que absorve chuva, quebra e deslocamento. */
+function metaDiaria(r, un){
+  if(!(r.total > 0) || !(r.frotaR > 0)) return null;
+  const diasJanela = num(P.dias) * r.janela.meses;        // dias efetivos na janela
+  if(!(diasJanela > 0)) return null;
+  const hDisp = num(P.hdia) * (num(P.disp)/100);          // hora de maquina disponivel por dia
+  if(!(hDisp > 0)) return null;
+  const hEquipDia  = r.horas / r.frotaR / diasJanela;
+  const unDia      = r.total / diasJanela;
+  const unEquipDia = unDia / r.frotaR;
+  const ocupa = hEquipDia / hDisp;
+  const sobra = Math.max(0, hDisp - hEquipDia);
+  return {titulo:"Meta para acompanhamento", linhas:[
+    {rot:"Cada equipamento precisa rodar", val:fmt(hEquipDia,1)+" h/dia",
+     sub:`${pct(ocupa)} das ${fmt(hDisp,1)} h disponíveis por dia · ${fmt(sobra,1)} h de folga`},
+    {rot:"Cada equipamento precisa entregar", val:fmt(unEquipDia,1)+" "+un+"/dia",
+     sub:`${fmt(r.rend,2)} ${un}/h × ${fmt(hEquipDia,1)} h/dia`},
+    {rot:"A frota inteira, por dia", val:fmt(unDia,1)+" "+un+"/dia",
+     sub:`${r.frotaR} equipamento${r.frotaR>1?"s":""} × ${fmt(unEquipDia,1)} ${un}/dia`},
+    {rot:"Dias efetivos na janela", val:fmt(diasJanela,0)+" dias",
+     sub:`${fmt(P.dias)} dias/mês × ${fmt(r.janela.meses,1)} meses`},
+    {rot:"Ritmo a manter", val:fmt(r.total)+" "+un+" em "+fmt(diasJanela,0)+" dias",
+     sub:`a folga de ${fmt(sobra,1)} h/dia é a taxa de utilização de ${pct(r.util)} mais o arredondamento da frota — é ela que absorve chuva, quebra e deslocamento`},
+  ]};
+}
+
 function rastroAtividade(R, cod){
   const r = R.L.find(x=>x.a.cod===cod);
   if(!r) return null;
@@ -125,6 +158,7 @@ function rastroAtividade(R, cod){
   const mesesComQtd = r.meses.map((q,i)=>({i, q:num(q)})).filter(x=>x.q>0);
   const escala = r.escala ? (ESCALAS[r.escala]||{}).nome || r.escala : "padrão das premissas";
   const trat = r.trat ? tratCusto(r.trat) : 0;
+  const meta = metaDiaria(r, un);
 
   const blocos = [
     {titulo:"Onde entra", linhas:[
@@ -136,6 +170,10 @@ function rastroAtividade(R, cod){
       ? mesesComQtd.map(x=>({rot:MESES[x.i], val:fmt(x.q)+" "+un}))
           .concat([{rot:"Total", val:fmt(r.total)+" "+un}])
       : [{rot:"Nada lançado no Plano Operacional", val:"—"}]},
+    // A conta abaixo diz quanta maquina a atividade precisa. Este bloco diz o
+    // que essa maquina precisa entregar por dia -- que e o numero que o campo
+    // acompanha e que a diretoria cobra.
+    ...(meta ? [meta] : []),
     {titulo:"Horas e frota", linhas:[
       {rot:"Rendimento operacional", val:fmt(r.rend,2)+" "+un+"/h"},
       {rot:"Taxa de utilização", val:pct(r.util)},
