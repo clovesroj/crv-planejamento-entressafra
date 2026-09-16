@@ -54,7 +54,7 @@ export const INDIRETOS = [
 ];
 
 export const FUNCAO_POR_ATIVIDADE = {
-  "Colheita safra 2026": "F02",
+  "Aplicação de calcário":"F01","Aplicação de gesso":"F01","Colheita safra 2026": "F02",
   "Colheita muda": "F02",
   "Dessecação": "F01",
   "1ª Gradagem pesada": "F01",

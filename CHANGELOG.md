@@ -1,5 +1,25 @@
 # Histórico de mudanças
 
+## 2.3.0 — 2026-09-16 · Calcário e gesso em tratos culturais
+
+Duas operações novas no Plano Operacional, dentro de TRATOS CULTURAIS:
+**A37 Aplicação de calcário** e **A38 Aplicação de gesso**, em ha/mês.
+
+Cada uma aceita só dois modos de execução, marcados na coluna Modo de execução:
+**Trator** (Trator 4x4 150 CV + Distribuidor de sólidos, operador de máquinas
+agrícolas) ou **Terceiro** (prestador de serviço pela tarifa em R$/ha, sem frota
+nem efetivo próprios). Dá para dividir a área entre os dois.
+
+Para isso o cadastro de atividade ganhou dois campos opcionais, lidos em
+`calculo/atividade.js`: `modos`, que limita os modos oferecidos, e `modoCfg`,
+que ajusta máquina, implemento, rendimento ou função de um modo naquela
+atividade. Atividade sem esses campos continua com os cinco modos de sempre.
+
+Rendimentos de partida: 5,0 ha/h para calcário e 5,5 ha/h para gesso; ambas
+classificadas como cana planta no rateio de tratos. Ajustáveis na aba
+Dimensionamento e no cadastro.
+
+
 ## 2.2.0 — 2026-09-16 · Ano agrícola completo no Plano Operacional
 
 ### Janela do orçamento: 9 para 12 meses

@@ -12,11 +12,19 @@ const MODOS_ORD = ["Manual","Trator","Uniport","Drone","Terceiro"];
 // tarifa de prestação de serviço por atividade (R$/ha) — sobrepõe o padrão
 function tarifaTerc(cod){ return TERC_TAR[cod]!=null ? num(TERC_TAR[cod]) : CFG.terc_tar_pad; }
 
+/* Modos que a atividade aceita. Sem a lista, vale o cardapio inteiro; com ela,
+   a atividade so oferece o que faz sentido — aplicacao de calcario, por exemplo,
+   e trator proprio ou prestador de servico, nunca drone. */
+function modosDe(a){
+  const l = Array.isArray(a.modos) ? a.modos.filter(m=>CFG.modos[m]) : [];
+  return l.length ? l : MODOS_ORD;
+}
+
 // divisão da área entre modos de aplicação. Sem mix definido, roda 100% no padrão.
 function mixDe(a, p){
   if(!a.modoOn) return null;
   const mx = p.mix || {};
-  const soma = MODOS_ORD.reduce((s,m)=>s+num(mx[m]),0);
+  const soma = modosDe(a).reduce((s,m)=>s+num(mx[m]),0);
   if(soma<=0) return null;
   return {mx, soma};
 }
@@ -35,8 +43,9 @@ function linha(a, MP){
   // define as frentes de trabalho: uma por modo com % > 0, ou uma única no padrão
   let frentes;
   if(M){
-    frentes = MODOS_ORD.filter(m=>num(M.mx[m])>0).map(m=>{
-      const MO = CFG.modos[m];
+    frentes = modosDe(a).filter(m=>num(M.mx[m])>0).map(m=>{
+      // modoCfg deixa a atividade ajustar maquina, implemento, rendimento ou funcao do modo
+      const MO = {...CFG.modos[m], ...((a.modoCfg||{})[m]||{})};
       return {modo:m, pct:num(M.mx[m])/M.soma, maq:MO.maq, imp:MO.imp,
               rend:MO.rend, ops:MO.ops, turnos:MO.turnos, fcodPad:MO.fcod, terc:!!MO.terc};
     });
@@ -108,4 +117,4 @@ function linha(a, MP){
           dieselMes: fracMes.map((fr,i)=>fr*soma("litros")*precoDiesel(i))};
 }
 
-export { MODOS_ORD, linha, mixDe, tarifaTerc };
+export { MODOS_ORD, modosDe, linha, mixDe, tarifaTerc };

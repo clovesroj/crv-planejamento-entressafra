@@ -1,4 +1,4 @@
-import { MODOS_ORD } from '../calculo/atividade.js';
+import { MODOS_ORD, modosDe } from '../calculo/atividade.js';
 import { tratLista } from '../calculo/insumos.js';
 import { ROMANOS, niveis } from '../calculo/mao-de-obra.js';
 import { CFG } from '../dados/cfg.js';
@@ -12,11 +12,12 @@ import { MESES, periodoMes } from '../nucleo/calendario.js';
 // editor compacto do mix de modos: 4 percentuais numa célula só
 function mixEditor(r){
   const mx = r.mix || {};
-  const soma = MODOS_ORD.reduce((s,m)=>s+num(mx[m]),0);
+  const modos = modosDe(r.a);   // so os modos que a atividade aceita
+  const soma = modos.reduce((s,m)=>s+num(mx[m]),0);
   const cor = soma===0 ? "var(--grey)" : (Math.abs(soma-100)<0.01 ? "var(--green)" : "var(--red)");
   const sigla = {Manual:"M",Trator:"T",Uniport:"U",Drone:"D",Terceiro:"3º"};
   return `<div class="mix">` +
-    MODOS_ORD.map(m=>`<label title="${m}" class="${m==="Terceiro"?"terc":""}">${sigla[m]}<input data-mx="${r.a.cod}" data-mo="${m}"
+    modos.map(m=>`<label title="${m}" class="${m==="Terceiro"?"terc":""}">${sigla[m]}<input data-mx="${r.a.cod}" data-mo="${m}"
       value="${mx[m]||""}" inputmode="decimal" placeholder="0"></label>`).join("") +
     `<span class="mixsum" style="color:${cor}">${soma===0?"padrão":fmt(soma,0)+"%"}</span></div>`;
 }
