@@ -4,7 +4,7 @@ import { composicao, destravar, tratCodigos } from '../calculo/insumos.js';
 import { CFG } from '../dados/cfg.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM } from '../nucleo/calendario.js';
-import { APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, fornLista, insLista, matLista, tpessLista } from '../nucleo/estado.js';
+import { APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL } from '../nucleo/estado.js';
 import { FROTA_ABERTO, FROTA_UN, MAQ, setFROTA_DEST, setFROTA_ORIG } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { aplicarFiltroPlano } from '../ui/plano.js';
@@ -150,6 +150,9 @@ document.addEventListener("change",e=>{
 document.addEventListener("click",e=>{
   // filtro de periodo do rastro (ano todo / safra / entressafra) — checa antes do
   // data-rastro geral, pois os botoes do filtro moram dentro do proprio modal
+  // filtro global de periodo, na barra superior
+  const alvoPer = e.target.closest && e.target.closest("#per_sel [data-periodo]");
+  if(alvoPer){ setPERIODO_SEL(alvoPer.dataset.periodo); render(); return; }
   const alvoPeriodo = e.target.closest && e.target.closest("[data-ra-periodo]");
   if(alvoPeriodo){ filtrarRastro(alvoPeriodo.dataset.raPeriodo); return; }
   // rastro do calculo: qualquer elemento com data-rastro abre ou desce um nivel

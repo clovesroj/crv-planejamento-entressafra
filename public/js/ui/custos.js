@@ -21,8 +21,10 @@ const NAT_RASTRO = {"Combustível (diesel)":"diesel","Mão de obra direta":"mdo"
 function pintarCustos(R){
   const ha=P.plantio||1;
   $("#k_custo").innerHTML =
-    kpi("Custo total","",brl(R.total),"","total") + kpi("Custo variável","t",brl(R.variavel),"","total") +
-    kpi("Custo fixo","a",brl(R.fixoT),"","total") + kpi("Custo por ha plantado","g",brl(R.total/ha),"","total");
+    kpi("Custo total","",brl(R.SEL.total), R.SEL.parcial?R.SEL.rotulo:"","total") +
+    kpi("Custo variável","t",brl(R.variavel*R.SEL.fracaoCusto), R.SEL.parcial?R.SEL.rotulo:"","total") +
+    kpi("Custo fixo","a",brl(R.fixoT*R.SEL.fracaoDoAno), R.SEL.parcial?R.SEL.meses.length+" meses":"","total") +
+    kpi("Custo por ha plantado","g",brl(R.SEL.total/ha), R.SEL.parcial?R.SEL.rotulo:"","total");
 
   // safra (abril a novembro) × entressafra (dezembro a março)
   const PR = R.PER, perTot = PR.safra.total + PR.entressafra.total;

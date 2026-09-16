@@ -17,8 +17,8 @@ function pintarPainel(R){
   const corteTotal = corteDireto + R.indiretoPool*(corteDireto/R.diretoSum)
     + (colh && colh.direto>0 ? colh.arrend*(corteDireto/colh.direto) : 0);
   $("#k_painel").innerHTML =
-    kpi("Custo total","",brl(R.total),"","total") +
-    kpi("Custo / ha plantado","t",brl(R.total/ha),"","total") +
+    kpi("Custo total","",brl(R.SEL.total), R.SEL.parcial?R.SEL.rotulo:"","total") +
+    kpi("Custo / ha plantado","t",brl(R.SEL.total/ha), R.SEL.parcial?R.SEL.rotulo:"","total") +
     kpi("Custo de colheita","g",corteTon>0?brl(corteTotal/corteTon,2)+"/t":"—","só corte (A01+A02), sem transporte","etapa:COLHEITA") +
     kpi("Efetivo total","a",fmt(R.efetivoTotal)+" pessoas","","pessoas:total") +
     kpi("Custo na safra","g",brl(R.PER.safra.total),"abr a nov · "+R.PER.safra.meses.length+" meses no orçamento","total") +
