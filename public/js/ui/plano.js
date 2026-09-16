@@ -64,9 +64,7 @@ function pintarPlano(R){
     const dentro = j => !jIdx || jIdx.includes(j);
     h+=`<tr><td>${r.a.cod}</td><td>${r.a.nome}${auto?' <span class="badge b-ok">auto</span>':''}</td>
         <td><input type="date" data-dt="${r.a.cod}" data-f="ini" value="${r.janela.ini||""}" title="Início da execução"></td>
-        <td><input type="date" data-dt="${r.a.cod}" data-f="fim" value="${r.janela.fim||""}" title="Fim da execução">${
-          jIdx && !auto ? `<button class="btn xs" data-ratear="${r.a.cod}" style="margin-left:5px;padding:1px 6px"
-            title="Distribuir o total igualmente nos meses da janela">ratear</button>` : ""}</td>
+        <td><input type="date" data-dt="${r.a.cod}" data-f="fim" value="${r.janela.fim||""}" title="Fim da execução"></td>
         <td class="calc">${r.a.un}</td>`+
       r.meses.map((q,j)=> auto
         ? `<td class="num calc ${clsMes(j)}">${q?fmt(num(q)):""}</td>`
