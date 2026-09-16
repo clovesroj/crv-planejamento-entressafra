@@ -18,6 +18,7 @@ import './io/relatorio.js';      // botao Relatorio + clique que fecha o menu
 import './ui/logo.js';           // aplica o logo e gera a versao branca
 import './io/persistencia.js';   // listeners de visibilitychange / pagehide / blur
 import './ui/navegacao.js';      // menu lateral, abas, botao de tema
+import './ui/interacao.js';      // glow interativo dos cards (kpi/hero)
 import './app/eventos.js';       // delegacao de input / change / click
 import './app/acoes.js';         // botoes de acao (restaurar, exportar, tema)
 

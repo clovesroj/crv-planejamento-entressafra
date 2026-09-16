@@ -10,8 +10,32 @@ input.bad{border-color:var(--bad);background:var(--bad-bg)}
 .hint{font-size:11.5px;color:var(--grey);margin-top:4px;line-height:1.45}
 
 /* ---------- indicadores ---------- */
+/* inherits:true é obrigatório aqui — ::before/::after leem estas variáveis
+   como se fossem filhos do elemento onde o JS escreve o valor */
+@property --glow-x{syntax:'<percentage>';inherits:true;initial-value:50%}
+@property --glow-y{syntax:'<percentage>';inherits:true;initial-value:50%}
+@property --glow-o{syntax:'<number>';inherits:true;initial-value:0}
 .kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px 13px;
-  display:flex;flex-direction:column;gap:3px;min-width:0}
+  display:flex;flex-direction:column;gap:3px;min-width:0;position:relative;overflow:hidden;
+  --glow-x:50%;--glow-y:50%;--glow-o:0;
+  transform:perspective(700px) rotateX(0deg) rotateY(0deg) translate3d(0,0,0);
+  transition:transform .5s cubic-bezier(.2,.8,.2,1),box-shadow .5s cubic-bezier(.2,.8,.2,1),
+    --glow-o .4s ease,border-color .4s ease}
+/* brilho que segue o cursor (spotlight) */
+.kpi::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;border-radius:inherit;
+  background:radial-gradient(320px circle at var(--glow-x) var(--glow-y),
+    color-mix(in srgb, var(--leaf) 22%, transparent) 0%,
+    color-mix(in srgb, var(--leaf) 8%, transparent) 38%, transparent 72%);
+  opacity:var(--glow-o)}
+/* brilho na borda, mesma técnica de máscara do MagicBento */
+.kpi::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;border-radius:inherit;padding:1px;
+  background:radial-gradient(220px circle at var(--glow-x) var(--glow-y),
+    color-mix(in srgb, var(--leaf) 75%, transparent) 0%,
+    color-mix(in srgb, var(--leaf) 30%, transparent) 45%, transparent 70%);
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  mask-composite:exclude;opacity:var(--glow-o)}
+.kpi>*{position:relative;z-index:1}
 .kpi .l{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:600;text-transform:uppercase;
   letter-spacing:.8px;color:var(--grey)}
 .kpi .l::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--leaf);flex:none}
@@ -22,6 +46,13 @@ input.bad{border-color:var(--bad);background:var(--bad-bg)}
 .kpi .v{font-family:var(--f-display);font-size:29px;font-weight:600;line-height:1.1;letter-spacing:-.2px;
   color:var(--ink);overflow-wrap:anywhere}
 .kpi .s{font-size:12px;color:var(--grey);line-height:1.4}
+
+/* ---------- entrada em cascata ao trocar de aba ---------- */
+@keyframes popIn{
+  from{opacity:0;filter:blur(6px);transform:scale(.92) translateY(10px)}
+  to{opacity:1;filter:blur(0);transform:scale(1) translateY(0)}
+}
+.pop-in{animation:popIn .55s cubic-bezier(.22,1.12,.36,1) backwards}
 
 /* ---------- tabelas ---------- */
 .tblwrap{overflow:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--card)}
@@ -116,11 +147,18 @@ footer{display:flex;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;co
 
 /* ---------- capa ---------- */
 .hero{position:relative;overflow:hidden;border-radius:var(--r);padding:26px 28px;display:flex;align-items:center;
-  gap:22px;flex-wrap:wrap;color:#EEF3EA;background:linear-gradient(115deg,#132117 0%,#1F3A26 58%,#2D5A33 100%)}
+  gap:22px;flex-wrap:wrap;color:#EEF3EA;background:linear-gradient(115deg,#132117 0%,#1F3A26 58%,#2D5A33 100%);
+  --glow-x:50%;--glow-y:50%;--glow-o:0;transition:--glow-o .5s ease}
+/* brilho que segue o cursor — só spotlight, sem tilt (banner, não é card) */
+.hero::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(480px circle at var(--glow-x) var(--glow-y),
+    rgba(214,180,110,.22) 0%, rgba(111,174,110,.10) 40%, transparent 70%);
+  opacity:var(--glow-o)}
 /* linhas de plantio vistas do alto, esmaecendo para a esquerda */
 .hero::after{content:"";position:absolute;inset:0 0 0 42%;pointer-events:none;
   background:repeating-linear-gradient(-62deg,rgba(214,180,110,.17) 0 2px,transparent 2px 13px);
   -webkit-mask-image:linear-gradient(90deg,transparent,#000 65%);mask-image:linear-gradient(90deg,transparent,#000 65%)}
+.hero img,.hero .ht{position:relative;z-index:1}
 .hero img{height:52px;width:auto;background:#fff;padding:8px 13px;border-radius:7px;position:relative;z-index:1}
 .hero img[data-variante="branco"]{height:58px;background:none;padding:0;border-radius:0}
 .hero .ht{position:relative;z-index:1;min-width:0}
