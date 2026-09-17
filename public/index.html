@@ -116,22 +116,6 @@
     <div class="chip" id="chip_usuario" title="Usuário autenticado" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c1-3.6 3.8-5.6 7.5-5.6s6.5 2 7.5 5.6"/></svg><b id="chip_usuario_nome"></b></div>
     <button class="ghost-btn" id="btn_logout" title="Sair" aria-label="Sair" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h9"/><path d="M10 12h11m0 0l-3.5-3.5M21 12l-3.5 3.5"/></svg></button>
     <button class="ghost-btn" id="btn_tema_top" title="Alternar tema claro/escuro" aria-label="Alternar tema claro/escuro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg></button>
-    <div class="reportbox">
-      <button class="icon-btn" id="btn_report" title="Gerar relatório em PDF ou Excel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg><span class="lbl">Relatório</span></button>
-      <div class="report-pop" id="report_pop" hidden>
-        <label for="sel_report_rel">Relatório</label>
-        <select id="sel_report_rel"></select>
-        <label for="sel_report_nivel">Nível do relatório</label>
-        <select id="sel_report_nivel"><option value="resumido">Resumido</option><option value="detalhado">Detalhado</option></select>
-        <div class="row"><button class="btn" id="btn_report_preview">Pré-visualizar</button></div>
-        <div class="row"><button class="btn p" id="btn_report_pdf">Gerar PDF</button>
-          <button class="btn" id="btn_report_xlsx">Gerar Excel</button></div>
-        <div class="row"><button class="btn" id="btn_report_csv">Gerar CSV</button></div>
-        <div class="hint" style="margin-top:8px">O Orçamento Agrícola Anual sai com as 20 abas
-          padronizadas; os demais saem focados no tema. O nível detalhado acrescenta as abas de
-          apoio ao relatório anual.</div>
-      </div>
-    </div>
   </div>
 </header>
 
@@ -987,6 +971,30 @@
 <aside id="fichains" aria-label="Ficha técnica do insumo" hidden></aside>
 <div id="prev_rel_fundo" hidden></div>
 <aside id="prev_rel" aria-label="Pré-visualização do relatório" hidden></aside>
+<div id="report_pop_fundo" hidden></div>
+<aside id="report_pop" aria-label="Gerar relatório" hidden>
+  <div class="ra-modal rp-modal" id="rp_modal">
+    <div class="ra-topo">
+      <div class="ra-nav">
+        <div class="ra-tit" style="font-size:16px">Relatório</div>
+        <button class="ghost-btn" id="report_pop_fechar" title="Fechar" aria-label="Fechar">✕</button>
+      </div>
+    </div>
+    <div class="ra-corpo">
+      <label for="sel_report_rel">Relatório</label>
+      <select id="sel_report_rel"></select>
+      <label for="sel_report_nivel">Nível do relatório</label>
+      <select id="sel_report_nivel"><option value="resumido">Resumido</option><option value="detalhado">Detalhado</option></select>
+      <div class="row" style="margin-top:10px"><button class="btn" id="btn_report_preview">Pré-visualizar</button></div>
+      <div class="row" style="margin-top:10px"><button class="btn p" id="btn_report_pdf">Gerar PDF</button>
+        <button class="btn" id="btn_report_xlsx">Gerar Excel</button></div>
+      <div class="row" style="margin-top:10px"><button class="btn" id="btn_report_csv">Gerar CSV</button></div>
+      <div class="hint" style="margin-top:8px">O Orçamento Agrícola Anual sai com as 20 abas
+        padronizadas; os demais saem focados no tema. O nível detalhado acrescenta as abas de
+        apoio ao relatório anual.</div>
+    </div>
+  </div>
+</aside>
 <div id="print_report"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>

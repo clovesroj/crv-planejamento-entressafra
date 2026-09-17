@@ -127,20 +127,44 @@ document.addEventListener("keydown", e=>{
   if(e.key==="Escape" && $("#prev_rel") && !$("#prev_rel").hidden) fecharPreview();
 });
 
+/* ---------- painel de gerar relatório ----------
+   Era um dropdown ancorado no botão da barra superior; sem aquele botão (o
+   único atalho agora é o do menu lateral), virou modal central com blur —
+   mesmo idioma do rastro/pré-visualização. */
+let rpAberto = false;   // controla a animação de entrada: só toca ao abrir
+function fecharReportPop(){
+  const p = $("#report_pop"), f = $("#report_pop_fundo");
+  if(p) p.hidden = true;
+  if(f) f.hidden = true;
+  rpAberto = false;
+}
+function abrirReportPop(){
+  const p = $("#report_pop"), f = $("#report_pop_fundo"), modal = $("#rp_modal");
+  if(!p || !f) return;
+  p.hidden = false;
+  f.hidden = false;
+  if(!rpAberto && modal){
+    modal.classList.remove("pop-in"); void modal.offsetWidth;
+    modal.classList.add("pop-in");
+  }
+  rpAberto = true;
+}
+document.addEventListener("click", e=>{
+  if(e.target.id==="report_pop_fechar" || e.target.id==="report_pop_fundo") fecharReportPop();
+});
+document.addEventListener("keydown", e=>{
+  if(e.key==="Escape" && $("#report_pop") && !$("#report_pop").hidden) fecharReportPop();
+});
+
 /* ---------- controles ---------- */
 const selRel = $("#sel_report_rel");
 if(selRel) selRel.innerHTML = RELATORIOS.map(r=>`<option value="${r.id}">${r.nome}</option>`).join("");
 
-$("#btn_report").onclick=()=>{ $("#report_pop").hidden = !$("#report_pop").hidden; };
-document.addEventListener("click",e=>{
-  if(!e.target.closest(".reportbox")) $("#report_pop").hidden = true;
-});
-
 /* ---------- atalho no menu lateral ----------
    Mesmo idioma visual da sub-navegacao do Dimensionamento (pasta que abre pros
    itens de dentro — ver ui/navegacao.js): o botao "Relatório" desce a lista dos
-   relatorios, e escolher um ja deixa selecionado no popup da barra superior,
-   so falta escolher nivel e formato. */
+   relatorios, e escolher um ja deixa selecionado no painel de gerar. É o único
+   ponto de entrada — não existe mais botão de relatório na barra superior. */
 const navRel = $("#nav_relatorio");
 if(navRel){
   navRel.classList.add("tem-sub");
@@ -158,7 +182,7 @@ if(navRel){
     item.onclick = e=>{
       e.stopPropagation();   // nao deixa isto contar como "clique fora" e fechar o popup que acabou de abrir
       if(selRel) selRel.value = RELATORIOS[i].id;
-      $("#report_pop").hidden = false;
+      abrirReportPop();
       document.body.classList.remove("menu-open");
     };
   });
@@ -171,7 +195,7 @@ if(navRel){
     navRel.setAttribute("aria-expanded", String(abrindo));
   });
 }
-const fechaEGera = fn => ()=>{ $("#report_pop").hidden=true; fn(nivelAtual(), relAtual()); };
+const fechaEGera = fn => ()=>{ fecharReportPop(); fn(nivelAtual(), relAtual()); };
 $("#btn_report_pdf").onclick  = fechaEGera(gerarPDF);
 $("#btn_report_xlsx").onclick = fechaEGera(gerarExcel);
 if($("#btn_report_csv")) $("#btn_report_csv").onclick = fechaEGera(gerarCSV);
