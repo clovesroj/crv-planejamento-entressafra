@@ -133,8 +133,10 @@ function habilitarReordenacao(tabelaId, fixas=0){
       if(arrastando===null || arrastando===origIdx) return;
       const de = moveis.indexOf(arrastando), para = moveis.indexOf(origIdx);
       if(de<0 || para<0) return;
-      const [mov] = moveis.splice(de,1);
-      moveis.splice(para,0,mov);
+      // troca só as duas colunas de lugar — inserir (splice) empurrava tudo
+      // entre origem e destino uma casa, dando a impressão de que a coluna
+      // "pulava" pra longe de onde foi largada
+      [moveis[de], moveis[para]] = [moveis[para], moveis[de]];
       salvarOrdem(tabelaId, moveis);
       aplicar();
     });
