@@ -203,6 +203,8 @@ function migrarJanela(d){
   }
   (d.ARREND || []).forEach(a=>{
     if(a.mes != null && +a.mes >= 0 && +a.mes < MESES_9.length) a.mes = idxMes(MESES_9[+a.mes]);
+    if(Array.isArray(a.pmes))
+      a.pmes = a.pmes.map(i=>idxMes(MESES_9[+i])).filter(i=>i>=0).sort((x,y)=>x-y);
   });
   (d.ESPOR || []).forEach(e=>{
     if(e.mes && MESES.indexOf(e.mes) < 0){ const j = idxMes(e.mes); e.mes = MESES[j >= 0 ? j : 0]; }

@@ -540,8 +540,11 @@
     <div class="row" style="margin-top:10px"><button class="btn p" id="btn_arr_add">Adicionar fazenda</button></div>
     <div class="hint" style="margin-top:9px">R$/ha/ano por forma de pagamento: <b>R$ fixo</b> = valor informado ·
     <b>t de cana</b> = t/ha × ATR × R$/kg ATR · <b>kg de ATR</b> = kg/ha × R$/kg ATR ·
-    <b>parceria</b> = % × produtividade × ATR × R$/kg ATR. Periodicidade e 1º pagamento só mudam os meses no critério Caixa;
-    em Competência cada mês recebe 1/12 do valor anual. Use o campo Grupo para somar fazendas de um mesmo bloco ou proprietário.</div></div>
+    <b>parceria</b> = % × produtividade × ATR × R$/kg ATR. A periodicidade gera os meses de pagamento a partir do
+    1º pagamento; para um contrato que paga em meses escolhidos, seguidos ou não, marque os meses na grade
+    <b>Distribuição mensal</b> — a periodicidade passa a "Meses específicos" e o valor anual se divide em parcelas
+    iguais nos meses marcados. Os meses valem no critério Caixa; em Competência cada mês recebe 1/12 do valor anual.
+    Use o campo Grupo para somar fazendas de um mesmo bloco ou proprietário.</div></div>
   <div class="panel"><h3>Resumo por grupo de fazendas</h3><div class="tblwrap"><table id="t_arr_grupo"></table></div></div>
   <div class="panel"><h3>Rateio por etapa — referência PECEGE/USP</h3>
     <div class="tblwrap"><table id="t_arr_rat"></table></div>
@@ -551,6 +554,11 @@
     culturais, cana soca e cana planta dividem a parcela pela área tratada. O valor de cada etapa aparece na coluna
     Arrendamento da aba Custos.</div></div>
   <div class="panel"><h3>Distribuição mensal</h3><div class="tblwrap"><table id="t_arr_mes"></table></div>
+    <div class="hint" style="margin-top:9px">Marque na grade os meses em que cada contrato paga — podem ser
+    seguidos ou não. O valor anual se divide em parcelas iguais entre os meses marcados. Pagamento que cairia fora da
+    janela do orçamento não entra, e a aba Validação avisa quando um contrato fica sem nenhum pagamento dentro dela.
+    Com o filtro de período da barra de cima em Safra ou Entressafra, só os meses do período aparecem na grade —
+    volte para Ano todo para marcar os demais.</div>
     <div id="ch_arr" style="margin-top:14px"></div></div>
 </section>
 

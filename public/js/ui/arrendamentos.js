@@ -1,5 +1,5 @@
-import { ARR_FORMAS, ARR_PAG, ETAPAS_ORD, arrPar, arrRat } from '../calculo/arrendamento.js';
-import { MESES, NM } from '../nucleo/calendario.js';
+import { ARR_FORMAS, ARR_PAG, ETAPAS_ORD, PAG_LIVRE, arrPar, arrRat } from '../calculo/arrendamento.js';
+import { MESES, NM, clsMes } from '../nucleo/calendario.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
 import { barras, kpi, somaSel, tdMeses, th, thMeses } from './componentes.js';
 
@@ -17,7 +17,8 @@ function pintarArrend(R){
   const mesOpts = sel => `<option value="-1" ${sel===-1?"selected":""}>Fora do período</option>`+
     MESES.map((m,i)=>`<option value="${i}" ${sel===i?"selected":""}>${m}</option>`).join("");
   $("#t_arr").innerHTML = th([["Fazenda"],["Grupo"],["Área (ha)",1],["Forma de pagamento"],["Qtd por ha/ano",1],["Un."],
-    ["Periodicidade"],["1º pagamento"],["R$/ha/ano",1],["Custo anual",1],["No orçamento",1],[""]])+"<tbody>"+
+    ["Periodicidade"],["1º pagamento"],["Meses de pagamento"],["Parcela",1],["R$/ha/ano",1],["Custo anual",1],
+    ["No orçamento",1],[""]])+"<tbody>"+
     (A.linhas.length ? A.linhas.map((l,i)=>`<tr>
       <td><input data-arr="${i}" data-f="faz" value="${esc(l.faz)}" style="text-align:left;min-width:170px"></td>
       <td><input data-arr="${i}" data-f="grupo" value="${esc(l.grupo)}" style="text-align:left;min-width:110px"></td>
@@ -27,12 +28,15 @@ function pintarArrend(R){
       <td class="num"><input data-arr="${i}" data-f="qtd" value="${num(l.qtd)}" inputmode="decimal"></td>
       <td class="calc">${(ARR_FORMAS[l.forma]||{un:""}).un}</td>
       <td><select data-arr="${i}" data-f="pag">${ARR_PAG.map(p=>`<option ${p===l.pag?"selected":""}>${p}</option>`).join("")}</select></td>
-      <td><select data-arr="${i}" data-f="mes" ${l.pag==="Mensal"?"disabled":""}>${mesOpts(+l.mes)}</select></td>
+      <td><select data-arr="${i}" data-f="mes" ${l.pag==="Mensal"||l.pag===PAG_LIVRE?"disabled":""}>${mesOpts(l.mes0)}</select></td>
+      <td class="calc" style="min-width:160px">${l.nParc ? esc(l.agenda)
+        : '<span class="badge b-warn">sem pagamento na janela</span>'}</td>
+      <td class="num calc">${l.nParc ? l.nParc+"× "+brl(l.parcela) : "—"}</td>
       <td class="num calc">${brl(l.rsHa,2)}</td><td class="num">${brl(l.anual)}</td>
       <td class="num tot">${brl(l.periodo)}</td>
       <td><button class="btn d" data-arrm="${i}">Remover</button></td></tr>`).join("")
-    : `<tr><td colspan="12" class="calc">Nenhuma fazenda cadastrada.</td></tr>`)+
-    `<tr><td class="tot" colspan="2">TOTAL</td><td class="num tot">${fmt(A.area)}</td><td colspan="5"></td>
+    : `<tr><td colspan="14" class="calc">Nenhuma fazenda cadastrada.</td></tr>`)+
+    `<tr><td class="tot" colspan="2">TOTAL</td><td class="num tot">${fmt(A.area)}</td><td colspan="6"></td>
      <td class="num tot">${A.area>0?brl(A.anual/A.area,2):"—"}</td><td class="num tot">${brl(A.anual)}</td>
      <td class="num tot">${brl(A.total)}</td><td></td></tr></tbody>`;
 
@@ -67,11 +71,22 @@ function pintarArrend(R){
      <td class="num tot">${brl(ETAPAS_ORD.reduce((s,e)=>s+((R.etapas[e]||{}).arrend||0),0))}</td><td colspan="2"></td></tr></tbody>`;
 
   const SEL = R.SEL;
-  $("#t_arr_mes").innerHTML = th([["Fazenda"],...thMeses(),[SEL.parcial?"Total do período":"Total",1]])+"<tbody>"+
-    A.linhas.map(l=>`<tr><td>${esc(l.faz)}</td>`+tdMeses(l.mes, v=>brl(v))+
-      `<td class="num">${brl(somaSel(l.mes, SEL))}</td></tr>`).join("")+
+  // cada célula é um mês de pagamento do contrato: clicar marca ou desmarca, e o
+  // contrato passa a valer pelos meses marcados, seguidos ou não
+  $("#t_arr_mes").innerHTML = th([["Fazenda"],...thMeses(),["Parcelas",1],
+    [SEL.parcial?"Total do período":"Total",1]])+"<tbody>"+
+    (A.linhas.length ? A.linhas.map((l,i)=>`<tr><td>${esc(l.faz)}</td>`+
+      l.mes.map((v,j)=>{ const on = l.pmes.includes(j);
+        return `<td class="num pmes${on?" on":""} ${clsMes(j)}"><label title="${
+          on?"Pagamento em ":"Marcar pagamento em "}${MESES[j]}">
+          <input type="checkbox" data-arrpm="${i}" data-m="${j}" ${on?"checked":""}>
+          <span>${v>0?brl(v):"—"}</span></label></td>`; }).join("")+
+      `<td class="num calc">${l.nParc||"—"}</td>
+       <td class="num">${brl(somaSel(l.mes, SEL))}</td></tr>`).join("")
+    : `<tr><td colspan="${NM+3}" class="calc">Nenhuma fazenda cadastrada.</td></tr>`)+
     `<tr><td class="tot">TOTAL</td>`+tdMeses(A.mes, v=>brl(v), "num tot")+
-    `<td class="num tot">${brl(somaSel(A.mes, SEL))}</td></tr></tbody>`;
+    `<td class="num tot">${A.linhas.reduce((s,l)=>s+l.nParc,0)}</td>
+     <td class="num tot">${brl(somaSel(A.mes, SEL))}</td></tr></tbody>`;
   barras($("#ch_arr"), MESES.map((m,i)=>({l:m, v:A.mes[i]})), "#A5503A");
 }
 

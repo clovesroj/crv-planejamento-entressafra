@@ -16,6 +16,9 @@ function validar(R){
   const ratSoma = ETAPAS_ORD.reduce((s,e)=>s+arrRat(e),0);
   add(Math.abs(ratSoma-100)<=0.01,"Rateio do arrendamento por etapa somando 100%",
       Math.abs(ratSoma-100)<=0.01 ? "" : "soma "+fmt(ratSoma,1)+"% — valores normalizados no cálculo");
+  const arrSemMes = R.AR.linhas.filter(l=>l.anual>0 && l.periodo<=0);
+  add(arrSemMes.length===0,"Contrato de arrendamento sem pagamento na janela do orçamento",
+      arrSemMes.map(l=>l.faz).join(", "));
   const arrSemValor = R.AR.linhas.filter(l=>l.area>0 && l.rsHa<=0);
   add(arrSemValor.length===0,"Fazenda arrendada com área e sem valor de pagamento", arrSemValor.map(l=>l.faz).join(", "));
   if(R.PS) add(Math.abs(R.PS.custo-R.mdoTotal)<=1,"Resumo de pessoas confere com o custo de mão de obra",

@@ -368,3 +368,13 @@ section.so-leitura button:disabled{opacity:.55;cursor:not-allowed}
 .matriz-perfis .pf-tudo td{border-bottom:2px solid var(--line-strong)}
 .matriz-perfis .pf-rodape td{background:var(--sunk);white-space:nowrap}
 .matriz-perfis .pf-rodape .btn{height:28px;padding:0 9px;font-size:12px}
+
+/* ---------- meses de pagamento do arrendamento ----------
+   Cada célula-mês da distribuição é um pagamento do contrato: clicar marca ou
+   desmarca, e é assim que entram contratos que pagam em meses escolhidos. */
+td.pmes{padding:5px 7px}
+td.pmes label{display:flex;align-items:center;justify-content:flex-end;gap:7px;cursor:pointer}
+td.pmes input{width:14px;height:14px;margin:0;cursor:pointer;accent-color:var(--leaf);flex:0 0 auto}
+td.pmes span{color:var(--muted);font-variant-numeric:tabular-nums}
+td.pmes.on{background:var(--ok-bg)}
+td.pmes.on span{color:var(--ink);font-weight:600}

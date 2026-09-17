@@ -1,4 +1,4 @@
-import { ETAPAS_ORD } from '../calculo/arrendamento.js';
+import { ETAPAS_ORD, PAG_LIVRE, mesesPag } from '../calculo/arrendamento.js';
 import { AG_SEM_FROTA, FROTA_AG, FROTA_ESP, SEP_MOD, crmDe, espDe } from '../calculo/crm.js';
 import { composicao, destravar, tratCodigos } from '../calculo/insumos.js';
 import { CFG } from '../dados/cfg.js';
@@ -128,7 +128,21 @@ document.addEventListener("change",e=>{
   if(t.dataset.ex!==undefined){ ESPOR[+t.dataset.ex][t.dataset.f]=t.value; salvar(); render(); return; }
   if(t.id==="p_fonte"){ lerPremissas(); salvar(); render(); return; }
   if(t.dataset.arr!==undefined && t.tagName==="SELECT"){ const l=arrLista()[+t.dataset.arr];
-    l[t.dataset.f] = t.dataset.f==="mes" ? +t.value : t.value; salvar(); render(); return; }
+    if(t.dataset.f==="pag"){
+      // periodicidade volta a gerar a serie de pagamentos; "meses especificos"
+      // comeca do que a periodicidade anterior marcava, para o usuario ajustar
+      const antes = mesesPag(l);
+      l.pag = t.value;
+      l.pmes = t.value===PAG_LIVRE ? antes : null;
+    }else l[t.dataset.f] = t.dataset.f==="mes" ? +t.value : t.value;
+    salvar(); render(); return; }
+  // grade de meses de pagamento: marcar ou desmarcar um mes do contrato
+  if(t.dataset.arrpm!==undefined){ const l=arrLista()[+t.dataset.arrpm], j=+t.dataset.m;
+    const meses = new Set(mesesPag(l));
+    if(t.checked) meses.add(j); else meses.delete(j);
+    l.pmes = [...meses].sort((x,y)=>x-y);
+    l.pag  = PAG_LIVRE;
+    salvar(); render(); return; }
   if(t.dataset.adm!==undefined && t.tagName==="SELECT"){ const l=admLista()[+t.dataset.adm];
     l[t.dataset.f] = t.value;
     if(t.dataset.f==="crit" && t.value!=="cc") l.cc = "";   // centro de custo so vale nesse critorio
@@ -303,7 +317,7 @@ $("#btn_diesel_reaj").onclick=()=>{
   salvar(); render();
 };
 $("#btn_arr_add").onclick=()=>{
-  arrLista().push({faz:"Nova fazenda", grupo:"", area:0, forma:"rsha", qtd:0, pag:"Anual", mes:0});
+  arrLista().push({faz:"Nova fazenda", grupo:"", area:0, forma:"rsha", qtd:0, pag:"Anual", mes:0, pmes:null});
   salvar(); render();
 };
 $("#btn_arr_rat_reset").onclick=()=>{

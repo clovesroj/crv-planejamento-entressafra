@@ -1,5 +1,34 @@
 # Histórico de mudanças
 
+## 2.18.0 — 2026-09-17 · Meses de pagamento do arrendamento
+
+Cada contrato de arrendamento passa a ter os seus meses de pagamento, seguidos
+ou não.
+
+- **Periodicidade** ganhou Bimestral, Trimestral e **Meses específicos**, além de
+  Mensal, Semestral e Anual. A periodicidade gera a série a partir do mês do 1º
+  pagamento; "Meses específicos" começa da série que estava valendo, para
+  ajustar em cima dela.
+- Na grade **Distribuição mensal**, cada célula-mês virou um pagamento do
+  contrato: clicar marca ou desmarca, a periodicidade passa a "Meses
+  específicos" e o valor anual se divide em parcelas iguais entre os meses
+  marcados. Os meses podem ser quaisquer — Mai, Ago e Fev, por exemplo.
+- A tabela de fazendas mostra a agenda de cada contrato, quantas parcelas e o
+  valor de cada uma; a grade mostra o número de parcelas por contrato.
+- Pagamento que cairia fora da janela do orçamento não entra, e a **Validação**
+  avisa quando um contrato fica sem nenhum pagamento dentro dela.
+- Os meses valem no critério **Caixa**. Em **Competência** cada mês continua
+  recebendo 1/12 do valor anual, e a agenda fica como registro do contrato.
+- O relatório de Arrendamentos ganhou periodicidade, meses de pagamento,
+  parcelas, valor da parcela e uma linha por mês do orçamento; o rastro de
+  custo mostra a agenda junto de área e R$/ha/ano.
+
+### Correção
+
+O campo **1º pagamento** nunca mostrava o mês salvo — a linha calculada
+sobrescrevia `mes` com o vetor mensal de valores e o select caía em "Fora do
+período". O índice do primeiro pagamento agora vem em `mes0`.
+
 ## 2.17.0 — 2026-09-17 · Perfis e permissões de edição
 
 Gestão de perfis por **Caio Souza**.
