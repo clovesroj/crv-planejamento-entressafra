@@ -1,6 +1,6 @@
 import { agDeLinha, contaOrigem, rotuloItem } from '../calculo/crm.js';
 import { ADM_CRITERIOS, ADM_GRUPOS } from '../dados/administrativo.js';
-import { ARR_FORMAS, ETAPAS_ORD, arrRat } from '../calculo/arrendamento.js';
+import { ARR_BASE, ARR_FORMAS, ETAPAS_ORD, arrRat } from '../calculo/arrendamento.js';
 import { FORN_MODALIDADES } from '../dados/fornecedores.js';
 import { deptIdx } from '../calculo/pessoas.js';
 import { GERENCIAS, excecoes, execucao, metasDeFrota, metasPorAtividade, porGerencia } from '../calculo/acompanhamento.js';
@@ -219,17 +219,20 @@ const tratamentos = R => sec("Tratamentos","Tratamentos — composição, etapa 
 
 /* ---------- 13. arrendamentos ---------- */
 const arrendamentos = R => sec("Arrendamentos","Arrendamentos — fazendas e rateio",
-  ["Fazenda","Grupo","Área (ha)","Forma de pagamento","Periodicidade","Meses de pagamento","Parcelas",
-   "Valor da parcela","R$/ha/ano","Custo anual","Custo no orçamento"],
+  ["Fazenda","Grupo","Área (ha)","Forma de pagamento","Valor informado","Periodicidade",
+   "Pagamentos por ano","Meses de pagamento","Parcelas na janela","Valor da parcela","R$/ha/ano",
+   "Custo anual","Custo no orçamento"],
   R.AR.linhas.map(l=>[l.faz, l.grupo, fmt(l.area), (ARR_FORMAS[l.forma]||{nome:l.forma}).nome,
-    l.pag, l.agenda, l.nParc||"—", l.nParc?brl(l.parcela):"—",
-    brl(l.rsHa,2), brl(l.anual), brl(l.periodo)])
-  .concat([["TOTAL","", fmt(R.AR.area), "", "", "", R.AR.linhas.reduce((s,l)=>s+l.nParc,0), "",
+    (ARR_BASE[l.vbase]||{}).nome||l.vbase, l.pag, l.pagsAno, l.agenda,
+    l.nParc||"—", l.nParc?brl(l.parcela):"—",
+    brl(l.rsHaAno,2), brl(l.anual), brl(l.periodo)])
+  .concat([["TOTAL","", fmt(R.AR.area), "", "", "", "", "",
+    R.AR.linhas.reduce((s,l)=>s+l.nParc,0), "",
     R.AR.area>0?brl(R.AR.anual/R.AR.area,2):"—", brl(R.AR.anual), brl(R.AR.total)]])
   .concat(ETAPAS_ORD.filter(e=>R.etapas[e]&&R.etapas[e].arrend>0)
-    .map(e=>["↳ rateio "+e, "", "", fmt(arrRat(e),1)+"% de referência", "", "", "", "", "", "",
+    .map(e=>["↳ rateio "+e, "", "", fmt(arrRat(e),1)+"% de referência", "", "", "", "", "", "", "", "",
       brl(R.etapas[e].arrend)]))
-  .concat(MESES.map((m,i)=>["↳ pagamento em "+m, "", "", "", "", "",
+  .concat(MESES.map((m,i)=>["↳ pagamento em "+m, "", "", "", "", "", "", "",
     R.AR.linhas.filter(l=>l.pmes.includes(i)).length||"—", "", "", "", brl(R.AR.mes[i])])));
 
 /* ---------- 14. fornecedores ---------- */

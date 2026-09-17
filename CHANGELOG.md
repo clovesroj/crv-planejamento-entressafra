@@ -1,5 +1,39 @@
 # Histórico de mudanças
 
+## 2.20.0 — 2026-09-17 · Valor do arrendamento por ano ou por pagamento
+
+O contrato de arrendamento passa a dizer **o que o valor cadastrado representa**:
+
+| Valor informado | Como entra na conta |
+|---|---|
+| **Por ha/ano** (como era) | o valor anual se divide entre os pagamentos do contrato |
+| **Por ha em cada pagamento** | cada pagamento vale área × valor, e o custo anual é a parcela vezes o número de pagamentos do contrato |
+
+Era daí que vinha a parcela pela metade: um contrato semestral cotado por
+pagamento aparecia como metade do valor em cada mês, porque o sistema tratava o
+valor como anual e dividia por dois. Contrato cotado por pagamento agora mostra
+a parcela cheia — R$ 3.491.375 em cada um dos dois meses, e R$ 6.982.750 de
+custo anual.
+
+- A coluna **Valor informado** fica na linha do contrato, ao lado da unidade. O
+  padrão é **por ha/ano**, então nenhum contrato já cadastrado muda de valor
+  sozinho: quem cota por pagamento troca a opção no contrato.
+- A coluna **Parcela** mostra quantas parcelas na janela, o valor de cada uma e,
+  embaixo, quantos pagamentos o contrato tem por ano e em que base está cotado.
+- **R$/ha/ano** passa a mostrar o valor anual por hectare mesmo quando o
+  contrato é cotado por pagamento (valor × pagamentos por ano), para o
+  comparativo entre fazendas continuar na mesma unidade.
+- Pagamentos por ano vêm da periodicidade — mensal 12, bimestral 6, trimestral
+  4, semestral 2, anual 1 — e, em "meses específicos", dos meses marcados.
+- Relatório de Arrendamentos e rastro do custo mostram a base do valor, os
+  pagamentos por ano e o valor da parcela.
+
+### Correção
+
+A linha TOTAL da tabela de fazendas estava deslocada uma coluna desde a versão
+2.18.0: o R$/ha/ano do total caía embaixo de "Parcela". Eram 15 colunas no
+cabeçalho e 14 na linha de total.
+
 ## 2.19.0 — 2026-09-17 · Classificação técnica dos insumos e cadastro de tratamentos
 
 ### Cadastro de insumos

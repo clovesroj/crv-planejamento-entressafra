@@ -328,7 +328,8 @@ function rastroNatureza(R, nat){
       blocos:[
         {titulo:"Fazendas", linhas:A.linhas.map(l=>({rot:l.faz+(l.grupo?" · "+l.grupo:""),
           val:brl(l.periodo),
-          sub:`${fmt(l.area)} ha × ${brl(l.rsHa,2)}/ha/ano · ${l.pag.toLowerCase()}: ${l.agenda}`}))},
+          sub:`${fmt(l.area)} ha × ${brl(l.rsHaAno,2)}/ha/ano · ${l.pag.toLowerCase()}, ${
+            l.nParc||0}× ${brl(l.parcela)}: ${l.agenda}`}))},
         {titulo:"Rateio entre as etapas", linhas:ETAPAS_ORD.filter(e=>R.etapas[e]).map(e=>({
           rot:e, val:brl(R.etapas[e].arrend||0), ir:"etapa:"+e, sub:fmt(arrRat(e),1)+"% de referência"}))},
       ],
