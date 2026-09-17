@@ -30,6 +30,7 @@ const VISUAIS = [
   '[data-abrefrota]', '[data-infx]', '[data-rendmes]', '#rm_fechar',
   '#sel_fun', '#sel_cat', '#sel_orig', '#sel_dest', '#sel_trat', '#sel_acomp_mes',
   '#sel_crit_ger', '#sel_crit_cabe', '.tbl-busca',
+  '#sel_ins_fam', '#btn_ins_recolher', '[data-fam]',
   '#btn_export', '#btn_theme',
 ].join(',');
 

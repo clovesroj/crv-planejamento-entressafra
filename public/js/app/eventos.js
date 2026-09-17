@@ -9,6 +9,7 @@ import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, 
 import { FROTA_ABERTO, FROTA_UN, INS_ABERTO, MAQ, setFROTA_DEST, setFROTA_ORIG } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { filtrarPorNome } from '../ui/componentes.js';
+import { alternarFam, aplicarFamIns, buscaExigeRedesenho, recolherTodas, todasRecolhidas } from '../ui/insumos.js';
 import { lerPremissas } from '../ui/premissas.js';
 import { leve, render, renderRastro, renderRendMensal } from './ciclo.js';
 import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarRastro, voltarRastro } from '../ui/rastro.js';
@@ -154,7 +155,12 @@ document.addEventListener("input",e=>{
   if(t.dataset.ben!==undefined){ BEN[t.dataset.ben]=num(t.value); salvar(); leve(); return; }
   // busca por nome: qualquer caixa .tbl-busca filtra a tabela que data-alvo aponta,
   // sem recalcular nada — mesma trava generica serve pra tabela nova nenhuma linha tocar aqui
-  if(t.classList.contains("tbl-busca")){ filtrarPorNome(t.dataset.alvo, t.value); return; }
+  if(t.classList.contains("tbl-busca")){
+    filtrarPorNome(t.dataset.alvo, t.value);
+    // no cadastro de insumos a linha recolhida nem esta no DOM: filtrar nao acha
+    // nada, entao a dobra precisa sair do caminho antes
+    if(buscaExigeRedesenho(t.dataset.alvo, t.value)) render();
+    return; }
 });
 document.addEventListener("change",e=>{
   const t=e.target;
@@ -235,6 +241,8 @@ document.addEventListener("change",e=>{
     l[t.dataset.f] = t.value;
     salvar(); render(); return; }
   // filtros do painel de criterio por mes: so mudam a visao, nao gravam nada
+  // recorte de grupo do cadastro de insumos: so muda o que aparece
+  if(t.id==="sel_ins_fam"){ aplicarFamIns(t.value); render(); return; }
   if(t.id==="sel_crit_ger"){ setCRIT_GER(t.value); render(); return; }
   if(t.id==="sel_crit_cabe"){ setCRIT_CABE(t.value); render(); return; }
   if(t.id==="sel_grat_tipo"){ GRAT[FUN_SEL]={tipo:t.value, valor:num($("#in_grat").value)}; salvar(); render(); return; }
@@ -263,6 +271,11 @@ function pintarMeses(){
 }
 
 document.addEventListener("click",e=>{
+  // dobra de grupo no cadastro de insumos. A faixa inteira e o alvo: e o titulo
+  // do bloco, entao clicar nela para recolher e o gesto esperado.
+  const faixa = e.target.closest && e.target.closest("#t_ins tr.stage[data-fam]");
+  if(faixa){ alternarFam(faixa.dataset.fam); render(); return; }
+  if(e.target.id === "btn_ins_recolher"){ recolherTodas(!todasRecolhidas()); render(); return; }
   // filtro de periodo do rastro (ano todo / safra / entressafra) — checa antes do
   // data-rastro geral, pois os botoes do filtro moram dentro do proprio modal
   // filtro global de periodo, na barra superior

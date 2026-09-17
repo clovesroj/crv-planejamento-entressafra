@@ -490,7 +490,16 @@
   <div class="grid g4" id="k_ins" style="margin-bottom:16px"></div>
 
   <div class="panel"><h3>1. Cadastro de insumos</h3>
-    <input type="search" class="tbl-busca" data-alvo="#t_ins" placeholder="Buscar insumo por nome ou princípio ativo...">
+    <div class="row" style="margin-bottom:10px">
+      <div style="min-width:300px;max-width:320px">
+        <input type="search" class="tbl-busca" data-alvo="#t_ins" placeholder="Buscar insumo por nome ou princípio ativo...">
+      </div>
+      <div style="min-width:230px"><label for="sel_ins_fam">Grupo</label>
+        <select id="sel_ins_fam"></select></div>
+      <div style="align-self:flex-end">
+        <button class="btn" id="btn_ins_recolher" title="Recolher ou abrir todos os grupos de uma vez">Recolher todos</button>
+      </div>
+    </div>
     <div class="tblwrap"><table id="t_ins"></table></div>
     <div class="hint" id="ins_grupos" style="margin-top:9px"></div>
     <div class="row" style="margin-top:10px">

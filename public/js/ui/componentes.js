@@ -46,7 +46,9 @@ function filtrarPorNome(tabelaId, termo){
   if(!tab) return;
   const t = (termo||"").trim().toLowerCase();
   let grupo = null, grupoTemMatch = false;
-  const fecharGrupo = () => { if(grupo) grupo.hidden = !grupoTemMatch; };
+  // sem termo, nada se esconde: grupo recolhido nao tem linha dentro, e esconder
+  // a faixa por isso tiraria da tela justamente o que se clica para reabrir
+  const fecharGrupo = () => { if(grupo) grupo.hidden = t ? !grupoTemMatch : false; };
   [...tab.querySelectorAll("tbody tr")].forEach(tr=>{
     if(tr.classList.contains("stage")){ fecharGrupo(); grupo = tr; grupoTemMatch = false; return; }
     if(tr.children[0] && tr.children[0].classList.contains("tot")){ tr.hidden = false; return; }

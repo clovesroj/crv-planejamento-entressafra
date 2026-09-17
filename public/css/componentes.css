@@ -74,6 +74,9 @@ tbody tr:has(> td.tot:first-child) td{background:var(--sunk);border-top:1px soli
 tr.stage td{background:var(--leaf-strong);color:#fff;font-family:var(--f-display);font-weight:600;font-size:13px;
   text-transform:uppercase;letter-spacing:.9px;padding:7px 12px}
 tbody tr.stage:hover td{background:var(--leaf-strong)}
+/* faixa que dobra o grupo: o cursor avisa que ela e clicavel */
+tr.stage[data-fam] td{cursor:pointer;user-select:none}
+tr.stage[data-fam]:focus-visible td{outline:2px solid #fff;outline-offset:-3px}
 td.num{text-align:right}
 td input{height:28px;padding:0 8px;font-size:13px;text-align:right;min-width:70px;
   background:var(--edit-bg);border-color:var(--edit-line);color:var(--edit-ink)}

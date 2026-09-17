@@ -17,6 +17,44 @@ const FICHA = [["cod","Código do material"],["classe","Classe agronômica"],
   ["estadio","Estádio dos alvos e momento de aplicação"],["status","Status da validação"],
   ["obs","Observação técnica"],["base","Base da classificação"]];
 
+/* Recorte e dobra dos grupos do cadastro. Sao visao, nao dado: nao entram no
+   documento salvo, e por isso moram aqui e nao em nucleo/estado.js. */
+let FAM_SEL = "";            // "" = todos os grupos
+const FAM_FECHADA = {};      // id da familia -> true quando recolhida
+function aplicarFamIns(v){ FAM_SEL = v || ""; }
+/* Dobra um grupo. O clique vem da faixa inteira, que e alvo maior que um icone
+   -- a faixa ja e o titulo do bloco, entao dobrar nela e o gesto esperado. */
+function alternarFam(id){ FAM_FECHADA[id] = !FAM_FECHADA[id]; }
+function recolherTodas(v){
+  insumosPorFamilia().forEach(f => { FAM_FECHADA[f.id] = v; });
+}
+/** true quando todo grupo visivel esta recolhido -- decide o rotulo do botao. */
+function todasRecolhidas(){
+  const fams = insumosPorFamilia().filter(f => !FAM_SEL || f.id === FAM_SEL);
+  return fams.length > 0 && fams.every(f => FAM_FECHADA[f.id]);
+}
+/* Termo digitado na busca do cadastro. Vem do DOM porque a busca e generica
+   (.tbl-busca + data-alvo) e nao guarda estado em lugar nenhum -- ler a caixa e
+   ler a fonte, em vez de manter uma copia que pode divergir dela. */
+function termoBuscaIns(){
+  const inp = document.querySelector('.tbl-busca[data-alvo="#t_ins"]');
+  return inp ? inp.value.trim() : "";
+}
+/* Procurar e para achar: com termo de busca a dobra sai do caminho, senao o
+   grupo recolhido esconderia justamente o produto procurado. Como a linha
+   recolhida nem esta no DOM, filtrar nao basta -- precisa redesenhar, e quem
+   redesenha e o chamador em app/ (ui nao importa o ciclo, que seria importar
+   para tras no grafo). So na virada entre "sem termo" e "com termo", e so
+   havendo grupo recolhido: a cada tecla seria caro. */
+let TINHA_TERMO = false;
+function buscaExigeRedesenho(alvo, valor){
+  if(alvo !== "#t_ins") return false;
+  const tem = (valor || "").trim() !== "";
+  const virou = tem !== TINHA_TERMO;
+  TINHA_TERMO = tem;
+  return virou && Object.values(FAM_FECHADA).some(Boolean);
+}
+
 function pintarInsumos(R){
   const TL = tratListaTodos();
   const custom = Object.keys(TRATC).length;
@@ -28,6 +66,18 @@ function pintarInsumos(R){
     kpi("Materiais de manutenção","a",brl(R.MT.total));
 
   // --- 1. cadastro de insumos (topo) — incluir, alterar, remover ---
+  // O seletor de grupo mostra a contagem de cada bloco: é o que responde
+  // "quantos herbicidas eu tenho" sem precisar rolar até a faixa.
+  const todasFams = insumosPorFamilia();
+  // procurar é para achar: com termo de busca a dobra é ignorada, senão o grupo
+  // recolhido esconderia justamente o produto procurado
+  const dobrada = id => !!FAM_FECHADA[id] && !termoBuscaIns();
+  $("#sel_ins_fam").innerHTML =
+    `<option value=""${FAM_SEL?"":" selected"}>Todos os grupos · ${insLista().length}</option>` +
+    todasFams.map(f=>`<option value="${f.id}"${FAM_SEL===f.id?" selected":""}>${f.nome} · ${f.itens.length}</option>`).join("");
+  const btnRec = $("#btn_ins_recolher");
+  if(btnRec) btnRec.textContent = todasRecolhidas() ? "Abrir todos" : "Recolher todos";
+
   // nome comercial e princípio ativo na frente; o resto da classificação
   // técnica fica na ficha, que abre por linha
   $("#t_ins").innerHTML = th([["Nome comercial"],["Princípio ativo"],["Código"],["Un."],
@@ -36,11 +86,13 @@ function pintarInsumos(R){
     // quebra por família e, dentro dela, ordem alfabética de princípio ativo.
     // O `ix` que vai na linha é a posição original em insLista() — é por ele que
     // a edição acha o produto, então reordenar a tela não pode reordenar o índice.
-    insumosPorFamilia().map(fam=>
-      `<tr class="stage"><td colspan="16">${fam.nome}
+    todasFams.filter(fam => !FAM_SEL || fam.id === FAM_SEL).map(fam=>
+      `<tr class="stage" data-fam="${fam.id}" role="button" tabindex="0"
+           title="Clique para ${dobrada(fam.id)?"abrir":"recolher"} este grupo"><td colspan="16">
+        <span style="display:inline-block;width:14px">${dobrada(fam.id)?"▸":"▾"}</span>${fam.nome}
         <span style="font-weight:400;opacity:.75"> · ${fam.itens.length} produto${
-          fam.itens.length>1?"s":""}</span></td></tr>` +
-    fam.itens.map(({i,ix})=>{
+          fam.itens.length>1?"s":""}${dobrada(fam.id)?" · recolhido":""}</span></td></tr>` +
+    (dobrada(fam.id) ? "" : fam.itens.map(({i,ix})=>{
       const ov=INSUMO[i.prod]||{};
       const preco = ov.preco!=null?num(ov.preco):num(i.preco);
       const est   = ov.est!=null?num(ov.est):num(i.est);
@@ -75,7 +127,7 @@ function pintarInsumos(R){
         (aberta && ficha.length ? `<tr class="sub"><td colspan="16">
           <div class="ficha">${ficha.map(([k,rot])=>
             `<div><b>${rot}</b><span>${esc(i[k])}</span></div>`).join("")}</div></td></tr>` : "");
-    }).join("")).join("")+"</tbody>";
+    }).join(""))).join("")+"</tbody>";
 
   // O bloco "Outros" é o que pede trabalho, não um erro: é produto sem classe
   // agronômica preenchida. A classe é editável na própria linha, e o produto
@@ -177,4 +229,5 @@ function celulaEtapas(cod){
   return `<div class="etqs">${caixas}</div>${nota}`;
 }
 
-export { pintarInsumos };
+export { pintarInsumos, alternarFam, aplicarFamIns, buscaExigeRedesenho,
+  recolherTodas, todasRecolhidas };
