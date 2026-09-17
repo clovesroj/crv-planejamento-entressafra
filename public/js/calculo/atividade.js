@@ -98,6 +98,15 @@ function linha(a, MP){
     : (p.m || Array(NM).fill(0));
   const total = meses.reduce((s,x)=>s+num(x),0);
   const d = DIM[a.cod] || {};
+  /* Frota alvo: inverte o dimensionamento. A conta normal pergunta "com este
+     rendimento, de quantas maquinas preciso"; com a frota fixada ela vira "com
+     estas maquinas, que rendimento cada uma tem de entregar". E a pergunta que
+     aparece quando a frota ja existe no patio e nao ha o que comprar.
+
+     So vale para atividade de frente unica: com mix de modos nao ha uma
+     resposta so -- a mesma frota total se distribui de infinitas maneiras entre
+     manual, trator e terceiro, e o sistema estaria escolhendo por conta propria. */
+  const frotaAlvo = num(d.frota);
   const fator = fatorDe(a.cod, MP);   // escala da atividade
   // turnos escolhidos na atividade (1t, 2t, 3t); sem escolha, o do modo ou do cadastro
   const turnosOv = num((DIM[a.cod]||{}).turnos);
@@ -158,8 +167,19 @@ function linha(a, MP){
       horas = f.rend>0 ? area/f.rend : 0;
       capMes = P.dias * P.hdia * (P.disp/100) * util;
     }
+    // com a frota fixada, as horas passam a ser a capacidade dessa frota na
+    // janela, e o rendimento e o que fecha a conta: area ÷ horas
+    let rendAlvo = null;
+    if(frotaAlvo>0 && !M && capMes>0 && jan.meses>0){
+      horas = frotaAlvo*capMes*jan.meses;
+      rendAlvo = horas>0 ? area/horas : 0;
+    }
     // frota = horas de trabalho ÷ capacidade de um equipamento na janela
     frota = capMes>0 ? horas/(capMes*jan.meses) : 0;
+    // com frota fixada, vale o numero digitado, sem o ida e volta da divisao:
+    // multiplicar e dividir pelo mesmo fator devolvia 200,0000000001, e o
+    // arredondamento para cima virava uma maquina a mais no orcamento
+    if(rendAlvo!=null) frota = frotaAlvo;
     const mq = maqDe(f.maq);
     // a função segue o modo, salvo se o usuário tiver fixado uma função na atividade
     const fc = p.fcod ? fcod : (f.fcodPad || fcod);
@@ -169,6 +189,7 @@ function linha(a, MP){
     const cManut  = 0;   // alocado adiante, a partir do CRM da frota prevista
     const cMDO    = horas*cf.hora*f.ops*fator;
     return {...f, area, horas, capMes, frota, frotaR:Math.ceil(frota), cTerc:0, litros, consumoLh:mq.d,
+            rend: rendAlvo!=null ? rendAlvo : f.rend, rendAlvo,
             fcod:fc, fnome:cf.nome, cDiesel, cManut, cMDO,
             turnosEf: turnosOv>0 ? turnosOv : f.turnos,
             efetivo: Math.ceil(Math.ceil(frota)*f.ops*(turnosOv>0?turnosOv:f.turnos)*fator),
@@ -180,7 +201,7 @@ function linha(a, MP){
   const cInsumo = (t && ehHa) ? total*t : 0;
   const rendMed = soma("horas")>0 ? total/soma("horas") : (frentes[0].rend||0);
 
-  return {a, meses, total, rend:rendMed, util, partes, escala:(d.esc||""), fator, turnosOv, janela:jan, mix:M?M.mx:null, mixSoma:M?M.soma:0,
+  return {a, meses, total, rend:rendMed, frotaAlvo: frotaAlvo>0 && !M ? frotaAlvo : 0, util, partes, escala:(d.esc||""), fator, turnosOv, janela:jan, mix:M?M.mx:null, mixSoma:M?M.soma:0,
           horas:soma("horas"), capMes:partes[0].capMes, frota:soma("frota"),
           frotaR:partes.reduce((s,x)=>s+x.frotaR,0),
           cDiesel:soma("cDiesel"), cManut:soma("cManut"), cMDO:soma("cMDO"), cTerc:soma("cTerc"), cInsumo,

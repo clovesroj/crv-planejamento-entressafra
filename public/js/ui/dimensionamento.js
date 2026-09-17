@@ -17,6 +17,7 @@ function pintarDim(R){
 
   $("#t_dim").innerHTML = th([["Cod"],["Atividade / frente"],["Modo"],["Área/Volume",1],["Rend. (un/h)",1],["Utiliz.",1],
     ["Horas",1],["Frota",1],["Efetivo",1],["Função"],["Máquina"],["Implemento"]])+"<tbody>"+
+    // a coluna Frota aceita edicao: preenchida, inverte o dimensionamento
     R.L.map(r=>{
       const multi = r.partes.length>1;
       const un = r.a.un.split("/")[0];
@@ -24,6 +25,11 @@ function pintarDim(R){
         <td class="calc">${multi?`<span class="badge b-warn">${r.partes.length} frentes</span>`:(r.a.modoOn?"padrão":"—")}</td>
         <td class="num calc">${fmt(r.total)} <span style="font-size:10px">${un}</span></td>
         <td class="num">${multi?`<span class="calc">${fmt(r.rend,2)} ${un}/h</span>`
+          : r.frotaAlvo
+          // com a frota fixada o rendimento e resultado, nao premissa: vira
+          // numero calculado para nao parecer que da para editar os dois lados
+          ? `<div class="rend-cel"><span class="tot" title="Rendimento que a frota fixada exige">${fmt(r.rend,2)}</span>
+              <span class="calc">${un}/h</span><span class="badge b-ok">da frota</span></div>`
           :`<div class="rend-cel">
               <input data-r="${r.a.cod}" value="${r.rend}" inputmode="decimal">
               <span class="calc">${un}/h</span>
@@ -31,7 +37,11 @@ function pintarDim(R){
                 Array.isArray((DIM[r.a.cod]||{}).rendM)&&(DIM[r.a.cod].rendM||[]).some(v=>num(v)>0)?"mês •":"mês"}</button>
             </div>`}</td>
         <td class="num"><input data-u="${r.a.cod}" value="${Math.round(r.util*100)}" inputmode="decimal"></td>
-        <td class="num calc">${fmt(r.horas)}</td><td class="num tot">${r.frotaR||"—"}</td>
+        <td class="num calc">${fmt(r.horas)}</td>
+        <td class="num">${multi
+          ? `<span class="tot">${r.frotaR||"—"}</span>`
+          : `<input data-fr="${r.a.cod}" value="${r.frotaAlvo||""}" placeholder="${r.frotaR||"—"}"
+                    inputmode="decimal" title="Em branco, a frota sai do rendimento. Preenchida, ela fixa a frota e o rendimento passa a ser o que ela exige.">`}</td>
         <td class="num calc">${r.efetivo||"—"}</td><td class="calc">${r.fcod}</td>
         <td class="calc">${multi?"—":r.maqEfetiva}</td><td class="calc">${multi?"—":r.impEfetivo}</td></tr>`;
       if(multi) r.partes.forEach(p=>{

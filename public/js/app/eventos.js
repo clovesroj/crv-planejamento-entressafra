@@ -42,6 +42,11 @@ document.addEventListener("input",e=>{
     DIM[c]=DIM[c]||{}; DIM[c].rendM=Array.isArray(DIM[c].rendM)?DIM[c].rendM:Array(NM).fill("");
     DIM[c].rendM[+t.dataset.i]=num(t.value); salvar(); leve(); return; }
   if(t.dataset.u!==undefined){ DIM[t.dataset.u]=DIM[t.dataset.u]||{}; DIM[t.dataset.u].util=num(t.value)/100; salvar(); leve(); return; }
+  // frota alvo: em branco volta a sair do rendimento, e por isso e apagada em vez
+  // de guardada como zero -- zero seria uma frota fixada em nenhuma maquina
+  if(t.dataset.fr!==undefined){ const c=t.dataset.fr; DIM[c]=DIM[c]||{};
+    const v=num(t.value); if(v>0) DIM[c].frota=v; else delete DIM[c].frota;
+    salvar(); leve(); return; }
   if(t.dataset.fs!==undefined){ const f=CFG.funcoes.find(x=>x.cod===t.dataset.fs);
     if(f) f.sal=num(t.value);
     salvar(); leve(); return; }

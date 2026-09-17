@@ -16,7 +16,7 @@ import { num } from './formato.js';
 
 let P = {...PADRAO};
 let PLANO = {};          // cod -> {m:[9], trat:""}
-let DIM   = {};          // cod -> {rend, util}
+let DIM   = {};          // cod -> {rend, rendM, util, frota, turnos, esc, ini, fim}
 let INSUMO = {};         // produto -> {preco, est}
 let ESPOR = [];          // [{mes, desc, cc, valor, status}]
 let TRATC = {};          // cod -> [{prod,dose,un}]  composição customizada (sobrepõe a base)
