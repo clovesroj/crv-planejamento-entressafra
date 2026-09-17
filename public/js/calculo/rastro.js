@@ -5,7 +5,7 @@ import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
 import { P, insLista } from '../nucleo/estado.js';
 import { brl, fmt, num, pct } from '../nucleo/formato.js';
 import { ETAPAS_ORD, arrRat } from './arrendamento.js';
-import { tarifaTerc } from './atividade.js';
+import { criterioMensal, tarifaTerc } from './atividade.js';
 import { tratCusto } from './insumos.js';
 import { reforma } from './reforma.js';
 
@@ -178,57 +178,28 @@ function apresentacao(r, un){
           `Base de calendário: ${fmt(P.dias)} dias efetivos por mês × ${fmt(jm,1)} meses = ${fmt(dias,0)} dias.`,
   } : null;
 
-  /* ===== Criterio por mes =====
-     A meta por equipamento responde o ritmo medio da janela. Mas o mes nao e
-     medio: outubro pede mais que abril, e e no mes cheio que o criterio aperta.
-
-     Cada mes e lido como uma pergunta de tres respostas, porque sao tres as
-     alavancas para fazer o volume caber: render mais por hora, ficar mais tempo
-     disponivel (manutencao) ou aproveitar melhor o tempo disponivel (operacao).
-     Cada coluna fixa as outras duas na premissa e mostra o que aquela teria de
-     ser sozinha -- nao se somam, sao alternativas. */
-  const nEq = r.frotaR || 0;
-  const hDia = num(P.hdia), dispPrem = num(P.disp)/100, utilPrem = num(r.util);
-  const diasMes = num(P.dias);
-  const hCalMes = nEq * diasMes * hDia;      // hora de calendario da frota no mes
-  const rendM = (r.partes[0] || {}).rendM;
-  const criterio = [];
-  if(nEq > 0 && hCalMes > 0){
-    let apertados = 0;
-    MESES.forEach((m, i)=>{
-      const q = num(r.meses[i]);
-      if(!(q > 0)) return;
-      const rm = rendM ? num(rendM[i]) : 0;
-      const rendEf = rm > 0 ? rm : r.rend;
-      const h = rendEf > 0 ? q/rendEf : 0;
-      // rendimento que faz o mes caber nas horas que a premissa entrega
-      const rendNec = hCalMes*dispPrem*utilPrem > 0 ? q/(hCalMes*dispPrem*utilPrem) : 0;
-      const dispNec = hCalMes*utilPrem   > 0 ? h/(hCalMes*utilPrem)   : 0;
-      const utilNec = hCalMes*dispPrem   > 0 ? h/(hCalMes*dispPrem)   : 0;
-      const aperta = dispNec > dispPrem || utilNec > utilPrem;
-      if(aperta) apertados++;
-      criterio.push([m, fmt(q)+" "+un, fmt(h)+" h",
-        fmt(h/nEq/diasMes,1)+" h",
-        fmt(rendNec,2)+" "+un+"/h",
-        pct(dispNec)+(dispNec > dispPrem ? " ⚠" : ""),
-        pct(utilNec)+(utilNec > utilPrem ? " ⚠" : "")]);
-    });
-    if(criterio.length) criterio.nota =
-      `Premissa atual: rendimento de ${fmt(r.rend,2)} ${un}/h, disponibilidade mecânica de ${pct(dispPrem)} `+
-      `e utilização de ${pct(utilPrem)}, sobre ${fmt(diasMes)} dias efetivos de ${fmt(hDia,1)} h com ${nEq} `+
-      `${nEq>1?"equipamentos":"equipamento"}. As três últimas colunas são alternativas, não se somam: cada uma `+
-      `mostra o que aquele critério teria de ser sozinho, com os outros dois parados na premissa. `+
-      (apertados
-        ? `${apertados} ${apertados>1?"meses pedem":"mês pede"} mais do que a premissa entrega (⚠): é aí que entra frota extra, `+
-          `turno a mais ou volume remanejado para outro mês.`
-        : `Nenhum mês pede mais do que a premissa entrega.`);
-  }
-  const tabCriterio = criterio.length ? {
+  /* Criterio por mes: o mesmo calculo do modal de rendimento, vindo de
+     criterioMensal(). Duas telas mostrando a mesma meta nao podem ter duas
+     contas -- a reuniao acabaria com dois numeros para o mesmo mes. */
+  const C = criterioMensal(r).filter(c => c.temVolume);
+  const apertados = C.filter(c => !c.cabe).length;
+  const tabCriterio = C.length ? {
     titulo: "Critério por mês · o que cada mês exige",
-    cab: ["Mês", "Volume", "Horas de máquina", "h/dia por equip.",
+    cab: ["Mês", "Produção", "Por dia", "Horas de máquina", "h/dia por equip.",
           "Rendimento necessário", "Disponib. mecânica necessária", "Utilização necessária"],
-    linhas: criterio,
-    nota: criterio.nota,
+    linhas: C.map(c=>[c.mes, fmt(c.q)+" "+un, fmt(c.qDia,1)+" "+un,
+      fmt(c.horas)+" h", fmt(c.hDiaEquip,1)+" h",
+      fmt(c.rendNec,2)+" "+un+"/h",
+      pct(c.dispNec)+(c.dispNec > c.disp ? " ⚠" : ""),
+      pct(c.utilNec)+(c.utilNec > c.util ? " ⚠" : "")]),
+    nota: `As três últimas colunas são alternativas, não se somam: cada uma mostra o que aquele `+
+      `critério teria de ser sozinho, com os outros dois parados na premissa do mês. `+
+      `Base de calendário: ${fmt(num(P.dias))} dias efetivos de ${fmt(num(P.hdia),1)} h. `+
+      (apertados
+        ? `${apertados} ${apertados>1?"meses pedem":"mês pede"} mais do que o critério entrega (⚠): é aí que entra `+
+          `frota extra, turno a mais ou volume remanejado para outro mês. O critério de cada mês se ajusta no `+
+          `botão "mês" do Dimensionamento.`
+        : `Nenhum mês pede mais do que o critério entrega.`),
   } : null;
 
   const destaques = [

@@ -1,7 +1,7 @@
 import { maqDe } from './crm.js';
 import { CFG } from '../dados/cfg.js';
 import { fatorEscala } from '../dados/escalas.js';
-import { NM, mesesEntre } from '../nucleo/calendario.js';
+import { MESES, NM, mesesEntre } from '../nucleo/calendario.js';
 import { DIM, P, PLANO, TERC_TAR } from '../nucleo/estado.js';
 import { num, pct } from '../nucleo/formato.js';
 import { precoDiesel } from './diesel.js';
@@ -91,6 +91,79 @@ function metaDe(r){
   };
 }
 
+/* ===== Criterio de um mes =====
+   Frota, disponibilidade e utilizacao aceitam valor proprio por mes, lancados no
+   modal de rendimento. Em branco, o mes herda o criterio da atividade -- e o
+   padrao, porque na maioria das atividades o mes nao muda nada. */
+function criterioDoMes(cod, i, utilAt){
+  const d = DIM[cod] || {};
+  const v = k => { const arr = d[k]; return Array.isArray(arr) ? num(arr[i]) : 0; };
+  const disp = v("dispM"), util = v("utilM");
+  return {
+    rend: v("rendM"), frota: v("frotaM"),
+    disp: disp > 0 ? disp/100 : num(P.disp)/100,
+    util: util > 0 ? util/100 : num(utilAt),
+    temDisp: disp > 0, temUtil: util > 0,
+  };
+}
+/** true quando a atividade tem algum criterio proprio de mes. */
+function temCriterioMensal(cod){
+  const d = DIM[cod] || {};
+  return ["rendM","frotaM","dispM","utilM"].some(k =>
+    Array.isArray(d[k]) && d[k].some(v => num(v) > 0));
+}
+
+/* ===== Criterio operacional, mes a mes =====
+   A meta por equipamento responde o ritmo medio da janela. O mes nao e medio:
+   outubro pede mais que abril, e e no mes cheio que o criterio aperta.
+
+   Cada mes e uma pergunta de tres respostas, porque sao tres as alavancas para
+   o volume caber -- render mais por hora, ficar mais tempo disponivel
+   (manutencao) ou aproveitar melhor o tempo disponivel (operacao). `rendNec`,
+   `dispNec` e `utilNec` sao alternativas, nao se somam: cada uma fixa as outras
+   duas e mostra o que teria de ser sozinha.
+
+   Mora aqui, e nao na tela, porque o mesmo numero vai para o modal de
+   rendimento e para o modal da atividade -- se cada um calculasse o seu, a
+   reuniao teria duas metas para o mesmo mes. */
+function criterioMensal(r){
+  const diasMes = num(P.dias), hDia = num(P.hdia);
+  const nPad = r.frotaR || 0;
+  // mix de modos e transporte nao tem rendimento de premissa unico -- ali a
+  // media do periodo e o unico numero que representa a atividade
+  const rendPad = r.rendPremissa > 0 ? r.rendPremissa : r.rend;
+  return r.meses.map((qq, i)=>{
+    const q = num(qq);
+    const c = criterioDoMes(r.a.cod, i, r.util);
+    const n = c.frota > 0 ? c.frota : nPad;
+    // com a frota do mes fixada, as horas sao a capacidade dela e o rendimento
+    // e o que fecha a conta -- a mesma inversao do Dimensionamento, por mes
+    const hDispEquip = hDia * c.disp * c.util;      // hora produtiva por equipamento/dia
+    const cap = n * diasMes * hDispEquip;           // hora produtiva da frota no mes
+    // o mes sem rendimento proprio herda a PREMISSA da atividade, nao a media
+    // do periodo: a media se move quando outro mes muda, e o modal passaria a
+    // mostrar para novembro um numero que o motor nao usa
+    const rendBase = c.rend > 0 ? c.rend : rendPad;
+    const rend = c.frota > 0 && q > 0 && cap > 0 ? q/cap : rendBase;
+    const horas = rend > 0 ? q/rend : 0;
+    const hCal = n * diasMes * hDia;                // hora de calendario da frota no mes
+    return {
+      i, mes: MESES[i], q, temVolume: q > 0,
+      rend, n, disp: c.disp, util: c.util, horas,
+      daFrota: c.frota > 0, temRend: c.rend > 0, temDisp: c.temDisp, temUtil: c.temUtil,
+      qDia: diasMes > 0 ? q/diasMes : 0,
+      qDiaEquip: n > 0 && diasMes > 0 ? q/n/diasMes : 0,
+      hDiaEquip: n > 0 && diasMes > 0 ? horas/n/diasMes : 0,
+      hDispEquip, cap,
+      rendNec: cap > 0 ? q/cap : 0,
+      dispNec: hCal*c.util > 0 ? horas/(hCal*c.util) : 0,
+      utilNec: hCal*c.disp > 0 ? horas/(hCal*c.disp) : 0,
+      folga: cap - horas,
+      cabe: cap >= horas - 1e-9,
+    };
+  });
+}
+
 function linha(a, MP){
   const p = PLANO[a.cod] || {m:Array(NM).fill(0), trat:""};
   const meses = a.tipo==="transp"
@@ -107,6 +180,7 @@ function linha(a, MP){
      resposta so -- a mesma frota total se distribui de infinitas maneiras entre
      manual, trator e terceiro, e o sistema estaria escolhendo por conta propria. */
   const frotaAlvo = num(d.frota);
+  const mensal = temCriterioMensal(a.cod);   // ha criterio proprio de algum mes
   const fator = fatorDe(a.cod, MP);   // escala da atividade
   // turnos escolhidos na atividade (1t, 2t, 3t); sem escolha, o do modo ou do cadastro
   const turnosOv = num((DIM[a.cod]||{}).turnos);
@@ -127,7 +201,7 @@ function linha(a, MP){
   }else{
     frentes = [{modo:"", pct:1, maq:a.maq, imp:a.imp,
                 rend: d.rend!=null?num(d.rend):a.rend,
-                rendM: Array.isArray(d.rendM) ? d.rendM : null,
+                rendM: Array.isArray(d.rendM) && d.rendM.some(v=>num(v)>0) ? d.rendM : null,
                 ops:a.ops, turnos:a.turnos, fcodPad:null}];
   }
 
@@ -155,12 +229,19 @@ function linha(a, MP){
       const viagens = cap>0 ? area/cap : 0;
       horas = P.dispTr>0 ? viagens*ciclo/(P.dispTr/100) : 0;
       capMes = P.dias * P.hDiaTr * (P.dispTr/100) * util;
-    }else if(f.rendM){
-      // rendimento varia por mes: soma as horas mes a mes em vez de dividir o total
+    }else if(f.rendM || mensal){
+      // criterio varia por mes: soma as horas mes a mes em vez de dividir o total
       // por um rendimento so — mes sem valor proprio usa o padrao (f.rend)
       horas = meses.reduce((s,q,i)=>{
-        const rm = num(f.rendM[i]), rendEf = rm>0 ? rm : f.rend;
-        return s + (rendEf>0 ? num(q)/rendEf : 0);
+        const qq = num(q);
+        if(!(qq>0)) return s;      // mes sem volume nao consome hora nenhuma
+        const c = criterioDoMes(a.cod, i, util);
+        // frota fixada no mes: as horas sao a capacidade dela, e o rendimento do
+        // mes passa a ser o que fecha a conta (a inversao do Dimensionamento,
+        // aplicada mes a mes)
+        if(c.frota>0) return s + c.frota * P.dias * P.hdia * c.disp * c.util;
+        const rendEf = c.rend>0 ? c.rend : f.rend;
+        return s + (rendEf>0 ? qq/rendEf : 0);
       }, 0);
       capMes = P.dias * P.hdia * (P.disp/100) * util;
     }else{
@@ -170,7 +251,10 @@ function linha(a, MP){
     // com a frota fixada, as horas passam a ser a capacidade dessa frota na
     // janela, e o rendimento e o que fecha a conta: area ÷ horas
     let rendAlvo = null;
-    if(frotaAlvo>0 && !M && capMes>0 && jan.meses>0){
+    // criterio de mes manda na frota alvo da atividade: o mes e o ajuste fino, e
+    // deixar os dois agirem juntos exigiria repartir a frota alvo entre os meses
+    // por um criterio que o sistema estaria inventando sozinho
+    if(frotaAlvo>0 && !M && !mensal && capMes>0 && jan.meses>0){
       horas = frotaAlvo*capMes*jan.meses;
       rendAlvo = horas>0 ? area/horas : 0;
     }
@@ -201,7 +285,11 @@ function linha(a, MP){
   const cInsumo = (t && ehHa) ? total*t : 0;
   const rendMed = soma("horas")>0 ? total/soma("horas") : (frentes[0].rend||0);
 
-  return {a, meses, total, rend:rendMed, frotaAlvo: frotaAlvo>0 && !M ? frotaAlvo : 0, util, partes, escala:(d.esc||""), fator, turnosOv, janela:jan, mix:M?M.mx:null, mixSoma:M?M.soma:0,
+  return {a, meses, total, rend:rendMed,
+          frotaAlvo: frotaAlvo>0 && !M && !mensal ? frotaAlvo : 0,
+          frotaAlvoSuspensa: frotaAlvo>0 && !M && mensal ? frotaAlvo : 0,
+          rendPremissa: (M || a.tipo==="transp") ? 0 : frentes[0].rend,
+          criterioMensal: mensal, util, partes, escala:(d.esc||""), fator, turnosOv, janela:jan, mix:M?M.mx:null, mixSoma:M?M.soma:0,
           horas:soma("horas"), capMes:partes[0].capMes, frota:soma("frota"),
           frotaR:partes.reduce((s,x)=>s+x.frotaR,0),
           cDiesel:soma("cDiesel"), cManut:soma("cManut"), cMDO:soma("cMDO"), cTerc:soma("cTerc"), cInsumo,
@@ -214,4 +302,4 @@ function linha(a, MP){
           dieselMes: fracMes.map((fr,i)=>fr*soma("litros")*precoDiesel(i))};
 }
 
-export { MODOS_ORD, fatorDe, modosDe, linha, mixDe, tarifaTerc, metaDe };
+export { MODOS_ORD, criterioMensal, fatorDe, modosDe, linha, mixDe, tarifaTerc, metaDe, temCriterioMensal };

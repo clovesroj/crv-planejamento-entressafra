@@ -296,7 +296,7 @@ tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:under
 #rendm_fundo[hidden]{display:none}
 #rendm{position:fixed;inset:0;z-index:95;display:flex;align-items:center;justify-content:center;padding:24px}
 #rendm[hidden]{display:none}
-.rm-modal{width:min(620px,100%)}
+.rm-modal{width:min(1180px,100%)}
 /* input,select tem width:100% global — ao lado de um botao isso disputa espaco
    de um jeito que o auto-layout da tabela nao resolve direito (o botao ficava
    atras da coluna vizinha). Bloco flex com o input em largura fixa faz a coluna
@@ -304,10 +304,41 @@ tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:under
 .rend-cel{display:flex;align-items:center;gap:5px;white-space:nowrap}
 .rend-cel input{width:64px;flex:none}
 .rm-grade{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.rm-mes label{display:block;font-size:11px;color:var(--grey);margin-bottom:4px}
-.rm-mes input{width:100%}
+
+/* Cartao de mes: meta em cima, campos no meio, criterio exigido embaixo -- o que
+   preciso entregar, com o que conto, e o que isso obriga. */
+.rm-mes{border:1px solid var(--line);border-radius:var(--r);padding:9px 10px;background:var(--card)}
+/* mes sem volume: continua editavel (o criterio vale quando houver quantidade),
+   mas encolhe para nao empurrar os meses cheios para fora da tela */
+.rm-mes.rm-vazio{opacity:.6}
+.rm-mes.rm-vazio:hover,.rm-mes.rm-vazio:focus-within{opacity:1}
+.rm-mes.rm-vazio .rm-campos{grid-template-columns:repeat(4,1fr);gap:5px}
+.rm-mes.rm-vazio .rm-campos input{font-size:11px;padding:3px 5px}
+.rm-mes.rm-aperta{border-color:var(--red);box-shadow:inset 3px 0 0 var(--red)}
+.rm-cab{display:flex;align-items:baseline;justify-content:space-between;gap:6px;margin-bottom:6px}
+.rm-cab b{font-size:12.5px}
+.rm-meta{font-size:11.5px;font-weight:700;color:var(--leaf)}
+.rm-metas{display:flex;flex-wrap:wrap;gap:3px 10px;font-size:10.5px;color:var(--grey);margin-bottom:8px}
+.rm-metas b{color:var(--ink);font-weight:700}
+.rm-nada{font-size:10.5px;margin-bottom:8px;line-height:1.35}
+.rm-campos{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.rm-campos label{display:block;font-size:10.5px;color:var(--grey);margin:0}
+.rm-campos input{width:100%;margin-top:2px}
+/* rendimento calculado a partir da frota: mesma caixa, sem cara de campo */
+.rm-calc{display:block;margin-top:2px;padding:5px 7px;border:1px dashed var(--line);border-radius:6px;
+  font-size:11.5px;font-weight:700;color:var(--leaf);background:var(--leaf-soft);text-align:right}
+.rm-exige{margin-top:9px;padding-top:7px;border-top:1px dashed var(--line)}
+.rm-exige-tit{font-size:10px;color:var(--grey);margin-bottom:3px}
+.rm-lin{display:flex;justify-content:space-between;gap:8px;font-size:10.5px;color:var(--grey);padding:1px 0}
+.rm-lin b{color:var(--ink);font-weight:700}
+.rm-lin.rm-ruim b{color:var(--red)}
+.rm-resumo{font-size:11.5px;padding:8px 11px;border-radius:var(--r);margin-bottom:12px;
+  border:1px solid var(--line);background:var(--bg)}
+.rm-resumo.rm-ok{border-color:var(--leaf);background:var(--leaf-soft)}
+.rm-resumo.rm-alerta{border-color:var(--red);background:var(--bad-bg);color:var(--bad)}
+@media (max-width:1100px){.rm-grade{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:640px){#rendm{padding:0}.rm-modal{width:100%;height:100%;max-height:100%;border-radius:0}
-  .rm-grade{grid-template-columns:repeat(2,1fr)}}
+  .rm-grade{grid-template-columns:1fr}}
 @media print{#rendm,#rendm_fundo{display:none!important}}
 
 /* Filtro global de periodo, na barra superior: vale para toda tela que tenha

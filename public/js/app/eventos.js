@@ -38,9 +38,23 @@ document.addEventListener("input",e=>{
     const c=t.dataset.c; PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""};
     PLANO[c].m[+t.dataset.m]=num(t.value); salvar(); leve(); return; }
   if(t.dataset.r!==undefined){ DIM[t.dataset.r]=DIM[t.dataset.r]||{}; DIM[t.dataset.r].rend=num(t.value); salvar(); leve(); return; }
-  if(t.dataset.rendm!==undefined){ const c=t.dataset.rendm;
-    DIM[c]=DIM[c]||{}; DIM[c].rendM=Array.isArray(DIM[c].rendM)?DIM[c].rendM:Array(NM).fill("");
-    DIM[c].rendM[+t.dataset.i]=num(t.value); salvar(); leve(); return; }
+  // criterio por mes do modal de rendimento: rendimento, frota, disponibilidade e
+  // utilizacao. Campo em branco volta a herdar o criterio da atividade, e por
+  // isso guarda "" em vez de zero -- zero seria um criterio de fato lancado.
+  const MENSAIS = {rendm:"rendM", frotam:"frotaM", dispm:"dispM", utilm:"utilM"};
+  for(const [attr, chave] of Object.entries(MENSAIS)){
+    if(t.dataset[attr]===undefined) continue;
+    const c=t.dataset[attr];
+    DIM[c]=DIM[c]||{};
+    DIM[c][chave]=Array.isArray(DIM[c][chave])?DIM[c][chave]:Array(NM).fill("");
+    DIM[c][chave][+t.dataset.i]= t.value.trim()==="" ? "" : num(t.value);
+    if(DIM[c][chave].every(v=>v===""||num(v)===0)) delete DIM[c][chave];
+    salvar();
+    // frota preenchida faz o campo de rendimento do mes virar numero calculado:
+    // e troca de marcacao, entao redesenha o modal em vez de so recalcular
+    if(attr==="frotam") render(); else leve();
+    return;
+  }
   if(t.dataset.u!==undefined){ DIM[t.dataset.u]=DIM[t.dataset.u]||{}; DIM[t.dataset.u].util=num(t.value)/100; salvar(); leve(); return; }
   // frota alvo: em branco volta a sair do rendimento, e por isso e apagada em vez
   // de guardada como zero -- zero seria uma frota fixada em nenhuma maquina

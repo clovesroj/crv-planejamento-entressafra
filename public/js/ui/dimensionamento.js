@@ -6,8 +6,15 @@ import { MESES, NM, clsMes } from '../nucleo/calendario.js';
 import { kpi, maxSel, tdMeses, th, thMeses } from './componentes.js';
 import { ESCALAS } from '../dados/escalas.js';
 import { quadroBase } from '../calculo/quadro.js';
+import { temCriterioMensal } from '../calculo/atividade.js';
 
 /* ---------- DIMENSIONAMENTO ---------- */
+/* Botao do criterio mensal. O ponto avisa que algum mes ja foge do padrao da
+   atividade -- sem ele, o ajuste ficaria escondido atras de um clique. */
+const btnMes = cod => `<button class="btn xs" data-rendmes="${cod}"
+  title="Critério por mês: produção, frota, disponibilidade e utilização">${
+  temCriterioMensal(cod) ? "mês •" : "mês"}</button>`;
+
 function pintarDim(R){
   $("#k_dim").innerHTML =
     kpi("Horas-máquina","",fmt(R.horasT),"","frota:horas") +
@@ -27,14 +34,17 @@ function pintarDim(R){
         <td class="num">${multi?`<span class="calc">${fmt(r.rend,2)} ${un}/h</span>`
           : r.frotaAlvo
           // com a frota fixada o rendimento e resultado, nao premissa: vira
-          // numero calculado para nao parecer que da para editar os dois lados
+          // numero calculado para nao parecer que da para editar os dois lados.
+          // O botao de mes fica, porque o criterio mensal continua ajustavel.
           ? `<div class="rend-cel"><span class="tot" title="Rendimento que a frota fixada exige">${fmt(r.rend,2)}</span>
-              <span class="calc">${un}/h</span><span class="badge b-ok">da frota</span></div>`
+              <span class="calc">${un}/h</span><span class="badge b-ok">da frota</span>
+              ${btnMes(r.a.cod)}</div>`
           :`<div class="rend-cel">
               <input data-r="${r.a.cod}" value="${r.rend}" inputmode="decimal">
               <span class="calc">${un}/h</span>
-              <button class="btn xs" data-rendmes="${r.a.cod}" title="Rendimento por mês">${
-                Array.isArray((DIM[r.a.cod]||{}).rendM)&&(DIM[r.a.cod].rendM||[]).some(v=>num(v)>0)?"mês •":"mês"}</button>
+              ${btnMes(r.a.cod)}
+              ${r.frotaAlvoSuspensa ? `<span class="badge b-warn"
+                title="A frota de ${fmt(r.frotaAlvoSuspensa)} lançada aqui está suspensa: há critério lançado por mês, e é ele que vale. Limpe os meses para voltar a usá-la.">frota do mês manda</span>` : ""}
             </div>`}</td>
         <td class="num"><input data-u="${r.a.cod}" value="${Math.round(r.util*100)}" inputmode="decimal"></td>
         <td class="num calc">${fmt(r.horas)}</td>
