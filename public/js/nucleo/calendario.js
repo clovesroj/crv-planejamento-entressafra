@@ -40,10 +40,13 @@ function mesesEntre(ini, fim){
 
 function perTag(i){ const p = periodoMes(i); return `<span class="per per-${p}">${p==="safra"?"Safra":"Entressafra"}</span>`; }
 
-/* Classe de periodo de uma coluna de mes. E por ela que o filtro da barra
-   superior esconde a coluna: o CSS casa .so-safra .mes-entressafra, e vice-versa.
+/* Classe de uma coluna de mes. Sao duas marcas com papeis diferentes:
+   - mes-safra / mes-entressafra da a cor do periodo no Plano Operacional;
+   - m0..m11 identifica o mes, e e por ela que o filtro esconde a coluna.
+   O indice e necessario porque o filtro deixou de ser so safra/entressafra: com
+   a escolha mes a mes, os meses escondidos nao formam mais um bloco.
    Cabecalho e celula precisam levar a mesma marca, senao a tabela desalinha. */
-function clsMes(i){ return "mes-" + periodoMes(i); }
+function clsMes(i){ return "mes-" + periodoMes(i) + " m" + i; }
 
 const CAT_LBL = {mdo:"Mão de obra", manut:"Manutenção (CRM)", diesel:"Diesel", insumo:"Insumos + irrigação",
   terc:"Terceirização + transporte", arrend:"Arrendamento", fixo:"Fixos (adm./deprec.)", espor:"Esporádicos"};

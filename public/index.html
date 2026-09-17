@@ -87,10 +87,28 @@
     <div class="crumb"><span class="cg" id="crumb_g">Visão geral</span><span class="ct" id="crumb_t">Capa</span></div>
     <div class="spacer"></div>
     <span class="chip safra">Safra <b>2026/2027</b> · Capinópolis-MG</span>
-    <div class="per-sel" id="per_sel" role="group" aria-label="Filtrar período">
-      <button data-periodo="todos" class="on">Ano todo</button>
-      <button data-periodo="safra">Safra</button>
-      <button data-periodo="entressafra">Entressafra</button>
+    <div class="per-wrap">
+      <div class="per-sel" id="per_sel" role="group" aria-label="Filtrar período">
+        <button data-periodo="todos" class="on">Ano todo</button>
+        <button data-periodo="safra">Safra</button>
+        <button data-periodo="entressafra">Entressafra</button>
+        <button data-periodo="meses" id="btn_meses" aria-haspopup="true" aria-expanded="false"
+                title="Escolher mês a mês">Meses <span id="btn_meses_n"></span> ▾</button>
+      </div>
+      <!-- lista de meses: abre sob o seletor, fecha ao clicar fora -->
+      <div class="per-pop" id="pop_meses" hidden>
+        <div class="per-pop-cab">
+          <b>Escolher meses</b>
+          <span class="calc">o total passa a ser só dos meses marcados</span>
+        </div>
+        <div class="per-pop-meses" id="pop_meses_lista"></div>
+        <div class="per-pop-pe">
+          <button class="btn" data-meses-atalho="safra">Safra</button>
+          <button class="btn" data-meses-atalho="entressafra">Entressafra</button>
+          <button class="btn" data-meses-atalho="todos">Todos</button>
+          <button class="btn" data-meses-atalho="limpar">Limpar</button>
+        </div>
+      </div>
     </div>
     <span class="chip chip-leitura" id="chip_leitura" title="Seu perfil vê esta aba, mas não a edita" hidden>Somente visualização</span>
     <div class="savebox chip" title="Situação da gravação"><span class="dot off" id="sdot"></span><span id="stxt">Carregando…</span></div>

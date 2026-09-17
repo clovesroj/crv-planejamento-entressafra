@@ -3,8 +3,8 @@ import { AG_SEM_FROTA, FROTA_AG, FROTA_ESP, SEP_MOD, crmDe, espDe } from '../cal
 import { composicao, destravar, tratCodigos } from '../calculo/insumos.js';
 import { CFG } from '../dados/cfg.js';
 import { salvar } from '../io/persistencia.js';
-import { MESES, NM } from '../nucleo/calendario.js';
-import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES } from '../nucleo/estado.js';
+import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
+import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL } from '../nucleo/estado.js';
 import { FROTA_ABERTO, FROTA_UN, MAQ, setFROTA_DEST, setFROTA_ORIG } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { lerPremissas } from '../ui/premissas.js';
@@ -183,12 +183,60 @@ document.addEventListener("change",e=>{
     salvar(); render(); return; }
   if(t.id==="sel_grat_tipo"){ GRAT[FUN_SEL]={tipo:t.value, valor:num($("#in_grat").value)}; salvar(); render(); return; }
 });
+/* ---------- SELETOR DE MESES ----------
+   A lista e desenhada aqui, e nao numa tela de ui/, porque vive na barra
+   superior: nao pertence a nenhuma aba e nao pode depender de qual esta aberta. */
+function popAberto(){ const el = $("#pop_meses"); return el && !el.hidden; }
+function abrirMeses(v){
+  const el = $("#pop_meses"), bt = $("#btn_meses");
+  if(!el) return;
+  el.hidden = !v;
+  if(bt) bt.setAttribute("aria-expanded", v ? "true" : "false");
+  if(v) pintarMeses();
+}
+function fecharMeses(){ abrirMeses(false); }
+/** Redesenha a lista e o contador do botao a partir da selecao corrente. */
+function pintarMeses(){
+  const lista = $("#pop_meses_lista");
+  if(lista) lista.innerHTML = MESES.map((m,i)=>{
+    const on = MESES_SEL.includes(i);
+    return `<label class="${on?"on ":""}p-${periodoMes(i)}" data-mes="${i}">
+      <input type="checkbox" ${on?"checked":""} tabindex="-1" aria-hidden="true">${m}</label>`;}).join("");
+  const n = $("#btn_meses_n");
+  if(n) n.textContent = MESES_SEL.length ? "("+MESES_SEL.length+")" : "";
+}
+
 document.addEventListener("click",e=>{
   // filtro de periodo do rastro (ano todo / safra / entressafra) — checa antes do
   // data-rastro geral, pois os botoes do filtro moram dentro do proprio modal
   // filtro global de periodo, na barra superior
   const alvoPer = e.target.closest && e.target.closest("#per_sel [data-periodo]");
-  if(alvoPer){ setPERIODO_SEL(alvoPer.dataset.periodo); render(); return; }
+  if(alvoPer){
+    const p = alvoPer.dataset.periodo;
+    // "Meses" abre a lista em vez de aplicar um recorte pronto; os outros tres
+    // fecham a lista, senao ela ficaria aberta contradizendo o botao aceso
+    if(p === "meses"){ abrirMeses(!popAberto()); return; }
+    fecharMeses(); setPERIODO_SEL(p); render(); return;
+  }
+  // escolha mes a mes
+  const alvoMes = e.target.closest && e.target.closest("#pop_meses [data-mes]");
+  if(alvoMes){
+    const i = +alvoMes.dataset.mes;
+    const atual = MESES_SEL.filter(x=>x!==i);
+    setMESES_SEL(MESES_SEL.includes(i) ? atual : [...atual, i].sort((a,b)=>a-b));
+    setPERIODO_SEL("meses"); render(); pintarMeses(); return;
+  }
+  const atalho = e.target.closest && e.target.closest("#pop_meses [data-meses-atalho]");
+  if(atalho){
+    const k = atalho.dataset.mesesAtalho;
+    const idx = MESES.map((m,i)=>i);
+    // "Limpar" deixa a selecao vazia, e selecao vazia nao filtra: o recorte
+    // volta a ser o ano, que e o que a tela mostra de qualquer jeito
+    setMESES_SEL(k==="limpar" ? [] : k==="todos" ? idx : idx.filter(i=>periodoMes(i)===k));
+    setPERIODO_SEL("meses"); render(); pintarMeses(); return;
+  }
+  // clique fora fecha a lista
+  if(popAberto() && !(e.target.closest && e.target.closest("#pop_meses"))) fecharMeses();
   const alvoPeriodo = e.target.closest && e.target.closest("[data-ra-periodo]");
   if(alvoPeriodo){ filtrarRastro(alvoPeriodo.dataset.raPeriodo); return; }
   // rastro do calculo: qualquer elemento com data-rastro abre ou desce um nivel

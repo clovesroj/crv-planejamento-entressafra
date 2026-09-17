@@ -86,7 +86,7 @@ function pintarPlano(R){
     : R.horasT;
   $("#plano_resumo").innerHTML=`<b>${prog}</b>/<b>${R.L.length}</b> atividades · <b>${fmt(haOp)}</b> ha-operação · `+
     `insumos <b>${brl(ins)}</b> · horas <b>${fmt(hrs)}</b> · `+
-    (parcial ? `<span class="calc">números de ${PERIODO_MESES[SEL.periodo]}; o ano inteiro fica em "Ano todo", na barra do topo</span>`
+    (parcial ? `<span class="calc">números de ${PERIODO_MESES[SEL.periodo] || SEL.rotulo.toLowerCase()}; o ano inteiro fica em "Ano todo", na barra do topo</span>`
              : `<span class="calc">transporte e transbordo espelham a tonelada da colheita automaticamente</span>`);
 }
 

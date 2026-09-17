@@ -206,11 +206,11 @@ footer{display:flex;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;co
 #t_plano td.mes-safra input{border-color:#B9CDB6}
 #t_plano td.mes-entressafra input{border-color:var(--edit-line)}
 /* o filtro apenas esconde as colunas do outro período */
-/* Filtro de periodo da barra superior. A marca fica no <body> para valer em
-   toda tabela mensal do sistema, nao so na do plano -- as cores acima seguem
-   restritas ao plano, que e onde o mes e campo de lancamento. */
-body.so-safra .mes-entressafra{display:none}
-body.so-entressafra .mes-safra{display:none}
+/* O filtro de periodo da barra superior esconde as colunas dos meses de fora.
+   A regra e escrita em <style id="css_meses"> por render(), e nao mora aqui,
+   porque a selecao mes a mes nao forma um bloco fixo: pode ser qualquer
+   subconjunto dos doze. As cores acima seguem restritas ao plano, que e onde o
+   mes e campo de lancamento. */
 
 /* Bloco recolhivel com titulo destacado — usado nos tres dimensionamentos.
    <details> nativo: recolhe sem JavaScript e responde ao teclado. */
@@ -321,7 +321,30 @@ tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:under
 .per-sel button:hover{background:var(--leaf-soft);color:var(--ink)}
 .per-sel button.on{background:var(--leaf);color:#fff}
 .per-sel button:focus-visible{outline:none;box-shadow:var(--focus)}
-@media (max-width:900px){.per-sel{display:none}}
+@media (max-width:900px){.per-wrap{display:none}}
+
+/* Lista de meses do seletor. Ancorada no proprio seletor e nao numa posicao
+   fixa da tela: a barra superior muda de largura conforme o menu lateral esta
+   aberto ou recolhido. */
+.per-wrap{position:relative;display:inline-flex}
+.per-pop{position:absolute;top:calc(100% + 6px);right:0;z-index:60;min-width:268px;
+  background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:0 10px 26px rgba(0,0,0,.16);padding:10px}
+.per-pop[hidden]{display:none}
+.per-pop-cab{display:flex;flex-direction:column;gap:2px;margin-bottom:8px;font-size:11.5px}
+.per-pop-cab .calc{font-size:10.5px}
+.per-pop-meses{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.per-pop-meses label{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;
+  padding:5px 4px;border:1px solid var(--line);border-radius:6px;cursor:pointer;
+  color:var(--grey);white-space:nowrap}
+.per-pop-meses label:hover{background:var(--leaf-soft);color:var(--ink)}
+.per-pop-meses label.on{background:var(--leaf);border-color:var(--leaf);color:#fff}
+/* a cor do periodo aparece na borda: e a mesma convencao das colunas do Plano */
+.per-pop-meses label.p-safra{border-left:3px solid var(--leaf)}
+.per-pop-meses label.p-entressafra{border-left:3px solid var(--straw)}
+.per-pop-meses input{margin:0;accent-color:var(--leaf)}
+.per-pop-pe{display:flex;gap:5px;margin-top:9px;flex-wrap:wrap}
+.per-pop-pe .btn{font-size:10.5px;padding:4px 9px}
 
 /* Mes fora da janela de datas da atividade: nao aceita lancamento. Fica apagado
    em vez de sumir, para nao dar a impressao de que o mes deixou de existir. */

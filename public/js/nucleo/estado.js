@@ -34,7 +34,11 @@ let FROTA_UN = {};       // CodFrota -> {st:"roda"|"reforma", crm:{...}, ref:{co
 let FROTA_DEST = "todos"; // filtro de destino: todos | roda | reforma
 let REAL = {};           // cod da atividade -> [12] realizado lançado
 let ACOMP_MES = null;    // mês de corte do acompanhamento; null = todos
-let PERIODO_SEL = "todos";  // filtro global de periodo: todos | safra | entressafra
+let PERIODO_SEL = "todos";  // filtro global de periodo: todos | safra | entressafra | meses
+// meses escolhidos a dedo, quando PERIODO_SEL e "meses". Fica separado do
+// PERIODO_SEL para que voltar de "Ano todo" para a escolha manual nao perca a
+// selecao -- e visao, nao dado, entao nao entra no documento salvo.
+let MESES_SEL = [];
 let FROTA_ABERTO = {};   // chave do modelo -> true quando a lista de unidades está aberta
 let FROTA_ORIG = "todos"; // filtro próprio/terceiro das abas de frota (não é salvo: é visão, não dado)
 let APOIO_FIXO = {};     // nome do item -> qtd ajustada (frota de apoio de utilização fixa)
@@ -62,7 +66,7 @@ let TRAT_SEL = null;
 
 export {
   P, PLANO, DIM, INSUMO, ESPOR, TRATC, NIV, GRAT, APOIO, TERC_TAR, CRM, MATX,
-  INSX, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, PERIODO_SEL, REAL, ACOMP_MES, FROTA_ABERTO, APOIO_FIXO, TRAT_NOME, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
+  INSX, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, APOIO_FIXO, TRAT_NOME, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
   TPESS, QUADRO, ADM, ADM_RAT, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL,
 };
 
@@ -85,6 +89,7 @@ export const setMAQ        = v => { MAQ = v; };
 export const setFROTA_ORIG = v => { FROTA_ORIG = v; };
 export const setFROTA_ABERTO = v => { FROTA_ABERTO = v; };
 export const setPERIODO_SEL  = v => { PERIODO_SEL = v; };
+export const setMESES_SEL    = v => { MESES_SEL = v; };
 export const setREAL         = v => { REAL = v; };
 export const setACOMP_MES    = v => { ACOMP_MES = v; };
 export const setFROTA_UN   = v => { FROTA_UN = v; };

@@ -3,7 +3,7 @@ import { calcular } from '../calculo/index.js';
 import { fornCalc } from '../calculo/fornecedores.js';
 import { pessoasCalc } from '../calculo/pessoas.js';
 import { CFG } from '../dados/cfg.js';
-import { P, PERIODO_SEL } from '../nucleo/estado.js';
+import { MESES_SEL, P, PERIODO_SEL } from '../nucleo/estado.js';
 import { $, brl, fmt } from '../nucleo/formato.js';
 import { pintarAdm } from '../ui/administrativo.js';
 import { pintarApoio } from '../ui/apoio.js';
@@ -38,13 +38,18 @@ import { aplicarPermissoes } from '../ui/permissoes.js';
    entao nada se altera. */
 function recorteDoPeriodo(R){
   const p = PERIODO_SEL;
-  const parcial = p==="safra" || p==="entressafra";
-  const meses = MESES.map((m,i)=>i).filter(i=>!parcial || periodoMes(i)===p);
+  // "meses" e a escolha manual. Selecao vazia nao filtra nada: seria uma tela de
+  // zeros sem nada que explicasse o motivo, pior do que ignorar o filtro.
+  const escolhidos = MESES_SEL.filter(i=>i>=0 && i<NM);
+  const manual = p==="meses" && escolhidos.length>0;
+  const parcial = p==="safra" || p==="entressafra" || manual;
+  const meses = MESES.map((m,i)=>i).filter(i=>
+    !parcial ? true : manual ? escolhidos.includes(i) : periodoMes(i)===p);
   const soma = arr => !arr ? 0 : meses.reduce((s,i)=>s+(+arr[i]||0), 0);
   const porChave = obj => Object.fromEntries(Object.entries(obj||{}).map(([k,a])=>[k, soma(a)]));
   return {
-    periodo: p, parcial, meses,
-    rotulo: parcial ? PERIODOS[p] : "Ano todo",
+    periodo: p, parcial, meses, manual,
+    rotulo: manual ? rotuloDosMeses(meses) : parcial ? PERIODOS[p] : "Ano todo",
     total: parcial ? soma(R.meses) : R.total,
     cat:   parcial ? porChave(R.mesesCat) : null,
     etapa: parcial && R.etapaMes ? porChave(R.etapaMes) : null,
@@ -53,6 +58,17 @@ function recorteDoPeriodo(R){
     // entao o que sobra do total do periodo e o variavel
     fracaoCusto: parcial && R.total>0 ? soma(R.meses)/R.total : 1,
   };
+}
+
+/* Nome do recorte manual. Meses seguidos viram intervalo ("Abr/26 a Jun/26"),
+   que e como se fala deles numa reuniao; salteados viram a contagem, porque
+   listar sete rotulos no cabecalho nao caberia. */
+function rotuloDosMeses(meses){
+  if(!meses.length) return "Ano todo";
+  if(meses.length === 1) return MESES[meses[0]];
+  const seguidos = meses.every((v,k)=> k===0 || v === meses[k-1]+1);
+  return seguidos ? `${MESES[meses[0]]} a ${MESES[meses[meses.length-1]]}`
+                  : `${meses.length} meses escolhidos`;
 }
 
 /* ---------- CICLO ---------- */
@@ -67,6 +83,17 @@ function calcularCompleto(){
   R.FORN = fornCalc(R);
   return R;
 }
+/* Esconde as colunas dos meses que ficaram de fora do recorte.
+   Uma regra de CSS so, escrita num <style> proprio, em vez de percorrer as
+   tabelas marcando celula por celula: vale para toda tabela mensal, inclusive
+   as que forem redesenhadas depois, e nao depende da aba aberta -- quem troca de
+   aba com um recorte ativo encontra a proxima tela ja filtrada. */
+function esconderMeses(visiveis){
+  let el = document.getElementById("css_meses");
+  if(!el){ el = document.createElement("style"); el.id = "css_meses"; document.head.appendChild(el); }
+  const fora = MESES.map((m,i)=>i).filter(i=>!visiveis.includes(i));
+  el.textContent = fora.length ? fora.map(i=>".m"+i).join(",")+"{display:none}" : "";
+}
 function render(){
   const R=calcularCompleto();
   $("#c_muda").value=fmt(R.muda)+" t"; $("#c_viveiro").value=fmt(R.viveiro)+" ha";
@@ -76,11 +103,7 @@ function render(){
   $("#c_arr").value=R.AR.area>0?brl(R.AR.anual/R.AR.area,2):"—";
   document.querySelectorAll("#per_sel [data-periodo]").forEach(b=>
     b.classList.toggle("on", b.dataset.periodo===PERIODO_SEL));
-  // O filtro esconde as colunas do outro periodo em toda tabela mensal. A marca
-  // vai no <body> justamente para nao depender da aba aberta: quem trocar de aba
-  // com a safra selecionada encontra a proxima tela ja filtrada.
-  document.body.classList.toggle("so-safra", PERIODO_SEL==="safra");
-  document.body.classList.toggle("so-entressafra", PERIODO_SEL==="entressafra");
+  esconderMeses(R.SEL.meses);
   pintarCapa(R); pintarMDO(R); pintarPlano(R); pintarDim(R); pintarTransp(R); pintarApoio(R); pintarCRM(R); pintarReforma(); pintarTPess(R);
   pintarIrrig(R); pintarInsumos(R); pintarArrend(R); pintarForn(R); pintarAdm(R); pintarCustos(R); pintarContas(R); pintarCombustivel(R); pintarResumoFrota(R); pintarPessoas(R);
   pintarPainel(R); pintarValida(R); pintarAcomp(R); pintarRastro(R); pintarRendMensal(R);
