@@ -399,6 +399,26 @@ tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:under
   .rm-grade{grid-template-columns:1fr}}
 @media print{#rendm,#rendm_fundo{display:none!important}}
 
+/* Pre-visualizacao do relatorio: mesmo container central com blur, mas mais
+   largo (tabela de relatorio tem muita coluna) e com o corpo rolavel — e o
+   mesmo HTML que vira PDF, so que na tela em vez de motor de impressao. */
+#prev_rel_fundo{position:fixed;inset:0;z-index:90;background:rgba(10,17,12,.5);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);animation:raFundoIn .2s ease-out}
+#prev_rel_fundo[hidden]{display:none}
+#prev_rel{position:fixed;inset:0;z-index:95;display:flex;align-items:center;justify-content:center;padding:24px}
+#prev_rel[hidden]{display:none}
+.prev-modal{width:min(1100px,96vw);max-height:90vh}
+.prev-corpo .rel-logo{height:36px;width:auto;display:block;margin:0 0 12px;background:#fff;border-radius:6px;padding:4px 7px}
+.prev-corpo h1{font-family:var(--f-display);font-size:21px;font-weight:600;margin:0 0 4px;color:var(--ink)}
+.prev-corpo>p{font-size:12px;color:var(--grey);margin:0 0 18px}
+.prev-corpo h2{font-family:var(--f-display);font-size:15px;font-weight:600;margin:22px 0 8px;color:var(--ink)}
+.prev-corpo h2:first-of-type{margin-top:0}
+.prev-corpo table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px}
+.prev-corpo th,.prev-corpo td{border:1px solid var(--line);padding:5px 8px;text-align:left;white-space:normal}
+.prev-corpo thead{background:var(--th-bg);color:var(--th-ink)}
+@media (max-width:640px){#prev_rel{padding:0}.prev-modal{width:100%;height:100%;max-height:100%;border-radius:0}}
+@media print{#prev_rel,#prev_rel_fundo{display:none!important}}
+
 /* Filtro global de periodo, na barra superior: vale para toda tela que tenha
    numero decomposto por mes. A aba que nao tem serie mensal ignora e continua
    mostrando o ano -- o rotulo do proprio seletor avisa. */

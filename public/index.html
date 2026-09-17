@@ -34,6 +34,7 @@
       <button data-s="painel">Painel</button>
       <button data-s="acomp">Acompanhamento do Plano</button>
       <button data-s="valida">Validação <span id="vbadge"></span></button>
+      <button type="button" id="nav_relatorio">Relatório</button>
     </div>
     <div class="navgroup" data-g="Planejamento">
       <div class="gl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Planejamento</div>
@@ -122,6 +123,7 @@
         <select id="sel_report_rel"></select>
         <label for="sel_report_nivel">Nível do relatório</label>
         <select id="sel_report_nivel"><option value="resumido">Resumido</option><option value="detalhado">Detalhado</option></select>
+        <div class="row"><button class="btn" id="btn_report_preview">Pré-visualizar</button></div>
         <div class="row"><button class="btn p" id="btn_report_pdf">Gerar PDF</button>
           <button class="btn" id="btn_report_xlsx">Gerar Excel</button></div>
         <div class="row"><button class="btn" id="btn_report_csv">Gerar CSV</button></div>
@@ -983,6 +985,8 @@
 <aside id="rendm" aria-label="Rendimento por mês" hidden></aside>
 <div id="fichains_fundo" hidden></div>
 <aside id="fichains" aria-label="Ficha técnica do insumo" hidden></aside>
+<div id="prev_rel_fundo" hidden></div>
+<aside id="prev_rel" aria-label="Pré-visualização do relatório" hidden></aside>
 <div id="print_report"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
