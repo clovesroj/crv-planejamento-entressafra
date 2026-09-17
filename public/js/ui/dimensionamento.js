@@ -15,6 +15,35 @@ const btnMes = cod => `<button class="btn xs" data-rendmes="${cod}"
   title="Critério por mês: produção, frota, disponibilidade e utilização">${
   temCriterioMensal(cod) ? "mês •" : "mês"}</button>`;
 
+/* Busca por nome, genérica pras tabelas deste arquivo: esconde linha que não bate
+   o termo, sem tocar no innerHTML de novo (não perde o que o usuário tinha aberto).
+   Linha de grupo (.stage) some se nenhuma linha do grupo bateu; linha de detalhe
+   (.sub, ou expansão de frota — uma célula só, com colspan) segue a linha anterior,
+   nunca é filtrada sozinha. Reaplicada no fim de cada pintura, porque o innerHTML
+   é reconstruído do zero a cada render() e "esconder" não sobrevive a isso. */
+function filtrarPorNome(tabelaId, termo){
+  const tab = $(tabelaId);
+  if(!tab) return;
+  const t = (termo||"").trim().toLowerCase();
+  let grupo = null, grupoTemMatch = false;
+  const fecharGrupo = () => { if(grupo) grupo.hidden = !grupoTemMatch; };
+  [...tab.querySelectorAll("tbody tr")].forEach(tr=>{
+    if(tr.classList.contains("stage")){ fecharGrupo(); grupo = tr; grupoTemMatch = false; return; }
+    // linha de total/rodape (primeira celula .tot): sempre visivel, nunca some na busca
+    if(tr.children[0] && tr.children[0].classList.contains("tot")){ tr.hidden = false; return; }
+    const detalhe = tr.classList.contains("sub") || (tr.children.length===1 && tr.children[0].hasAttribute("colspan"));
+    if(detalhe){ const mae = tr.previousElementSibling; tr.hidden = mae ? mae.hidden : false; return; }
+    const bate = !t || tr.textContent.toLowerCase().includes(t);
+    tr.hidden = !bate;
+    if(bate) grupoTemMatch = true;
+  });
+  fecharGrupo();
+}
+let BUSCA_ATIV = "", BUSCA_FROTA = "", BUSCA_PES = "";
+function aplicarBuscaAtiv(v){ BUSCA_ATIV = v||""; filtrarPorNome("#t_dim", BUSCA_ATIV); }
+function aplicarBuscaFrota(v){ BUSCA_FROTA = v||""; filtrarPorNome("#t_frota", BUSCA_FROTA); }
+function aplicarBuscaPes(v){ BUSCA_PES = v||""; filtrarPorNome("#t_dim_pes", BUSCA_PES); }
+
 function pintarDim(R){
   $("#k_dim").innerHTML =
     kpi("Horas-máquina","",fmt(R.horasT),"","frota:horas") +
@@ -64,6 +93,7 @@ function pintarDim(R){
           <td class="calc">${p.terc?'<span class="badge b-warn">terceiro</span>':p.fcod}</td>
           <td class="calc">${p.maq}</td><td class="calc">${p.imp}</td></tr>`;});
       return h;}).join("")+"</tbody>";
+  filtrarPorNome("#t_dim", BUSCA_ATIV);
 
   const fr={};
   R.L.forEach(r=>r.partes.forEach(p=>{
@@ -106,6 +136,7 @@ function pintarDim(R){
         provisionamento da aba Reforma de Frota, e stand by não gera custo nenhum.</div>
       </div></td></tr>`;
     }).join("")+"</tbody>";
+  filtrarPorNome("#t_frota", BUSCA_FROTA);
 
   $("#t_apoio").innerHTML = th([["Veículo / Máquina"],["Qtd",1],["Utilização",1],["Disponib.",1],["Necessidade",1],["Atividade"]])+"<tbody>"+
     R.AP.linhas.map(a=>`<tr><td>${a.nome}</td><td class="num"><input data-apf="${a.nome}" value="${a.qtd}" inputmode="decimal"></td>
@@ -178,6 +209,7 @@ function pintarDimPessoas(R){
     : `<tr><td colspan="12" class="calc">Sem frente com efetivo: lance quantidades no Plano Operacional.</td></tr>`)+
     `<tr><td class="tot" colspan="10">TOTAL NAS ATIVIDADES</td>
      <td class="num tot">${fmt(totPessoas)}</td><td></td></tr></tbody>`;
+  filtrarPorNome("#t_dim_pes", BUSCA_PES);
 
   const funcoes = Object.keys(PS.porFun).sort();
   const tot = {nec:0, pico:0, ativo:0, ferias:0, demis:0, disp:0, contratar:0, exced:0};
@@ -269,4 +301,4 @@ function pintarDimPessoas(R){
     + (tot.contratar>0 ? ` · faltam ${fmt(tot.contratar)}` : "");
 }
 
-export { pintarDim, pintarDimPessoas };
+export { pintarDim, pintarDimPessoas, aplicarBuscaAtiv, aplicarBuscaFrota, aplicarBuscaPes };

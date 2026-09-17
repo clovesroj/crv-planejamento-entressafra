@@ -29,6 +29,7 @@ const VISUAIS = [
   '[data-rastro]', '[data-ra-periodo]', '#ra_voltar', '#ra_fechar',
   '[data-abrefrota]', '[data-infx]', '[data-rendmes]', '#rm_fechar',
   '#sel_fun', '#sel_cat', '#sel_orig', '#sel_dest', '#sel_trat', '#sel_acomp_mes',
+  '#busca_dim_ativ', '#busca_dim_frota', '#busca_dim_pes',
   '#btn_export', '#btn_theme',
 ].join(',');
 
