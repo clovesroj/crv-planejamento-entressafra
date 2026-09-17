@@ -3,15 +3,16 @@ import { AG_SEM_FROTA, FROTA_AG, FROTA_ESP, SEP_MOD, crmDe, espDe } from '../cal
 import { composicao, criarGrupoInsumo, criarTrat, destravar, marcarEtapa, mesclarBaseInsumos, removerGrupoInsumo, removerTrat,
   renomearGrupoInsumo, renomearTrat, tratCodigos, usosTrat } from '../calculo/insumos.js';
 import { CFG } from '../dados/cfg.js';
+import { buscarAgrofit, bulaDoProduto } from '../io/agrofit.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
 import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, fornLista, gruposInsLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE } from '../nucleo/estado.js';
-import { FROTA_ABERTO, FROTA_UN, INS_FICHA, MAQ, setFROTA_DEST, setFROTA_ORIG, setINS_FICHA } from '../nucleo/estado.js';
+import { AGROFIT_BUSCA, FROTA_ABERTO, FROTA_UN, INS_FICHA, MAQ, setAGROFIT_BUSCA, setFROTA_DEST, setFROTA_ORIG, setINS_FICHA } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { filtrarPorNome } from '../ui/componentes.js';
 import { alternarFam, aplicarFamIns, buscaExigeRedesenho, recolherTodas, todasRecolhidas } from '../ui/insumos.js';
 import { lerPremissas } from '../ui/premissas.js';
-import { leve, render, renderFichaIns, renderRastro, renderRendMensal } from './ciclo.js';
+import { leve, render, renderAgrofit, renderFichaIns, renderRastro, renderRendMensal } from './ciclo.js';
 import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarRastro, voltarRastro } from '../ui/rastro.js';
 import { abrirRendMensal, aberto as rendMensalAberto, fecharRendMensal } from '../ui/rendmensal.js';
 import { setAPOIO, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setINSX_V, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
@@ -326,6 +327,44 @@ document.addEventListener("click",e=>{
   const fx = e.target.closest && e.target.closest("[data-infx]");
   if(fx){ setINS_FICHA(fx.dataset.infx === INS_FICHA ? null : fx.dataset.infx);
     renderFichaIns(); return; }
+  // busca de bula na Agrofit, em modal. Visao, nao dado: abrir, fechar ou
+  // trocar de candidato nao passa por salvar() -- so "Vincular" grava no insumo.
+  if((e.target.closest && e.target.closest("#agro_fechar")) || e.target.id==="agrofit_fundo"){
+    setAGROFIT_BUSCA(null); renderAgrofit(); return; }
+  const agb = e.target.closest && e.target.closest("[data-agrobusca]");
+  if(agb){
+    const ix = +agb.dataset.agrobusca, i = insLista()[ix];
+    setAGROFIT_BUSCA({ix, carregando:true, erro:null, resultados:null});
+    renderAgrofit();
+    // so pelo nome: o fabricante do nosso cadastro e o "titular_registro" da
+    // Agrofit raramente batem como texto (ex.: "Corteva Agriscience" no nosso
+    // cadastro e "CTVA Protecao de Cultivos Ltda" na Agrofit, mesma empresa
+    // depois de uma troca de razao social) -- filtrar pelos dois eliminava o
+    // candidato certo. O fabricante aparece no card so pra conferencia visual.
+    buscarAgrofit({marca:i.prod}).then(resultados=>{
+      if(!AGROFIT_BUSCA || AGROFIT_BUSCA.ix!==ix) return;   // fechou ou trocou de produto enquanto buscava
+      setAGROFIT_BUSCA({ix, carregando:false, erro:null, resultados});
+      renderAgrofit();
+    }).catch(err=>{
+      if(!AGROFIT_BUSCA || AGROFIT_BUSCA.ix!==ix) return;
+      setAGROFIT_BUSCA({ix, carregando:false, erro:err.message, resultados:null});
+      renderAgrofit();
+    });
+    return;
+  }
+  const agv = e.target.closest && e.target.closest("[data-agrovinc]");
+  if(agv && AGROFIT_BUSCA && AGROFIT_BUSCA.resultados){
+    const p = AGROFIT_BUSCA.resultados[+agv.dataset.agrovinc];
+    const bula = p && bulaDoProduto(p);
+    if(!bula) return;
+    const i = insLista()[AGROFIT_BUSCA.ix];
+    i.agrofit_registro = p.numero_registro;
+    i.agrofit_titular = p.titular_registro;
+    i.bula_url = bula.url;
+    setAGROFIT_BUSCA(null);
+    salvar(true); render();
+    return;
+  }
   const ab = e.target.closest && e.target.closest("[data-abrefrota]");
   if(ab){ const k = ab.dataset.abrefrota;
     // abrir a lista de unidades e visao, nao dado: nao passa por salvar()

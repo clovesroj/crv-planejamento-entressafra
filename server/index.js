@@ -5,6 +5,7 @@
  * Ponto de entrada: monta o servidor HTTP, roteia entre a API e os arquivos
  * estaticos, e trata o encerramento.
  *
+ *   server/env.js         carrega .env local (client key/secret de APIs externas)
  *   server/config.js     porta, caminhos, limites
  *   server/http.js       erro com status, resposta JSON, leitura de corpo
  *   server/api.js        rotas /api/health e /api/plano
@@ -16,6 +17,7 @@
  * e efemero e some a cada deploy, entao a API marca duravel:false e o rodape
  * do app passa a avisar que a gravacao e temporaria.
  */
+require('./env').carregarEnv();
 const http = require('node:http');
 const { api } = require('./api');
 const { estatico } = require('./estatico');

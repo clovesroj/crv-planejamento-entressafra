@@ -6,6 +6,7 @@ import { CFG } from '../dados/cfg.js';
 import { MESES_SEL, P, PERIODO_SEL } from '../nucleo/estado.js';
 import { $, brl, fmt } from '../nucleo/formato.js';
 import { pintarAdm } from '../ui/administrativo.js';
+import { pintarAgrofitModal } from '../ui/agrofit.js';
 import { pintarApoio } from '../ui/apoio.js';
 import { pintarArrend } from '../ui/arrendamentos.js';
 import { pintarCapa } from '../ui/capa.js';
@@ -133,7 +134,7 @@ function render(){
   esconderMeses(R.SEL.meses);
   pintarCapa(R); pintarMDO(R); pintarPlano(R); pintarDim(R); pintarTransp(R); pintarApoio(R); pintarCRM(R); pintarReforma(); pintarTPess(R);
   pintarIrrig(R); pintarInsumos(R); pintarArrend(R); pintarForn(R); pintarAdm(R); pintarCustos(R); pintarContas(R); pintarCombustivel(R); pintarResumoFrota(R); pintarPessoas(R);
-  pintarPainel(R); pintarValida(R); pintarAcomp(R); pintarRastro(R); pintarRendMensal(R); pintarConfig(); pintarFichaIns();
+  pintarPainel(R); pintarValida(R); pintarAcomp(R); pintarRastro(R); pintarRendMensal(R); pintarConfig(); pintarFichaIns(); pintarAgrofitModal();
   // depois dos pintores: eles recriam a tabela do zero a cada render(), entao busca
   // e ordem de coluna (que vivem so no DOM) precisam ser reaplicadas por cima; a
   // trava de perfil roda por ultimo porque precisa valer sobre os controles novos
@@ -148,6 +149,9 @@ function renderRendMensal(){ pintarRendMensal(calcularCompleto()); aplicarPermis
 /* A ficha nao muda numero nenhum: abrir e fechar so pinta o modal, em vez de
    refazer as 24 abas -- o mesmo criterio do rastro e do rendimento mensal. */
 function renderFichaIns(){ pintarFichaIns(); aplicarPermissoes(); }
+/* Mesmo criterio: abrir/fechar o modal de busca na Agrofit, ou trocar de
+   candidato, nao muda nenhum numero do plano. */
+function renderAgrofit(){ pintarAgrofitModal(); aplicarPermissoes(); }
 
 // atualização leve: recalcula tudo mas preserva o foco de quem está digitando
 let leveTimer=null;
@@ -182,4 +186,4 @@ function leve(){
 }
 
 
-export { calcularCompleto, leve, leveTimer, render, renderFichaIns, renderRastro, renderRendMensal };
+export { calcularCompleto, leve, leveTimer, render, renderAgrofit, renderFichaIns, renderRastro, renderRendMensal };

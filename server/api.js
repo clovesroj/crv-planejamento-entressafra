@@ -10,6 +10,7 @@
  *   POST   /api/auth/login | logout | bootstrap    GET /api/auth/me    PATCH /api/auth/senha
  *   GET|POST|PATCH        /api/usuarios   (admin)
  *   GET|POST|PATCH|DELETE /api/perfis     (admin) — o que cada perfil pode editar
+ *   GET    /api/agrofit/produtos-formulados   candidatos na Embrapa para linkar a bula de um insumo
  *
  * Tudo que toca o plano exige sessao (server/auth.js). Gravar exige, alem
  * disso, permissao de edicao na aba de cada dado (server/permissoes.js).
@@ -19,6 +20,7 @@ const { erroHTTP, json, lerCorpo } = require('./http');
 const { SERVICO } = require('./config');
 const auth = require('./auth');
 const perms = require('./permissoes');
+const agrofit = require('./agrofit');
 
 const usuarioPublico = u => u && { id: u.id, login: u.login, nome: u.nome, papel: u.papel,
   ativo: u.ativo, criado_em: u.criado_em, ultimo_acesso: u.ultimo_acesso };
@@ -192,6 +194,24 @@ async function api(req, res, rota) {
       return json(res, 200, { ok: true });
     }
     throw erroHTTP(405, 'método não permitido');
+  }
+
+  // Busca de candidatos na AGROFIT (Embrapa) para linkar a bula de um insumo.
+  // Só quem edita a aba Insumos usa isto — é passo de cadastro, não leitura livre.
+  if (rota === '/api/agrofit/produtos-formulados') {
+    if (req.method !== 'GET') throw erroHTTP(405, 'método não permitido');
+    const sessao = await auth.exigirSessao(req, store);
+    const perm = await perms.permissoesDe(sessao, store);
+    if (!perm.tudo && !perm.editaveis.includes('insumos')) {
+      throw erroHTTP(403, 'seu perfil não edita Insumos');
+    }
+    const url = new URL(req.url, 'http://x');
+    const dados = await agrofit.buscarProdutosFormulados({
+      marca_comercial: url.searchParams.get('marca'),
+      titular_registro: url.searchParams.get('titular'),
+      page: url.searchParams.get('page'),
+    });
+    return json(res, 200, { produtos: dados });
   }
 
   if (rota !== '/api/plano') throw erroHTTP(404, 'rota inexistente');

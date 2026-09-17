@@ -43,10 +43,10 @@ const CONTROLES = 'input, select, textarea, button';
 function areaDe(el) {
   if (!el || !el.closest) return null;
   if (el.closest('#rendm')) return 'dimens';
-  // Cadastro de Insumos e Grupos de Insumos (Configurações) gravam chaves da
-  // área 'insumos' no servidor — as telas usam a mesma permissão, sem um
-  // toggle à parte no catálogo.
-  if (el.closest('#insbase') || el.closest('#config')) return 'insumos';
+  // Cadastro de Insumos, Grupos de Insumos (Configurações) e o modal de busca
+  // na Agrofit gravam chaves da área 'insumos' no servidor — as telas usam a
+  // mesma permissão, sem um toggle à parte no catálogo.
+  if (el.closest('#insbase') || el.closest('#config') || el.closest('#agrofit_modal')) return 'insumos';
   const sec = el.closest('section[id]');
   if (!sec) return null;
   return areasDePermissao().some(a => a.id === sec.id) ? sec.id : null;
@@ -111,6 +111,8 @@ function aplicarPermissoes() {
   const rm = document.getElementById('rendm');
   if (rm) { if (podeEditar('dimens')) destravar(rm); else travar(rm); }
   const pode_ins = podeEditar('insumos');
+  const agro = document.getElementById('agrofit_modal');
+  if (agro) { if (pode_ins) destravar(agro); else travar(agro); }
   ['insbase', 'config'].forEach(id => {
     const sec = document.getElementById(id);
     if (!sec) return;
