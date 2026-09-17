@@ -1,4 +1,4 @@
-import { composicao, etapasNoPlano, precoInsumo, tratCodigos, tratEtapas, tratListaTodos } from '../calculo/insumos.js';
+import { composicao, etapasNoPlano, insumosPorFamilia, precoInsumo, tratCodigos, tratEtapas, tratListaTodos } from '../calculo/insumos.js';
 import { TRAT_ETAPAS } from '../dados/insumos.js';
 import { INSUMO, INS_ABERTO, P, TRATC, TRAT_NOME, TRAT_SEL, insLista } from '../nucleo/estado.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
@@ -38,7 +38,14 @@ function pintarInsumos(R){
   $("#t_ins").innerHTML = th([["Nome comercial"],["Princípio ativo"],["Código"],["Un."],
     ["Concentração"],["Classe agronômica"],["Volume dem.",1],["Estoque",1],["Preço base",1],
     ["Preço corrigido",1],["Necessidade",1],["Custo de aquisição",1],["Usado em"],[""],[""]])+"<tbody>"+
-    insLista().map((i,ix)=>{
+    // quebra por família e, dentro dela, ordem alfabética de princípio ativo.
+    // O `ix` que vai na linha é a posição original em insLista() — é por ele que
+    // a edição acha o produto, então reordenar a tela não pode reordenar o índice.
+    insumosPorFamilia().map(fam=>
+      `<tr class="stage"><td colspan="15">${fam.nome}
+        <span style="font-weight:400;opacity:.75"> · ${fam.itens.length} produto${
+          fam.itens.length>1?"s":""}</span></td></tr>` +
+    fam.itens.map(({i,ix})=>{
       const ov=INSUMO[i.prod]||{};
       const preco = ov.preco!=null?num(ov.preco):num(i.preco);
       const est   = ov.est!=null?num(ov.est):num(i.est);
@@ -68,8 +75,22 @@ function pintarInsumos(R){
         (aberta && ficha.length ? `<tr class="sub"><td colspan="15">
           <div class="ficha">${ficha.map(([k,rot])=>
             `<div><b>${rot}</b><span>${esc(i[k])}</span></div>`).join("")}</div></td></tr>` : "");
-    }).join("")+"</tbody>";
+    }).join("")).join("")+"</tbody>";
+  // a busca ja sabe lidar com faixa de grupo: esconde a faixa quando nada dentro
+  // dela casa com o termo. Roda depois do innerHTML, sobre as linhas novas.
   filtrarPorNome("#t_ins", BUSCA_INS);
+
+  // O bloco "Outros" é o que pede trabalho, não um erro: é produto sem classe
+  // agronômica preenchida. A classe é editável na própria linha, e o produto
+  // muda de bloco assim que ela for preenchida.
+  const fams = insumosPorFamilia();
+  const semClasse = insLista().filter(i => !(i.classe || "").trim()).length;
+  $("#ins_grupos").innerHTML =
+    `Quebrado por classe agronômica e, dentro de cada bloco, em ordem alfabética de princípio ativo — `+
+    `produto sem princípio ativo fica no fim do seu bloco. `+
+    fams.map(f=>`<b>${f.nome}</b> ${f.itens.length}`).join(" · ") +
+    (semClasse ? ` · <b style="color:var(--warn)">${semClasse} produto${semClasse>1?"s":""} sem classe agronômica</b> — `+
+      `preencha a coluna <b>Classe agronômica</b> na linha e o produto muda de bloco sozinho.` : "");
 
   // --- 2. composição do tratamento selecionado ---
   const codigos = tratCodigos();

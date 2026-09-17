@@ -22,6 +22,33 @@
      2  classificacao tecnica da planilha CRV, 159 produtos */
 export const INSUMOS_V = 2;
 
+/* Familias de insumo, para a quebra do cadastro.
+   O campo `classe` da planilha e texto livre e tem 33 valores distintos para 161
+   produtos -- "Inseticida microbiologico", "Inseticida/formicida/cupinicida",
+   "Fungicida/nematicida microbiologico". Agrupar pelo texto cru daria 33 blocos,
+   varios com um produto so, que nao e quebra nenhuma.
+
+   Cada familia traz os termos que a identificam, e vale o PRIMEIRO da lista que
+   casar -- por isso a ordem aqui e a ordem do desempate, nao so a ordem de
+   exibicao. "Herbicida/regulador de crescimento" cai em Herbicida porque
+   Herbicida vem antes; "Condicionador de solo/bioestimulante" cai em Corretivo
+   e condicionador porque Fertilizante nao casa com "condicionador".
+
+   Micronutriente nao aparece na base de hoje, mas fica cadastrado: e classe que
+   existe no campo, e quem digitar ali ja cai no bloco certo em vez de "Outros". */
+export const FAMILIAS_INSUMO = [
+  {id:"herbicida",   nome:"Herbicidas",                     termos:["herbicida"]},
+  {id:"inseticida",  nome:"Inseticidas",                    termos:["inseticida","formicida","cupinicida","acaricida"]},
+  {id:"fungicida",   nome:"Fungicidas e nematicidas",       termos:["fungicida","nematicida"]},
+  {id:"regulador",   nome:"Reguladores de crescimento",     termos:["regulador","maturador"]},
+  {id:"biologico",   nome:"Biológicos e inoculantes",       termos:["inoculante","agente biológico","bioativador","biológico"]},
+  {id:"micro",       nome:"Micronutrientes",                termos:["micronutriente","microelemento"]},
+  {id:"fertilizante",nome:"Fertilizantes",                  termos:["fertilizante","adubo","nutri"]},
+  {id:"corretivo",   nome:"Corretivos e condicionadores",   termos:["corretivo","condicionador","calc","gesso"]},
+  {id:"adjuvante",   nome:"Adjuvantes e veículos",          termos:["adjuvante","espalhante","antideriva","diluente","veículo","óleo mineral","óleo vegetal"]},
+  {id:"outros",      nome:"Outros e a classificar",         termos:[]},
+];
+
 /* Etapas em que um tratamento pode ser usado. O plano diz em que etapa cada
    atividade acontece; aqui se marca para que etapa o tratamento foi montado,
    e a aba Validacao avisa quando as duas coisas discordam. */

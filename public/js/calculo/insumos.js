@@ -1,9 +1,48 @@
 import { CFG } from '../dados/cfg.js';
-import { TRAT_ETAPAS } from '../dados/insumos.js';
+import { FAMILIAS_INSUMO, TRAT_ETAPAS } from '../dados/insumos.js';
 import { INSUMO, P, PLANO, TRATC, TRAT_DEL, TRAT_ETAPA, TRAT_NOME, insLista } from '../nucleo/estado.js';
 import { num } from '../nucleo/formato.js';
 
 /* ================== INSUMOS E TRATAMENTOS ================== */
+
+/* ---------- familia de um insumo ----------
+   Reduz o texto livre de `classe` a uma das familias de FAMILIAS_INSUMO. Vale o
+   primeiro termo que casar, na ordem do catalogo -- e la que a ordem do
+   desempate esta documentada. Classe vazia ou desconhecida cai em "outros", que
+   e o bloco que pede cadastro, nao um erro. */
+function familiaDe(classe){
+  const c = (classe || "").toLowerCase();
+  if(!c) return FAMILIAS_INSUMO[FAMILIAS_INSUMO.length - 1];
+  return FAMILIAS_INSUMO.find(f => f.termos.some(t => c.includes(t)))
+      || FAMILIAS_INSUMO[FAMILIAS_INSUMO.length - 1];
+}
+
+/* Cadastro de insumos quebrado por familia, e dentro dela em ordem alfabetica de
+   principio ativo.
+
+   Cada item carrega o `ix`, que e a posicao ORIGINAL em insLista(): e por ele
+   que a edicao e a remocao acham a linha. Reordenar a exibicao sem carregar o
+   indice faria o usuario editar um produto e mudar outro.
+
+   Produto sem principio ativo vai para o fim do bloco, ordenado pelo nome
+   comercial -- ordenar "" como se fosse um nome jogaria os incompletos para o
+   topo, que e onde eles menos ajudam a achar o produto. */
+function insumosPorFamilia(){
+  const porFam = {};
+  insLista().forEach((i, ix)=>{
+    const f = familiaDe(i.classe);
+    (porFam[f.id] = porFam[f.id] || []).push({i, ix, pa: (i.pa || "").trim()});
+  });
+  const ord = (a, b) => {
+    if(!a.pa !== !b.pa) return a.pa ? -1 : 1;          // sem princípio ativo por último
+    const x = a.pa || a.i.prod || "", y = b.pa || b.i.prod || "";
+    return x.localeCompare(y, "pt-BR", {sensitivity:"base", numeric:true})
+        || (a.i.prod || "").localeCompare(b.i.prod || "", "pt-BR", {sensitivity:"base"});
+  };
+  return FAMILIAS_INSUMO
+    .map(f => ({...f, itens: (porFam[f.id] || []).sort(ord)}))
+    .filter(f => f.itens.length);
+}
 
 /* ---------- cadastro de insumos: mesclar o que veio da base ----------
    O cadastro de insumos e editavel, entao mora no documento salvo (INSX). Isso
@@ -159,6 +198,7 @@ function volumeDemandado(L){
 }
 
 
-export { _tratCache, _tratKey, composicao, criarTrat, destravar, etapaTrat, etapasNoPlano, mesclarBaseInsumos,
+export { _tratCache, _tratKey, composicao, criarTrat, destravar, etapaTrat, etapasNoPlano, familiaDe,
+  insumosPorFamilia, mesclarBaseInsumos,
   marcarEtapa, precoInsumo, removerTrat, renomearTrat, tratCodigos, tratCusto, tratEtapas,
   tratLista, tratListaTodos, tratTabela, usosTrat, volumeDemandado };
