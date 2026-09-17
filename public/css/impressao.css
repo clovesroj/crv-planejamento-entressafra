@@ -1,5 +1,11 @@
 /* ---------- impressão (relatório PDF) ---------- */
 @media print{
+  /* sem @page, o PDF sai no tamanho que o driver de impressão do sistema tiver
+     como padrão — Letter em maquina configurada em ingles, por exemplo — e
+     relatorio pensado para A4 desalinhava a margem e cortava coluna do lado
+     direito. Fixando aqui, o relatorio sai em A4 mesmo que o padrao do sistema
+     seja outro. */
+  @page{size:A4;margin:14mm 12mm}
   .sidebar,.scrim,header,main,footer{display:none!important}
   .app{display:block}
   #print_report{display:block!important}
@@ -7,7 +13,15 @@
   #print_report h1{font-size:18px;margin:0 0 4px}
   #print_report h2{font-size:13px;margin:18px 0 6px;page-break-after:avoid}
   #print_report p{font-size:11px;color:#555;margin:0 0 10px}
-  #print_report table{width:100%;border-collapse:collapse;font-size:9.5px;margin-bottom:6px}
-  #print_report th,#print_report td{border:1px solid #ccc;padding:3px 5px;text-align:left;background:none;color:#000;position:static}
-  #print_report thead{background:#eee}
+  /* table-layout:fixed prende a tabela na largura da folha (nunca mais larga
+     que isso) e reparte as colunas por igual; sem isso, uma tabela com muita
+     coluna (12 meses, por exemplo) ou um nome comprido de atividade/conta
+     empurrava a tabela pra fora da pagina e cortava o lado direito, sem
+     aviso nenhum. white-space:normal deixa o texto quebrar linha em vez de
+     forçar a coluna a abrir espaço. */
+  #print_report table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:9px;margin-bottom:6px}
+  #print_report tr{page-break-inside:avoid}
+  #print_report thead{background:#eee;display:table-header-group} /* repete o cabecalho em cada folha nova */
+  #print_report th,#print_report td{border:1px solid #ccc;padding:3px 4px;text-align:left;background:none;
+    color:#000;position:static;white-space:normal;overflow-wrap:break-word;word-break:break-word}
 }
