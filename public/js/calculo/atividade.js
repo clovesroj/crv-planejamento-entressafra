@@ -50,8 +50,14 @@ function fatorDe(cod, MP){
 
    Em meses fracionários, porque uma janela de 45 dias não são dois meses. */
 const DIAS_MES = 365 / 12;
-function janelaDe(cod, meses){
-  const d = DIM[cod] || {};
+function janelaDe(cod, meses, codOrigem){
+  // transporte e transbordo espelham a tonelada da colheita; espelham a janela
+  // tambem, quando nao tiverem datas proprias. Sem isso a meta do transporte
+  // ficava diluida num mes que a colheita ja sabia ser parcial -- duas metas
+  // discordando sobre a mesma carga. Data digitada no transporte manda.
+  const d = (DIM[cod] && DIM[cod].ini && DIM[cod].fim) ? DIM[cod]
+          : (codOrigem && DIM[codOrigem]) ? DIM[codOrigem]
+          : (DIM[cod] || {});
   if(d.ini && d.fim){
     const i = new Date(d.ini), f = new Date(d.fim);
     if(!isNaN(i) && !isNaN(f) && f >= i){
@@ -227,7 +233,7 @@ function linha(a, MP){
   const turnosOv = num((DIM[a.cod]||{}).turnos);
   const util = d.util!=null ? num(d.util) : a.util;
   const ehHa = a.un.indexOf("ha")===0;
-  const jan = janelaDe(a.cod, meses);
+  const jan = janelaDe(a.cod, meses, a.tipo === "transp" ? a.src : null);
   const M = mixDe(a, p);
 
   // define as frentes de trabalho: uma por modo com % > 0, ou uma única no padrão
