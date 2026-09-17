@@ -2,23 +2,35 @@
 /**
  * As rotas da API.
  *
- *   GET    /api/health  estado do servico e qual armazenamento esta ativo
- *   GET    /api/plano   documento completo
- *   PATCH  /api/plano   merge campo a campo — o caminho normal de gravacao
- *   POST   /api/plano   idem, para navigator.sendBeacon ao fechar a aba
- *   PUT    /api/plano   substitui o documento — so em "restaurar padroes"
+ *   GET    /api/health         estado do servico e qual armazenamento esta ativo
+ *   GET    /api/plano          documento completo (qualquer usuario logado)
+ *   PATCH  /api/plano          merge por chave — filtrado pelo perfil
+ *   POST   /api/plano          idem, para navigator.sendBeacon ao fechar a aba
+ *   PUT    /api/plano          substitui o documento — so em "restaurar padroes"
+ *   POST   /api/auth/login | logout | bootstrap    GET /api/auth/me    PATCH /api/auth/senha
+ *   GET|POST|PATCH        /api/usuarios   (admin)
+ *   GET|POST|PATCH|DELETE /api/perfis     (admin) — o que cada perfil pode editar
  *
- * Esta funcao e o ponto de entrada para colocar autenticacao: hoje o servico
- * fica aberto na internet e qualquer pessoa com o endereco le e edita o plano,
- * incluindo salarios e custos.
+ * Tudo que toca o plano exige sessao (server/auth.js). Gravar exige, alem
+ * disso, permissao de edicao na aba de cada dado (server/permissoes.js).
  */
 const store = require('./store');
 const { erroHTTP, json, lerCorpo } = require('./http');
 const { SERVICO } = require('./config');
 const auth = require('./auth');
+const perms = require('./permissoes');
 
 const usuarioPublico = u => u && { id: u.id, login: u.login, nome: u.nome, papel: u.papel,
   ativo: u.ativo, criado_em: u.criado_em, ultimo_acesso: u.ultimo_acesso };
+
+// usuário da sessão + o que o perfil dele pode editar (para a interface travar as abas)
+async function usuarioComPermissoes(u) {
+  return { ...usuarioPublico(u), permissoes: perms.permissoesPublicas(await perms.permissoesDe(u, store)) };
+}
+async function papelValido(papel) {
+  return papel === 'admin' || !!(await store.perfilPorId(papel));
+}
+const mesmoId = (a, b) => String(a) === String(b);   // bigint do pg chega como string
 
 async function api(req, res, rota) {
   if (rota === '/api/health') {
@@ -58,7 +70,7 @@ async function api(req, res, rota) {
     await store.criarSessao(u.id, token, expira);
     await store.marcarAcesso(u.id);
     auth.definirCookieSessao(req, res, token);
-    return json(res, 200, { usuario: usuarioPublico(u) });
+    return json(res, 200, { usuario: await usuarioComPermissoes(u) });
   }
 
   if (rota === '/api/auth/logout') {
@@ -72,7 +84,7 @@ async function api(req, res, rota) {
   if (rota === '/api/auth/me') {
     if (req.method !== 'GET') throw erroHTTP(405, 'método não permitido');
     const u = await auth.exigirSessao(req, store);
-    return json(res, 200, { usuario: usuarioPublico(u) });
+    return json(res, 200, { usuario: await usuarioComPermissoes(u) });
   }
 
   if (rota === '/api/auth/senha') {
@@ -92,26 +104,92 @@ async function api(req, res, rota) {
   }
 
   if (rota === '/api/usuarios') {
-    await auth.exigirAdmin(req, store);
+    const sessao = await auth.exigirAdmin(req, store);
     if (req.method === 'GET') {
       return json(res, 200, { usuarios: (await store.listarUsuarios()).map(usuarioPublico) });
     }
     if (req.method === 'POST') {
-      const { login, senha: senhaBruta, nome, papel } = await lerCorpo(req);
+      const { login, senha: senhaBruta, nome, papel: papelBruto } = await lerCorpo(req);
       const senha = aparar(senhaBruta);
+      const papel = aparar(papelBruto) || 'usuario';
       validarCredenciais(login, senha);
+      if (!await papelValido(papel)) throw erroHTTP(400, 'perfil inexistente');
       if (await store.usuarioPorLogin(login)) throw erroHTTP(409, 'já existe um usuário com este login');
       const usuario = await store.criarUsuario({ login, senha_hash: auth.hashSenha(senha), nome, papel });
       return json(res, 201, { usuario: usuarioPublico(usuario) });
     }
     if (req.method === 'PATCH') {
-      const { id, ativo, novaSenha: novaSenhaBruta } = await lerCorpo(req);
+      const { id, ativo, novaSenha: novaSenhaBruta, papel } = await lerCorpo(req);
       const novaSenha = aparar(novaSenhaBruta);
       const alvo = id && await store.usuarioPorId(id);
       if (!alvo) throw erroHTTP(404, 'usuário não encontrado');
+      const proprio = mesmoId(alvo.id, sessao.id);
+      if (papel != null && !await papelValido(papel)) throw erroHTTP(400, 'perfil inexistente');
+      if (proprio && ativo != null && !ativo) throw erroHTTP(409, 'não dá para desativar o próprio usuário logado');
+      if (proprio && papel != null && papel !== 'admin') {
+        throw erroHTTP(409, 'não dá para tirar o próprio acesso de administrador — peça a outro administrador');
+      }
+      // Sem administrador ativo ninguém mais gerencia usuários nem perfis: o
+      // sistema ficaria trancado. Vale para desativar e para trocar o perfil.
+      const tiraAdmin = alvo.papel === 'admin' && alvo.ativo &&
+        ((ativo != null && !ativo) || (papel != null && papel !== 'admin'));
+      if (tiraAdmin && await store.contarAdminsAtivos() <= 1) {
+        throw erroHTTP(409, 'é o único administrador ativo — promova outro usuário antes');
+      }
       if (ativo != null) await store.definirAtivo(id, !!ativo);
+      if (papel != null) await store.definirPapel(id, papel);
       if (novaSenha) { validarSenha(novaSenha); await store.redefinirSenha(id, auth.hashSenha(novaSenha)); }
       return json(res, 200, { usuario: usuarioPublico(await store.usuarioPorId(id)) });
+    }
+    throw erroHTTP(405, 'método não permitido');
+  }
+
+  // Perfis: o que cada um pode editar. Só o administrador gerencia.
+  if (rota === '/api/perfis') {
+    await auth.exigirAdmin(req, store);
+    if (req.method === 'GET') {
+      const perfis = await Promise.all((await store.listarPerfis()).map(async p => ({
+        ...p, editaveis: perms.normalizarEditaveis(p.editaveis),
+        usuarios: await store.contarUsuariosPorPapel(p.id),
+      })));
+      return json(res, 200, {
+        perfis, admins: await store.contarUsuariosPorPapel('admin'),
+        areas: perms.permissoesPublicas({ admin: false, tudo: false, editaveis: [] }).areas,
+      });
+    }
+    if (req.method === 'POST') {
+      const { nome: nomeBruto, editaveis } = await lerCorpo(req);
+      const nome = aparar(nomeBruto);
+      if (nome.length < 2) throw erroHTTP(400, 'o nome do perfil precisa de pelo menos 2 caracteres');
+      const id = perms.idDoNome(nome);
+      if (!id) throw erroHTTP(400, 'o nome do perfil precisa ter letras ou números');
+      if (id === 'admin' || perms.PERFIS_FIXOS[id] || await store.perfilPorId(id)) {
+        throw erroHTTP(409, 'já existe um perfil com este nome');
+      }
+      const perfil = await store.criarPerfil({ id, nome, editaveis: perms.normalizarEditaveis(editaveis) });
+      return json(res, 201, { perfil });
+    }
+    if (req.method === 'PATCH') {
+      const { id, nome: nomeBruto, editaveis } = await lerCorpo(req);
+      if (id === 'admin') throw erroHTTP(400, 'o perfil Administrador edita tudo sempre e não é configurável');
+      if (!id || !await store.perfilPorId(id)) throw erroHTTP(404, 'perfil não encontrado');
+      const campos = {};
+      if (nomeBruto != null) {
+        const nome = aparar(nomeBruto);
+        if (nome.length < 2) throw erroHTTP(400, 'o nome do perfil precisa de pelo menos 2 caracteres');
+        campos.nome = nome;
+      }
+      if (editaveis != null) campos.editaveis = perms.normalizarEditaveis(editaveis);
+      return json(res, 200, { perfil: await store.atualizarPerfil(id, campos) });
+    }
+    if (req.method === 'DELETE') {
+      const { id } = await lerCorpo(req);
+      if (id === 'admin' || id === 'usuario') throw erroHTTP(400, 'os perfis padrão não podem ser excluídos');
+      if (!id || !await store.perfilPorId(id)) throw erroHTTP(404, 'perfil não encontrado');
+      const emUso = await store.contarUsuariosPorPapel(id);
+      if (emUso > 0) throw erroHTTP(409, `perfil em uso por ${emUso} usuário(s) — troque o perfil deles antes`);
+      await store.apagarPerfil(id);
+      return json(res, 200, { ok: true });
     }
     throw erroHTTP(405, 'método não permitido');
   }
@@ -119,7 +197,7 @@ async function api(req, res, rota) {
   if (rota !== '/api/plano') throw erroHTTP(404, 'rota inexistente');
 
   // Dado de negócio — salário, custo, programação da safra — exige sessão.
-  await auth.exigirSessao(req, store);
+  const sessao = await auth.exigirSessao(req, store);
 
   if (req.method === 'GET') {
     const d = await store.ler();
@@ -136,8 +214,22 @@ async function api(req, res, rota) {
     if (!corpo || typeof corpo !== 'object' || Array.isArray(corpo)) {
       throw erroHTTP(400, 'esperado um objeto JSON');
     }
-    const d = req.method === 'PUT' ? await store.substituir(corpo) : await store.mesclar(corpo);
-    return json(res, 200, { armazenamento: store.tipo, duravel: store.duravel, updated_at: d.updated_at });
+    // Ler é livre para quem está logado; gravar passa pelo perfil. O que o perfil
+    // não pode alterar é descartado aqui, e volta em `ignorados` só o que chegou
+    // diferente do banco (o navegador manda o documento inteiro a cada gravação).
+    const perm = await perms.permissoesDe(sessao, store);
+    let doc = corpo, ignorados = [];
+    if (!perm.tudo) {
+      const atual = await store.ler();
+      ({ doc, ignorados } = perms.filtrarGravacao(corpo, atual ? atual.data : {}, perm, req.method === 'PUT'));
+      // nada permitido mudou: não grava, para não tocar updated_at à toa
+      if (req.method !== 'PUT' && !Object.keys(doc).some(k => k !== 'v')) {
+        return json(res, 200, { armazenamento: store.tipo, duravel: store.duravel,
+          updated_at: atual ? atual.updated_at : null, ignorados });
+      }
+    }
+    const d = req.method === 'PUT' ? await store.substituir(doc) : await store.mesclar(doc);
+    return json(res, 200, { armazenamento: store.tipo, duravel: store.duravel, updated_at: d.updated_at, ignorados });
   }
 
   throw erroHTTP(405, 'método não permitido');

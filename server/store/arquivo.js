@@ -44,9 +44,14 @@ function storeArquivo() {
   const enfileirar = criarFila();
   const enfileirarUsu = criarFila();
 
-  // {lista:[usuario...], sessoes:[{token,usuario_id,expira_em}]}
+  // {lista:[usuario...], sessoes:[{token,usuario_id,expira_em}], perfis:[{id,nome,editaveis}]}
   async function usuariosDoDisco() {
-    return (await leituraDisco(arqUsu)) || { lista: [], sessoes: [] };
+    const doc = (await leituraDisco(arqUsu)) || { lista: [], sessoes: [] };
+    // mesma semente do schema.sql: 'usuario' nasce editando tudo, como antes dos perfis
+    if (!Array.isArray(doc.perfis)) {
+      doc.perfis = [{ id: 'usuario', nome: 'Usuário', editaveis: ['*'], criado_em: new Date().toISOString() }];
+    }
+    return doc;
   }
   const proxId = lista => 1 + lista.reduce((m, u) => Math.max(m, u.id), 0);
 
@@ -140,6 +145,45 @@ function storeArquivo() {
     apagarSessao: token => enfileirarUsu(async () => {
       const doc = await usuariosDoDisco();
       doc.sessoes = doc.sessoes.filter(s => s.token !== token);
+      await escritaAtomica(arqUsu, dir, doc);
+    }),
+
+    // ---------- perfis ----------
+    async listarPerfis() { return (await usuariosDoDisco()).perfis; },
+    async perfilPorId(id) {
+      return (await usuariosDoDisco()).perfis.find(p => p.id === id) || null;
+    },
+    criarPerfil: ({ id, nome, editaveis }) => enfileirarUsu(async () => {
+      const doc = await usuariosDoDisco();
+      const perfil = { id, nome, editaveis: editaveis || [], criado_em: new Date().toISOString() };
+      doc.perfis.push(perfil);
+      await escritaAtomica(arqUsu, dir, doc);
+      return perfil;
+    }),
+    atualizarPerfil: (id, { nome, editaveis }) => enfileirarUsu(async () => {
+      const doc = await usuariosDoDisco();
+      const p = doc.perfis.find(x => x.id === id);
+      if (!p) return null;
+      if (nome != null) p.nome = nome;
+      if (editaveis != null) p.editaveis = editaveis;
+      await escritaAtomica(arqUsu, dir, doc);
+      return p;
+    }),
+    apagarPerfil: id => enfileirarUsu(async () => {
+      const doc = await usuariosDoDisco();
+      doc.perfis = doc.perfis.filter(p => p.id !== id);
+      await escritaAtomica(arqUsu, dir, doc);
+    }),
+    async contarUsuariosPorPapel(papel) {
+      return (await usuariosDoDisco()).lista.filter(u => u.papel === papel).length;
+    },
+    async contarAdminsAtivos() {
+      return (await usuariosDoDisco()).lista.filter(u => u.papel === 'admin' && u.ativo).length;
+    },
+    definirPapel: (id, papel) => enfileirarUsu(async () => {
+      const doc = await usuariosDoDisco();
+      const u = doc.lista.find(x => x.id === id);
+      if (u) u.papel = papel;
       await escritaAtomica(arqUsu, dir, doc);
     }),
   };

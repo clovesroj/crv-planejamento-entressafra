@@ -22,4 +22,11 @@ const listarUsuarios = () => chamar('/api/usuarios', 'GET').then(d => d.usuarios
 const criarUsuario   = u => chamar('/api/usuarios', 'POST', u).then(d => d.usuario);
 const atualizarUsuario = (id, campos) => chamar('/api/usuarios', 'PATCH', { id, ...campos }).then(d => d.usuario);
 
-export { quemSou, login, logout, trocarSenha, listarUsuarios, criarUsuario, atualizarUsuario };
+// perfis: o que cada um pode editar (só admin) — GET devolve {perfis, areas, admins}
+const listarPerfis    = () => chamar('/api/perfis', 'GET');
+const criarPerfil     = (nome, editaveis) => chamar('/api/perfis', 'POST', { nome, editaveis }).then(d => d.perfil);
+const atualizarPerfil = (id, campos) => chamar('/api/perfis', 'PATCH', { id, ...campos }).then(d => d.perfil);
+const excluirPerfil   = id => chamar('/api/perfis', 'DELETE', { id });
+
+export { quemSou, login, logout, trocarSenha, listarUsuarios, criarUsuario, atualizarUsuario,
+         listarPerfis, criarPerfil, atualizarPerfil, excluirPerfil };

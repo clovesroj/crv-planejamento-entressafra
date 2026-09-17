@@ -20,13 +20,14 @@ import './io/persistencia.js';   // listeners de visibilitychange / pagehide / b
 import './ui/navegacao.js';      // menu lateral, abas, botao de tema
 import './ui/interacao.js';      // glow interativo dos cards (kpi/hero)
 import './ui/usuarios.js';       // aba Usuarios (so-admin) e seu proprio listener
+import './ui/permissoes.js';     // trava de edicao por perfil (barreira em fase de captura)
 import './app/eventos.js';       // delegacao de input / change / click
 import './app/acoes.js';         // botoes de acao (restaurar, exportar, tema)
 
 /* 2. o que o arranque chama diretamente */
 import { pintarPremissas } from './ui/premissas.js';
 import { render } from './app/ciclo.js';
-import { carregar } from './io/persistencia.js';
+import { carregar, marcarBaseGravacao } from './io/persistencia.js';
 import { iniciarTelaLogin, aplicarChromeUsuario } from './ui/login.js';
 import { quemSou } from './io/autenticacao.js';
 import { setUSUARIO } from './nucleo/sessao.js';
@@ -37,7 +38,9 @@ import { setUSUARIO } from './nucleo/sessao.js';
    /api/plano (que 401 de qualquer forma, so ruido). */
 function arrancar(){
   pintarPremissas(); render();
-  carregar().then(()=>{ pintarPremissas(); render(); });
+  // marcarBaseGravacao() depois do render: listas criadas ou normalizadas na
+  // primeira pintura entram na base, e não viram aviso falso de "sem permissão"
+  carregar().then(()=>{ pintarPremissas(); render(); marcarBaseGravacao(); });
 }
 quemSou().then(usuario=>{
   if(usuario){ setUSUARIO(usuario); aplicarChromeUsuario(usuario); arrancar(); }

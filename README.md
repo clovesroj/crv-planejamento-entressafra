@@ -69,12 +69,13 @@ server/                 BACK
   config.js             porta, caminhos, limites
   http.js               erro com status, resposta JSON, leitura de corpo
   auth.js               hash de senha, cookie de sessão, guardas de rota
-  api.js                /api/health, /api/plano, /api/auth/*, /api/usuarios
+  permissoes.js         catálogo aba → dados; filtra cada gravação pelo perfil
+  api.js                /api/health, /api/plano, /api/auth/*, /api/usuarios, /api/perfis
   estatico.js           arquivos de public/
   store/                BANCO
     index.js            escolhe o destino por DATABASE_URL
     postgres.js         produção · arquivo.js  local
-    schema.sql          DDL de plano, usuarios, sessoes
+    schema.sql          DDL de plano, usuarios, sessoes, perfis
 ```
 
 O grafo de dependências é **acíclico** e sobe numa só direção:
@@ -105,7 +106,9 @@ Quem importa `P` enxerga a troca — são bindings vivos. Esquecer o setter dá
 | Fórmula de custo de uma atividade | `public/js/calculo/atividade.js` |
 | Rateio entre etapas, consolidação | `public/js/calculo/index.js` |
 | Layout ou colunas de uma aba | `public/js/ui/<aba>.js` |
-| Campo novo que precisa ser salvo | `nucleo/estado.js` + `io/persistencia.js` (`estado()` e `aplicar()`) |
+| Campo novo que precisa ser salvo | `nucleo/estado.js` + `io/persistencia.js` (`estado()` e `aplicar()`) + a aba dona dele em `server/permissoes.js` |
+| Quais dados cada aba edita (permissões) | `server/permissoes.js` (`AREAS`) |
+| Controle novo que só muda a visualização (filtro, abrir detalhe) | `public/js/ui/permissoes.js` (`VISUAIS`) |
 | Rota da API | `server/api.js` |
 | Hash de senha, sessão, guardas de rota | `server/auth.js` |
 | Esquema do banco (`plano`, `usuarios`, `sessoes`) | `server/store/schema.sql` |
@@ -330,9 +333,34 @@ um usuário ou fazer logout derruba o acesso na hora, não só no próximo login
 Detalhes de implementação (hash de senha, guardas de rota) estão no
 [CLAUDE.md](CLAUDE.md#autenticação).
 
-Dois papéis: **admin** (tudo, inclusive a aba Usuários — criar, desativar,
-redefinir senha de qualquer um) e **usuário** (lê e edita o plano normalmente).
-Qualquer usuário pode trocar a própria senha na aba Usuários.
+### Perfis e permissões
+
+Todo usuário logado **vê todas as abas**. O **perfil** define em quais ele
+**edita** — nas demais, os campos e botões aparecem desativados, com o aviso
+*Somente visualização*, e filtros, detalhamentos, exportar e tema continuam
+funcionando.
+
+- **Administrador** edita tudo e é o único que gerencia usuários e perfis.
+- **Usuário** é o perfil padrão e nasce com *Edita tudo* — o comportamento de
+  antes dos perfis, então ninguém perdeu acesso quando eles entraram.
+- Perfis novos (ex.: *Agrícola*, *Logística*) são criados na aba **Usuários ›
+  Perfis e permissões**, numa matriz aba × perfil. Perfil novo nasce só com
+  visualização; o administrador marca as abas que ele edita. *Edita tudo* vale
+  também para abas criadas no futuro.
+
+Trocar as permissões de um perfil vale na hora, inclusive para quem já está com
+o sistema aberto: o servidor confere o perfil a cada gravação. Não dá para
+excluir perfil em uso, nem tirar o acesso do último administrador ativo, nem um
+administrador rebaixar ou desativar a si mesmo.
+
+**A regra de verdade está no servidor**
+([`server/permissoes.js`](server/permissoes.js)): em toda gravação do plano, o
+que o perfil não pode alterar é descartado antes de chegar ao banco, e o rodapé
+avisa *Salvo — sem permissão para alterar: …*. A trava da tela
+([`public/js/ui/permissoes.js`](public/js/ui/permissoes.js)) é conveniência.
+
+A troca da própria senha fica na aba Usuários, que hoje só o administrador vê —
+para os demais perfis, quem redefine a senha é o administrador.
 
 **Primeiro acesso**: com o banco vazio, `POST /api/auth/bootstrap
 {"login":"...","senha":"..."}` cria o primeiro usuário como admin — e só

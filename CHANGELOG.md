@@ -1,5 +1,87 @@
 # Histórico de mudanças
 
+## 2.17.0 — 2026-09-17 · Perfis e permissões de edição
+
+Gestão de perfis por **Caio Souza**.
+
+Todo usuário logado continua **vendo todas as abas**. O que muda é que cada
+**perfil** define em quais abas o usuário **edita**. Nas outras, campos e botões
+ficam desativados com o aviso *Somente visualização*, e filtros, detalhamentos,
+exportar e tema seguem funcionando.
+
+### Como se usa
+
+Aba **Usuários › Perfis e permissões** (só administrador):
+
+- **Criar perfil** pelo nome (*Agrícola*, *Logística*…). Nasce só com
+  visualização.
+- **Matriz aba × perfil**, agrupada como o menu: marcar a aba libera a edição
+  dela. *Edita tudo* libera todas, inclusive abas criadas no futuro; desmarcá-lo
+  mantém as abas de hoje marcadas, para não cortar a edição de uma equipe por um
+  clique.
+- **Trocar o perfil** de um usuário direto na tabela de usuários.
+- **Renomear** e **excluir** perfil (só se ninguém o usa).
+
+A mudança de permissão vale na hora, inclusive para quem já está com o sistema
+aberto.
+
+### Nada muda para quem já usa
+
+- **Usuário**, o perfil de todos os não-administradores de hoje, nasce com *Edita
+  tudo* — mesmo acesso de antes.
+- **Administrador** continua editando tudo e é o único que gerencia usuários e
+  perfis.
+- O cálculo não foi tocado: resultado idêntico ao da 2.16.1.
+
+### A regra vale no servidor, não só na tela
+
+[`server/permissoes.js`](server/permissoes.js) filtra **toda gravação** do plano:
+o que o perfil não pode alterar é descartado antes do banco. Sem isso, qualquer
+usuário logado editaria tudo chamando a API direto. O navegador sempre envia o
+documento inteiro, então só volta como *ignorado* o que chegou diferente do banco,
+e o rodapé avisa *Salvo — sem permissão para alterar: …*.
+
+O catálogo de abas × dados foi **medido na interface**, acionando cada controle
+de cada aba e anotando que dado mudou — foi assim que apareceram, por exemplo,
+a área irrigada (gravada no Plano, mas editada na Irrigação) e o destino das
+unidades de frota (editado em quatro abas, uma delas só visível com a lista
+expandida).
+
+### Proteções
+
+- Perfil apagado ou inexistente cai em **somente visualização**, nunca em acesso
+  total.
+- O sistema nunca fica sem **administrador ativo**: a API recusa rebaixar ou
+  desativar o último, e ninguém rebaixa nem desativa a si mesmo.
+- Perfil em uso não pode ser excluído; *Administrador* e *Usuário* são fixos.
+- A aba Validação ganha *"Todo dado editável tem aba de permissão"*: se alguém
+  criar um dado novo no plano e esquecer de ligá-lo a uma aba, a gravação por
+  perfis restritos seria descartada em silêncio — agora isso aparece.
+
+### Banco de dados
+
+[`schema.sql`](server/store/schema.sql) ganha a tabela `perfis` e remove o
+`CHECK` que prendia `usuarios.papel` a admin/usuario. Tudo idempotente, roda
+sozinho no primeiro acesso após o deploy, sem migração manual.
+
+### Como foi verificado
+
+- **31 testes da API**: quem grava o quê, chaves reordenadas pelo banco, `PUT`
+  restrito, perfil apagado, permissão trocada com sessão aberta, perfil em uso,
+  último administrador.
+- **Tela real contra o servidor real**, no navegador: um perfil restrito forçou
+  edição — por script, inclusive em controle desativado — em 143 tipos de
+  controle; no banco só mudaram dados das abas permitidas. Filtros e
+  detalhamentos continuaram funcionando nas abas travadas.
+- Encontrado e corrigido durante o teste: o app normaliza listas ao abrir, e todo
+  perfil restrito via um aviso falso de "sem permissão" a cada gravação.
+- Motor de cálculo idêntico (impressão digital `a3e20bfd`).
+
+### Pendente
+
+A troca da própria senha fica na aba Usuários, que só o administrador vê — para
+os demais perfis, quem redefine a senha é o administrador.
+
 ## 2.16.1 — 2026-09-17 · Correções de continuidade e robustez
 
 Varredura de bugs em todas as abas, sem mudar estrutura nem regra de cálculo.

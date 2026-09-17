@@ -142,6 +142,52 @@ function storePostgres(url) {
     async apagarSessao(token) {
       await pool.query('DELETE FROM sessoes WHERE token = $1', [token]);
     },
+
+    // ---------- perfis ----------
+    // editaveis é jsonb: o pg já devolve o array, e na gravação vai como texto JSON
+    async listarPerfis() {
+      await garantirTabela();
+      return (await pool.query('SELECT id, nome, editaveis, criado_em FROM perfis ORDER BY criado_em, id')).rows;
+    },
+    async perfilPorId(id) {
+      await garantirTabela();
+      const r = await pool.query('SELECT id, nome, editaveis, criado_em FROM perfis WHERE id = $1', [id]);
+      return r.rows[0] || null;
+    },
+    async criarPerfil({ id, nome, editaveis }) {
+      await garantirTabela();
+      const r = await pool.query(
+        `INSERT INTO perfis (id, nome, editaveis) VALUES ($1, $2, $3::jsonb)
+         RETURNING id, nome, editaveis, criado_em`,
+        [id, nome, JSON.stringify(editaveis || [])]);
+      return r.rows[0];
+    },
+    async atualizarPerfil(id, { nome, editaveis }) {
+      await garantirTabela();
+      // COALESCE: campo não enviado mantém o valor gravado
+      const r = await pool.query(
+        `UPDATE perfis SET nome = COALESCE($2, nome), editaveis = COALESCE($3::jsonb, editaveis)
+          WHERE id = $1 RETURNING id, nome, editaveis, criado_em`,
+        [id, nome == null ? null : nome, editaveis == null ? null : JSON.stringify(editaveis)]);
+      return r.rows[0] || null;
+    },
+    async apagarPerfil(id) {
+      await garantirTabela();
+      await pool.query('DELETE FROM perfis WHERE id = $1', [id]);
+    },
+    async contarUsuariosPorPapel(papel) {
+      await garantirTabela();
+      return Number((await pool.query('SELECT count(*)::int AS n FROM usuarios WHERE papel = $1', [papel])).rows[0].n);
+    },
+    async contarAdminsAtivos() {
+      await garantirTabela();
+      return Number((await pool.query(
+        "SELECT count(*)::int AS n FROM usuarios WHERE papel = 'admin' AND ativo")).rows[0].n);
+    },
+    async definirPapel(id, papel) {
+      await garantirTabela();
+      await pool.query('UPDATE usuarios SET papel = $2 WHERE id = $1', [id, papel]);
+    },
   };
 }
 

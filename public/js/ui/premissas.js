@@ -7,7 +7,9 @@ const CAMPOS = ["dens","tch","plantio","arr_ha","hdia","disp","dias","diasOper",
 "kwh","fonte","hPorMec","eqPorAjud","colPorLider","tercAereaTar","tercSistTar","tercSistHa","tercOutros"];
 
 function pintarPremissas(){ CAMPOS.forEach(k=>{const e=$("#p_"+k); if(e) e.value=P[k];}); }
-function lerPremissas(){ CAMPOS.forEach(k=>{const e=$("#p_"+k); if(e) P[k]= (k==="fonte")?e.value:num(e.value);}); }
+// campo travado pelo perfil (data-travado) não é relido: lerPremissas() roda a cada
+// edição de QUALQUER premissa, e sem isto recolheria campos de abas que o perfil não edita
+function lerPremissas(){ CAMPOS.forEach(k=>{const e=$("#p_"+k); if(e && !e.dataset.travado) P[k]= (k==="fonte")?e.value:num(e.value);}); }
 
 
 export { CAMPOS, lerPremissas, pintarPremissas };

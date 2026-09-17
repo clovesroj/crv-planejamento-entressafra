@@ -345,3 +345,23 @@ td.fora-janela input{cursor:not-allowed}
   .ra-modal.ra-largo{width:96vw}
   .ra-dest-val{font-size:21px}
 }
+
+/* ---------- perfis: somente visualização ---------- */
+/* Aba que o perfil vê mas não edita (ui/permissoes.js). O aviso fica no topo da
+   aba; os controles de edição já saem desativados, com o tracejado de sempre. */
+.aviso-leitura{display:flex;align-items:center;gap:8px;margin:-6px 0 16px;padding:9px 13px;
+  border:1px solid var(--warn);border-radius:var(--r-sm);background:var(--warn-bg);color:var(--ink);
+  font-size:13px;font-weight:500}
+.aviso-leitura::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--warn);flex:none}
+.chip-leitura{border-color:var(--warn);background:var(--warn-bg);color:var(--ink);font-weight:600}
+section.so-leitura button:disabled{opacity:.55;cursor:not-allowed}
+
+/* matriz aba × perfil na aba Usuários */
+.matriz-perfis td.num,.matriz-perfis th.num{text-align:center}
+.matriz-perfis input[type=checkbox]{width:17px;height:17px;cursor:pointer}
+.matriz-perfis input[type=checkbox]:disabled{cursor:default}
+.matriz-perfis .pf-grupo td{background:var(--sunk);font-size:11px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.8px;color:var(--grey);padding-top:9px;padding-bottom:7px}
+.matriz-perfis .pf-tudo td{border-bottom:2px solid var(--line-strong)}
+.matriz-perfis .pf-rodape td{background:var(--sunk);white-space:nowrap}
+.matriz-perfis .pf-rodape .btn{height:28px;padding:0 9px;font-size:12px}

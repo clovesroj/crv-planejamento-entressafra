@@ -27,6 +27,28 @@ function estado(){
 }
 function setStatus(t,c){ $("#stxt").textContent=t; $("#sdot").className="dot "+(c||""); }
 
+/* Base de gravação — o estado logo depois da primeira pintura com o plano
+   carregado. Ao abrir, o app cria ou normaliza listas (arrendamentos,
+   fornecedores, administrativo, salário de função nova) que ficam diferentes
+   do documento salvo. Para um perfil que não edita essas abas, o servidor
+   descarta e as devolve como ignoradas; isso não é tentativa do usuário e não
+   pode virar aviso de "sem permissão". Só avisa do que mudou depois da base. */
+let BASE_GRAVACAO = null;
+const canonJSON = v => v===null || typeof v!=="object" ? JSON.stringify(v===undefined?null:v)
+  : Array.isArray(v) ? "["+v.map(canonJSON).join(",")+"]"
+  : "{"+Object.keys(v).sort().map(k=>JSON.stringify(k)+":"+canonJSON(v[k])).join(",")+"}";
+function valorDaChave(doc, k){ return k.startsWith("P.") ? (doc.P||{})[k.slice(2)] : doc[k]; }
+function marcarBaseGravacao(){
+  const e = estado(), base = {};
+  Object.keys(e).forEach(k=>{
+    if(k==="P") Object.keys(e.P).forEach(c=>{ base["P."+c] = canonJSON(e.P[c]); });
+    else base[k] = canonJSON(e[k]);
+  });
+  BASE_GRAVACAO = base;
+}
+// sem base marcada (antes da primeira pintura), qualquer ignorado conta
+const mudouDesdeBase = (doc, k) => !BASE_GRAVACAO || canonJSON(valorDaChave(doc,k)) !== (k in BASE_GRAVACAO ? BASE_GRAVACAO[k] : canonJSON(undefined));
+
 /* Dois destinos remotos possíveis, mesma interface: a API deste servidor
    (hospedagem própria, ex.: Render) e o banco do Artifact da Claude. Falhando
    os dois, sobra o localStorage — que de todo modo já é gravado sempre como
@@ -197,7 +219,16 @@ async function gravar(full){
     try{
       // mesclar() junta campo a campo — uma sessão nunca apaga o que outra preencheu.
       // substituir() só em "restaurar padrões", onde limpar campos é justamente a intenção.
-      if(full) await REMOTO.substituir(e); else await REMOTO.mesclar(e);
+      const resp = full ? await REMOTO.substituir(e) : await REMOTO.mesclar(e);
+      // O servidor descarta o que o perfil não pode editar e devolve a lista.
+      // Dizer só "salvo" esconderia que parte da alteração não entrou — mas só
+      // conta o que o usuário mudou desde a abertura (ver marcarBaseGravacao).
+      const ignorados = (resp && Array.isArray(resp.ignorados) ? resp.ignorados : []).filter(k=>mudouDesdeBase(e,k));
+      if(ignorados.length){
+        setStatus("Salvo — sem permissão para alterar: "+ignorados.slice(0,3).join(", ")
+          +(ignorados.length>3?"…":""), "warn");
+        return;
+      }
       statusRemoto("Salvo no servidor"); return;
     }catch(err){
       // O rascunho local acima já segurou a alteração; dizer que está tudo salvo
@@ -230,4 +261,4 @@ window.addEventListener("pagehide",flushSalvar);
 window.addEventListener("blur",flushSalvar);
 
 
-export { abrirArtifact, abrirServidor, aplicar, carregar, estado, flushSalvar, gravar, pedirAPI, salvar, salvePendente, setStatus, statusRemoto };
+export { abrirArtifact, abrirServidor, aplicar, carregar, estado, flushSalvar, gravar, marcarBaseGravacao, pedirAPI, salvar, salvePendente, setStatus, statusRemoto };

@@ -5,6 +5,8 @@ import { INSUMO, P, insLista } from '../nucleo/estado.js';
 import { $, brl, fmt, num } from '../nucleo/formato.js';
 import { th } from './componentes.js';
 import { contasValores } from './contas.js';
+import { estado } from '../io/persistencia.js';
+import { areasDePermissao } from '../nucleo/sessao.js';
 
 /* ---------- VALIDAÇÃO ---------- */
 function validar(R){
@@ -64,6 +66,22 @@ function validar(R){
   const somaContas=Object.values(contasValores(R)).reduce((s,x)=>s+(num(x)||0),0);
   add(Math.abs(somaContas-R.total)<1,"Plano de Contas confere com o total",
       brl(somaContas)+(R.total>0?" — "+fmt(somaContas/R.total*100,1)+"% do custo total":""));
+  // Perfis: todo dado que o app grava precisa ter uma aba dona no catálogo do
+  // servidor (server/permissoes.js). Sem isso, quem não é administrador edita,
+  // o servidor descarta em silêncio, e a alteração "não pega". Confere as chaves
+  // salvas e cada campo de premissa contra a aba em que ele aparece na tela.
+  const catalogo = areasDePermissao();
+  if(catalogo.length){
+    const chavesCat = new Set(catalogo.flatMap(a=>a.chaves));
+    const semDono = Object.keys(estado()).filter(k=>k!=="v" && k!=="P" && !chavesCat.has(k));
+    const campoForaDaAba = [...document.querySelectorAll("section[id] [id^=\"p_\"]")].filter(el=>{
+      const aba = catalogo.find(a=>a.id===el.closest("section").id);
+      return !aba || !aba.campos.includes(el.id.slice(2));
+    }).map(el=>"P."+el.id.slice(2));
+    const faltando = semDono.concat(campoForaDaAba);
+    add(faltando.length===0,"Todo dado editável tem aba de permissão",
+        faltando.length ? "sem aba no catálogo: "+faltando.join(", ") : "");
+  }
   add(R.L.filter(r=>r.frotaR>12).length===0,"Atividade exigindo mais de 12 equipamentos",
       R.L.filter(r=>r.frotaR>12).length+"");
   add(R.TP.lugares>=R.efetivoTotal,"Transporte de pessoal cobre o efetivo total",

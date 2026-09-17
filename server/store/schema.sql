@@ -26,4 +26,33 @@ CREATE TABLE IF NOT EXISTS sessoes (
   usuario_id bigint NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
   criado_em  timestamptz NOT NULL DEFAULT now(),
   expira_em  timestamptz NOT NULL
-)
+);
+
+-- Perfis de acesso. Todo usuario logado VE todas as abas; o perfil diz em quais
+-- ele pode EDITAR (editaveis = ids das areas de server/permissoes.js, ou ["*"]
+-- para todas, inclusive as criadas no futuro). 'admin' nao mora aqui: edita
+-- tudo e gerencia usuarios sempre.
+CREATE TABLE IF NOT EXISTS perfis (
+  id        text PRIMARY KEY,
+  nome      text NOT NULL,
+  editaveis jsonb NOT NULL DEFAULT '[]'::jsonb,
+  criado_em timestamptz NOT NULL DEFAULT now()
+);
+
+-- 'usuario' nasce editando tudo: e o comportamento de antes dos perfis, entao
+-- ninguem perde acesso no deploy. DO NOTHING preserva o que o admin ajustar.
+INSERT INTO perfis (id, nome, editaveis) VALUES ('usuario', 'Usuário', '["*"]'::jsonb)
+  ON CONFLICT (id) DO NOTHING;
+
+-- papel deixou de ser so admin|usuario. Remove o CHECK antigo sem depender do
+-- nome que o Postgres gerou para ele: qualquer CHECK de usuarios que cite papel.
+DO $$
+DECLARE c text;
+BEGIN
+  FOR c IN SELECT conname FROM pg_constraint
+            WHERE conrelid = 'usuarios'::regclass AND contype = 'c'
+              AND pg_get_constraintdef(oid) LIKE '%papel%'
+  LOOP
+    EXECUTE format('ALTER TABLE usuarios DROP CONSTRAINT %I', c);
+  END LOOP;
+END $$;

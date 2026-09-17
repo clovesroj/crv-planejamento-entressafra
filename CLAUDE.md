@@ -157,10 +157,12 @@ h(canon(R)) + ':' + canon(R).length;
 | Fórmula de custo de uma atividade | `public/js/calculo/atividade.js` |
 | Rateio entre etapas, consolidação | `public/js/calculo/index.js` |
 | Layout ou colunas de uma aba | `public/js/ui/<aba>.js` |
-| Campo novo que precisa ser salvo | `nucleo/estado.js` → `io/persistencia.js` (`estado()` e `aplicar()`) |
+| Campo novo que precisa ser salvo | `nucleo/estado.js` → `io/persistencia.js` (`estado()` e `aplicar()`) → aba dona em `server/permissoes.js` |
+| Quais dados cada aba edita (permissões) | `server/permissoes.js` (`AREAS`) |
+| Controle que só muda a visualização | `public/js/ui/permissoes.js` (`VISUAIS`) |
 | Rota da API | `server/api.js` |
 | Hash de senha, sessão, guardas de rota | `server/auth.js` |
-| Esquema do banco (`plano`, `usuarios`, `sessoes`) | `server/store/schema.sql` |
+| Esquema do banco (`plano`, `usuarios`, `sessoes`, `perfis`) | `server/store/schema.sql` |
 
 ## Autenticação
 
@@ -179,6 +181,44 @@ nenhuma em texto puro no código-fonte, schema ou histórico do git.
 Sessão do usuário logado mora em `public/js/nucleo/sessao.js`, deliberadamente
 **fora** de `estado()`/`aplicar()` em `io/persistencia.js` — não é dado do
 plano, não entra no documento salvo (não conflita com o invariante nº5).
+
+### Perfis e permissões
+
+Implementado por **Caio Souza** em 2026-09-17 (versão 2.17.0). Todo usuário
+logado vê todas as abas; o perfil define em quais ele edita. Se for mexer aqui,
+estes são os pontos que não podem quebrar:
+
+- **O servidor é a autoridade.** `filtrarGravacao()` em
+  [server/permissoes.js](server/permissoes.js) descarta, em toda gravação do
+  plano, o que o perfil não pode alterar. A trava da tela
+  ([public/js/ui/permissoes.js](public/js/ui/permissoes.js)) é conveniência —
+  nunca mova a regra só para o front.
+- **Todo dado salvo precisa de uma aba dona em `AREAS`.** Chave (ou campo de
+  `P`) fora do catálogo só o administrador grava: para os outros perfis, a
+  edição some em silêncio. A aba Validação acusa isso em *"Todo dado editável
+  tem aba de permissão"*. O catálogo foi **medido** — cada controle de cada aba
+  acionado, anotando que chave mudou —, não deduzido lendo o código. Uma chave
+  pode ter mais de uma aba dona (`PLANO` é editado no Plano e na Irrigação;
+  `FROTA_UN` em quatro abas).
+- **Controle novo nasce travado para quem não edita a aba.** Se ele só muda a
+  visualização, inclua em `VISUAIS`; senão o perfil perde um filtro ou um
+  detalhamento.
+- **O navegador manda o documento inteiro** a cada gravação, e o app cria ou
+  normaliza listas ao abrir. Por isso o servidor compara com o banco (em forma
+  canônica — o jsonb reordena chaves) e a tela só avisa do que o usuário mudou
+  desde a primeira pintura (`marcarBaseGravacao()`); sem isso, todo perfil
+  restrito veria um aviso falso de "sem permissão" a cada gravação.
+- **Perfil inexistente cai em somente visualização**, nunca em acesso total.
+  `admin` não mora na tabela `perfis` e edita tudo sempre. `usuario` nasce com
+  `["*"]` para ninguém perder acesso no deploy.
+- **Nunca sem administrador ativo:** a API recusa rebaixar ou desativar o
+  último, e um administrador não rebaixa nem desativa a si mesmo.
+
+Verificação feita ao implementar: 31 testes da API (permissão, guardas, perfil
+apagado, permissão alterada com sessão aberta) e a tela real rodando contra o
+servidor real no navegador, com um perfil restrito forçando edição em 143 tipos
+de controle — no banco só mudaram dados das abas permitidas — e o motor de
+cálculo idêntico.
 
 ## Dívidas conhecidas
 

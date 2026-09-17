@@ -92,6 +92,7 @@
       <button data-periodo="safra">Safra</button>
       <button data-periodo="entressafra">Entressafra</button>
     </div>
+    <span class="chip chip-leitura" id="chip_leitura" title="Seu perfil vê esta aba, mas não a edita" hidden>Somente visualização</span>
     <div class="savebox chip" title="Situação da gravação"><span class="dot off" id="sdot"></span><span id="stxt">Carregando…</span></div>
     <div class="chip" id="chip_usuario" title="Usuário autenticado" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c1-3.6 3.8-5.6 7.5-5.6s6.5 2 7.5 5.6"/></svg><b id="chip_usuario_nome"></b></div>
     <button class="ghost-btn" id="btn_logout" title="Sair" aria-label="Sair" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h9"/><path d="M10 12h11m0 0l-3.5-3.5M21 12l-3.5 3.5"/></svg></button>
@@ -789,19 +790,30 @@
 <!-- ===== USUÁRIOS ===== -->
 <section id="usuarios">
   <h2>Usuários</h2>
-  <p class="lead">Quem acessa o sistema. Desativar tira o acesso na hora, sem apagar o histórico do usuário.</p>
+  <p class="lead">Quem acessa o sistema e o que cada perfil pode editar. Todo usuário vê todas as abas; o perfil define em quais ele altera dados. Desativar tira o acesso na hora, sem apagar o histórico do usuário.</p>
   <div class="panel"><h3>Novo usuário</h3>
     <div class="row">
       <div style="min-width:160px"><label>Login</label><input id="us_login" autocomplete="off"></div>
       <div style="min-width:200px"><label>Nome</label><input id="us_nome" autocomplete="off"></div>
       <div style="width:150px"><label>Senha inicial</label><input id="us_senha" type="password" autocomplete="new-password"></div>
-      <div style="width:150px"><label>Papel</label><select id="us_papel"><option value="usuario">Usuário</option><option value="admin">Administrador</option></select></div>
+      <div style="width:180px"><label>Perfil</label><select id="us_papel"><option value="usuario">Usuário</option><option value="admin">Administrador</option></select></div>
       <div style="align-self:flex-end"><button class="btn p" id="btn_us_add">Criar usuário</button></div>
     </div>
     <div class="hint" id="us_erro" style="margin-top:9px;color:var(--bad)"></div>
   </div>
   <div class="panel"><h3>Usuários cadastrados</h3>
     <div class="tblwrap"><table id="t_usuarios"></table></div></div>
+  <div class="panel"><h3>Perfis e permissões</h3>
+    <p class="hint" style="margin:0 0 12px">Marque as abas que cada perfil pode <b>editar</b>. O que ficar desmarcado
+      continua visível para ele, só que sem edição. <b>Edita tudo</b> vale também para abas criadas no futuro.
+      A alteração vale na hora — inclusive para quem já está com o sistema aberto, na próxima gravação.
+      O Administrador edita tudo e é o único que gerencia usuários e perfis.</p>
+    <div class="row" style="margin-bottom:12px">
+      <div style="min-width:220px"><label>Novo perfil</label><input id="pf_nome" placeholder="Ex.: Agrícola, Logística" autocomplete="off"></div>
+      <div style="align-self:flex-end"><button class="btn p" id="btn_pf_add">Criar perfil</button></div>
+    </div>
+    <div class="hint" id="pf_erro" style="margin:-4px 0 10px;color:var(--bad)"></div>
+    <div class="tblwrap"><table id="t_perfis" class="matriz-perfis"></table></div></div>
   <div class="panel"><h3>Minha senha</h3>
     <div class="row">
       <div style="width:180px"><label>Senha atual</label><input id="us_senha_atual" type="password" autocomplete="current-password"></div>
