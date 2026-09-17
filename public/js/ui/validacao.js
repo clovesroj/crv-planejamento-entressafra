@@ -1,6 +1,8 @@
 import { ETAPAS_ORD, arrRat } from '../calculo/arrendamento.js';
 import { CFG } from '../dados/cfg.js';
 import { SEP_MOD, crmDe, crmEspDe } from '../calculo/crm.js';
+import { composicao, etapaTrat, tratCodigos, tratEtapas } from '../calculo/insumos.js';
+import { TRAT_ETAPAS } from '../dados/insumos.js';
 import { INSUMO, P, insLista } from '../nucleo/estado.js';
 import { $, brl, fmt, num } from '../nucleo/formato.js';
 import { th } from './componentes.js';
@@ -57,8 +59,29 @@ function validar(R){
   // lê o cadastro EDITADO (insLista), não o original do CFG: insumo incluído pelo
   // usuário sem preço passava nesta checagem, e renomeado era procurado pelo nome velho
   const insSemPreco = insLista().filter(i=>{const o=INSUMO[i.prod]||{};return !((o.preco!=null?num(o.preco):num(i.preco))>0);});
-  add(insSemPreco.length===0,"Todos os insumos com preço",
-      insSemPreco.slice(0,4).map(i=>i.prod).join(", ")+(insSemPreco.length>4?"…":""));
+  // o que pesa é o insumo sem preço que algum tratamento usa: esse entra no custo
+  // como zero. O resto do cadastro sem preço é aviso, não pendência
+  const emTrat = new Set();
+  tratCodigos().forEach(c=>composicao(c).forEach(l=>emTrat.add(l.prod)));
+  const semPrecoUsado = insSemPreco.filter(i=>emTrat.has(i.prod));
+  add(semPrecoUsado.length===0,"Insumo usado em tratamento e sem preço",
+      semPrecoUsado.slice(0,4).map(i=>i.prod).join(", ")+(semPrecoUsado.length>4?"…":""));
+  const semPrecoFora = insSemPreco.length - semPrecoUsado.length;
+  add(true,"Insumos do cadastro ainda sem preço",
+      semPrecoFora ? semPrecoFora+" produto(s) sem uso em tratamento — preencher ao começar a usar" : "nenhum");
+  // etapa marcada no tratamento x etapa em que o plano o usa
+  const etapaFora = [];
+  tratCodigos().forEach(c=>{
+    const marcadas = tratEtapas(c);
+    if(!marcadas.length) return;
+    R.L.forEach(r=>{ if(r.trat===c && r.total>0 && !marcadas.includes(etapaTrat(r.a)))
+      etapaFora.push(r.a.cod+" usa "+c+" em "+TRAT_ETAPAS[etapaTrat(r.a)].nome); });
+  });
+  add(etapaFora.length===0,"Tratamento aplicado na etapa em que foi marcado",
+      etapaFora.slice(0,3).join(" · ")+(etapaFora.length>3?"…":""));
+  const tratSemEtapa = tratCodigos().filter(c=>!tratEtapas(c).length && composicao(c).length);
+  add(true,"Tratamentos sem etapa marcada",
+      tratSemEtapa.length ? tratSemEtapa.length+" de "+tratCodigos().length : "nenhum");
   add(R.total>0,"Plano gera custo calculável",brl(R.total));
   const somaMeses=R.meses.reduce((s,x)=>s+x,0);
   add(Math.abs(somaMeses-R.total)<1,"Soma dos meses confere com o total",brl(somaMeses));

@@ -472,15 +472,21 @@
     <div class="row" style="margin-top:10px">
       <button class="btn p" id="btn_ins_add">Adicionar insumo</button>
       <button class="btn" id="btn_ins_reset">Restaurar cadastro original</button></div>
-    <div class="hint" style="margin-top:9px">Nome, unidade, princípio ativo, concentração, estoque e preço são editáveis.
-    "Volume dem." é calculado automaticamente pela alocação dos tratamentos no Plano Operacional (área × dose).
-    Renomear um produto mantém o vínculo com os tratamentos que já o utilizam.</div></div>
+    <div class="hint" style="margin-top:9px">Nome comercial, princípio ativo, código do material, unidade,
+    concentração, classe, estoque e preço são editáveis. <b>Ficha</b> abre a classificação técnica do produto —
+    categoria operacional, formulação, modo e mecanismo de ação, grupo químico, fabricante, classificação
+    toxicológica, culturas registradas e momento de aplicação. "Volume dem." é calculado automaticamente pela
+    alocação dos tratamentos no Plano Operacional (área × dose). Renomear um produto mantém o vínculo com os
+    tratamentos que já o utilizam. Produto que veio da classificação técnica entra sem preço: enquanto faltar,
+    ele aparece marcado aqui e na aba Validação.</div></div>
 
   <div class="panel"><h3>2. Composição dos tratamentos</h3>
     <div class="row" style="margin-bottom:12px">
       <div style="min-width:180px"><label>Tratamento</label><select id="sel_trat"></select></div>
+      <div style="width:130px"><label>Código</label><input id="in_trat_cod" title="Alterar o código do tratamento"></div>
       <div style="min-width:220px"><label>Nome do tratamento</label><input id="in_trat_nome" placeholder="Ex.: Herbicida pré-emergente"></div>
       <div style="min-width:150px"><label>Custo/ha do tratamento</label><input id="c_trat" disabled></div>
+      <div style="min-width:210px"><label>Etapas em que é usado</label><div id="c_etapa_sel"></div></div>
       <div style="align-self:flex-end"><button class="btn" id="btn_trat_reset">Restaurar composição original</button></div>
     </div>
     <div class="tblwrap"><table id="t_comp"></table></div>
@@ -491,8 +497,19 @@
     </div>
   </div>
 
-  <div class="panel"><h3>3. Resumo — custo por tratamento</h3>
-    <div class="tblwrap"><table id="t_trat"></table></div></div>
+  <div class="panel"><h3>3. Cadastro dos tratamentos</h3>
+    <div class="row" style="margin-bottom:12px">
+      <div style="min-width:180px"><label>Novo tratamento</label><input id="in_trat_novo" placeholder="Ex.: 5 SU"></div>
+      <div style="align-self:flex-end"><button class="btn p" id="btn_trat_add">Adicionar tratamento</button></div>
+    </div>
+    <div class="tblwrap"><table id="t_trat"></table></div>
+    <div class="hint" style="margin-top:9px">O código e o nome são editáveis na própria linha: alterar o código leva
+    a composição, o nome, as etapas e as atividades do Plano Operacional que já usavam o tratamento.
+    <b>Etapas em que é usado</b> marca para que etapa o tratamento foi montado —
+    PS preparo de solo · PL plantio · TP tratos de cana planta · TS tratos de cana soca · CO colheita ·
+    AC apoio e conservação. Sem marcação, a coluna mostra em que etapa o plano está usando o tratamento, e a aba
+    Validação avisa quando a marcação e o uso no plano discordam. Remover um tratamento desvincula as atividades
+    que o usavam.</div></div>
 
   <div class="panel"><h3>4. Materiais de manutenção</h3>
     <div class="tblwrap"><table id="t_mat"></table></div>

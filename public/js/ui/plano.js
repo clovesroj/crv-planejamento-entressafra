@@ -1,5 +1,5 @@
 import { MODOS_ORD, modosDe } from '../calculo/atividade.js';
-import { tratLista } from '../calculo/insumos.js';
+import { tratListaTodos } from '../calculo/insumos.js';
 import { CFG } from '../dados/cfg.js';
 import { NM } from '../nucleo/calendario.js';
 import { TRAT_NOME } from '../nucleo/estado.js';
@@ -36,7 +36,7 @@ function totalNoFiltro(r, SEL){
   return SEL.meses.reduce((s,j)=>s+num(r.meses[j]),0);
 }
 function pintarPlano(R){
-  const TL = tratLista();
+  const TL = tratListaTodos();
   const SEL = R.SEL;
   const parcial = SEL.parcial;
   let h = th([["Cod"],["Atividade"],["Início"],["Fim"],["Un."],

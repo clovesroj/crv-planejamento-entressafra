@@ -40,9 +40,12 @@ let PERIODO_SEL = "todos";  // filtro global de periodo: todos | safra | entress
 // selecao -- e visao, nao dado, entao nao entra no documento salvo.
 let MESES_SEL = [];
 let FROTA_ABERTO = {};   // chave do modelo -> true quando a lista de unidades está aberta
+let INS_ABERTO = {};     // nome do produto -> true quando a ficha técnica está aberta
 let FROTA_ORIG = "todos"; // filtro próprio/terceiro das abas de frota (não é salvo: é visão, não dado)
 let APOIO_FIXO = {};     // nome do item -> qtd ajustada (frota de apoio de utilização fixa)
 let TRAT_NOME = {};      // cod do tratamento -> nome descritivo editável
+let TRAT_ETAPA = {};     // cod do tratamento -> etapas em que é usado (preparo, plantio, planta, soca...)
+let TRAT_DEL = {};       // cod do tratamento -> true quando foi removido do cadastro base
 let DIESEL_MES = {};     // índice do mês -> preço projetado do diesel (R$/L); vazio = preço base
 let ARREND = null;       // [{faz, grupo, area, forma, qtd, pag, mes}] fazendas ou grupos arrendados
 let ARR_PAR = {};        // parâmetros de pagamento do arrendamento (ATR, preços, critério)
@@ -66,7 +69,7 @@ let TRAT_SEL = null;
 
 export {
   P, PLANO, DIM, INSUMO, ESPOR, TRATC, NIV, GRAT, APOIO, TERC_TAR, CRM, MATX,
-  INSX, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, APOIO_FIXO, TRAT_NOME, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
+  INSX, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, INS_ABERTO, APOIO_FIXO, TRAT_NOME, TRAT_ETAPA, TRAT_DEL, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
   TPESS, QUADRO, ADM, ADM_RAT, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL,
 };
 
@@ -96,6 +99,8 @@ export const setFROTA_UN   = v => { FROTA_UN = v; };
 export const setFROTA_DEST = v => { FROTA_DEST = v; };
 export const setAPOIO_FIXO = v => { APOIO_FIXO = v; };
 export const setTRAT_NOME  = v => { TRAT_NOME = v; };
+export const setTRAT_ETAPA = v => { TRAT_ETAPA = v; };
+export const setTRAT_DEL   = v => { TRAT_DEL = v; };
 export const setDIESEL_MES = v => { DIESEL_MES = v; };
 export const setARREND     = v => { ARREND = v; };
 export const setARR_PAR    = v => { ARR_PAR = v; };

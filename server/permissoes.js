@@ -42,7 +42,7 @@ const AREAS = [
     chaves: ['ENC', 'BEN', 'NIV', 'GRAT', 'FUN'], campos: ['diasOper', 'diasTrab', 'hTurno'] },
 
   { id: 'insumos', nome: 'Insumos', grupo: 'Agricultura',
-    chaves: ['INSUMO', 'INSX', 'TRATC', 'TRAT_NOME', 'MATX'] },
+    chaves: ['INSUMO', 'INSX', 'TRATC', 'TRAT_NOME', 'TRAT_ETAPA', 'TRAT_DEL', 'MATX'] },
   { id: 'irrig', nome: 'Irrigação', grupo: 'Agricultura',
     chaves: ['PLANO'], campos: ['perdaCarga', 'desnivel', 'rendBomba', 'kwh', 'fonte'] },
   { id: 'forn', nome: 'Fornecedores de Cana', grupo: 'Agricultura', chaves: ['FORN', 'FORN_PAR'] },

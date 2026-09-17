@@ -6,7 +6,9 @@ import { deptIdx } from '../calculo/pessoas.js';
 import { GERENCIAS, excecoes, execucao, metasDeFrota, metasPorAtividade, porGerencia } from '../calculo/acompanhamento.js';
 import { CFG } from '../dados/cfg.js';
 import { CAT_LBL, MESES, PERIODOS, periodoMes } from '../nucleo/calendario.js';
-import { INSUMO, P, insLista } from '../nucleo/estado.js';
+import { composicao, etapasNoPlano, tratEtapas, tratListaTodos } from '../calculo/insumos.js';
+import { TRAT_ETAPAS } from '../dados/insumos.js';
+import { INSUMO, P, TRAT_NOME, insLista } from '../nucleo/estado.js';
 import { brl, fmt, num, pct } from '../nucleo/formato.js';
 import { CONTA_COMBINADA, contasValores } from '../ui/contas.js';
 import { comps } from '../ui/custos.js';
@@ -186,14 +188,34 @@ const fluxoMdo = R => sec("Fluxo MDO","Fluxo mensal — pessoas e custo de mão 
             brl(R.PS.custoMes[i]), brl(ac)]; }); })() : []);
 
 /* ---------- 12. insumos ---------- */
-const insumos = R => sec("Insumos","Insumos — cadastro, demanda e necessidade",
-  ["Produto","Un","Volume demandado","Estoque","Preço corrigido","Necessidade de compra","Custo"],
+const insumos = R => sec("Insumos","Insumos — cadastro, classificação técnica e necessidade",
+  ["Nome comercial","Princípio ativo","Código","Un","Concentração","Classe agronômica",
+   "Categoria operacional","Formulação","Grupo químico","Fabricante","Class. toxicológica",
+   "Volume demandado","Estoque","Preço corrigido","Necessidade de compra","Custo"],
   insLista().map(i=>{ const ov=INSUMO[i.prod]||{};
     const preco=(ov.preco!=null?num(ov.preco):num(i.preco))*(1+P.ipreco/100);
     const est=ov.est!=null?num(ov.est):num(i.est), vol=R.volDem[i.prod]||0;
     const falta=Math.max(0,vol-est);
-    return [i.prod, i.un||"—", fmt(vol,1), fmt(est), brl(preco,2), fmt(falta,1), brl(falta*preco)];})
-  .concat([["TOTAL","","","","","", brl(R.insumoT)]]));
+    return [i.prod, i.pa||"—", i.cod||"—", i.un||"—", i.conc||"—", i.classe||"—", i.categ||"—",
+      i.form||"—", i.grupo||"—", i.fab||"—", i.tox||"—",
+      fmt(vol,1), fmt(est), preco>0?brl(preco,2):"sem preço", fmt(falta,1),
+      preco>0?brl(falta*preco):"—"];})
+  .concat([["TOTAL","","","","","","","","","","","","","","", brl(R.insumoT)]]));
+
+/* ---------- tratamentos ---------- */
+const tratamentos = R => sec("Tratamentos","Tratamentos — composição, etapa e uso no plano",
+  ["Cod_Trat","Nome","Etapas marcadas","Etapas em que o plano usa","Produtos","Composição",
+   "Custo/ha","Atividades que usam","Área tratada","Custo no plano"],
+  tratListaTodos().map(t=>{
+    const usos = R.L.filter(r=>r.trat===t.cod && r.total>0);
+    const area = usos.reduce((s,u)=>s+u.total,0);
+    const marc = tratEtapas(t.cod).map(e=>TRAT_ETAPAS[e].nome).join(" · ");
+    const plano = etapasNoPlano(t.cod).map(e=>TRAT_ETAPAS[e].nome).join(" · ");
+    return [t.cod, TRAT_NOME[t.cod]||"—", marc||"sem marcação", plano||"—",
+      composicao(t.cod).length,
+      composicao(t.cod).map(l=>l.prod+" "+fmt(num(l.dose),2)+" "+(l.un||"")).join(" · ")||"—",
+      t.custo_ha>0?brl(t.custo_ha,2):"—", usos.map(u=>u.a.cod).join(", ")||"—",
+      area>0?fmt(area)+" ha":"—", area>0?brl(area*t.custo_ha):"—"];}));
 
 /* ---------- 13. arrendamentos ---------- */
 const arrendamentos = R => sec("Arrendamentos","Arrendamentos — fazendas e rateio",
@@ -420,6 +442,7 @@ const SECOES = {
   colheita:porEtapa("Colheita","Orçamento de colheita","COLHEITA"),
   apoioEtapa: porEtapa("Apoio e Conservação","Orçamento de apoio e conservação","APOIO E CONSERVAÇÃO"),
   transporte, frota, frotaBase, modelos, manutencao, maoDeObra, pessoasDept, fluxoMdo, insumos,
+  tratamentos,
   arrendamentos, fornecedores, administracao, custoEtapa, natureza, mensal, periodos,
   contas, fluxo, cenarios, validacao, porFazenda, porCentroCusto, porAtividade,
   indicadores, logistica, planoOperacional, dimensionamento, combustivel, apoio, irrigacao,
@@ -491,8 +514,8 @@ const RELATORIOS = [
   {id:"ativ",    nome:"Orçamento por Atividade",      secoes:["resumo","porAtividade","planoOperacional","dimensionamento"]},
   {id:"nat",     nome:"Orçamento por Natureza",       secoes:["resumo","natureza","custoEtapa","contas"]},
   {id:"mensal",  nome:"Orçamento Mensal",             secoes:["resumo","mensal","periodos","fluxo"]},
-  {id:"plantio", nome:"Orçamento de Plantio",         secoes:["plantio","preparo","insumos","dimensionamento"]},
-  {id:"tratos",  nome:"Orçamento de Tratos",          secoes:["tratos","insumos","irrigacao","dimensionamento"]},
+  {id:"plantio", nome:"Orçamento de Plantio",         secoes:["plantio","preparo","insumos","tratamentos","dimensionamento"]},
+  {id:"tratos",  nome:"Orçamento de Tratos",          secoes:["tratos","insumos","tratamentos","irrigacao","dimensionamento"]},
   {id:"colheita",nome:"Orçamento de Colheita",        secoes:["colheita","transporte","combustivel","dimensionamento"]},
   {id:"log",     nome:"Orçamento de Logística",       secoes:["logistica","transporte","combustivel"]},
   {id:"frota",   nome:"Orçamento de Frota",           secoes:["frota","frotaBase","manutencao","apoio","combustivel"]},
@@ -510,7 +533,7 @@ const RELATORIOS = [
 /* Seções extras que só saem no nível detalhado do relatório anual. */
 const DETALHE = ["planoOperacional","dimensionamento","porAtividade","porCentroCusto","porFazenda",
   "mensal","periodos","natureza","combustivel","apoio","irrigacao","pessoasDept","fluxoMdo",
-  "logistica","indicadores","frotaBase","modelos","preparo","apoioEtapa"];
+  "logistica","indicadores","frotaBase","modelos","preparo","apoioEtapa","tratamentos"];
 
 function montarSecoes(R, relId, nivel){
   const rel = RELATORIOS.find(r=>r.id===relId) || RELATORIOS[0];

@@ -1,5 +1,62 @@
 # Histórico de mudanças
 
+## 2.19.0 — 2026-09-17 · Classificação técnica dos insumos e cadastro de tratamentos
+
+### Cadastro de insumos
+
+A planilha "Classificação Técnica dos Insumos CRV" entrou no cadastro, mesclada
+com o que já existia:
+
+- **159 produtos** — os 57 que já estavam mais 102 da planilha.
+- **12 produtos** apareciam nas duas listas e receberam a classificação técnica
+  mantendo nome, preço e estoque: Provence total, Reator, Combine 500 SC, Alion,
+  Lumica, Dontor, Zapp WG, Actara 750, Curbix, Almax, Moddus e Ureia. O nome do
+  cadastro foi preservado de propósito — é por ele que os tratamentos citam o
+  produto.
+- **45 produtos** que não estão na planilha ficaram exatamente como estavam.
+- A tabela começa por **nome comercial** e **princípio ativo**, seguidos de
+  código do material, unidade de venda, concentração e classe agronômica.
+  O botão **Ficha** abre a classificação técnica do produto: categoria
+  operacional, formulação, modo e mecanismo de ação, grupo químico, fabricante,
+  classificação toxicológica, culturas registradas, estádio dos alvos, status da
+  validação e observação técnica.
+- Unidade de venda ganhou ton, pc e un, além de kg e lt, e "—" para o produto
+  que ainda não tem unidade informada.
+- Produto da planilha entra **sem preço e sem estoque**. Enquanto faltar, a
+  linha aparece marcada e a Validação separa o que é pendência de verdade —
+  insumo sem preço usado em algum tratamento — do que é só cadastro a completar.
+
+### Cadastro de tratamentos
+
+- **Incluir e excluir tratamentos.** "Adicionar tratamento" cria o código, que
+  já pode ser vinculado a uma atividade no Plano Operacional antes de ter
+  produto. Remover desvincula as atividades que o usavam, e vale também para os
+  tratamentos que vinham do cadastro base.
+- **Alterar o código**, na própria linha do cadastro ou no editor de composição.
+  A mudança leva a composição, o nome, as etapas e as atividades do Plano
+  Operacional que já apontavam para o código antigo. Código repetido é recusado.
+- **Etapa de uso**, marcada por caixas na linha do tratamento e no editor:
+  PS preparo de solo · PL plantio · TP tratos culturais de cana planta ·
+  TS tratos culturais de cana soca · CO colheita (maturação) ·
+  AC apoio e conservação. Sem marcação, a célula mostra em que etapa o plano
+  está usando o tratamento, em vez de inventar uma marca.
+- A Validação passou a comparar as duas coisas e avisa quando um tratamento
+  marcado para uma etapa é aplicado em atividade de outra.
+- O nome do tratamento também é editável na linha, e o relatório ganhou a aba
+  **Tratamentos** — composição, etapas marcadas, etapas de uso no plano,
+  custo/ha, atividades e área tratada — dentro dos relatórios de Plantio e de
+  Tratos.
+
+### Correção
+
+Os tratamentos **1 PF** e **2 PF** citavam "MicroGeo" e o cadastro tem
+"Microgeo": o produto não era encontrado, entrava no custo como zero e ninguém
+via. Corrigido o nome nas duas linhas. O efeito é 1,5 kg/ha × R$ 36 × 1,04 de
+atualização = **R$ 56,16/ha a mais** em cada um dos dois tratamentos (1 PF foi
+de R$ 373,81 para R$ 429,97/ha; 2 PF, de R$ 298,36 para R$ 354,52/ha). No custo
+do plano o efeito depende das áreas em que esses dois tratamentos estão
+lançados.
+
 ## 2.18.0 — 2026-09-17 · Meses de pagamento do arrendamento
 
 Cada contrato de arrendamento passa a ter os seus meses de pagamento, seguidos

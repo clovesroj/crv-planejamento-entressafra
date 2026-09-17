@@ -1,17 +1,28 @@
 import { ETAPAS_ORD, PAG_LIVRE, mesesPag } from '../calculo/arrendamento.js';
 import { AG_SEM_FROTA, FROTA_AG, FROTA_ESP, SEP_MOD, crmDe, espDe } from '../calculo/crm.js';
-import { composicao, destravar, tratCodigos } from '../calculo/insumos.js';
+import { composicao, criarTrat, destravar, marcarEtapa, removerTrat, renomearTrat,
+  tratCodigos, usosTrat } from '../calculo/insumos.js';
 import { CFG } from '../dados/cfg.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
 import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL } from '../nucleo/estado.js';
-import { FROTA_ABERTO, FROTA_UN, MAQ, setFROTA_DEST, setFROTA_ORIG } from '../nucleo/estado.js';
+import { FROTA_ABERTO, FROTA_UN, INS_ABERTO, MAQ, setFROTA_DEST, setFROTA_ORIG } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { lerPremissas } from '../ui/premissas.js';
 import { leve, render, renderRastro, renderRendMensal } from './ciclo.js';
 import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarRastro, voltarRastro } from '../ui/rastro.js';
 import { abrirRendMensal, aberto as rendMensalAberto, fecharRendMensal } from '../ui/rendmensal.js';
 import { setAPOIO, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
+import { USUARIO, podeEditar } from '../nucleo/sessao.js';
+
+/* Renomear ou remover um tratamento mexe tambem nas atividades que o usam, e
+   isso e dado do Plano Operacional. Quem nao edita aquela aba tem essa parte
+   descartada na gravacao (server/permissoes.js) — melhor avisar na hora. */
+function avisoPlano(usos, acao){
+  if(!USUARIO || podeEditar("plano")) return;
+  alert(`O tratamento foi ${acao}, mas seu perfil não edita o Plano Operacional: `+
+        `o vínculo das atividades ${usos.join(", ")} não será salvo.`);
+}
 
 /* ---------- entrada ---------- */
 document.addEventListener("input",e=>{
@@ -83,7 +94,7 @@ document.addEventListener("input",e=>{
       Object.keys(TRATC).forEach(c=>TRATC[c].forEach(l=>{ if(l.prod===antigo) l.prod=novo; }));
       if(INSUMO[antigo]){ INSUMO[novo]=INSUMO[antigo]; delete INSUMO[antigo]; }
       i.prod=novo;
-    } else if(["un","pa","conc"].includes(f)){ i[f]=t.value; }
+    } else if(["un","pa","conc","cod","classe"].includes(f)){ i[f]=t.value; }
     else i[f]=num(t.value);
     salvar(); leve(); return; }
   if(t.dataset.mt!==undefined){ const l=matLista()[+t.dataset.mt];
@@ -98,6 +109,8 @@ document.addEventListener("input",e=>{
   if(t.dataset.ex!==undefined){ ESPOR[+t.dataset.ex][t.dataset.f]=t.dataset.f==="valor"?num(t.value):t.value; salvar(); leve(); return; }
   if(t.dataset.td!==undefined){ const c=destravar(TRAT_SEL); c[+t.dataset.td].dose=num(t.value); salvar(); leve(); return; }
   if(t.id==="in_trat_nome"){ TRAT_NOME[TRAT_SEL]=t.value; salvar(); leve(); return; }
+  // nome do tratamento editado na propria linha do cadastro
+  if(t.dataset.trn!==undefined){ TRAT_NOME[t.dataset.trn]=t.value; salvar(); leve(); return; }
   // campo vazio volta ao preço base; null (e não delete) para a limpeza chegar ao servidor no merge
   if(t.dataset.dm!==undefined){ const v=t.value.trim(); DIESEL_MES[t.dataset.dm] = v==="" ? null : num(v);
     salvar(); leve(); return; }
@@ -122,6 +135,23 @@ document.addEventListener("input",e=>{
 });
 document.addEventListener("change",e=>{
   const t=e.target;
+  // codigo do tratamento: leva composicao, nome, etapas e as atividades que o usam
+  if(t.dataset.trc!==undefined || t.id==="in_trat_cod"){
+    const de = t.dataset.trc!==undefined ? t.dataset.trc : TRAT_SEL;
+    const para = t.value.trim();
+    if(!para){ alert("Informe o novo código do tratamento."); render(); return; }
+    if(para===de){ render(); return; }
+    if(tratCodigos().includes(para)){
+      alert(`Já existe um tratamento com o código "${para}".`); render(); return; }
+    const usos = usosTrat(de);
+    if(renomearTrat(de, para)){
+      if(TRAT_SEL===de) setTRAT_SEL(para);
+      if(usos.length) avisoPlano(usos, "renomeado");
+    }
+    salvar(true); render(); return; }
+  // etapa em que o tratamento e usado
+  if(t.dataset.tre!==undefined){
+    marcarEtapa(t.dataset.tre, t.dataset.e, t.checked); salvar(); render(); return; }
   if(t.dataset.t!==undefined){
     const c=t.dataset.t; PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""};
     PLANO[c].trat=t.value; salvar(); render(); return; }
@@ -250,6 +280,11 @@ document.addEventListener("click",e=>{
   if(alvoRendMes){ abrirRendMensal(alvoRendMes.dataset.rendmes); renderRendMensal(); return; }
   if((e.target.closest && e.target.closest("#rm_fechar")) || e.target.id==="rendm_fundo"){
     fecharRendMensal(); renderRendMensal(); return; }
+  const fx = e.target.closest && e.target.closest("[data-infx]");
+  if(fx){ const k = fx.dataset.infx;
+    // abrir a ficha tecnica e visao, nao dado: nao passa por salvar()
+    if(INS_ABERTO[k]) delete INS_ABERTO[k]; else INS_ABERTO[k]=true;
+    render(); return; }
   const ab = e.target.closest && e.target.closest("[data-abrefrota]");
   if(ab){ const k = ab.dataset.abrefrota;
     // abrir a lista de unidades e visao, nao dado: nao passa por salvar()
@@ -267,6 +302,14 @@ document.addEventListener("click",e=>{
     if(!confirm(`Remover "${l.forn}" dos fornecedores?`)) return;
     fornLista().splice(+t.dataset.fnrm,1); salvar(); render(); return; }
   if(t.dataset.tr!==undefined){ const c=destravar(TRAT_SEL); c.splice(+t.dataset.tr,1); salvar(); render(); return; }
+  if(t.dataset.trrm!==undefined){ const cod=t.dataset.trrm, usos=usosTrat(cod);
+    if(!confirm(usos.length
+      ? `Remover o tratamento "${cod}"? As atividades ${usos.join(", ")} ficam sem tratamento.`
+      : `Remover o tratamento "${cod}"?`)) return;
+    removerTrat(cod);
+    if(TRAT_SEL===cod) setTRAT_SEL(null);
+    if(usos.length) avisoPlano(usos, "removido");
+    salvar(true); render(); return; }
   if(t.dataset.aprm!==undefined){ apoioLista().splice(+t.dataset.aprm,1); salvar(); render(); return; }
   if(t.dataset.mtrm!==undefined){ matLista().splice(+t.dataset.mtrm,1); salvar(); render(); return; }
   if(t.dataset.tprm!==undefined){ tpessLista().splice(+t.dataset.tprm,1); salvar(); render(); return; }
@@ -276,6 +319,14 @@ document.addEventListener("click",e=>{
     if(usos.length && !confirm(`"${i.prod}" é usado em ${usos.length} tratamento(s). Remover assim mesmo?`)) return;
     insLista().splice(+t.dataset.inrm,1); salvar(); render(); return; }
 });
+
+$("#btn_trat_add").onclick=()=>{
+  const cod = $("#in_trat_novo").value.trim();
+  if(!cod){ alert("Informe o código do novo tratamento."); return; }
+  if(!criarTrat(cod)){ alert(`Já existe um tratamento com o código "${cod}".`); return; }
+  setTRAT_SEL(cod); $("#in_trat_novo").value="";
+  salvar(true); render();
+};
 
 $("#btn_add_prod").onclick=()=>{
   const prod=$("#sel_prod").value, dose=num($("#in_dose").value);
