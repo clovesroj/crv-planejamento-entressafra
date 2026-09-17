@@ -3,7 +3,7 @@ const PADRAO = {
   // agronômicas
   dens:15, tch:60, plantio:2400, arr_ha:8000,
   // operacionais
-  hdia:16.8, disp:80, dias:24,
+  hdia:16.8, disp:80, efic:100, dias:24,
   // turnos e escalas
   diasOper:7, diasTrab:6, hTurno:8,
   // econômicas

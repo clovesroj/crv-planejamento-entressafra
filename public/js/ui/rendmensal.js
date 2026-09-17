@@ -8,11 +8,17 @@ import { $, fmt, num, pct } from '../nucleo/formato.js';
    Mas o mês não é médio: outubro pede mais que abril, e é no mês cheio que o
    critério aperta. Este modal é onde cada mês ganha o seu.
 
-   Quatro campos por mês, e a ordem importa — é a ordem em que a pergunta
-   aparece na reunião: quanto tenho de produzir, com quantas máquinas, quanto
-   elas ficam de pé (manutenção) e quanto do tempo de pé eu aproveito (operação).
-   O rendimento é a quinta variável, e ela é a que sobra: preenchendo a frota, o
-   rendimento deixa de ser premissa e passa a ser o que fecha a conta.
+   Os campos seguem a ordem em que a pergunta aparece na reunião: quanto tenho
+   de produzir, com quantas máquinas, quanto elas ficam de pé (manutenção),
+   quanto do tempo de pé vai para a operação (utilização) e quanto desse tempo
+   rende de fato (eficiência — chuva, manobra, espera). O rendimento é a
+   variável que sobra: preenchendo a frota, ele deixa de ser premissa e passa a
+   ser o que fecha a conta.
+
+   Disponibilidade e eficiência parecem a mesma coisa e não são: a primeira é da
+   manutenção, e cai quando a máquina quebra; a segunda é da operação, e cai com
+   dezembro chuvoso sem que nada tenha quebrado. Separá-las é o que deixa cobrar
+   a gerência certa pelo número errado.
 
    Em branco, o mês herda o critério da atividade. É o padrão porque na maioria
    delas o mês não muda nada, e um formulário com 48 campos preenchidos seria
@@ -38,12 +44,14 @@ function pintarRendMensal(R){
 
   const d = DIM[cod] || {};
   const arr = k => Array.isArray(d[k]) ? d[k] : Array(NM).fill("");
-  const rendM = arr("rendM"), frotaM = arr("frotaM"), dispM = arr("dispM"), utilM = arr("utilM");
+  const rendM = arr("rendM"), frotaM = arr("frotaM"), dispM = arr("dispM"),
+        utilM = arr("utilM"), eficM = arr("eficM");
   const un = r.a.un.split("/")[0];
   // o padrao exibido e a PREMISSA da atividade, nao a media do periodo: a media
   // se move quando um mes ganha criterio proprio, e o placeholder passaria a
   // sugerir um numero que o motor nao usa para os meses em branco
   const padrao = r.rendPremissa > 0 ? r.rendPremissa : r.rend;
+  const eficPad = num(P.efic) > 0 ? num(P.efic)/100 : 1;
   const C = criterioMensal(r);
   const comVolume = C.filter(c=>c.temVolume);
   const apertados = comVolume.filter(c=>!c.cabe).length;
@@ -61,14 +69,17 @@ function pintarRendMensal(R){
       <div class="ra-tit">${r.a.cod} · ${r.a.nome}</div>
       <div class="ra-subtit">Critério por mês · padrão ${fmt(padrao,2)} ${un}/h ·
         ${r.frotaR||0} ${r.frotaR===1?"equipamento":"equipamentos"} ·
-        ${pct(num(P.disp)/100)} de disponibilidade · ${pct(r.util)} de utilização</div>
+        ${pct(num(P.disp)/100)} de disponibilidade · ${pct(r.util)} de utilização ·
+        ${pct(eficPad)} de eficiência</div>
     </div>
     <div class="ra-corpo">
       <div class="hint" style="margin-bottom:12px">
         Campo em branco herda o critério da atividade — preencha só o mês que foge dele.
         <b>Preenchendo a frota, o rendimento do mês passa a ser calculado</b>: com aquelas máquinas,
-        naquela disponibilidade e utilização, é o ${un}/h que o volume do mês exige.
-        Base de calendário: ${fmt(P.dias)} dias efetivos de ${fmt(P.hdia,1)} h.
+        naquele critério, é o ${un}/h que o volume do mês exige.
+        A hora efetiva do dia sai de ${fmt(P.hdia,1)} h de jornada × disponibilidade × utilização × eficiência —
+        é por aí que dezembro chuvoso encolhe o dia sem que a máquina tenha quebrado.
+        Base de calendário: ${fmt(P.dias)} dias efetivos por mês.
       </div>
       ${comVolume.length ? `<div class="rm-resumo ${apertados?"rm-alerta":"rm-ok"}">
         ${apertados
@@ -116,7 +127,12 @@ function pintarRendMensal(R){
         </label>
         <label>Utiliz. %
           <input data-utilm="${cod}" data-i="${i}" value="${utilM[i]||""}"
-                 inputmode="decimal" placeholder="${fmt(r.util*100,0)}" title="Utilização — operação">
+                 inputmode="decimal" placeholder="${fmt(r.util*100,0)}" title="Utilização — quanto do tempo disponível vai para a operação">
+        </label>
+        <label>Efic. %
+          <input data-eficm="${cod}" data-i="${i}" value="${eficM[i]||""}"
+                 inputmode="decimal" placeholder="${fmt(eficPad*100,0)}"
+                 title="Eficiência operacional — quanto do tempo em campo é produtivo. Desconta chuva, manobra, espera e abastecimento.">
         </label>
       </div>
       ${vazio ? "" : `<div class="rm-exige">
@@ -124,8 +140,9 @@ function pintarRendMensal(R){
         <div class="rm-lin"><span>Rendimento</span><b>${fmt(c.rendNec,2)} ${un}/h</b></div>
         <div class="rm-lin${c.dispNec>c.disp?" rm-ruim":""}"><span>Disponibilidade</span><b>${pct(c.dispNec)}</b></div>
         <div class="rm-lin${c.utilNec>c.util?" rm-ruim":""}"><span>Utilização</span><b>${pct(c.utilNec)}</b></div>
+        <div class="rm-lin${c.eficNec>c.efic?" rm-ruim":""}"><span>Eficiência</span><b>${pct(c.eficNec)}</b></div>
         <div class="rm-lin"><span>Horas/dia por equip.</span><b>${fmt(c.hDiaEquip,1)} h
-          <span class="calc">de ${fmt(c.hDispEquip,1)}</span></b></div>
+          <span class="calc">de ${fmt(c.hDispEquip,1)} efetivas</span></b></div>
       </div>`}
     </div>`;
   }

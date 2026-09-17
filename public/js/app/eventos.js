@@ -41,7 +41,7 @@ document.addEventListener("input",e=>{
   // criterio por mes do modal de rendimento: rendimento, frota, disponibilidade e
   // utilizacao. Campo em branco volta a herdar o criterio da atividade, e por
   // isso guarda "" em vez de zero -- zero seria um criterio de fato lancado.
-  const MENSAIS = {rendm:"rendM", frotam:"frotaM", dispm:"dispM", utilm:"utilM"};
+  const MENSAIS = {rendm:"rendM", frotam:"frotaM", dispm:"dispM", utilm:"utilM", eficm:"eficM"};
   for(const [attr, chave] of Object.entries(MENSAIS)){
     if(t.dataset[attr]===undefined) continue;
     const c=t.dataset[attr];

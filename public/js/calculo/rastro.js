@@ -37,6 +37,7 @@ function premissasGerais(){
     {rot:"Dias efetivos por mês",        val:fmt(P.dias)},
     {rot:"Horas efetivas por dia",       val:fmt(P.hdia,1)+" h"},
     {rot:"Disponibilidade mecânica",     val:fmt(P.disp,0)+"%"},
+    {rot:"Eficiência operacional",       val:fmt(num(P.efic)>0?num(P.efic):100,0)+"%"},
     {rot:"Meses do orçamento",           val:NM+" ("+MESES[0]+" a "+MESES[NM-1]+")"},
     {rot:"Preço base do diesel",         val:brl(P.diesel,2)+"/L"},
   ];
@@ -153,6 +154,7 @@ function apresentacao(r, un){
   } : null;
 
   const dias = num(P.dias) * r.janela.meses;
+  const efic = num(P.efic) > 0 ? num(P.efic)/100 : 1;
 
   /* Meta por equipamento. O plano fala em frota e total; quem opera precisa
      saber o que UMA maquina entrega por dia, por mes e no periodo -- e e esse
@@ -173,7 +175,7 @@ function apresentacao(r, un){
     rodape: ["No período", fmt(hPeriodo,0)+" h", fmt(qPeriodo,0)+" "+un,
              fmt(r.horas,0)+" h", fmt(total,0)+" "+un],
     nota: `Hora produtiva é o tempo de máquina efetivamente operando: ${un} ÷ rendimento de ${fmt(r.rend,2)} ${un}/h. `+
-          `Cabe nas ${fmt(num(P.hdia)*(num(P.disp)/100),1)} h disponíveis por dia — ${fmt(P.hdia,1)} h de jornada × ${pct(num(P.disp)/100)} de disponibilidade mecânica. `+
+          `Cabe nas ${fmt(num(P.hdia)*(num(P.disp)/100)*efic,1)} h efetivas por dia — ${fmt(P.hdia,1)} h de jornada × ${pct(num(P.disp)/100)} de disponibilidade mecânica × ${pct(efic)} de eficiência operacional. `+
           `A folga é a utilização de ${pct(r.util)} premissada mais o arredondamento da frota, e é ela que absorve chuva, quebra e deslocamento. `+
           `Base de calendário: ${fmt(P.dias)} dias efetivos por mês × ${fmt(jm,1)} meses = ${fmt(dias,0)} dias.`,
   } : null;
@@ -186,13 +188,15 @@ function apresentacao(r, un){
   const tabCriterio = C.length ? {
     titulo: "Critério por mês · o que cada mês exige",
     cab: ["Mês", "Produção", "Por dia", "Horas de máquina", "h/dia por equip.",
-          "Rendimento necessário", "Disponib. mecânica necessária", "Utilização necessária"],
+          "Rendimento necessário", "Disponib. mecânica necessária", "Utilização necessária",
+          "Eficiência operacional necessária"],
     linhas: C.map(c=>[c.mes, fmt(c.q)+" "+un, fmt(c.qDia,1)+" "+un,
       fmt(c.horas)+" h", fmt(c.hDiaEquip,1)+" h",
       fmt(c.rendNec,2)+" "+un+"/h",
       pct(c.dispNec)+(c.dispNec > c.disp ? " ⚠" : ""),
-      pct(c.utilNec)+(c.utilNec > c.util ? " ⚠" : "")]),
-    nota: `As três últimas colunas são alternativas, não se somam: cada uma mostra o que aquele `+
+      pct(c.utilNec)+(c.utilNec > c.util ? " ⚠" : ""),
+      pct(c.eficNec)+(c.eficNec > c.efic ? " ⚠" : "")]),
+    nota: `As quatro últimas colunas são alternativas, não se somam: cada uma mostra o que aquele `+
       `critério teria de ser sozinho, com os outros dois parados na premissa do mês. `+
       `Base de calendário: ${fmt(num(P.dias))} dias efetivos de ${fmt(num(P.hdia),1)} h. `+
       (apertados
@@ -230,7 +234,7 @@ function metaDiaria(r, un){
   if(!(r.total > 0) || !(r.frotaR > 0)) return null;
   const diasJanela = num(P.dias) * r.janela.meses;        // dias efetivos na janela
   if(!(diasJanela > 0)) return null;
-  const hDisp = num(P.hdia) * (num(P.disp)/100);          // hora de maquina disponivel por dia
+  const hDisp = num(P.hdia) * (num(P.disp)/100) * (num(P.efic)>0?num(P.efic)/100:1);   // hora efetiva por dia
   if(!(hDisp > 0)) return null;
   const hEquipDia  = r.horas / r.frotaR / diasJanela;
   const unDia      = r.total / diasJanela;

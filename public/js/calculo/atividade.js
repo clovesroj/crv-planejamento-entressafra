@@ -78,7 +78,7 @@ function janelaDe(cod, meses){
 function metaDe(r){
   const jm = r.janela ? r.janela.meses : 0;
   const dias = num(P.dias) * jm;                       // dias efetivos na janela
-  const hDisp = num(P.hdia) * (num(P.disp)/100);       // hora de maquina por dia
+  const hDisp = num(P.hdia) * (num(P.disp)/100) * eficPadrao();   // hora de maquina por dia
   if(!(r.total > 0) || !(r.frotaR > 0) || !(dias > 0) || !(hDisp > 0) || !(jm > 0)) return null;
   const hEq = r.horas / r.frotaR, qEq = r.total / r.frotaR;
   return {
@@ -91,6 +91,19 @@ function metaDe(r){
   };
 }
 
+/* Eficiencia operacional: quanto do tempo em campo e de fato produtivo, ja
+   descontados chuva, manobra, espera e abastecimento. E o terceiro fator da
+   hora efetiva, ao lado da disponibilidade mecanica (manutencao) e da
+   utilizacao (operacao): hora efetiva = jornada x disponibilidade x utilizacao
+   x eficiencia. Padrao 100%, para nao mexer em nada de quem nao usa.
+
+   Plano antigo, salvo antes deste campo existir, nao tem P.efic -- cai em 100%
+   pelo mesmo motivo. */
+function eficPadrao(){
+  const v = num(P.efic);
+  return v > 0 ? v/100 : 1;
+}
+
 /* ===== Criterio de um mes =====
    Frota, disponibilidade e utilizacao aceitam valor proprio por mes, lancados no
    modal de rendimento. Em branco, o mes herda o criterio da atividade -- e o
@@ -98,18 +111,19 @@ function metaDe(r){
 function criterioDoMes(cod, i, utilAt){
   const d = DIM[cod] || {};
   const v = k => { const arr = d[k]; return Array.isArray(arr) ? num(arr[i]) : 0; };
-  const disp = v("dispM"), util = v("utilM");
+  const disp = v("dispM"), util = v("utilM"), efic = v("eficM");
   return {
     rend: v("rendM"), frota: v("frotaM"),
     disp: disp > 0 ? disp/100 : num(P.disp)/100,
     util: util > 0 ? util/100 : num(utilAt),
-    temDisp: disp > 0, temUtil: util > 0,
+    efic: efic > 0 ? efic/100 : eficPadrao(),
+    temDisp: disp > 0, temUtil: util > 0, temEfic: efic > 0,
   };
 }
 /** true quando a atividade tem algum criterio proprio de mes. */
 function temCriterioMensal(cod){
   const d = DIM[cod] || {};
-  return ["rendM","frotaM","dispM","utilM"].some(k =>
+  return ["rendM","frotaM","dispM","utilM","eficM"].some(k =>
     Array.isArray(d[k]) && d[k].some(v => num(v) > 0));
 }
 
@@ -138,7 +152,7 @@ function criterioMensal(r){
     const n = c.frota > 0 ? c.frota : nPad;
     // com a frota do mes fixada, as horas sao a capacidade dela e o rendimento
     // e o que fecha a conta -- a mesma inversao do Dimensionamento, por mes
-    const hDispEquip = hDia * c.disp * c.util;      // hora produtiva por equipamento/dia
+    const hDispEquip = hDia * c.disp * c.util * c.efic;   // hora produtiva por equipamento/dia
     const cap = n * diasMes * hDispEquip;           // hora produtiva da frota no mes
     // o mes sem rendimento proprio herda a PREMISSA da atividade, nao a media
     // do periodo: a media se move quando outro mes muda, e o modal passaria a
@@ -149,15 +163,17 @@ function criterioMensal(r){
     const hCal = n * diasMes * hDia;                // hora de calendario da frota no mes
     return {
       i, mes: MESES[i], q, temVolume: q > 0,
-      rend, n, disp: c.disp, util: c.util, horas,
-      daFrota: c.frota > 0, temRend: c.rend > 0, temDisp: c.temDisp, temUtil: c.temUtil,
+      rend, n, disp: c.disp, util: c.util, efic: c.efic, horas,
+      daFrota: c.frota > 0, temRend: c.rend > 0,
+      temDisp: c.temDisp, temUtil: c.temUtil, temEfic: c.temEfic,
       qDia: diasMes > 0 ? q/diasMes : 0,
       qDiaEquip: n > 0 && diasMes > 0 ? q/n/diasMes : 0,
       hDiaEquip: n > 0 && diasMes > 0 ? horas/n/diasMes : 0,
       hDispEquip, cap,
       rendNec: cap > 0 ? q/cap : 0,
-      dispNec: hCal*c.util > 0 ? horas/(hCal*c.util) : 0,
-      utilNec: hCal*c.disp > 0 ? horas/(hCal*c.disp) : 0,
+      dispNec: hCal*c.util*c.efic > 0 ? horas/(hCal*c.util*c.efic) : 0,
+      utilNec: hCal*c.disp*c.efic > 0 ? horas/(hCal*c.disp*c.efic) : 0,
+      eficNec: hCal*c.disp*c.util > 0 ? horas/(hCal*c.disp*c.util) : 0,
       folga: cap - horas,
       cabe: cap >= horas - 1e-9,
     };
@@ -239,14 +255,14 @@ function linha(a, MP){
         // frota fixada no mes: as horas sao a capacidade dela, e o rendimento do
         // mes passa a ser o que fecha a conta (a inversao do Dimensionamento,
         // aplicada mes a mes)
-        if(c.frota>0) return s + c.frota * P.dias * P.hdia * c.disp * c.util;
+        if(c.frota>0) return s + c.frota * P.dias * P.hdia * c.disp * c.util * c.efic;
         const rendEf = c.rend>0 ? c.rend : f.rend;
         return s + (rendEf>0 ? qq/rendEf : 0);
       }, 0);
-      capMes = P.dias * P.hdia * (P.disp/100) * util;
+      capMes = P.dias * P.hdia * (P.disp/100) * eficPadrao() * util;
     }else{
       horas = f.rend>0 ? area/f.rend : 0;
-      capMes = P.dias * P.hdia * (P.disp/100) * util;
+      capMes = P.dias * P.hdia * (P.disp/100) * eficPadrao() * util;
     }
     // com a frota fixada, as horas passam a ser a capacidade dessa frota na
     // janela, e o rendimento e o que fecha a conta: area ÷ horas

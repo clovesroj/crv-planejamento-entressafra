@@ -312,7 +312,7 @@ tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:under
    mas encolhe para nao empurrar os meses cheios para fora da tela */
 .rm-mes.rm-vazio{opacity:.6}
 .rm-mes.rm-vazio:hover,.rm-mes.rm-vazio:focus-within{opacity:1}
-.rm-mes.rm-vazio .rm-campos{grid-template-columns:repeat(4,1fr);gap:5px}
+.rm-mes.rm-vazio .rm-campos{grid-template-columns:repeat(5,1fr);gap:4px}
 .rm-mes.rm-vazio .rm-campos input{font-size:11px;padding:3px 5px}
 .rm-mes.rm-aperta{border-color:var(--red);box-shadow:inset 3px 0 0 var(--red)}
 .rm-cab{display:flex;align-items:baseline;justify-content:space-between;gap:6px;margin-bottom:6px}
@@ -321,7 +321,7 @@ tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:under
 .rm-metas{display:flex;flex-wrap:wrap;gap:3px 10px;font-size:10.5px;color:var(--grey);margin-bottom:8px}
 .rm-metas b{color:var(--ink);font-weight:700}
 .rm-nada{font-size:10.5px;margin-bottom:8px;line-height:1.35}
-.rm-campos{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.rm-campos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .rm-campos label{display:block;font-size:10.5px;color:var(--grey);margin:0}
 .rm-campos input{width:100%;margin-top:2px}
 /* rendimento calculado a partir da frota: mesma caixa, sem cara de campo */
