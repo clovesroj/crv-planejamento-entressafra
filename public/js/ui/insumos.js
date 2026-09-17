@@ -80,7 +80,12 @@ function pintarInsumos(R){
 
   // nome comercial e princípio ativo na frente; o resto da classificação
   // técnica fica na ficha, que abre por linha
-  $("#t_ins").innerHTML = th([["Nome comercial"],["Princípio ativo"],["Código"],["Un."],
+  // colgroup fixa a largura de cada coluna: com table-layout:fixed, recolher um
+  // grupo deixa de mexer na largura das outras (ver componentes.css)
+  const COLS = [210,210,100,84,128,168,168,104,96,100,116,104,132,92,84,104];
+  $("#t_ins").innerHTML =
+    `<colgroup>${COLS.map(w=>`<col style="width:${w}px">`).join("")}</colgroup>` +
+    th([["Nome comercial"],["Princípio ativo"],["Código"],["Un."],
     ["Concentração"],["Classe agronômica"],["Grupo"],["Volume dem.",1],["Estoque",1],["Preço base",1],
     ["Preço corrigido",1],["Necessidade",1],["Custo de aquisição",1],["Usado em"],[""],[""]])+"<tbody>"+
     // quebra por família e, dentro dela, ordem alfabética de princípio ativo.
@@ -103,14 +108,14 @@ function pintarInsumos(R){
       const ficha = FICHA.filter(([k])=>i[k]);
       const aberta = !!INS_ABERTO[i.prod];
       return `<tr>
-        <td><input data-in="${ix}" data-f="prod" value="${esc(i.prod)}" style="text-align:left;min-width:200px"></td>
-        <td><input data-in="${ix}" data-f="pa" value="${esc(i.pa)}" style="text-align:left;min-width:200px" placeholder="a preencher"></td>
-        <td><input data-in="${ix}" data-f="cod" value="${esc(i.cod)}" style="width:82px" placeholder="—"></td>
-        <td><select data-in="${ix}" data-f="un" style="min-width:66px">${UNIDADES.map(u=>
+        <td><input data-in="${ix}" data-f="prod" value="${esc(i.prod)}" style="text-align:left"></td>
+        <td><input data-in="${ix}" data-f="pa" value="${esc(i.pa)}" style="text-align:left" placeholder="a preencher"></td>
+        <td><input data-in="${ix}" data-f="cod" value="${esc(i.cod)}" placeholder="—"></td>
+        <td><select data-in="${ix}" data-f="un">${UNIDADES.map(u=>
           `<option value="${u}" ${(i.un||"")===u?"selected":""}>${u||"—"}</option>`).join("")}</select></td>
-        <td><input data-in="${ix}" data-f="conc" value="${esc(i.conc)}" style="min-width:110px" placeholder="ex.: 480 g/L"></td>
-        <td><input data-in="${ix}" data-f="classe" value="${esc(i.classe)}" style="text-align:left;min-width:150px" placeholder="—"></td>
-        <td><select data-in="${ix}" data-f="fam" style="min-width:150px"
+        <td><input data-in="${ix}" data-f="conc" value="${esc(i.conc)}" placeholder="ex.: 480 g/L"></td>
+        <td><input data-in="${ix}" data-f="classe" value="${esc(i.classe)}" style="text-align:left" placeholder="—"></td>
+        <td><select data-in="${ix}" data-f="fam"
               title="Em branco, o grupo sai da classe agronômica. Escolhendo aqui, a escolha manda e o produto muda de bloco.">
           <option value=""${i.fam?"":" selected"}>auto · ${familiaDe(i.classe).nome}</option>
           ${FAMILIAS_INSUMO.map(f=>`<option value="${f.id}"${i.fam===f.id?" selected":""}>${f.nome}</option>`).join("")}

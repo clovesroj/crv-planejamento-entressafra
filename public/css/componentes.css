@@ -86,6 +86,25 @@ td select{height:28px;padding:0 8px;font-size:12.5px;min-width:110px}
 .tot{font-weight:700;color:var(--ink)}
 tr.sub td{background:var(--sunk);font-size:12px;padding:5px 12px}
 
+/* Cadastro de insumos: largura de coluna fixa.
+   Sem isto o navegador dimensiona as colunas pelo conteudo VISIVEL, e recolher
+   um grupo mudava a tabela inteira de lugar -- com tudo recolhido ela encolhia
+   503 px e as duas ultimas colunas caiam de 87 px para 22, porque nao sobrava
+   celula de corpo para dar largura a elas. O cabecalho e as faixas passavam a
+   cair em posicoes diferentes das que estavam abertos.
+
+   Com table-layout:fixed a largura sai do colgroup e nao do conteudo, entao
+   dobrar grupo nao mexe em coluna nenhuma. A soma passa da tela de proposito: a
+   tabela ja rola na horizontal, e coluna espremida e pior que rolagem. */
+/* min-width = soma do colgroup: sem ele, table-layout:fixed espremeria as 16
+   colunas para caber na tela estreita em vez de rolar, e campo espremido nao se
+   le nem se digita */
+#t_ins{table-layout:fixed;min-width:2000px}
+#t_ins td input,#t_ins td select{min-width:0;width:100%}
+#t_ins td{overflow:hidden;text-overflow:ellipsis}
+/* a faixa do grupo ocupa a linha toda e nao deve truncar o rotulo */
+#t_ins tr.stage td{overflow:visible}
+
 /* caixa de busca por nome, acima de qualquer tabela do app */
 .tbl-busca{max-width:320px;margin-bottom:10px}
 
