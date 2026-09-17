@@ -3,7 +3,7 @@ import { ADM_CRITERIOS, ADM_GRUPOS } from '../dados/administrativo.js';
 import { ARR_FORMAS, ETAPAS_ORD, arrRat } from '../calculo/arrendamento.js';
 import { FORN_MODALIDADES } from '../dados/fornecedores.js';
 import { deptIdx } from '../calculo/pessoas.js';
-import { GERENCIAS, execucao, metasDeFrota, metasPorAtividade } from '../calculo/acompanhamento.js';
+import { GERENCIAS, excecoes, execucao, metasDeFrota, metasPorAtividade, porGerencia } from '../calculo/acompanhamento.js';
 import { CFG } from '../dados/cfg.js';
 import { CAT_LBL, MESES, PERIODOS, periodoMes } from '../nucleo/calendario.js';
 import { INSUMO, P, insLista } from '../nucleo/estado.js';
@@ -451,6 +451,21 @@ SECOES.metasManutencao = R => sec("Metas de manutenção", "Metas — Gerência 
    "CRM (R$/h)","CRM no plano"],
   metasDeFrota(R).map(o=>[o.maq, fmt(o.ativs), fmt(o.frota), fmt(o.horas),
     o.frota>0?fmt(o.horas/o.frota):"—", brl(o.crmHora,2), brl(o.crm)]));
+SECOES.excecoes = R => {
+  const E = excecoes(R, null);
+  return sec("Onde perguntar", "Atividades fora da meta, por atraso em dinheiro",
+    ["Cod","Atividade","Gerência","Etapa","Unid.","Plano medido","Realizado","Falta","Aderência","Atraso em R$"],
+    E.atraso.map(l=>[l.cod, l.nome, GERENCIAS[l.gerencia]||l.gerencia, l.etapa, l.un,
+      fmt(l.planoAte), fmt(l.realizado), fmt(l.gap), pct(l.aderencia), brl(l.gapValor)])
+      .concat(E.atraso.length ? [["","","","","","","","","ATRASO TOTAL", brl(E.atrasoValor)]] : []));
+};
+SECOES.porGerencia = R => sec("Por gerência", "Resumo por gerência",
+  ["Gerência","Atividades","Medidas","Aderência","Fora da meta","Meses sem apontamento",
+   "Atraso em R$","Custo no plano"],
+  porGerencia(R, null).map(g=>[g.nome, fmt(g.atividades), fmt(g.medidas),
+    g.aderencia!=null?pct(g.aderencia):"—", fmt(g.foraDaMeta), fmt(g.semApontamento),
+    g.atrasoValor>0?brl(g.atrasoValor):"—", brl(g.custoPlano)]));
+
 SECOES.acompanhamento = R => {
   const ex = execucao(R, null);
   return sec("Acompanhamento", "Execução do plano — plano x realizado",
@@ -484,7 +499,7 @@ const RELATORIOS = [
   {id:"metaAgr", nome:"Metas — Gerência Agrícola",    secoes:["metasAgricola","planoOperacional","dimensionamento"]},
   {id:"metaLog", nome:"Metas — Gerência de Logística",secoes:["metasLogistica","transporte","combustivel"]},
   {id:"metaMan", nome:"Metas — Gerência de Manutenção",secoes:["metasManutencao","frota","manutencao"]},
-  {id:"acomp",   nome:"Acompanhamento do Plano",      secoes:["acompanhamento","metasAgricola","metasLogistica","metasManutencao"]},
+  {id:"acomp",   nome:"Acompanhamento do Plano",      secoes:["excecoes","porGerencia","acompanhamento","metasAgricola","metasLogistica","metasManutencao"]},
 ];
 
 /* Seções extras que só saem no nível detalhado do relatório anual. */

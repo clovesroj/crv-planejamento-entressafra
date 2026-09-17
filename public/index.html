@@ -744,6 +744,17 @@
   cumprido. A meta é a mesma que o modal da atividade mostra — não há dois números para a mesma coisa.</p>
   <div class="grid g4" id="k_acomp" style="margin-bottom:16px"></div>
 
+  <div class="panel"><h3>Onde perguntar</h3>
+    <div class="row" style="margin-bottom:12px">
+      <div style="min-width:200px"><label>Medir até o mês</label><select id="sel_acomp_mes"></select></div>
+    </div>
+    <div class="tblwrap"><table id="t_acomp_exc"></table></div>
+    <div class="hint" style="margin-top:9px">Em ordem de atraso em dinheiro, não de percentual: 10% de atraso
+    em 2.400 ha pesa mais que 50% em 20 ha. Atividade em dia não aparece aqui.</div></div>
+
+  <div class="panel"><h3>Resumo por gerência</h3>
+    <div class="tblwrap"><table id="t_acomp_ger"></table></div></div>
+
   <div class="panel"><h3>Metas — Gerência Agrícola</h3>
     <div class="tblwrap"><table id="t_meta_agricola"></table></div>
     <div class="hint" style="margin-top:9px">Meta por dia de cada equipamento e da frota inteira, na janela
@@ -759,10 +770,7 @@
     <div class="hint" style="margin-top:9px">Horas que cada equipamento precisa entregar no plano e o CRM
     que elas carregam. A frota que vai rodar e o provisionamento de reforma estão em Manutenção de Frota.</div></div>
 
-  <div class="panel"><h3>Execução: plano x realizado</h3>
-    <div class="row" style="margin-bottom:12px">
-      <div style="min-width:200px"><label>Medir até o mês</label><select id="sel_acomp_mes"></select></div>
-    </div>
+  <div class="panel"><h3>Execução: plano x realizado, atividade por atividade</h3>
     <div class="tblwrap"><table id="t_acomp"></table></div>
     <div class="hint" style="margin-top:9px">Lance o realizado de cada mês; o campo em branco mostra o plano
     como referência. Mês sem lançamento fica fora da conta de aderência — não conta como zero executado.</div></div>

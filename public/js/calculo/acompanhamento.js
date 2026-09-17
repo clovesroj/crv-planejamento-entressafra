@@ -22,10 +22,13 @@ function realDe(cod){
   return Array.isArray(a) ? a : Array(NM).fill("");
 }
 
-/** Gerencia responsavel por uma atividade. */
+/* Gerencia responsavel por uma atividade, pela etapa do plano.
+   Colheita, preparo de solo e todo o transporte respondem a logistica; plantio,
+   tratos e apoio ficam com a agricola. */
+const ETAPA_LOGISTICA = ["COLHEITA", "PREPARO DE SOLO"];
 function gerenciaDe(a){
   if(a.tipo === "transp") return "logistica";
-  return "agricola";
+  return ETAPA_LOGISTICA.includes(a.etapa) ? "logistica" : "agricola";
 }
 
 /**
@@ -70,12 +73,14 @@ function execucao(R, ateMes){
       return {mes: m, i, plano: p, real: temReal ? num(v) : null,
               desvio: temReal ? num(v) - p : null};
     });
+    const custoUn = r.total > 0 ? r.direto/r.total : 0;
+    const gap = Math.max(0, plan - feito);          // o que deveria ter sido feito e nao foi
     return {
       cod: r.a.cod, nome: r.a.nome, etapa: r.a.etapa, un: r.a.un.split("/")[0],
       gerencia: gerenciaDe(r.a),
       totalPlano: r.total, planoAte: plan, realizado: feito, lancados, semLanc,
       aderencia: plan > 0 && lancados > 0 ? feito/plan : null,
-      saldo: r.total - feito,
+      saldo: r.total - feito, custoUn, gap, gapValor: gap*custoUn,
       meses,
     };
   });
@@ -106,9 +111,48 @@ function metasDeFrota(R){
     .sort((a,b)=> b.horas - a.horas);
 }
 
+/**
+ * O que precisa de pergunta na reuniao, em ordem de tamanho do problema.
+ * Ordenado pelo atraso em dinheiro, nao pelo percentual: 10% de atraso em
+ * 2.400 ha pesa mais que 50% em 20 ha, e e o primeiro que o diretor cobra.
+ */
+function excecoes(R, ateMes){
+  const ex = execucao(R, ateMes);
+  const atraso = ex.linhas
+    .filter(l => l.aderencia != null && l.aderencia < 0.95 && l.gap > 0)
+    .sort((a,b) => b.gapValor - a.gapValor);
+  const semApontamento = ex.linhas
+    .filter(l => l.semLanc > 0)
+    .sort((a,b) => b.semLanc - a.semLanc || b.totalPlano - a.totalPlano);
+  return {ex, atraso, semApontamento,
+          atrasoValor: atraso.reduce((s,l)=>s+l.gapValor, 0)};
+}
+
+/** Uma linha por gerencia: e o resumo que abre a conversa com cada gerente. */
+function porGerencia(R, ateMes){
+  const ex = execucao(R, ateMes);
+  return Object.keys(GERENCIAS).map(g=>{
+    const lin = ex.linhas.filter(l => l.gerencia === g);
+    const medidos = lin.filter(l => l.lancados > 0);
+    const plan = medidos.reduce((s,l)=>s+l.planoAte, 0);
+    const real = medidos.reduce((s,l)=>s+l.realizado, 0);
+    return {
+      gerencia: g, nome: GERENCIAS[g],
+      atividades: lin.length,
+      medidas: medidos.length,
+      semApontamento: lin.reduce((s,l)=>s+l.semLanc, 0),
+      aderencia: plan > 0 ? real/plan : null,
+      foraDaMeta: lin.filter(l => l.aderencia != null && l.aderencia < 0.95).length,
+      atrasoValor: lin.reduce((s,l)=>s+l.gapValor, 0),
+      custoPlano: lin.reduce((s,l)=>s+l.totalPlano*l.custoUn, 0),
+    };
+  });
+}
+
 const GERENCIAS = {
   agricola:  "Gerência Agrícola",
   logistica: "Gerência de Logística",
 };
 
-export { GERENCIAS, execucao, gerenciaDe, metasDeFrota, metasPorAtividade, realDe };
+export { GERENCIAS, excecoes, execucao, gerenciaDe, metasDeFrota, metasPorAtividade,
+         porGerencia, realDe };

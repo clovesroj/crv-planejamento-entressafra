@@ -1,4 +1,4 @@
-import { GERENCIAS, execucao, metasDeFrota, metasPorAtividade } from '../calculo/acompanhamento.js';
+import { GERENCIAS, excecoes, metasDeFrota, metasPorAtividade, porGerencia } from '../calculo/acompanhamento.js';
 import { MESES } from '../nucleo/calendario.js';
 import { ACOMP_MES, REAL } from '../nucleo/estado.js';
 import { $, brl, fmt, pct } from '../nucleo/formato.js';
@@ -10,23 +10,62 @@ import { kpi, th } from './componentes.js';
    da atividade mostra — vem de metaDe(), não é recalculada aqui. */
 function pintarAcomp(R){
   const metas = metasPorAtividade(R);
-  const ex = execucao(R, ACOMP_MES);
+  const E  = excecoes(R, ACOMP_MES);
+  const ex = E.ex;
+  const ger = porGerencia(R, ACOMP_MES);
 
   $("#sel_acomp_mes").innerHTML =
     `<option value="">Ano todo</option>` +
     MESES.map((m,i)=>`<option value="${i}"${ACOMP_MES===i?" selected":""}>até ${m}</option>`).join("");
 
+  // O topo responde o que o diretor pergunta primeiro, nesta ordem: estamos no
+  // ritmo, o que está fora, quanto custa o atraso, e o que ainda nem foi medido.
   $("#k_acomp").innerHTML =
-    kpi("Atividades com meta","",fmt(metas.length),
-        metas.filter(m=>m.gerencia==="agricola").length+" agrícola · "+
-        metas.filter(m=>m.gerencia==="logistica").length+" logística") +
-    kpi("Execução lançada", ex.comLancamento?"":"a", fmt(ex.comLancamento)+" de "+fmt(ex.total),
-        ex.comLancamento ? "atividades com realizado" : "nada lançado ainda") +
     kpi("Aderência ao plano", aderCor(ex.aderenciaGeral),
         ex.aderenciaGeral!=null ? pct(ex.aderenciaGeral) : "—",
-        ex.aderenciaGeral!=null ? "realizado ÷ plano dos meses medidos"
-          : ex.semLancamento ? ex.semLancamento+" meses planejados sem lançamento" : "lance o realizado para medir") +
-    kpi("Frota em operação","t", fmt(R.frotaT)+" equip.", fmt(R.horasT)+" h no plano");
+        ex.aderenciaGeral!=null ? "até "+ex.mesLabel+" · "+fmt(ex.comLancamento)+" de "+fmt(ex.total)+" atividades medidas"
+          : "nada lançado: sem execução não há o que medir") +
+    kpi("Atividades fora da meta", E.atraso.length?"a":"g", fmt(E.atraso.length),
+        E.atraso.length ? "abaixo de 95% do plano medido" : "todas as medidas em dia") +
+    kpi("Atraso em dinheiro", E.atrasoValor>0?"a":"g", brl(E.atrasoValor),
+        E.atrasoValor>0 ? "custo do que deveria ter sido feito e não foi" : "sem atraso medido") +
+    kpi("Sem apontamento", ex.semLancamento?"a":"g", fmt(ex.semLancamento)+" meses",
+        ex.semLancamento ? "planejados e ainda não reportados" : "tudo reportado até aqui");
+
+  // ===== onde perguntar =====
+  $("#t_acomp_exc").innerHTML = th([["Atividade"],["Gerência"],["Etapa"],["Plano medido",1],
+    ["Realizado",1],["Falta",1],["Aderência",1],["Atraso em R$",1]])+"<tbody>"+
+    (E.atraso.length ? E.atraso.map(l=>`<tr>
+      <td>${l.cod} · ${l.nome}</td>
+      <td class="calc">${GERENCIAS[l.gerencia]||l.gerencia}</td>
+      <td class="calc">${l.etapa}</td>
+      <td class="num calc">${fmt(l.planoAte)} ${l.un}</td>
+      <td class="num">${fmt(l.realizado)} ${l.un}</td>
+      <td class="num tot" style="color:var(--red)">${fmt(l.gap)} ${l.un}</td>
+      <td class="num tot" style="${corAder(l.aderencia)}">${pct(l.aderencia)}</td>
+      <td class="num tot">${brl(l.gapValor)}</td></tr>`).join("")
+      : `<tr><td colspan="8" class="calc">${ex.comLancamento
+          ? "Nenhuma atividade abaixo de 95% do plano medido."
+          : "Nada lançado como realizado ainda — sem execução não há exceção para mostrar."}</td></tr>`)+
+    (E.atraso.length ? `<tr><td class="tot" colspan="7">ATRASO TOTAL</td>
+      <td class="num tot">${brl(E.atrasoValor)}</td></tr>` : "")+
+    "</tbody>";
+
+  // ===== resumo por gerência =====
+  $("#t_acomp_ger").innerHTML = th([["Gerência"],["Atividades"],["Medidas",1],["Aderência",1],
+    ["Fora da meta",1],["Sem apontamento",1],["Atraso em R$",1],["Custo no plano",1]])+"<tbody>"+
+    ger.map(g=>`<tr>
+      <td class="tot">${g.nome}</td>
+      <td class="num calc">${g.atividades}</td>
+      <td class="num calc">${g.medidas}</td>
+      <td class="num tot" style="${corAder(g.aderencia)}">${g.aderencia!=null?pct(g.aderencia):"—"}</td>
+      <td class="num ${g.foraDaMeta?"tot":"calc"}" style="${g.foraDaMeta?"color:var(--amber)":""}">${g.foraDaMeta||"—"}</td>
+      <td class="num ${g.semApontamento?"tot":"calc"}" style="${g.semApontamento?"color:var(--amber)":""}">${g.semApontamento||"—"}</td>
+      <td class="num ${g.atrasoValor>0?"tot":"calc"}">${g.atrasoValor>0?brl(g.atrasoValor):"—"}</td>
+      <td class="num calc">${brl(g.custoPlano)}</td></tr>`).join("")+
+    `<tr><td class="tot">Gerência de Manutenção</td>
+     <td class="num calc">${metasDeFrota(R).length} equip.</td><td colspan="5"></td>
+     <td class="num calc">${brl(R.crmTotal||0)}</td></tr></tbody>`;
 
   // ===== metas por gerência =====
   ["agricola","logistica"].forEach(g=>{
