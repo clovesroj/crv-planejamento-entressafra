@@ -23,9 +23,10 @@ function realDe(cod){
 }
 
 /* Gerencia responsavel por uma atividade, pela etapa do plano.
-   Colheita, preparo de solo e todo o transporte respondem a logistica; plantio,
-   tratos e apoio ficam com a agricola. */
-const ETAPA_LOGISTICA = ["COLHEITA", "PREPARO DE SOLO"];
+   Colheita, preparo de solo, plantio e todo o transporte respondem a logistica.
+   Ficam com a agricola os tratos culturais e o apoio -- o que acontece na cana
+   ja plantada. */
+const ETAPA_LOGISTICA = ["COLHEITA", "PREPARO DE SOLO", "PLANTIO"];
 function gerenciaDe(a){
   if(a.tipo === "transp") return "logistica";
   return ETAPA_LOGISTICA.includes(a.etapa) ? "logistica" : "agricola";

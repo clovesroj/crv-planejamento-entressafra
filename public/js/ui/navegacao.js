@@ -82,7 +82,25 @@ function marcarLocal(b){
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{
   marcarLocal(b); document.body.classList.remove("menu-open");
 }));
-$("#btn_menu").onclick = ()=>document.body.classList.toggle("menu-open");
+/* Recolher o menu: devolve a largura da barra as tabelas. A preferencia fica no
+   navegador de quem usa -- e escolha de tela, nao dado do plano, entao nao vai
+   para o documento compartilhado. */
+const APP = document.querySelector(".app");
+function recolher(v){
+  APP.classList.toggle("menu-recolhido", v);
+  const b = $("#btn_recolher");
+  if(b) b.setAttribute("aria-expanded", String(!v));
+  try{ localStorage.setItem("crv_menu_recolhido", v ? "1" : "0"); }catch(e){}
+}
+try{ if(localStorage.getItem("crv_menu_recolhido")==="1") recolher(true); }catch(e){}
+const btnRec = $("#btn_recolher");
+if(btnRec) btnRec.onclick = ()=> recolher(!APP.classList.contains("menu-recolhido"));
+
+// com o menu recolhido, o botao da barra superior volta a abri-lo no desktop
+$("#btn_menu").onclick = ()=>{
+  if(APP.classList.contains("menu-recolhido")){ recolher(false); return; }
+  document.body.classList.toggle("menu-open");
+};
 $("#scrim").onclick = ()=>document.body.classList.remove("menu-open");
 // alterna a partir do tema que está de fato na tela (inclusive quando vem do sistema)
 $("#btn_tema_top").onclick = ()=>{

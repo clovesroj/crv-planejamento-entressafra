@@ -12,6 +12,10 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);fo
   /* linhas de plantio: textura quase imperceptível */
   background-image:repeating-linear-gradient(104deg,rgba(214,180,110,.035) 0 2px,transparent 2px 15px)}
 .brand{display:flex;align-items:center;gap:11px;padding:18px 18px 15px;border-bottom:1px solid rgba(255,255,255,.07)}
+/* botao de recolher: ocupa o espaco que o nome do sistema ocupava */
+.side-toggle{margin-left:auto;color:var(--side-mute);flex:none}
+.side-toggle:hover{color:#fff;background:var(--side-hover)}
+.side-toggle svg{width:19px;height:19px;transition:transform .18s}
 .brand img{height:34px;width:auto;background:#fff;border-radius:6px;padding:4px 7px;flex:none}
 /* logo branco sobre fundo escuro: sem a moldura clara */
 .brand img[data-variante="branco"]{height:36px;background:none;padding:0;border-radius:0}
@@ -118,3 +122,13 @@ h2{font-family:var(--f-display);font-size:28px;font-weight:600;line-height:1.1;l
 @media (max-width:560px){ .g4{grid-template-columns:minmax(0,1fr)} }
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 
+
+/* ===== menu recolhido =====
+   A tela de trabalho e uma planilha larga: doze meses de plano, quinze colunas
+   de dimensionamento. Recolher o menu devolve 232 px de largura util as
+   tabelas, e o estado fica no navegador de quem usa. */
+.app.menu-recolhido{grid-template-columns:0 minmax(0,1fr)}
+.app.menu-recolhido .sidebar{width:0;padding:0;overflow:hidden;border:0}
+.app.menu-recolhido .sidebar>*{display:none}
+/* com o menu fechado, o botao de abrir da barra superior aparece no desktop */
+.app.menu-recolhido .menu-btn{display:inline-grid!important}
