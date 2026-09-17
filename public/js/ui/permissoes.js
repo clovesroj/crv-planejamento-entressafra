@@ -43,6 +43,10 @@ const CONTROLES = 'input, select, textarea, button';
 function areaDe(el) {
   if (!el || !el.closest) return null;
   if (el.closest('#rendm')) return 'dimens';
+  // Cadastro de Insumos e Grupos de Insumos (Configurações) gravam chaves da
+  // área 'insumos' no servidor — as telas usam a mesma permissão, sem um
+  // toggle à parte no catálogo.
+  if (el.closest('#insbase') || el.closest('#config')) return 'insumos';
   const sec = el.closest('section[id]');
   if (!sec) return null;
   return areasDePermissao().some(a => a.id === sec.id) ? sec.id : null;
@@ -89,7 +93,8 @@ function chipDaAbaAtual() {
   const chip = document.getElementById('chip_leitura');
   if (!chip) return;
   const atual = document.querySelector('section.on');
-  const area = atual && areasDePermissao().some(x => x.id === atual.id) ? atual.id : null;
+  let area = atual && areasDePermissao().some(x => x.id === atual.id) ? atual.id : null;
+  if (!area && atual && (atual.id === 'config' || atual.id === 'insbase')) area = 'insumos';
   chip.hidden = !(USUARIO && area && !podeEditar(area));
 }
 
@@ -105,6 +110,14 @@ function aplicarPermissoes() {
   });
   const rm = document.getElementById('rendm');
   if (rm) { if (podeEditar('dimens')) destravar(rm); else travar(rm); }
+  const pode_ins = podeEditar('insumos');
+  ['insbase', 'config'].forEach(id => {
+    const sec = document.getElementById(id);
+    if (!sec) return;
+    sec.classList.toggle('so-leitura', !pode_ins);
+    if (pode_ins) destravar(sec); else travar(sec);
+    aviso(sec, !pode_ins);
+  });
   chipDaAbaAtual();
 }
 

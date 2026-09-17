@@ -1,6 +1,6 @@
 import { CFG } from '../dados/cfg.js';
 import { FAMILIAS_INSUMO, TRAT_ETAPAS } from '../dados/insumos.js';
-import { INSUMO, P, PLANO, TRATC, TRAT_DEL, TRAT_ETAPA, TRAT_NOME, insLista } from '../nucleo/estado.js';
+import { INSUMO, P, PLANO, TRATC, TRAT_DEL, TRAT_ETAPA, TRAT_NOME, insLista, gruposInsLista } from '../nucleo/estado.js';
 import { num } from '../nucleo/formato.js';
 
 /* ================== INSUMOS E TRATAMENTOS ================== */
@@ -18,7 +18,7 @@ import { num } from '../nucleo/formato.js';
 function familiaDoInsumo(i){
   const esc = (i && i.fam || "").trim();
   if(esc){
-    const f = FAMILIAS_INSUMO.find(x => x.id === esc);
+    const f = FAMILIAS_INSUMO.find(x => x.id === esc) || gruposInsLista().find(x => x.id === esc);
     if(f) return f;
   }
   return familiaDe(i && i.classe);
@@ -29,6 +29,65 @@ function familiaDe(classe){
   if(!c) return FAMILIAS_INSUMO[FAMILIAS_INSUMO.length - 1];
   return FAMILIAS_INSUMO.find(f => f.termos.some(t => c.includes(t)))
       || FAMILIAS_INSUMO[FAMILIAS_INSUMO.length - 1];
+}
+
+/* Todos os grupos que um insumo pode receber: os fixos do cadastro (com
+   "outros" por último, o bloco que pede cadastro) e os criados pelo usuário na
+   aba Configurações, encaixados antes de "outros" -- um grupo novo é sempre
+   uma escolha manual, nunca o destino automático de uma classe. */
+function todasFamilias(){
+  const base = FAMILIAS_INSUMO.slice(0, -1);
+  const outros = FAMILIAS_INSUMO[FAMILIAS_INSUMO.length - 1];
+  return [...base, ...gruposInsLista(), outros];
+}
+
+// identificador do grupo a partir do nome digitado: minúsculo, sem acento nem espaço
+function idDeGrupo(nome){
+  return String(nome || "").normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
+}
+/** Cria um grupo de insumo novo. Falha se o nome estiver vazio ou já existir
+    entre os grupos fixos ou os já criados. */
+function criarGrupoInsumo(nome){
+  const n = String(nome || "").trim();
+  if(!n) return {ok:false, erro:"informe um nome para o grupo"};
+  const id = idDeGrupo(n);
+  if(!id) return {ok:false, erro:"o nome precisa ter letras ou números"};
+  if(FAMILIAS_INSUMO.some(f=>f.id===id) || gruposInsLista().some(f=>f.id===id)){
+    return {ok:false, erro:"já existe um grupo com este nome"};
+  }
+  gruposInsLista().push({id, nome:n});
+  return {ok:true};
+}
+/** Renomeia um grupo criado pelo usuário. O identificador não muda — é por ele
+    que cada insumo aponta para o grupo (campo `fam`), então renomear não
+    desvincula ninguém. Os fixos do cadastro não são renomeáveis por aqui: o
+    nome deles é o que os termos de classificação automática documentam. */
+function renomearGrupoInsumo(id, novoNome){
+  if(FAMILIAS_INSUMO.some(f=>f.id===id)){
+    return {ok:false, erro:"este grupo é fixo do cadastro e não pode ser renomeado"};
+  }
+  const n = String(novoNome || "").trim();
+  if(!n) return {ok:false, erro:"informe um nome para o grupo"};
+  const g = gruposInsLista().find(f=>f.id===id);
+  if(!g) return {ok:false, erro:"grupo não encontrado"};
+  g.nome = n;
+  return {ok:true};
+}
+/** Remove um grupo criado pelo usuário. Os fixos do cadastro não saem daqui —
+    removê-los deixaria produtos sem para onde ir. Grupo em uso por algum
+    insumo também não sai: mude o grupo dos produtos antes. */
+function removerGrupoInsumo(id){
+  if(FAMILIAS_INSUMO.some(f=>f.id===id)){
+    return {ok:false, erro:"este grupo é fixo do cadastro e não pode ser removido"};
+  }
+  const emUso = insLista().some(i=>(i.fam||"")===id);
+  if(emUso) return {ok:false, erro:"grupo em uso — mude o grupo dos produtos antes de remover"};
+  const lista = gruposInsLista();
+  const ix = lista.findIndex(f=>f.id===id);
+  if(ix<0) return {ok:false, erro:"grupo não encontrado"};
+  lista.splice(ix,1);
+  return {ok:true};
 }
 
 /* Cadastro de insumos quebrado por familia, e dentro dela em ordem alfabetica de
@@ -53,7 +112,7 @@ function insumosPorFamilia(){
     return x.localeCompare(y, "pt-BR", {sensitivity:"base", numeric:true})
         || (a.i.prod || "").localeCompare(b.i.prod || "", "pt-BR", {sensitivity:"base"});
   };
-  return FAMILIAS_INSUMO
+  return todasFamilias()
     .map(f => ({...f, itens: (porFam[f.id] || []).sort(ord)}))
     .filter(f => f.itens.length);
 }
@@ -212,7 +271,7 @@ function volumeDemandado(L){
 }
 
 
-export { _tratCache, _tratKey, composicao, criarTrat, destravar, etapaTrat, etapasNoPlano, familiaDe,
+export { _tratCache, _tratKey, composicao, criarGrupoInsumo, criarTrat, destravar, etapaTrat, etapasNoPlano, familiaDe,
   familiaDoInsumo, insumosPorFamilia, mesclarBaseInsumos,
-  marcarEtapa, precoInsumo, removerTrat, renomearTrat, tratCodigos, tratCusto, tratEtapas,
+  marcarEtapa, precoInsumo, removerGrupoInsumo, removerTrat, renomearGrupoInsumo, renomearTrat, todasFamilias, tratCodigos, tratCusto, tratEtapas,
   tratLista, tratListaTodos, tratTabela, usosTrat, volumeDemandado };

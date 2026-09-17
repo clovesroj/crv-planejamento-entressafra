@@ -10,6 +10,7 @@ import { pintarApoio } from '../ui/apoio.js';
 import { pintarArrend } from '../ui/arrendamentos.js';
 import { pintarCapa } from '../ui/capa.js';
 import { pintarCombustivel } from '../ui/combustivel.js';
+import { pintarConfig } from '../ui/configuracoes.js';
 import { pintarContas } from '../ui/contas.js';
 import { pintarCustos } from '../ui/custos.js';
 import { pintarDim } from '../ui/dimensionamento.js';
@@ -131,7 +132,7 @@ function render(){
   esconderMeses(R.SEL.meses);
   pintarCapa(R); pintarMDO(R); pintarPlano(R); pintarDim(R); pintarTransp(R); pintarApoio(R); pintarCRM(R); pintarReforma(); pintarTPess(R);
   pintarIrrig(R); pintarInsumos(R); pintarArrend(R); pintarForn(R); pintarAdm(R); pintarCustos(R); pintarContas(R); pintarCombustivel(R); pintarResumoFrota(R); pintarPessoas(R);
-  pintarPainel(R); pintarValida(R); pintarAcomp(R); pintarRastro(R); pintarRendMensal(R);
+  pintarPainel(R); pintarValida(R); pintarAcomp(R); pintarRastro(R); pintarRendMensal(R); pintarConfig();
   // depois dos pintores: eles recriam a tabela do zero a cada render(), entao busca
   // e ordem de coluna (que vivem so no DOM) precisam ser reaplicadas por cima; a
   // trava de perfil roda por ultimo porque precisa valer sobre os controles novos

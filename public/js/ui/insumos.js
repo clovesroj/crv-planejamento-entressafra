@@ -1,5 +1,5 @@
-import { composicao, etapasNoPlano, familiaDe, insumosPorFamilia, precoInsumo, tratCodigos, tratEtapas, tratListaTodos } from '../calculo/insumos.js';
-import { FAMILIAS_INSUMO, TRAT_ETAPAS } from '../dados/insumos.js';
+import { composicao, etapasNoPlano, familiaDe, insumosPorFamilia, precoInsumo, todasFamilias, tratCodigos, tratEtapas, tratListaTodos } from '../calculo/insumos.js';
+import { TRAT_ETAPAS } from '../dados/insumos.js';
 import { INSUMO, INS_ABERTO, P, TRATC, TRAT_NOME, TRAT_SEL, insLista } from '../nucleo/estado.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
 import { kpi, th } from './componentes.js';
@@ -113,7 +113,7 @@ function pintarInsumos(R){
         <td><select data-in="${ix}" data-f="fam" style="min-width:150px"
               title="Em branco, o grupo sai da classe agronômica. Escolhendo aqui, a escolha manda e o produto muda de bloco.">
           <option value=""${i.fam?"":" selected"}>auto · ${familiaDe(i.classe).nome}</option>
-          ${FAMILIAS_INSUMO.map(f=>`<option value="${f.id}"${i.fam===f.id?" selected":""}>${f.nome}</option>`).join("")}
+          ${todasFamilias().map(f=>`<option value="${f.id}"${i.fam===f.id?" selected":""}>${f.nome}</option>`).join("")}
         </select></td>
         <td class="num calc">${fmt(vol,1)}</td>
         <td class="num"><input data-ie="${esc(i.prod)}" value="${est}" inputmode="decimal"></td>

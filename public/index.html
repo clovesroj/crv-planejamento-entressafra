@@ -72,6 +72,11 @@
       <button data-s="custos">Custos</button>
       <button data-s="contas">Plano de Contas</button>
     </div>
+    <div class="navgroup" data-g="Configurações">
+      <div class="gl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2.1 2.1 0 1 1-2.97 2.97l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V20a2.1 2.1 0 0 1-4.2 0v-.09a1.7 1.7 0 0 0-1.11-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2.1 2.1 0 1 1-2.97-2.97l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H4a2.1 2.1 0 0 1 0-4.2h.09a1.7 1.7 0 0 0 1.55-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2.1 2.1 0 1 1 2.97-2.97l.06.06a1.7 1.7 0 0 0 1.87.34H10a1.7 1.7 0 0 0 1-1.55V4a2.1 2.1 0 0 1 4.2 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2.1 2.1 0 1 1 2.97 2.97l-.06.06a1.7 1.7 0 0 0-.34 1.87V10a1.7 1.7 0 0 0 1.55 1H20a2.1 2.1 0 0 1 0 4.2h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg>Configurações</div>
+      <button data-s="insbase">Cadastro de Insumos</button>
+      <button data-s="config">Grupos de Insumos</button>
+    </div>
     <div class="navgroup" data-g="Administração" data-admin hidden>
       <div class="gl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3.2v5c0 4.5-3 7.8-7 9.8-4-2-7-5.3-7-9.8v-5z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>Administração</div>
       <button data-s="usuarios">Usuários</button>
@@ -485,40 +490,12 @@
 <!-- ===== INSUMOS ===== -->
 <section id="insumos">
   <h2>Insumos e Tratamentos</h2>
-  <p class="lead">Cadastre preço e estoque dos produtos; depois monte a composição de cada tratamento.
-  Dose e produtos são ajustáveis e entram na composição de custos automaticamente.</p>
+  <p class="lead">Monte a composição de cada tratamento a partir do cadastro de insumos.
+  Dose e produtos são ajustáveis e entram na composição de custos automaticamente. O cadastro de produtos —
+  nome, grupo, preço e estoque — fica na aba <b>Cadastro de Insumos</b>, em Configurações.</p>
   <div class="grid g4" id="k_ins" style="margin-bottom:16px"></div>
 
-  <div class="panel"><h3>1. Cadastro de insumos</h3>
-    <div class="row" style="margin-bottom:10px">
-      <div style="min-width:300px;max-width:320px">
-        <input type="search" class="tbl-busca" data-alvo="#t_ins" placeholder="Buscar insumo por nome ou princípio ativo...">
-      </div>
-      <div style="min-width:230px"><label for="sel_ins_fam">Grupo</label>
-        <select id="sel_ins_fam"></select></div>
-      <div style="align-self:flex-end">
-        <button class="btn" id="btn_ins_recolher" title="Recolher ou abrir todos os grupos de uma vez">Recolher todos</button>
-      </div>
-    </div>
-    <div class="tblwrap"><table id="t_ins"></table></div>
-    <div class="hint" id="ins_grupos" style="margin-top:9px"></div>
-    <div class="row" style="margin-top:10px">
-      <button class="btn p" id="btn_ins_add">Adicionar insumo</button>
-      <button class="btn" id="btn_ins_sinc">Atualizar com a classificação técnica</button>
-      <button class="btn" id="btn_ins_reset">Restaurar cadastro original</button></div>
-    <div class="hint" style="margin-top:9px">Nome comercial, princípio ativo, código do material, unidade,
-    concentração, classe, estoque e preço são editáveis. <b>Ficha</b> abre a classificação técnica do produto —
-    categoria operacional, formulação, modo e mecanismo de ação, grupo químico, fabricante, classificação
-    toxicológica, culturas registradas e momento de aplicação. "Volume dem." é calculado automaticamente pela
-    alocação dos tratamentos no Plano Operacional (área × dose). Renomear um produto mantém o vínculo com os
-    tratamentos que já o utilizam. Produto que veio da classificação técnica entra sem preço: enquanto faltar,
-    ele aparece marcado aqui e na aba Validação.
-    <br><b>Atualizar com a classificação técnica</b> traz para este cadastro o que a base do sistema tem de novo:
-    produto que falta entra, campo técnico vazio se completa, e nome, preço e estoque que você ajustou ficam como
-    estão — produto seu que não existe na base também fica. Isso já acontece sozinho na primeira abertura depois de
-    a base crescer; o botão serve para refazer quando quiser.</div></div>
-
-  <div class="panel"><h3>2. Composição dos tratamentos</h3>
+  <div class="panel"><h3>1. Composição dos tratamentos</h3>
     <div class="row" style="margin-bottom:12px">
       <div style="min-width:180px"><label>Tratamento</label><select id="sel_trat"></select></div>
       <div style="width:130px"><label>Código</label><input id="in_trat_cod" title="Alterar o código do tratamento"></div>
@@ -536,7 +513,7 @@
     </div>
   </div>
 
-  <div class="panel"><h3>3. Cadastro dos tratamentos</h3>
+  <div class="panel"><h3>2. Cadastro dos tratamentos</h3>
     <div class="row" style="margin-bottom:12px">
       <div style="min-width:180px"><label>Novo tratamento</label><input id="in_trat_novo" placeholder="Ex.: 5 SU"></div>
       <div style="align-self:flex-end"><button class="btn p" id="btn_trat_add">Adicionar tratamento</button></div>
@@ -551,11 +528,65 @@
     Validação avisa quando a marcação e o uso no plano discordam. Remover um tratamento desvincula as atividades
     que o usavam.</div></div>
 
-  <div class="panel"><h3>4. Materiais de manutenção</h3>
+  <div class="panel"><h3>3. Materiais de manutenção</h3>
     <input type="search" class="tbl-busca" data-alvo="#t_mat" placeholder="Buscar material por categoria ou item...">
     <div class="tblwrap"><table id="t_mat"></table></div>
     <div class="row" style="margin-top:10px"><button class="btn p" id="btn_mat_add">Adicionar material</button></div>
     <div class="hint" style="margin-top:9px">Lista livre — inclua qualquer material projetado além dos padrões.</div></div>
+</section>
+
+<!-- ===== CONFIGURAÇÕES ===== -->
+<section id="insbase">
+  <h2>Cadastro de Insumos</h2>
+  <p class="lead">Cadastre preço e estoque dos produtos e escolha o grupo de cada um. É a base que a aba
+  Insumos usa para montar a composição dos tratamentos.</p>
+
+  <div class="panel"><h3>Produtos cadastrados</h3>
+    <div class="row" style="margin-bottom:10px">
+      <div style="min-width:300px;max-width:320px">
+        <input type="search" class="tbl-busca" data-alvo="#t_ins" placeholder="Buscar insumo por nome ou princípio ativo...">
+      </div>
+      <div style="min-width:230px"><label for="sel_ins_fam">Grupo</label>
+        <select id="sel_ins_fam"></select></div>
+      <div style="align-self:flex-end">
+        <button class="btn" id="btn_ins_recolher" title="Recolher ou abrir todos os grupos de uma vez">Recolher todos</button>
+      </div>
+    </div>
+    <div class="tblwrap"><table id="t_ins"></table></div>
+    <div class="hint" id="ins_grupos" style="margin-top:9px"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn p" id="btn_ins_add">Adicionar insumo</button>
+      <button class="btn" id="btn_ins_sinc">Atualizar com a classificação técnica</button>
+      <button class="btn" id="btn_ins_reset">Restaurar cadastro original</button></div>
+    <div class="hint" style="margin-top:9px">Nome comercial, princípio ativo, código do material, unidade,
+    concentração, classe, estoque e preço são editáveis. A coluna <b>Grupo</b> escolhe em qual bloco o produto
+    entra — veja ou crie grupos na aba Grupos de Insumos. <b>Ficha</b> abre a classificação técnica do produto —
+    categoria operacional, formulação, modo e mecanismo de ação, grupo químico, fabricante, classificação
+    toxicológica, culturas registradas e momento de aplicação. "Volume dem." é calculado automaticamente pela
+    alocação dos tratamentos no Plano Operacional (área × dose). Renomear um produto mantém o vínculo com os
+    tratamentos que já o utilizam. Produto que veio da classificação técnica entra sem preço: enquanto faltar,
+    ele aparece marcado aqui e na aba Validação.
+    <br><b>Atualizar com a classificação técnica</b> traz para este cadastro o que a base do sistema tem de novo:
+    produto que falta entra, campo técnico vazio se completa, e nome, preço e estoque que você ajustou ficam como
+    estão — produto seu que não existe na base também fica. Isso já acontece sozinho na primeira abertura depois de
+    a base crescer; o botão serve para refazer quando quiser.</div></div>
+</section>
+
+<section id="config">
+  <h2>Grupos de Insumos</h2>
+  <p class="lead">Os grupos organizam o cadastro de insumos em blocos (Herbicidas, Inseticidas...). Os fixos
+  vêm do cadastro do sistema; crie um grupo novo para uma categoria que a usina usa e o cadastro não tem.</p>
+
+  <div class="panel"><h3>Grupos cadastrados</h3>
+    <div class="tblwrap"><table id="t_grupos"></table></div>
+    <div class="row" style="margin-top:12px">
+      <div style="min-width:260px"><label for="in_grp_novo">Novo grupo</label>
+        <input id="in_grp_novo" placeholder="Ex.: Espalhantes"></div>
+      <div style="align-self:flex-end"><button class="btn p" id="btn_grp_add">Adicionar grupo</button></div>
+    </div>
+    <div class="hint" style="margin-top:9px">Um grupo novo fica disponível na coluna <b>Grupo</b> do cadastro de
+    insumos, na aba Insumos. Só é possível remover um grupo criado aqui, e apenas quando nenhum produto
+    estiver usando ele — mude o grupo dos produtos antes de remover.</div></div>
 </section>
 
 <!-- ===== FORNECEDORES DE CANA ===== -->
