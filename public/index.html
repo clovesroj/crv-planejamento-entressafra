@@ -802,7 +802,7 @@
   <h2>Acompanhamento do Plano</h2>
   <p class="lead">As metas que cada gerência leva da reunião de planejamento e o quanto delas já foi
   cumprido. A meta é a mesma que o modal da atividade mostra — não há dois números para a mesma coisa.</p>
-  <div class="grid g4" id="k_acomp" style="margin-bottom:16px"></div>
+  <div class="grid g5" id="k_acomp" style="margin-bottom:16px"></div>
 
   <div class="panel"><h3>Onde perguntar</h3>
     <div class="row" style="margin-bottom:12px">
@@ -814,6 +814,26 @@
 
   <div class="panel"><h3>Resumo por gerência</h3>
     <div class="tblwrap"><table id="t_acomp_ger"></table></div></div>
+
+  <div class="panel"><h3>Critério por mês: o que cada gerência tem de entregar</h3>
+    <div class="row" style="margin-bottom:10px">
+      <div style="min-width:220px"><label for="sel_crit_ger">Gerência</label>
+        <select id="sel_crit_ger">
+          <option value="">Todas</option>
+          <option value="agricola">Gerência Agrícola</option>
+          <option value="logistica">Gerência de Logística</option>
+        </select></div>
+      <div style="min-width:200px"><label for="sel_crit_cabe">Mostrar</label>
+        <select id="sel_crit_cabe">
+          <option value="">Todos os meses</option>
+          <option value="apertado">Só os que não cabem</option>
+        </select></div>
+    </div>
+    <div class="tblwrap"><table id="t_crit_mes"></table></div>
+    <div class="hint" style="margin-top:9px">Uma linha por atividade e mês, na ordem do calendário — é assim
+    que a reunião mensal anda. As quatro colunas de <b>necessário</b> são alternativas, não se somam: cada uma
+    mostra o que aquele critério teria de ser sozinho, com os outros três parados na premissa do mês. O critério
+    de cada mês se ajusta no botão <b>mês</b> do Dimensionamento.</div></div>
 
   <div class="panel"><h3>Metas — Gerência Agrícola</h3>
     <div class="tblwrap"><table id="t_meta_agricola"></table></div>

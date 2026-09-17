@@ -5,7 +5,7 @@ import { composicao, criarTrat, destravar, marcarEtapa, mesclarBaseInsumos, remo
 import { CFG } from '../dados/cfg.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
-import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL } from '../nucleo/estado.js';
+import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE } from '../nucleo/estado.js';
 import { FROTA_ABERTO, FROTA_UN, INS_ABERTO, MAQ, setFROTA_DEST, setFROTA_ORIG } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { aplicarBuscaAtiv, aplicarBuscaFrota, aplicarBuscaPes } from '../ui/dimensionamento.js';
@@ -235,6 +235,9 @@ document.addEventListener("change",e=>{
   if(t.dataset.ap!==undefined){ const l=apoioLista()[+t.dataset.ap];
     l[t.dataset.f] = t.value;
     salvar(); render(); return; }
+  // filtros do painel de criterio por mes: so mudam a visao, nao gravam nada
+  if(t.id==="sel_crit_ger"){ setCRIT_GER(t.value); render(); return; }
+  if(t.id==="sel_crit_cabe"){ setCRIT_CABE(t.value); render(); return; }
   if(t.id==="sel_grat_tipo"){ GRAT[FUN_SEL]={tipo:t.value, valor:num($("#in_grat").value)}; salvar(); render(); return; }
 });
 /* ---------- SELETOR DE MESES ----------

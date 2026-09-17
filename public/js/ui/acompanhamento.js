@@ -1,6 +1,6 @@
-import { GERENCIAS, excecoes, metasDeFrota, metasPorAtividade, porGerencia } from '../calculo/acompanhamento.js';
+import { GERENCIAS, criterioPorMes, excecoes, metasDeFrota, metasPorAtividade, porGerencia } from '../calculo/acompanhamento.js';
 import { MESES, clsMes } from '../nucleo/calendario.js';
-import { ACOMP_MES, REAL } from '../nucleo/estado.js';
+import { ACOMP_MES, CRIT_CABE, CRIT_GER, REAL } from '../nucleo/estado.js';
 import { $, brl, fmt, pct } from '../nucleo/formato.js';
 import { kpi, tdMeses, th, thMeses } from './componentes.js';
 
@@ -16,6 +16,7 @@ function pintarAcomp(R){
   const E  = excecoes(R, ACOMP_MES, SEL.parcial ? SEL.meses : null);
   const ex = E.ex;
   const ger = porGerencia(R, ACOMP_MES, SEL.parcial ? SEL.meses : null);
+  const forasCrit = criterioPorMes(R, null).filter(c => !c.cabe).length;
 
   $("#sel_acomp_mes").innerHTML =
     `<option value="">Ano todo</option>` +
@@ -32,6 +33,8 @@ function pintarAcomp(R){
         E.atraso.length ? "abaixo de 95% do plano medido" : "todas as medidas em dia") +
     kpi("Atraso em dinheiro", E.atrasoValor>0?"a":"g", brl(E.atrasoValor),
         E.atrasoValor>0 ? "custo do que deveria ter sido feito e não foi" : "sem atraso medido") +
+    kpi("Meses fora do critério", forasCrit?"a":"g", fmt(forasCrit),
+        forasCrit ? "volume não cabe na frota e no critério do mês" : "todo mês cabe no critério lançado") +
     kpi("Sem apontamento", ex.semLancamento?"a":"g", fmt(ex.semLancamento)+" meses",
         ex.semLancamento ? "planejados e ainda não reportados" : "tudo reportado até aqui");
 
@@ -70,12 +73,46 @@ function pintarAcomp(R){
      <td class="num calc">${metasDeFrota(R).length} equip.</td><td colspan="5"></td>
      <td class="num calc">${brl(R.crmTotal||0)}</td></tr></tbody>`;
 
+  // ===== critério por mês =====
+  // A ordem é a do calendário, não a da lista de atividades: é assim que a
+  // reunião mensal anda — abre o mês, e dentro dele o que pesa mais.
+  const critSel = $("#sel_crit_ger"), cabeSel = $("#sel_crit_cabe");
+  if(critSel) critSel.value = CRIT_GER;
+  if(cabeSel) cabeSel.value = CRIT_CABE;
+  const crit = criterioPorMes(R, CRIT_GER || null)
+    .filter(c => CRIT_CABE === "apertado" ? !c.cabe : true);
+  $("#t_crit_mes").innerHTML = th([["Mês"],["Cod"],["Atividade"],["Gerência"],["Produção",1],
+    ["Por dia efetivo",1],["Por dia corrido",1],["Frota",1],["Rend.",1],["Horas",1],
+    ["h/dia · equip.",1],["Rend. nec.",1],["Disp. nec.",1],["Utiliz. nec.",1],["Efic. nec.",1],["Situação"]])+"<tbody>"+
+    (crit.length ? crit.map(c=>`<tr>
+      <td class="tot">${c.mes}</td><td>${c.cod}</td><td>${c.nome}</td>
+      <td class="calc">${GERENCIAS[c.gerencia]||c.gerencia}</td>
+      <td class="num tot">${fmt(c.q)} ${c.un}</td>
+      <td class="num tot" title="${fmt(c.q)} ${c.un} ÷ ${fmt(c.dias)} dias de operação">${fmt(c.qDia,1)}
+        <span class="calc">÷${fmt(c.dias)}</span></td>
+      <td class="num calc" title="${fmt(c.q)} ${c.un} ÷ ${fmt(c.diasCorridos)} dias do mês">${fmt(c.qDiaCorrido,1)}
+        <span class="calc">÷${fmt(c.diasCorridos)}</span></td>
+      <td class="num calc">${fmt(c.n)}</td>
+      <td class="num calc">${fmt(c.rend,2)}</td>
+      <td class="num calc">${fmt(c.horas)} h</td>
+      <td class="num ${c.cabe?"calc":"tot"}" style="${c.cabe?"":"color:var(--red)"}">${fmt(c.hDiaEquip,1)}
+        <span class="calc">de ${fmt(c.hDispEquip,1)}</span></td>
+      <td class="num calc">${fmt(c.rendNec,2)}</td>
+      <td class="num ${c.dispNec>c.disp?"tot":"calc"}" style="${c.dispNec>c.disp?"color:var(--red)":""}">${pct(c.dispNec)}</td>
+      <td class="num ${c.utilNec>c.util?"tot":"calc"}" style="${c.utilNec>c.util?"color:var(--red)":""}">${pct(c.utilNec)}</td>
+      <td class="num ${c.eficNec>c.efic?"tot":"calc"}" style="${c.eficNec>c.efic?"color:var(--red)":""}">${pct(c.eficNec)}</td>
+      <td>${c.cabe ? '<span class="badge b-ok">cabe</span>' : '<span class="badge b-bad">não cabe</span>'}</td></tr>`).join("")
+      : `<tr><td colspan="16" class="calc">${CRIT_CABE==="apertado"
+          ? "Nenhum mês fora do critério neste recorte."
+          : "Nenhuma atividade com volume lançado."}</td></tr>`)+
+    "</tbody>";
+
   // ===== metas por gerência =====
   ["agricola","logistica"].forEach(g=>{
     const lin = metas.filter(m=>m.gerencia===g);
     $("#t_meta_"+g).innerHTML = th([["Cod"],["Atividade"],["Etapa"],["Volume",1],["Janela"],
       ["Rend.",1],["Frota",1],["Efetivo",1],["Meta/dia efetivo · equip.",1],
-      ["Meta/dia efetivo · frota",1],["Custo",1]])+"<tbody>"+
+      ["Meta/dia efetivo · frota",1],["Meta/dia corrido · frota",1],["Custo",1]])+"<tbody>"+
       (lin.length ? lin.map(m=>`<tr>
         <td>${m.cod}</td><td>${m.nome}</td><td class="calc">${m.etapa}</td>
         <td class="num tot">${fmt(m.total)} ${m.un}</td>
@@ -87,8 +124,10 @@ function pintarAcomp(R){
           ? fmt(m.meta.qEquipDia,1)+" "+m.un+" · "+fmt(m.meta.hEquipDia,1)+" h" : "—"}</td>
         <td class="num ${m.meta?"tot":"calc"}">${m.meta
           ? fmt(m.meta.qFrotaDia,1)+" "+m.un : "—"}</td>
+        <td class="num calc" title="produção ÷ dias de calendário da janela">${m.qDiaCorrido>0
+          ? fmt(m.qDiaCorrido,1)+" "+m.un : "—"}</td>
         <td class="num calc">${brl(m.custo)}</td></tr>`).join("")
-        : `<tr><td colspan="11" class="calc">Nenhuma atividade com volume lançado para esta gerência.</td></tr>`)+
+        : `<tr><td colspan="12" class="calc">Nenhuma atividade com volume lançado para esta gerência.</td></tr>`)+
       "</tbody>";
   });
 

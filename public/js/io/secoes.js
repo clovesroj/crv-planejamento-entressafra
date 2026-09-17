@@ -3,7 +3,7 @@ import { ADM_CRITERIOS, ADM_GRUPOS } from '../dados/administrativo.js';
 import { ARR_BASE, ARR_FORMAS, ETAPAS_ORD, arrRat } from '../calculo/arrendamento.js';
 import { FORN_MODALIDADES } from '../dados/fornecedores.js';
 import { deptIdx } from '../calculo/pessoas.js';
-import { GERENCIAS, excecoes, execucao, metasDeFrota, metasPorAtividade, porGerencia } from '../calculo/acompanhamento.js';
+import { GERENCIAS, criterioPorMes, excecoes, execucao, metasDeFrota, metasPorAtividade, porGerencia } from '../calculo/acompanhamento.js';
 import { CFG } from '../dados/cfg.js';
 import { CAT_LBL, MESES, PERIODOS, periodoMes } from '../nucleo/calendario.js';
 import { composicao, etapasNoPlano, tratEtapas, tratListaTodos } from '../calculo/insumos.js';
@@ -465,13 +465,15 @@ function metasDe(R, ger){
   return sec(ger==="agricola" ? "Metas agrícolas" : "Metas de logística",
     "Metas — "+(GERENCIAS[ger]||ger),
     ["Cod","Atividade","Etapa","Volume","Unid.","Janela","Rendimento","Frota","Efetivo",
-     "Meta/dia por equipamento","Horas/dia por equipamento","Meta/dia da frota","Custo"],
+     "Meta/dia efetivo por equipamento","Horas/dia por equipamento",
+     "Meta/dia efetivo da frota","Meta/dia corrido da frota","Custo"],
     lin.map(m=>[m.cod, m.nome, m.etapa, fmt(m.total), m.un,
       m.janela ? (m.janela.fonte==="datas" ? m.janela.ini+" a "+m.janela.fim : fmt(m.janela.meses,1)+" meses") : "—",
       fmt(m.rend,2)+" "+m.un+"/h", fmt(m.frota), fmt(m.efetivo),
       m.meta ? fmt(m.meta.qEquipDia,1)+" "+m.un : "—",
       m.meta ? fmt(m.meta.hEquipDia,1)+" h" : "—",
       m.meta ? fmt(m.meta.qFrotaDia,1)+" "+m.un : "—",
+      m.qDiaCorrido > 0 ? fmt(m.qDiaCorrido,1)+" "+m.un : "—",
       brl(m.custo)]));
 }
 
@@ -509,6 +511,49 @@ SECOES.acompanhamento = R => {
       l.aderencia!=null?pct(l.aderencia):"—", fmt(l.saldo)]));
 };
 
+/* ===== Criterio por mes =====
+   A mesma tabela que o gerente ve no modal de criterio, achatada numa folha: uma
+   linha por atividade-mes, na ordem do calendario. E a folha da reuniao mensal
+   -- percorre o mes, nao a lista de atividades.
+
+   Traz as tres alavancas na coluna "necessario". Elas sao alternativas, nao se
+   somam: cada uma mostra o que aquele criterio teria de ser sozinho, com os
+   outros dois parados na premissa do mes. A coluna Situacao ja resolve a
+   pergunta que o diretor faz primeiro -- este mes cabe ou nao. */
+function criterioDe(R, ger){
+  const lin = criterioPorMes(R, ger);
+  const nome = ger ? (GERENCIAS[ger]||ger) : "todas as gerências";
+  return sec(ger ? "Critério por mês" : "Critério por mês — geral",
+    "Critério por mês — " + nome,
+    ["Mês","Cod","Atividade","Etapa"].concat(ger ? [] : ["Gerência"]).concat(
+    ["Produção","Unid.","Por dia efetivo","Dias de operação","Por dia corrido","Dias do mês",
+     "Frota","Rendimento","Horas de máquina","Horas/dia por equipamento","Horas efetivas/dia",
+     "Disponibilidade","Utilização","Eficiência",
+     "Rendimento necessário","Disponibilidade necessária","Utilização necessária","Eficiência necessária",
+     "Situação"]),
+    lin.map(c=>[c.mes, c.cod, c.nome, c.etapa].concat(ger ? [] : [GERENCIAS[c.gerencia]||c.gerencia]).concat(
+      [fmt(c.q), c.un, fmt(c.qDia,1), fmt(c.dias), fmt(c.qDiaCorrido,1), fmt(c.diasCorridos),
+       fmt(c.n), fmt(c.rend,2)+" "+c.un+"/h", fmt(c.horas), fmt(c.hDiaEquip,1), fmt(c.hDispEquip,1),
+       pct(c.disp), pct(c.util), pct(c.efic),
+       fmt(c.rendNec,2)+" "+c.un+"/h", pct(c.dispNec), pct(c.utilNec), pct(c.eficNec),
+       c.cabe ? "cabe" : "NÃO CABE"])));
+}
+SECOES.criterioMes = R => criterioDe(R, null);
+SECOES.criterioMesAgricola = R => criterioDe(R, "agricola");
+SECOES.criterioMesLogistica = R => criterioDe(R, "logistica");
+
+/* So o que nao cabe, para abrir a reuniao pelo problema. */
+SECOES.criterioApertado = R => {
+  const lin = criterioPorMes(R, null).filter(c => !c.cabe);
+  return sec("Meses fora do critério", "Meses em que o volume não cabe no critério lançado",
+    ["Mês","Cod","Atividade","Gerência","Produção","Unid.","Horas de máquina",
+     "Horas/dia por equipamento","Horas efetivas/dia","Falta de hora por dia",
+     "Rendimento necessário","Disponibilidade necessária","Utilização necessária","Eficiência necessária"],
+    lin.map(c=>[c.mes, c.cod, c.nome, GERENCIAS[c.gerencia]||c.gerencia, fmt(c.q), c.un,
+      fmt(c.horas), fmt(c.hDiaEquip,1), fmt(c.hDispEquip,1), fmt(c.hDiaEquip-c.hDispEquip,1),
+      fmt(c.rendNec,2)+" "+c.un+"/h", pct(c.dispNec), pct(c.utilNec), pct(c.eficNec)]));
+};
+
 /* Os 20 relatórios. `secoes` é a ordem em que as abas ou blocos saem. */
 const RELATORIOS = [
   {id:"anual",   nome:"Orçamento Agrícola Anual",     secoes: ABAS_COMPLETO},
@@ -527,10 +572,11 @@ const RELATORIOS = [
   {id:"forn",    nome:"Orçamento de Fornecedores",    secoes:["fornecedores","producao","logistica"]},
   {id:"caixa",   nome:"Fluxo de Caixa Agrícola",      secoes:["fluxo","mensal","periodos"]},
   {id:"indic",   nome:"Indicadores de Custo",         secoes:["indicadores","natureza","cenarios"]},
-  {id:"metaAgr", nome:"Metas — Gerência Agrícola",    secoes:["metasAgricola","planoOperacional","dimensionamento"]},
-  {id:"metaLog", nome:"Metas — Gerência de Logística",secoes:["metasLogistica","transporte","combustivel"]},
-  {id:"metaMan", nome:"Metas — Gerência de Manutenção",secoes:["metasManutencao","frota","manutencao"]},
-  {id:"acomp",   nome:"Acompanhamento do Plano",      secoes:["excecoes","porGerencia","acompanhamento","metasAgricola","metasLogistica","metasManutencao"]},
+  {id:"metaAgr", nome:"Metas — Gerência Agrícola",    secoes:["metasAgricola","criterioMesAgricola","planoOperacional","dimensionamento"]},
+  {id:"metaLog", nome:"Metas — Gerência de Logística",secoes:["metasLogistica","criterioMesLogistica","transporte","combustivel"]},
+  {id:"metaMan", nome:"Metas — Gerência de Manutenção",secoes:["metasManutencao","criterioApertado","frota","manutencao"]},
+  {id:"acomp",   nome:"Acompanhamento do Plano",      secoes:["excecoes","criterioApertado","porGerencia","acompanhamento","criterioMes","metasAgricola","metasLogistica","metasManutencao"]},
+  {id:"criterio",nome:"Critério Operacional por Mês", secoes:["criterioApertado","criterioMes","premissas","dimensionamento"]},
 ];
 
 /* Seções extras que só saem no nível detalhado do relatório anual. */

@@ -123,6 +123,12 @@ h2{font-family:var(--f-display);font-size:28px;font-weight:600;line-height:1.1;l
 .g4{grid-template-columns:repeat(4,minmax(0,1fr))}
 @media (max-width:1180px){ .g4{grid-template-columns:repeat(2,minmax(0,1fr))} }
 @media (max-width:560px){ .g4{grid-template-columns:minmax(0,1fr)} }
+/* cinco cartoes: quebra em 3+2 antes de virar 2 e 1, para nao deixar um cartao
+   sozinho numa linha larga */
+.g5{grid-template-columns:repeat(5,minmax(0,1fr))}
+@media (max-width:1320px){ .g5{grid-template-columns:repeat(3,minmax(0,1fr))} }
+@media (max-width:900px){ .g5{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (max-width:560px){ .g5{grid-template-columns:minmax(0,1fr)} }
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 
 

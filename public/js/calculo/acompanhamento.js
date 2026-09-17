@@ -1,4 +1,4 @@
-import { metaDe } from './atividade.js';
+import { criterioMensal, metaDe } from './atividade.js';
 import { CFG } from '../dados/cfg.js';
 import { MESES, NM } from '../nucleo/calendario.js';
 import { REAL } from '../nucleo/estado.js';
@@ -50,9 +50,35 @@ function metasPorAtividade(R){
       total: r.total, horas: r.horas, rend: r.rend, frota: r.frotaR, efetivo: r.efetivo,
       maq: r.maqEfetiva, imp: r.impEfetivo,
       janela: r.janela, custo: r.direto, meta: m,
+      // dias de calendario da janela, ao lado dos dias de operacao que metaDe usa
+      qDiaCorrido: r.janela && r.janela.dias > 0 ? r.total/r.janela.dias : 0,
+      diasCorridos: r.janela ? r.janela.dias : 0,
       meses: r.meses.map(q=>num(q)),
     };
   }).sort((a,b)=> b.total - a.total);
+}
+
+/* ===== Criterio mes a mes, de todas as atividades =====
+   A meta por atividade e da janela inteira; esta e do mes, que e como a reuniao
+   com o gerente acontece -- percorrendo o calendario, nao a lista de atividades.
+
+   Sai de criterioMensal(), a mesma funcao do modal de criterio e do modal da
+   atividade. O relatorio nao recalcula meta: se recalculasse, a folha impressa
+   e a tela poderiam divergir no meio da reuniao.
+
+   Ordenado por mes e, dentro do mes, pelo volume -- o maior primeiro, que e por
+   onde a conversa comeca. */
+function criterioPorMes(R, ger){
+  const linhas = [];
+  R.L.filter(r => r.total > 0).forEach(r=>{
+    const g = gerenciaDe(r.a);
+    if(ger && g !== ger) return;
+    const un = r.a.un.split("/")[0];
+    criterioMensal(r).filter(c => c.temVolume).forEach(c=>{
+      linhas.push({cod: r.a.cod, nome: r.a.nome, etapa: r.a.etapa, gerencia: g, un, ...c});
+    });
+  });
+  return linhas.sort((a,b)=> a.i - b.i || b.q - a.q);
 }
 
 /**
@@ -167,5 +193,5 @@ const GERENCIAS = {
   logistica: "Gerência de Logística",
 };
 
-export { GERENCIAS, excecoes, execucao, gerenciaDe, metasDeFrota, metasPorAtividade,
-         porGerencia, realDe };
+export { GERENCIAS, criterioPorMes, excecoes, execucao, gerenciaDe, metasDeFrota,
+         metasPorAtividade, porGerencia, realDe };
