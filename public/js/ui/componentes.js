@@ -92,14 +92,27 @@ function habilitarReordenacao(tabelaId, fixas=0){
   const salvo = ordemSalva(tabelaId);
   // moveis[posicaoVisivel] = indice original da coluna; comeca na ordem do cadastro
   const moveis = (salvo && salvo.length===nCols-fixas) ? salvo.slice() : ths.map((_,i)=>i).slice(fixas);
-  const aplicar = () => linhas.forEach(tr=>{
-    const cels = [...tr.children];
-    if(cels.length !== nCols) return;   // linha de grupo/total/detalhe: uma celula so, nao mexe
-    const frag = document.createDocumentFragment();
-    for(let i=0;i<fixas;i++) frag.appendChild(cels[i]);
-    moveis.forEach(i=>{ if(cels[i]) frag.appendChild(cels[i]); });
-    tr.appendChild(frag);
-  });
+  // tabela com colgroup (ex.: #t_ins, table-layout:fixed) tira a largura do <col>,
+  // nao da celula — reordenar so a linha deixava a largura presa na posicao antiga
+  // e o conteudo (que mudou de coluna) saia com o tamanho errado
+  const colgroup = tab.querySelector(':scope > colgroup');
+  const cols = colgroup ? [...colgroup.children] : null;
+  const aplicar = () => {
+    linhas.forEach(tr=>{
+      const cels = [...tr.children];
+      if(cels.length !== nCols) return;   // linha de grupo/total/detalhe: uma celula so, nao mexe
+      const frag = document.createDocumentFragment();
+      for(let i=0;i<fixas;i++) frag.appendChild(cels[i]);
+      moveis.forEach(i=>{ if(cels[i]) frag.appendChild(cels[i]); });
+      tr.appendChild(frag);
+    });
+    if(cols && cols.length===nCols){
+      const frag = document.createDocumentFragment();
+      for(let i=0;i<fixas;i++) frag.appendChild(cols[i]);
+      moveis.forEach(i=>{ if(cols[i]) frag.appendChild(cols[i]); });
+      colgroup.appendChild(frag);
+    }
+  };
   // so mexe no DOM se houver ordem customizada de verdade — render() chama isto
   // a cada tecla digitada em qualquer tabela do app, e reordenar sem necessidade
   // custaria caro pra maioria das tabelas, que nunca tiveram coluna arrastada
