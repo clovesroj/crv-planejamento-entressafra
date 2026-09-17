@@ -30,6 +30,31 @@ import { pintarTransp } from '../ui/transporte.js';
 import { pintarValida } from '../ui/validacao.js';
 import { pintarAcomp } from '../ui/acompanhamento.js';
 import { aplicarPermissoes } from '../ui/permissoes.js';
+import { habilitarReordenacao, reaplicarBuscas } from '../ui/componentes.js';
+
+/* Toda tabela que ganha busca por nome (ui/*.js, via .tbl-busca no index.html)
+   tambem ganha coluna arrastavel — mesmo criterio, mesmo lugar. Fora daqui só
+   grade de mês (coluna É o mês, arrastar não faz sentido) e as tabelas fixas
+   de comparação. #t_plano tranca as 2 primeiras colunas (fixas:2): são as que
+   ficam coladas na rolagem horizontal (ver componentes.css), então não podem
+   trocar de posição sem quebrar o freeze. */
+const TABELAS_REORDENAVEIS = [
+  ['#t_enc',0], ['#t_ben',0], ['#t_fun',0], ['#t_ind',0], ['#t_plano',2],
+  ['#t_dim',0], ['#t_frota',0], ['#t_rf_base',0], ['#t_apoio',0], ['#t_dim_pes',0],
+  ['#t_pes_base',0], ['#t_pes_quadro',0], ['#t_apoio_eq',0], ['#t_crm',0], ['#t_maq',0],
+  ['#t_ref_resumo',0], ['#t_ref_conj',0], ['#t_tp',0],
+  ['#t_ins',0], ['#t_comp',0], ['#t_trat',0], ['#t_mat',0],
+  ['#t_forn',0], ['#t_forn_qual',0], ['#t_arr',0], ['#t_adm',0],
+  ['#t_esp',0], ['#t_contas',0], ['#t_tarifa',0], ['#t_terc',0], ['#t_comb_maq',0],
+  ['#t_rf_oper',0], ['#t_rf_apoio',0], ['#t_rf_tpess',0],
+  ['#t_pes_dept',0], ['#t_pes_fun',0], ['#t_pes_det',0],
+  ['#t_acomp_exc',0], ['#t_crit_mes',0], ['#t_meta_agricola',0], ['#t_meta_logistica',0],
+  ['#t_meta_manut',0], ['#t_acomp',0], ['#t_val',0],
+];
+function reaplicarTabelas(){
+  reaplicarBuscas();
+  TABELAS_REORDENAVEIS.forEach(([id,fixas])=>habilitarReordenacao(id,fixas));
+}
 
 /* Recorte do periodo escolhido na barra superior.
    So decompoe o que o motor ja produz mes a mes -- custo mensal, naturezas por
@@ -107,7 +132,10 @@ function render(){
   pintarCapa(R); pintarMDO(R); pintarPlano(R); pintarDim(R); pintarTransp(R); pintarApoio(R); pintarCRM(R); pintarReforma(); pintarTPess(R);
   pintarIrrig(R); pintarInsumos(R); pintarArrend(R); pintarForn(R); pintarAdm(R); pintarCustos(R); pintarContas(R); pintarCombustivel(R); pintarResumoFrota(R); pintarPessoas(R);
   pintarPainel(R); pintarValida(R); pintarAcomp(R); pintarRastro(R); pintarRendMensal(R);
-  // por último: os pintores recriam os controles, e a trava de perfil precisa valer sobre eles
+  // depois dos pintores: eles recriam a tabela do zero a cada render(), entao busca
+  // e ordem de coluna (que vivem so no DOM) precisam ser reaplicadas por cima; a
+  // trava de perfil roda por ultimo porque precisa valer sobre os controles novos
+  reaplicarTabelas();
   aplicarPermissoes();
 }
 /* O rastro se redesenha sozinho: render() inteiro custa ~500 ms porque refaz as

@@ -1,5 +1,6 @@
 import { MESES, clsMes } from '../nucleo/calendario.js';
 import { $, brl, fmt } from '../nucleo/formato.js';
+import { USUARIO } from '../nucleo/sessao.js';
 
 // chave opcional: a chave do rastro. Com ela o card vira botão e abre a
 // explicação daquele número — é por onde se entra na composição.
@@ -57,6 +58,73 @@ function filtrarPorNome(tabelaId, termo){
   });
   fecharGrupo();
 }
+/* Acha toda caixa de busca já na tela (marcada com a classe, aponta a tabela
+   pelo data-alvo) e reaplica o termo que já estava digitado nela. Chamado uma
+   vez no fim do render() inteiro — dispensa cada tela lembrar de re-filtrar
+   a própria tabela depois de repintá-la. */
+function reaplicarBuscas(){
+  document.querySelectorAll('.tbl-busca').forEach(inp=>filtrarPorNome(inp.dataset.alvo, inp.value));
+}
+
+/* ---------- REORDENAR COLUNA NO ARRASTO ----------
+   Preferência pessoal de leitura, não dado do plano: fica só no navegador,
+   por usuário (login na chave), nunca no documento compartilhado — não é o
+   tipo de coisa que devia mudar a tela de outra pessoa. `fixas` tranca as N
+   primeiras colunas na frente (não arrastam, não trocam de lugar): é o que
+   preserva a coluna congelada do Plano Operacional, por exemplo. */
+const chaveOrdem = tabelaId => `crv_ordem_col:${(USUARIO&&USUARIO.login)||"anon"}:${tabelaId}`;
+function ordemSalva(tabelaId){
+  try{ const raw = localStorage.getItem(chaveOrdem(tabelaId)); return raw ? JSON.parse(raw) : null; }
+  catch(e){ return null; }
+}
+function salvarOrdem(tabelaId, ordem){
+  try{ localStorage.setItem(chaveOrdem(tabelaId), JSON.stringify(ordem)); }catch(e){}
+}
+function habilitarReordenacao(tabelaId, fixas=0){
+  const tab = $(tabelaId);
+  if(!tab) return;
+  const linhas = [tab.querySelector('thead tr'), ...tab.querySelectorAll('tbody tr')].filter(Boolean);
+  const ths = [...tab.querySelectorAll('thead th')];
+  const nCols = ths.length;
+  if(nCols - fixas < 2) return;   // nada para trocar de lugar
+  const salvo = ordemSalva(tabelaId);
+  // moveis[posicaoVisivel] = indice original da coluna; comeca na ordem do cadastro
+  const moveis = (salvo && salvo.length===nCols-fixas) ? salvo.slice() : ths.map((_,i)=>i).slice(fixas);
+  const aplicar = () => linhas.forEach(tr=>{
+    const cels = [...tr.children];
+    if(cels.length !== nCols) return;   // linha de grupo/total/detalhe: uma celula so, nao mexe
+    const frag = document.createDocumentFragment();
+    for(let i=0;i<fixas;i++) frag.appendChild(cels[i]);
+    moveis.forEach(i=>{ if(cels[i]) frag.appendChild(cels[i]); });
+    tr.appendChild(frag);
+  });
+  // so mexe no DOM se houver ordem customizada de verdade — render() chama isto
+  // a cada tecla digitada em qualquer tabela do app, e reordenar sem necessidade
+  // custaria caro pra maioria das tabelas, que nunca tiveram coluna arrastada
+  if(salvo) aplicar();
+  let arrastando = null;
+  ths.forEach((th,origIdx)=>{
+    if(origIdx<fixas) return;
+    th.draggable = true;
+    th.classList.add('th-arrasta');
+    th.addEventListener('dragstart', ()=>{ arrastando=origIdx; th.classList.add('arrastando'); });
+    th.addEventListener('dragend', ()=>{ th.classList.remove('arrastando'); th.classList.remove('sobre'); arrastando=null; });
+    th.addEventListener('dragover', e=>e.preventDefault());
+    th.addEventListener('dragenter', ()=>{ if(arrastando!==null && arrastando!==origIdx) th.classList.add('sobre'); });
+    th.addEventListener('dragleave', ()=>th.classList.remove('sobre'));
+    th.addEventListener('drop', e=>{
+      e.preventDefault();
+      th.classList.remove('sobre');
+      if(arrastando===null || arrastando===origIdx) return;
+      const de = moveis.indexOf(arrastando), para = moveis.indexOf(origIdx);
+      if(de<0 || para<0) return;
+      const [mov] = moveis.splice(de,1);
+      moveis.splice(para,0,mov);
+      salvarOrdem(tabelaId, moveis);
+      aplicar();
+    });
+  });
+}
 
 /* ---------- GRÁFICOS ---------- */
 function barras(el,dados,cor,un){
@@ -86,4 +154,5 @@ function barrasH(el,dados){
 }
 
 
-export { barras, barrasH, filtrarPorNome, kpi, maxSel, somaSel, tdMeses, th, thMeses };
+export { barras, barrasH, filtrarPorNome, habilitarReordenacao, kpi, maxSel,
+         reaplicarBuscas, somaSel, tdMeses, th, thMeses };

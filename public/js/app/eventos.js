@@ -8,8 +8,7 @@ import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
 import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE } from '../nucleo/estado.js';
 import { FROTA_ABERTO, FROTA_UN, INS_ABERTO, MAQ, setFROTA_DEST, setFROTA_ORIG } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
-import { aplicarBuscaAtiv, aplicarBuscaFrota, aplicarBuscaPes } from '../ui/dimensionamento.js';
-import { aplicarBuscaIns, aplicarBuscaTrat, aplicarBuscaMat } from '../ui/insumos.js';
+import { filtrarPorNome } from '../ui/componentes.js';
 import { lerPremissas } from '../ui/premissas.js';
 import { leve, render, renderRastro, renderRendMensal } from './ciclo.js';
 import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarRastro, voltarRastro } from '../ui/rastro.js';
@@ -153,14 +152,9 @@ document.addEventListener("input",e=>{
     QUADRO[f]=QUADRO[f]||{}; QUADRO[f][t.dataset.f]=num(t.value); salvar(); leve(); return; }
   if(t.dataset.enc!==undefined){ ENC[t.dataset.enc]=num(t.value); salvar(); leve(); return; }
   if(t.dataset.ben!==undefined){ BEN[t.dataset.ben]=num(t.value); salvar(); leve(); return; }
-  // busca por nome nas tabelas de dimensionamento: so esconde linha, nao recalcula nada
-  if(t.id==="busca_dim_ativ"){ aplicarBuscaAtiv(t.value); return; }
-  if(t.id==="busca_dim_frota"){ aplicarBuscaFrota(t.value); return; }
-  if(t.id==="busca_dim_pes"){ aplicarBuscaPes(t.value); return; }
-  // busca por nome nas tabelas de insumos: idem
-  if(t.id==="busca_ins"){ aplicarBuscaIns(t.value); return; }
-  if(t.id==="busca_trat"){ aplicarBuscaTrat(t.value); return; }
-  if(t.id==="busca_mat"){ aplicarBuscaMat(t.value); return; }
+  // busca por nome: qualquer caixa .tbl-busca filtra a tabela que data-alvo aponta,
+  // sem recalcular nada — mesma trava generica serve pra tabela nova nenhuma linha tocar aqui
+  if(t.classList.contains("tbl-busca")){ filtrarPorNome(t.dataset.alvo, t.value); return; }
 });
 document.addEventListener("change",e=>{
   const t=e.target;

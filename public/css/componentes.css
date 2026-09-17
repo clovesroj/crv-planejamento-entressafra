@@ -83,6 +83,15 @@ td select{height:28px;padding:0 8px;font-size:12.5px;min-width:110px}
 .tot{font-weight:700;color:var(--ink)}
 tr.sub td{background:var(--sunk);font-size:12px;padding:5px 12px}
 
+/* caixa de busca por nome, acima de qualquer tabela do app */
+.tbl-busca{max-width:320px;margin-bottom:10px}
+
+/* cabecalho arrastavel: reordena coluna, preferencia pessoal (ver componentes.js) */
+th.th-arrasta{cursor:grab}
+th.th-arrasta:active{cursor:grabbing}
+th.th-arrasta.arrastando{opacity:.35}
+th.th-arrasta.sobre{box-shadow:inset 0 0 0 2px var(--leaf)}
+
 /* colunas congeladas — Plano Operacional
    position:sticky em td/th não funciona com border-collapse:collapse — isolar esta tabela */
 #t_plano{border-collapse:separate;border-spacing:0}

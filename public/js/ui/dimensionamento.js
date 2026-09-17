@@ -3,7 +3,7 @@ import { FROTA_ESP, SEP_MOD, chaveDoModelo, destinoDe, espDe, modDe, opcoesDesti
 import { DIM, FROTA_ABERTO, QUADRO } from '../nucleo/estado.js';
 import { $, brl, fmt, num, pct } from '../nucleo/formato.js';
 import { MESES, NM, clsMes } from '../nucleo/calendario.js';
-import { filtrarPorNome, kpi, maxSel, tdMeses, th, thMeses } from './componentes.js';
+import { kpi, maxSel, tdMeses, th, thMeses } from './componentes.js';
 import { ESCALAS } from '../dados/escalas.js';
 import { quadroBase } from '../calculo/quadro.js';
 import { temCriterioMensal } from '../calculo/atividade.js';
@@ -14,11 +14,6 @@ import { temCriterioMensal } from '../calculo/atividade.js';
 const btnMes = cod => `<button class="btn xs" data-rendmes="${cod}"
   title="Critério por mês: produção, frota, disponibilidade e utilização">${
   temCriterioMensal(cod) ? "mês •" : "mês"}</button>`;
-
-let BUSCA_ATIV = "", BUSCA_FROTA = "", BUSCA_PES = "";
-function aplicarBuscaAtiv(v){ BUSCA_ATIV = v||""; filtrarPorNome("#t_dim", BUSCA_ATIV); }
-function aplicarBuscaFrota(v){ BUSCA_FROTA = v||""; filtrarPorNome("#t_frota", BUSCA_FROTA); }
-function aplicarBuscaPes(v){ BUSCA_PES = v||""; filtrarPorNome("#t_dim_pes", BUSCA_PES); }
 
 function pintarDim(R){
   $("#k_dim").innerHTML =
@@ -69,7 +64,6 @@ function pintarDim(R){
           <td class="calc">${p.terc?'<span class="badge b-warn">terceiro</span>':p.fcod}</td>
           <td class="calc">${p.maq}</td><td class="calc">${p.imp}</td></tr>`;});
       return h;}).join("")+"</tbody>";
-  filtrarPorNome("#t_dim", BUSCA_ATIV);
 
   const fr={};
   R.L.forEach(r=>r.partes.forEach(p=>{
@@ -112,7 +106,6 @@ function pintarDim(R){
         provisionamento da aba Reforma de Frota, e stand by não gera custo nenhum.</div>
       </div></td></tr>`;
     }).join("")+"</tbody>";
-  filtrarPorNome("#t_frota", BUSCA_FROTA);
 
   $("#t_apoio").innerHTML = th([["Veículo / Máquina"],["Qtd",1],["Utilização",1],["Disponib.",1],["Necessidade",1],["Atividade"]])+"<tbody>"+
     R.AP.linhas.map(a=>`<tr><td>${a.nome}</td><td class="num"><input data-apf="${a.nome}" value="${a.qtd}" inputmode="decimal"></td>
@@ -185,7 +178,6 @@ function pintarDimPessoas(R){
     : `<tr><td colspan="12" class="calc">Sem frente com efetivo: lance quantidades no Plano Operacional.</td></tr>`)+
     `<tr><td class="tot" colspan="10">TOTAL NAS ATIVIDADES</td>
      <td class="num tot">${fmt(totPessoas)}</td><td></td></tr></tbody>`;
-  filtrarPorNome("#t_dim_pes", BUSCA_PES);
 
   const funcoes = Object.keys(PS.porFun).sort();
   const tot = {nec:0, pico:0, ativo:0, ferias:0, demis:0, disp:0, contratar:0, exced:0};
@@ -277,4 +269,4 @@ function pintarDimPessoas(R){
     + (tot.contratar>0 ? ` · faltam ${fmt(tot.contratar)}` : "");
 }
 
-export { pintarDim, pintarDimPessoas, aplicarBuscaAtiv, aplicarBuscaFrota, aplicarBuscaPes };
+export { pintarDim, pintarDimPessoas };
