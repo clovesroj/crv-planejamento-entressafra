@@ -3,25 +3,20 @@ import { ARR_PAR, ARR_RAT, arrLista } from '../nucleo/estado.js';
 import { num } from '../nucleo/formato.js';
 
 /* ================== ARRENDAMENTOS ================== */
+/* O valor do contrato é cotado POR PAGAMENTO: é o que o contrato manda pagar em
+   cada parcela, por hectare. O ano é a parcela vezes os pagamentos do contrato.
+   Era o contrário até a 2.20.0 — o valor era tratado como anual e dividido
+   entre as parcelas, o que mostrava metade do valor em contrato semestral. */
 const ARR_FORMAS = {
-  rsha:    {nome:"R$ fixo por ha/ano",               un:"R$/ha"},
-  tcana:   {nome:"t de cana por ha/ano (Consecana)", un:"t/ha"},
-  katr:    {nome:"kg de ATR por ha/ano",             un:"kg ATR/ha"},
-  parceria:{nome:"Parceria — % da produção",         un:"% prod."}
+  rsha:    {nome:"R$ fixo por ha em cada pagamento",         un:"R$/ha"},
+  tcana:   {nome:"t de cana por ha em cada pagamento",       un:"t/ha"},
+  katr:    {nome:"kg de ATR por ha em cada pagamento",       un:"kg ATR/ha"},
+  parceria:{nome:"Parceria — % da produção em cada pagamento",un:"% prod."}
 };
 const PAG_LIVRE = "Meses específicos";
 const ARR_PAG = ["Mensal","Bimestral","Trimestral","Semestral","Anual",PAG_LIVRE];
 // de quantos em quantos meses cada periodicidade paga; o avulso não tem passo
 const PAG_PASSO = {"Mensal":1, "Bimestral":2, "Trimestral":3, "Semestral":6, "Anual":12};
-/* O que o valor informado no contrato representa. Contrato de arrendamento é
-   cotado das duas formas: valor do ano, que se divide entre os pagamentos, ou
-   valor de cada pagamento, e aí o ano é o pagamento vezes o número de parcelas.
-   Confundir os dois muda o custo do contrato por um fator igual ao número de
-   parcelas — daí ser escolha explícita, contrato por contrato. */
-const ARR_BASE = {
-  ano:     {nome:"Por ha/ano — divide entre os pagamentos", curto:"por ano"},
-  parcela: {nome:"Por ha em cada pagamento",               curto:"por pagamento"}
-};
 // parâmetros que convertem a forma de pagamento em R$ — ajustar pelo Consecana vigente
 const ARR_PAR_PADRAO = {atr:135, precoAtr:1.25, tchParc:80, criterio:"competencia"};
 // rateio do arrendamento por etapa: padrão editável, a confirmar com o relatório PECEGE/USP adotado
@@ -79,21 +74,20 @@ function arrendCalc(){
   const caixa = arrPar("criterio")==="caixa";
   const linhas = arrLista().map(a=>{
     const area=num(a.area), q=num(a.qtd);
-    // valor por hectare na base que o contrato usa
+    // valor por hectare de cada pagamento
     const rsHa = ({rsha:q, tcana:q*atr*pAtr, katr:q*pAtr, parceria:q/100*tch*atr*pAtr})[a.forma] || 0;
-    const vbase = ARR_BASE[a.vbase] ? a.vbase : "ano";
     const pm = mesesPag(a);
     const nAno = pagsAno(a);
-    // por pagamento: o ano é a parcela vezes o número de parcelas do contrato
-    const rsHaAno = vbase==="parcela" ? rsHa*nAno : rsHa;
-    const anual = rsHaAno*area;
-    const parcela = vbase==="parcela" ? rsHa*area : (pm.length ? anual/pm.length : 0);
+    const parcela = rsHa*area;
+    // o ano é a parcela vezes os pagamentos do contrato, esteja ou não na janela
+    const rsHaAno = rsHa*nAno;
+    const anual = parcela*nAno;
     const mes = Array(NM).fill(0);
     // competência: 1/12 do valor anual em cada mês; caixa: a parcela cai nos meses de pagamento
     if(!caixa) mes.fill(anual/12);
     else pm.forEach(i=>{ mes[i] += parcela; });
     // mes0 guarda o indice do 1o pagamento: `mes` virou o vetor mensal de valores
-    return {...a, area, rsHa, rsHaAno, vbase, anual, parcela, pagsAno:nAno,
+    return {...a, area, rsHa, rsHaAno, anual, parcela, pagsAno:nAno,
             mes, mes0: a.mes==null ? -1 : +a.mes, pmes:pm, nParc:pm.length,
             agenda: rotuloPag({...a, pmes:pm}),
             periodo: mes.reduce((s,x)=>s+x,0)};
@@ -104,5 +98,5 @@ function arrendCalc(){
 }
 
 
-export { ARR_BASE, ARR_FORMAS, ARR_PAG, ARR_PAR_PADRAO, ARR_RAT_PADRAO, ETAPAS_ORD, PAG_LIVRE,
+export { ARR_FORMAS, ARR_PAG, ARR_PAR_PADRAO, ARR_RAT_PADRAO, ETAPAS_ORD, PAG_LIVRE,
   arrPar, arrRat, arrendCalc, mesesPag, mesesPreset, pagsAno, rotuloPag };

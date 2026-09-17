@@ -617,14 +617,16 @@
     <input type="search" class="tbl-busca" data-alvo="#t_arr" placeholder="Buscar fazenda ou grupo...">
     <div class="tblwrap"><table id="t_arr"></table></div>
     <div class="row" style="margin-top:10px"><button class="btn p" id="btn_arr_add">Adicionar fazenda</button></div>
-    <div class="hint" style="margin-top:9px">R$/ha/ano por forma de pagamento: <b>R$ fixo</b> = valor informado ·
-    <b>t de cana</b> = t/ha × ATR × R$/kg ATR · <b>kg de ATR</b> = kg/ha × R$/kg ATR ·
-    <b>parceria</b> = % × produtividade × ATR × R$/kg ATR. <b>Valor informado</b> diz se o que está cadastrado é o
-    valor do ano — que se divide entre os pagamentos — ou o valor de cada pagamento, e aí o custo anual é a parcela
-    vezes o número de pagamentos do contrato. A periodicidade gera os meses de pagamento a partir do
-    1º pagamento; para um contrato que paga em meses escolhidos, seguidos ou não, marque os meses na grade
-    <b>Distribuição mensal</b> — a periodicidade passa a "Meses específicos" e o valor anual se divide em parcelas
-    iguais nos meses marcados. Os meses valem no critério Caixa; em Competência cada mês recebe 1/12 do valor anual.
+    <div class="hint" style="margin-top:9px">O valor cadastrado é o de <b>cada pagamento</b>, por hectare, e o custo
+    anual é a parcela vezes os pagamentos do contrato. Por forma de pagamento, a parcela por ha é:
+    <b>R$ fixo</b> = valor informado · <b>t de cana</b> = t/ha × ATR × R$/kg ATR ·
+    <b>kg de ATR</b> = kg/ha × R$/kg ATR · <b>parceria</b> = % × produtividade × ATR × R$/kg ATR.
+    <b>Meses de pagamento</b> se configura na própria linha do contrato: marque os meses em que aquele contrato paga,
+    seguidos ou não — a periodicidade passa a "Meses específicos" e a agenda é a que estiver marcada. A periodicidade
+    também gera a série sozinha a partir do 1º pagamento (mensal, bimestral, trimestral, semestral ou anual). A grade
+    <b>Distribuição mensal</b> marca os mesmos meses, com o valor de cada pagamento à vista. Pagamento que cairia fora
+    da janela do orçamento não entra no orçamento, mas continua contando no custo anual do contrato, e a aba Validação
+    avisa. Os meses valem no critério Caixa; em Competência cada mês recebe 1/12 do custo anual.
     Use o campo Grupo para somar fazendas de um mesmo bloco ou proprietário.</div></div>
   <div class="panel"><h3>Resumo por grupo de fazendas</h3><div class="tblwrap"><table id="t_arr_grupo"></table></div></div>
   <div class="panel"><h3>Rateio por etapa — referência PECEGE/USP</h3>
