@@ -1,5 +1,5 @@
 import { MESES, clsMes } from '../nucleo/calendario.js';
-import { brl, fmt } from '../nucleo/formato.js';
+import { $, brl, fmt } from '../nucleo/formato.js';
 
 // chave opcional: a chave do rastro. Com ela o card vira botão e abre a
 // explicação daquele número — é por onde se entra na composição.
@@ -26,6 +26,37 @@ const tdMeses = (arr, f, cls="num calc") =>
 const somaSel = (arr, SEL) => SEL.meses.reduce((s,i)=>s+(+arr[i]||0), 0);
 /** Pico de uma série mensal dentro do período filtrado. */
 const maxSel  = (arr, SEL) => SEL.meses.reduce((m,i)=>Math.max(m, +arr[i]||0), 0);
+
+/* ---------- BUSCA POR NOME EM TABELA ----------
+   Genérica pra qualquer tabela pintada por th()+innerHTML neste app: esconde
+   a linha que não bate o termo, sem reconstruir o innerHTML (não perde o que
+   o usuário tinha aberto). Linha de grupo (.stage) some se nenhuma linha do
+   grupo bateu; linha de total/rodapé (primeira célula .tot) fica sempre
+   visível; linha de detalhe (.sub, ou uma célula só com colspan — ficha
+   técnica, expansão de frota) segue a linha anterior, nunca é filtrada
+   sozinha. Quem chama reaplica no fim de cada pintura, porque o innerHTML é
+   reconstruído do zero a cada render() e "esconder" não sobrevive a isso. */
+// textContent não pega o value de input/select — em tabela editável (insumo,
+// tratamento...) é ali que mora o nome, não em texto solto na célula
+const textoDaLinha = tr => tr.textContent + " " +
+  [...tr.querySelectorAll("input,select")].map(el=>el.value).join(" ");
+function filtrarPorNome(tabelaId, termo){
+  const tab = $(tabelaId);
+  if(!tab) return;
+  const t = (termo||"").trim().toLowerCase();
+  let grupo = null, grupoTemMatch = false;
+  const fecharGrupo = () => { if(grupo) grupo.hidden = !grupoTemMatch; };
+  [...tab.querySelectorAll("tbody tr")].forEach(tr=>{
+    if(tr.classList.contains("stage")){ fecharGrupo(); grupo = tr; grupoTemMatch = false; return; }
+    if(tr.children[0] && tr.children[0].classList.contains("tot")){ tr.hidden = false; return; }
+    const detalhe = tr.classList.contains("sub") || (tr.children.length===1 && tr.children[0].hasAttribute("colspan"));
+    if(detalhe){ const mae = tr.previousElementSibling; tr.hidden = mae ? mae.hidden : false; return; }
+    const bate = !t || textoDaLinha(tr).toLowerCase().includes(t);
+    tr.hidden = !bate;
+    if(bate) grupoTemMatch = true;
+  });
+  fecharGrupo();
+}
 
 /* ---------- GRÁFICOS ---------- */
 function barras(el,dados,cor,un){
@@ -55,4 +86,4 @@ function barrasH(el,dados){
 }
 
 
-export { barras, barrasH, kpi, maxSel, somaSel, tdMeses, th, thMeses };
+export { barras, barrasH, filtrarPorNome, kpi, maxSel, somaSel, tdMeses, th, thMeses };

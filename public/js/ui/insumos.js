@@ -2,7 +2,7 @@ import { composicao, etapasNoPlano, precoInsumo, tratCodigos, tratEtapas, tratLi
 import { TRAT_ETAPAS } from '../dados/insumos.js';
 import { INSUMO, INS_ABERTO, P, TRATC, TRAT_NOME, TRAT_SEL, insLista } from '../nucleo/estado.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
-import { kpi, th } from './componentes.js';
+import { filtrarPorNome, kpi, th } from './componentes.js';
 import { setTRAT_SEL } from '../nucleo/estado.js';
 
 /* ---------- INSUMOS ---------- */
@@ -16,6 +16,11 @@ const FICHA = [["cod","Código do material"],["classe","Classe agronômica"],
   ["tox","Classificação toxicológica"],["culturas","Culturas registradas"],
   ["estadio","Estádio dos alvos e momento de aplicação"],["status","Status da validação"],
   ["obs","Observação técnica"],["base","Base da classificação"]];
+
+let BUSCA_INS = "", BUSCA_TRAT = "", BUSCA_MAT = "";
+function aplicarBuscaIns(v){ BUSCA_INS = v||""; filtrarPorNome("#t_ins", BUSCA_INS); }
+function aplicarBuscaTrat(v){ BUSCA_TRAT = v||""; filtrarPorNome("#t_trat", BUSCA_TRAT); }
+function aplicarBuscaMat(v){ BUSCA_MAT = v||""; filtrarPorNome("#t_mat", BUSCA_MAT); }
 
 function pintarInsumos(R){
   const TL = tratListaTodos();
@@ -64,6 +69,7 @@ function pintarInsumos(R){
           <div class="ficha">${ficha.map(([k,rot])=>
             `<div><b>${rot}</b><span>${esc(i[k])}</span></div>`).join("")}</div></td></tr>` : "");
     }).join("")+"</tbody>";
+  filtrarPorNome("#t_ins", BUSCA_INS);
 
   // --- 2. composição do tratamento selecionado ---
   const codigos = tratCodigos();
@@ -116,6 +122,7 @@ function pintarInsumos(R){
         <td class="num ${areaT?"tot":"calc"}">${areaT?brl(areaT*t.custo_ha):"—"}</td>
         <td><button class="btn d" data-trrm="${esc(t.cod)}">Remover</button></td></tr>`;}).join("")+
     "</tbody>";
+  filtrarPorNome("#t_trat", BUSCA_TRAT);
 
   // --- 4. materiais ---
   $("#t_mat").innerHTML = th([["Categoria"],["Item"],["Un."],["Preço",1],["Qtd",1],["Total",1],[""]])+"<tbody>"+
@@ -128,6 +135,7 @@ function pintarInsumos(R){
       <td class="num tot">${brl(m.total)}</td>
       <td><button class="btn d" data-mtrm="${i}">Remover</button></td></tr>`).join("")+
     `<tr><td class="tot" colspan="5">TOTAL</td><td class="num tot">${brl(R.MT.total)}</td><td></td></tr></tbody>`;
+  filtrarPorNome("#t_mat", BUSCA_MAT);
 }
 
 /* Célula de marcação da etapa: uma caixa por etapa do plano. Sem marca, mostra
@@ -149,4 +157,4 @@ function celulaEtapas(cod){
   return `<div class="etqs">${caixas}</div>${nota}`;
 }
 
-export { pintarInsumos };
+export { pintarInsumos, aplicarBuscaIns, aplicarBuscaTrat, aplicarBuscaMat };

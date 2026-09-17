@@ -31,6 +31,7 @@ const VISUAIS = [
   '#sel_fun', '#sel_cat', '#sel_orig', '#sel_dest', '#sel_trat', '#sel_acomp_mes',
   '#busca_dim_ativ', '#busca_dim_frota', '#busca_dim_pes',
   '#sel_crit_ger', '#sel_crit_cabe',
+  '#busca_ins', '#busca_trat', '#busca_mat',
   '#btn_export', '#btn_theme',
 ].join(',');
 

@@ -3,7 +3,7 @@ import { FROTA_ESP, SEP_MOD, chaveDoModelo, destinoDe, espDe, modDe, opcoesDesti
 import { DIM, FROTA_ABERTO, QUADRO } from '../nucleo/estado.js';
 import { $, brl, fmt, num, pct } from '../nucleo/formato.js';
 import { MESES, NM, clsMes } from '../nucleo/calendario.js';
-import { kpi, maxSel, tdMeses, th, thMeses } from './componentes.js';
+import { filtrarPorNome, kpi, maxSel, tdMeses, th, thMeses } from './componentes.js';
 import { ESCALAS } from '../dados/escalas.js';
 import { quadroBase } from '../calculo/quadro.js';
 import { temCriterioMensal } from '../calculo/atividade.js';
@@ -15,30 +15,6 @@ const btnMes = cod => `<button class="btn xs" data-rendmes="${cod}"
   title="Critério por mês: produção, frota, disponibilidade e utilização">${
   temCriterioMensal(cod) ? "mês •" : "mês"}</button>`;
 
-/* Busca por nome, genérica pras tabelas deste arquivo: esconde linha que não bate
-   o termo, sem tocar no innerHTML de novo (não perde o que o usuário tinha aberto).
-   Linha de grupo (.stage) some se nenhuma linha do grupo bateu; linha de detalhe
-   (.sub, ou expansão de frota — uma célula só, com colspan) segue a linha anterior,
-   nunca é filtrada sozinha. Reaplicada no fim de cada pintura, porque o innerHTML
-   é reconstruído do zero a cada render() e "esconder" não sobrevive a isso. */
-function filtrarPorNome(tabelaId, termo){
-  const tab = $(tabelaId);
-  if(!tab) return;
-  const t = (termo||"").trim().toLowerCase();
-  let grupo = null, grupoTemMatch = false;
-  const fecharGrupo = () => { if(grupo) grupo.hidden = !grupoTemMatch; };
-  [...tab.querySelectorAll("tbody tr")].forEach(tr=>{
-    if(tr.classList.contains("stage")){ fecharGrupo(); grupo = tr; grupoTemMatch = false; return; }
-    // linha de total/rodape (primeira celula .tot): sempre visivel, nunca some na busca
-    if(tr.children[0] && tr.children[0].classList.contains("tot")){ tr.hidden = false; return; }
-    const detalhe = tr.classList.contains("sub") || (tr.children.length===1 && tr.children[0].hasAttribute("colspan"));
-    if(detalhe){ const mae = tr.previousElementSibling; tr.hidden = mae ? mae.hidden : false; return; }
-    const bate = !t || tr.textContent.toLowerCase().includes(t);
-    tr.hidden = !bate;
-    if(bate) grupoTemMatch = true;
-  });
-  fecharGrupo();
-}
 let BUSCA_ATIV = "", BUSCA_FROTA = "", BUSCA_PES = "";
 function aplicarBuscaAtiv(v){ BUSCA_ATIV = v||""; filtrarPorNome("#t_dim", BUSCA_ATIV); }
 function aplicarBuscaFrota(v){ BUSCA_FROTA = v||""; filtrarPorNome("#t_frota", BUSCA_FROTA); }

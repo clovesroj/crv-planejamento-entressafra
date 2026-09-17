@@ -9,6 +9,7 @@ import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, 
 import { FROTA_ABERTO, FROTA_UN, INS_ABERTO, MAQ, setFROTA_DEST, setFROTA_ORIG } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { aplicarBuscaAtiv, aplicarBuscaFrota, aplicarBuscaPes } from '../ui/dimensionamento.js';
+import { aplicarBuscaIns, aplicarBuscaTrat, aplicarBuscaMat } from '../ui/insumos.js';
 import { lerPremissas } from '../ui/premissas.js';
 import { leve, render, renderRastro, renderRendMensal } from './ciclo.js';
 import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarRastro, voltarRastro } from '../ui/rastro.js';
@@ -156,6 +157,10 @@ document.addEventListener("input",e=>{
   if(t.id==="busca_dim_ativ"){ aplicarBuscaAtiv(t.value); return; }
   if(t.id==="busca_dim_frota"){ aplicarBuscaFrota(t.value); return; }
   if(t.id==="busca_dim_pes"){ aplicarBuscaPes(t.value); return; }
+  // busca por nome nas tabelas de insumos: idem
+  if(t.id==="busca_ins"){ aplicarBuscaIns(t.value); return; }
+  if(t.id==="busca_trat"){ aplicarBuscaTrat(t.value); return; }
+  if(t.id==="busca_mat"){ aplicarBuscaMat(t.value); return; }
 });
 document.addEventListener("change",e=>{
   const t=e.target;
