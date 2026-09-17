@@ -1,7 +1,7 @@
 import { maqDe } from './crm.js';
 import { CFG } from '../dados/cfg.js';
 import { fatorEscala } from '../dados/escalas.js';
-import { MESES, NM, mesesEntre } from '../nucleo/calendario.js';
+import { MESES, NM, diasCorridos, mesesEntre } from '../nucleo/calendario.js';
 import { DIM, P, PLANO, TERC_TAR } from '../nucleo/estado.js';
 import { num, pct } from '../nucleo/formato.js';
 import { precoDiesel } from './diesel.js';
@@ -166,7 +166,13 @@ function criterioMensal(r){
       rend, n, disp: c.disp, util: c.util, efic: c.efic, horas,
       daFrota: c.frota > 0, temRend: c.rend > 0,
       temDisp: c.temDisp, temUtil: c.temUtil, temEfic: c.temEfic,
+      // duas leituras da mesma producao: o ritmo que a frente tem de manter nos
+      // dias em que vai a campo, e o ritmo contra o calendario, que e como se
+      // acompanha "estamos no dia 12 de outubro". A primeira e a meta; a segunda
+      // e o termometro
+      dias: diasMes, diasCorridos: diasCorridos(i),
       qDia: diasMes > 0 ? q/diasMes : 0,
+      qDiaCorrido: diasCorridos(i) > 0 ? q/diasCorridos(i) : 0,
       qDiaEquip: n > 0 && diasMes > 0 ? q/n/diasMes : 0,
       hDiaEquip: n > 0 && diasMes > 0 ? horas/n/diasMes : 0,
       hDispEquip, cap,

@@ -48,8 +48,20 @@ function perTag(i){ const p = periodoMes(i); return `<span class="per per-${p}">
    Cabecalho e celula precisam levar a mesma marca, senao a tabela desalinha. */
 function clsMes(i){ return "mes-" + periodoMes(i) + " m" + i; }
 
+/* Dias de calendario do mes -- os de verdade, nao 30 arredondado: outubro tem
+   31, fevereiro tem 28 (29 em bissexto). Serve para a leitura "por dia corrido",
+   que anda ao lado da "por dia efetivo" sempre que a tela mostra meta diaria.
+   Sao dois divisores diferentes para a mesma producao, e por isso os dois
+   precisam aparecer com o seu numero de dias ao lado. */
+function diasCorridos(i){
+  const rot = MESES[i] || "";
+  const m = MES_NUM[rot.slice(0,3)] || 0;
+  const ano = 2000 + (+rot.slice(-2) || 0);
+  return m ? new Date(ano, m, 0).getDate() : 30;
+}
+
 const CAT_LBL = {mdo:"Mão de obra", manut:"Manutenção (CRM)", diesel:"Diesel", insumo:"Insumos + irrigação",
   terc:"Terceirização + transporte", arrend:"Arrendamento", fixo:"Fixos (adm./deprec.)", espor:"Esporádicos"};
 
 export { CAT_LBL, MESES, MESES_ENTRESSAFRA, MESES_SAFRA, MES_NUM, NM, NM_PER, PERIODOS, PERIODO_MESES,
-         clsMes, indiceDaData, mesesEntre, perTag, periodoMes };
+         clsMes, diasCorridos, indiceDaData, mesesEntre, perTag, periodoMes };

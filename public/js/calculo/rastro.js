@@ -155,6 +155,8 @@ function apresentacao(r, un){
 
   const dias = num(P.dias) * r.janela.meses;
   const efic = num(P.efic) > 0 ? num(P.efic)/100 : 1;
+  // dias de calendario da janela, contra os dias de operacao acima
+  const diasCal = r.janela.dias > 0 ? r.janela.dias : dias;
 
   /* Meta por equipamento. O plano fala em frota e total; quem opera precisa
      saber o que UMA maquina entrega por dia, por mes e no periodo -- e e esse
@@ -170,6 +172,9 @@ function apresentacao(r, un){
       [`Por dia efetivo (÷ ${fmt(dias,0)})`,
                        fmt(hPeriodo/dias,1)+" h", fmt(qPeriodo/dias,1)+" "+un,
                        fmt(r.horas/dias,1)+" h",  fmt(total/dias,1)+" "+un],
+      [`Por dia corrido (÷ ${fmt(diasCal,0)})`,
+                       fmt(hPeriodo/diasCal,1)+" h", fmt(qPeriodo/diasCal,1)+" "+un,
+                       fmt(r.horas/diasCal,1)+" h",  fmt(total/diasCal,1)+" "+un],
       [`Por mês (÷ ${fmt(jm,1)})`,
                        fmt(hPeriodo/jm,0)+" h",   fmt(qPeriodo/jm,0)+" "+un,
                        fmt(r.horas/jm,0)+" h",    fmt(total/jm,0)+" "+un],
@@ -179,8 +184,9 @@ function apresentacao(r, un){
     nota: `Hora produtiva é o tempo de máquina efetivamente operando: ${un} ÷ rendimento de ${fmt(r.rend,2)} ${un}/h. `+
           `Cabe nas ${fmt(num(P.hdia)*(num(P.disp)/100)*efic,1)} h efetivas por dia — ${fmt(P.hdia,1)} h de jornada × ${pct(num(P.disp)/100)} de disponibilidade mecânica × ${pct(efic)} de eficiência operacional. `+
           `A folga é a utilização de ${pct(r.util)} premissada mais o arredondamento da frota, e é ela que absorve chuva, quebra e deslocamento. `+
-          `"Por dia" é sempre por dia efetivo — dia de operação, não de calendário: ${fmt(P.dias)} por mês, `+
-          `não 30. Na janela são ${fmt(P.dias)} × ${fmt(jm,1)} meses = ${fmt(dias,0)} dias.`,
+          `As duas leituras de "por dia": a efetiva divide pelos ${fmt(dias,0)} dias de operação da janela `+
+          `(${fmt(P.dias)} por mês × ${fmt(jm,1)} meses) e é a meta; a corrida divide pelos ${fmt(diasCal,0)} dias `+
+          `de calendário e é o termômetro de prazo.`,
   } : null;
 
   /* Criterio por mes: o mesmo calculo do modal de rendimento, vindo de
@@ -190,10 +196,12 @@ function apresentacao(r, un){
   const apertados = C.filter(c => !c.cabe).length;
   const tabCriterio = C.length ? {
     titulo: "Critério por mês · o que cada mês exige",
-    cab: ["Mês", "Produção", "Por dia efetivo", "Horas de máquina", "h/dia por equip.",
+    cab: ["Mês", "Produção", "Por dia efetivo", "Por dia corrido", "Horas de máquina", "h/dia por equip.",
           "Rendimento necessário", "Disponib. mecânica necessária", "Utilização necessária",
           "Eficiência operacional necessária"],
-    linhas: C.map(c=>[c.mes, fmt(c.q)+" "+un, fmt(c.qDia,1)+" "+un,
+    linhas: C.map(c=>[c.mes, fmt(c.q)+" "+un,
+      fmt(c.qDia,1)+" "+un+" (÷"+fmt(c.dias)+")",
+      fmt(c.qDiaCorrido,1)+" "+un+" (÷"+fmt(c.diasCorridos)+")",
       fmt(c.horas)+" h", fmt(c.hDiaEquip,1)+" h",
       fmt(c.rendNec,2)+" "+un+"/h",
       pct(c.dispNec)+(c.dispNec > c.disp ? " ⚠" : ""),
@@ -201,8 +209,9 @@ function apresentacao(r, un){
       pct(c.eficNec)+(c.eficNec > c.efic ? " ⚠" : "")]),
     nota: `As quatro últimas colunas são alternativas, não se somam: cada uma mostra o que aquele `+
       `critério teria de ser sozinho, com os outros dois parados na premissa do mês. `+
-      `Todo "por dia" é por dia efetivo — o mês tem ${fmt(num(P.dias))} dias de operação, não 30, `+
-      `e cada um deles vale ${fmt(num(P.hdia),1)} h de jornada. `+
+      `São duas leituras da mesma produção: por dia efetivo divide pelos ${fmt(num(P.dias))} dias de operação `+
+      `do mês, de ${fmt(num(P.hdia),1)} h cada, e é a meta; por dia corrido divide pelos dias do calendário, `+
+      `e é o termômetro de prazo. `+
       (apertados
         ? `${apertados} ${apertados>1?"meses pedem":"mês pede"} mais do que o critério entrega (⚠): é aí que entra `+
           `frota extra, turno a mais ou volume remanejado para outro mês. O critério de cada mês se ajusta no `+
@@ -219,7 +228,8 @@ function apresentacao(r, un){
     {rot: "Frota", val: (r.frotaR || 0)+" equip.",
      sub: (r.frotaAlvo ? "frota fixada · rendimento veio dela — " : "") + (r.maqEfetiva || "—")},
     {rot: "Meta por dia efetivo", val: dias > 0 ? fmt(total/dias, 1)+" "+un : "—",
-     sub: dias > 0 ? `${fmt(total)} ${un} ÷ ${fmt(dias,0)} dias de operação na janela` : "sem janela definida"},
+     sub: dias > 0 ? `${fmt(dias,0)} dias de operação · ${fmt(total/diasCal,1)} ${un} por dia corrido (${fmt(diasCal,0)} dias)`
+                   : "sem janela definida"},
     {rot: "Efetivo", val: fmt(r.efetivo)+" pessoas",
      sub: (r.partes[0] ? r.partes[0].turnosEf : r.a.turnos)+" turno(s) · fator "+fmt(r.fator,2)},
   ];

@@ -79,9 +79,11 @@ function pintarRendMensal(R){
         naquele critério, é o ${un}/h que o volume do mês exige.
         A hora efetiva do dia sai de ${fmt(P.hdia,1)} h de jornada × disponibilidade × utilização × eficiência —
         é por aí que dezembro chuvoso encolhe o dia sem que a máquina tenha quebrado.
-        <b>Todo "por dia" aqui é por dia efetivo: ${fmt(P.dias)} por mês, não 30.</b>
-        Dia efetivo é dia de operação — dividir a produção do mês por 30 dá um número menor,
-        e é um número que a operação não persegue. O valor está em Premissas.
+        A produção do mês aparece em <b>duas leituras</b>, e elas não são a mesma coisa.
+        <b>Por dia efetivo</b> divide pelos ${fmt(P.dias)} dias de operação do mês (premissa) — é a
+        <b>meta</b>, o ritmo a manter nos dias em que a frente vai a campo.
+        <b>Por dia corrido</b> divide pelos dias do calendário — é o <b>termômetro</b>, para saber
+        se o mês está no prazo. A efetiva é sempre maior, e é ela que a operação persegue.
       </div>
       ${comVolume.length ? `<div class="rm-resumo ${apertados?"rm-alerta":"rm-ok"}">
         ${apertados
@@ -108,8 +110,10 @@ function pintarRendMensal(R){
       </div>
       ${vazio ? "" : `
       <div class="rm-metas">
-        <span title="${fmt(c.q)} ${un} ÷ ${fmt(P.dias)} dias efetivos = ${fmt(c.qDia,1)} ${un}/dia. Dia efetivo é dia de operação, não dia de calendário — o mês tem ${fmt(P.dias)}, não 30.">Por dia efetivo
-          <b>${fmt(c.qDia,1)} ${un}</b> <span class="calc">÷ ${fmt(P.dias)} dias</span></span>
+        <span title="${fmt(c.q)} ${un} ÷ ${fmt(c.dias)} dias de operação = ${fmt(c.qDia,1)} ${un}. É a meta: o ritmo a manter nos dias em que a frente vai a campo.">Por dia efetivo
+          <b>${fmt(c.qDia,1)} ${un}</b> <span class="calc">÷ ${fmt(c.dias)} dias</span></span>
+        <span title="${fmt(c.q)} ${un} ÷ ${fmt(c.diasCorridos)} dias do mês = ${fmt(c.qDiaCorrido,1)} ${un}. É o termômetro: o ritmo contra o calendário, para saber se o mês está no prazo.">Por dia corrido
+          <b>${fmt(c.qDiaCorrido,1)} ${un}</b> <span class="calc">÷ ${fmt(c.diasCorridos)} dias</span></span>
         <span title="${fmt(c.qDia,1)} ${un}/dia ÷ ${fmt(c.n)} equipamento(s)">Por equip./dia
           <b>${fmt(c.qDiaEquip,1)} ${un}</b></span>
         <span title="${fmt(c.q)} ${un} ÷ ${fmt(c.rend,2)} ${un}/h">Horas <b>${fmt(c.horas)} h</b></span>
