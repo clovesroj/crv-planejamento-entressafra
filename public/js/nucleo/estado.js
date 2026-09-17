@@ -41,7 +41,7 @@ let PERIODO_SEL = "todos";  // filtro global de periodo: todos | safra | entress
 // selecao -- e visao, nao dado, entao nao entra no documento salvo.
 let MESES_SEL = [];
 let FROTA_ABERTO = {};   // chave do modelo -> true quando a lista de unidades está aberta
-let INS_ABERTO = {};     // nome do produto -> true quando a ficha técnica está aberta
+let INS_FICHA = null;    // produto com a ficha técnica aberta no modal, ou null
 let FROTA_ORIG = "todos"; // filtro próprio/terceiro das abas de frota (não é salvo: é visão, não dado)
 let CRIT_GER = "";       // filtro de gerência do critério por mês (visão, não dado)
 let CRIT_CABE = "";      // "" todos os meses | "apertado" só os que não cabem
@@ -72,7 +72,7 @@ let TRAT_SEL = null;
 
 export {
   P, PLANO, DIM, INSUMO, ESPOR, TRATC, NIV, GRAT, APOIO, TERC_TAR, CRM, MATX,
-  INSX, INSX_V, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, CRIT_GER, CRIT_CABE, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, INS_ABERTO, APOIO_FIXO, TRAT_NOME, TRAT_ETAPA, TRAT_DEL, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
+  INSX, INSX_V, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, CRIT_GER, CRIT_CABE, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, INS_FICHA, APOIO_FIXO, TRAT_NOME, TRAT_ETAPA, TRAT_DEL, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
   TPESS, QUADRO, ADM, ADM_RAT, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL,
 };
 
@@ -97,6 +97,7 @@ export const setFROTA_ORIG = v => { FROTA_ORIG = v; };
 export const setCRIT_GER   = v => { CRIT_GER = v; };
 export const setCRIT_CABE  = v => { CRIT_CABE = v; };
 export const setFROTA_ABERTO = v => { FROTA_ABERTO = v; };
+export const setINS_FICHA    = v => { INS_FICHA = v; };
 export const setPERIODO_SEL  = v => { PERIODO_SEL = v; };
 export const setMESES_SEL    = v => { MESES_SEL = v; };
 export const setREAL         = v => { REAL = v; };

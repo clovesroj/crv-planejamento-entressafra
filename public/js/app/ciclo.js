@@ -24,6 +24,7 @@ import { pintarPessoas } from '../ui/pessoas.js';
 import { pintarPlano } from '../ui/plano.js';
 import { pintarRastro } from '../ui/rastro.js';
 import { pintarRendMensal } from '../ui/rendmensal.js';
+import { pintarFichaIns } from '../ui/insumos.js';
 import { pintarResumoFrota } from '../ui/resumo-frota.js';
 import { pintarTPess } from '../ui/transporte-pessoal.js';
 import { pintarTransp } from '../ui/transporte.js';
@@ -131,7 +132,7 @@ function render(){
   esconderMeses(R.SEL.meses);
   pintarCapa(R); pintarMDO(R); pintarPlano(R); pintarDim(R); pintarTransp(R); pintarApoio(R); pintarCRM(R); pintarReforma(); pintarTPess(R);
   pintarIrrig(R); pintarInsumos(R); pintarArrend(R); pintarForn(R); pintarAdm(R); pintarCustos(R); pintarContas(R); pintarCombustivel(R); pintarResumoFrota(R); pintarPessoas(R);
-  pintarPainel(R); pintarValida(R); pintarAcomp(R); pintarRastro(R); pintarRendMensal(R);
+  pintarPainel(R); pintarValida(R); pintarAcomp(R); pintarRastro(R); pintarRendMensal(R); pintarFichaIns();
   // depois dos pintores: eles recriam a tabela do zero a cada render(), entao busca
   // e ordem de coluna (que vivem so no DOM) precisam ser reaplicadas por cima; a
   // trava de perfil roda por ultimo porque precisa valer sobre os controles novos
@@ -143,6 +144,9 @@ function render(){
    O mesmo vale pro modal de rendimento mensal: abrir/fechar não muda nenhuma aba. */
 function renderRastro(){ pintarRastro(calcularCompleto()); }
 function renderRendMensal(){ pintarRendMensal(calcularCompleto()); aplicarPermissoes(); }
+/* A ficha nao muda numero nenhum: abrir e fechar so pinta o modal, em vez de
+   refazer as 24 abas -- o mesmo criterio do rastro e do rendimento mensal. */
+function renderFichaIns(){ pintarFichaIns(); aplicarPermissoes(); }
 
 // atualização leve: recalcula tudo mas preserva o foco de quem está digitando
 let leveTimer=null;
@@ -177,4 +181,4 @@ function leve(){
 }
 
 
-export { calcularCompleto, leve, leveTimer, render, renderRastro, renderRendMensal };
+export { calcularCompleto, leve, leveTimer, render, renderFichaIns, renderRastro, renderRendMensal };

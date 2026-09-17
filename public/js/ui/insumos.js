@@ -1,6 +1,6 @@
 import { composicao, etapasNoPlano, familiaDe, insumosPorFamilia, precoInsumo, tratCodigos, tratEtapas, tratListaTodos } from '../calculo/insumos.js';
 import { FAMILIAS_INSUMO, TRAT_ETAPAS } from '../dados/insumos.js';
-import { INSUMO, INS_ABERTO, P, TRATC, TRAT_NOME, TRAT_SEL, insLista } from '../nucleo/estado.js';
+import { INSUMO, INS_FICHA, P, TRATC, TRAT_NOME, TRAT_SEL, insLista } from '../nucleo/estado.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
 import { kpi, th } from './componentes.js';
 import { setTRAT_SEL } from '../nucleo/estado.js';
@@ -106,7 +106,6 @@ function pintarInsumos(R){
       const nec   = Math.max(0,vol-est);
       const usos  = tratCodigos().filter(c=>composicao(c).some(l=>l.prod===i.prod)).length;
       const ficha = FICHA.filter(([k])=>i[k]);
-      const aberta = !!INS_ABERTO[i.prod];
       return `<tr>
         <td><input data-in="${ix}" data-f="prod" value="${esc(i.prod)}" style="text-align:left"></td>
         <td><input data-in="${ix}" data-f="pa" value="${esc(i.pa)}" style="text-align:left" placeholder="a preencher"></td>
@@ -126,12 +125,9 @@ function pintarInsumos(R){
         <td class="num calc">${brl(corr,2)}</td><td class="num calc">${fmt(nec,1)}</td>
         <td class="num ${preco>0?"tot":"calc"}">${preco>0?brl(nec*corr):'<span class="badge b-warn">sem preço</span>'}</td>
         <td class="num calc">${usos?usos+" trat.":"—"}</td>
-        <td>${ficha.length?`<button class="btn" data-infx="${esc(i.prod)}" title="Classificação técnica do produto">${
-          aberta?"Fechar":"Ficha"}</button>`:'<span class="calc">—</span>'}</td>
-        <td><button class="btn d" data-inrm="${ix}">Remover</button></td></tr>`+
-        (aberta && ficha.length ? `<tr class="sub"><td colspan="16">
-          <div class="ficha">${ficha.map(([k,rot])=>
-            `<div><b>${rot}</b><span>${esc(i[k])}</span></div>`).join("")}</div></td></tr>` : "");
+        <td>${ficha.length?`<button class="btn" data-infx="${esc(i.prod)}"
+          title="Classificação técnica do produto">Ficha</button>`:'<span class="calc">—</span>'}</td>
+        <td><button class="btn d" data-inrm="${ix}">Remover</button></td></tr>`;
     }).join(""))).join("")+"</tbody>";
 
   // O bloco "Outros" é o que pede trabalho, não um erro: é produto sem classe
@@ -234,5 +230,42 @@ function celulaEtapas(cod){
   return `<div class="etqs">${caixas}</div>${nota}`;
 }
 
-export { pintarInsumos, alternarFam, aplicarFamIns, buscaExigeRedesenho,
+/* ---------- FICHA TÉCNICA, EM MODAL ----------
+   A ficha era uma sub-linha da tabela. Numa tabela de coluna fixa isso nao cabe:
+   "Culturas registradas" traz dezenas de culturas e "Estadio dos alvos" um
+   paragrafo, e os dois se sobrepunham dentro da largura da celula.
+
+   No modal o texto tem a tela inteira e quebra em coluna de largura propria.
+   Uma ficha por vez, e nao um mapa de abertas: sao 161 produtos, e abrir varias
+   nunca foi util -- se compara produto pelo cadastro, nao por duas fichas
+   empilhadas. */
+/* Campos de texto corrido: uma lista de culturas ou um paragrafo de estadio nao
+   cabe numa coluna de 300 px sem virar uma torre de palavras. */
+const LARGOS = ["culturas", "estadio", "modo", "mec", "obs"];
+function pintarFichaIns(){
+  const cont = $("#fichains"), fundo = $("#fichains_fundo");
+  if(!cont) return;
+  const i = INS_FICHA ? insLista().find(x=>x.prod === INS_FICHA) : null;
+  if(!i){ cont.hidden = true; fundo.hidden = true; return; }
+
+  const campos = FICHA.filter(([k])=>i[k]);
+  cont.innerHTML = `
+    <div class="ra-modal fx-modal pop-in">
+    <div class="ra-topo">
+      <div class="ra-nav"><div></div>
+        <button class="ghost-btn" id="fx_fechar" title="Fechar" aria-label="Fechar">✕</button></div>
+      <div class="ra-tit">${esc(i.prod)}</div>
+      <div class="ra-subtit">${esc(i.pa) || "princípio ativo a preencher"}${
+        i.conc ? " · " + esc(i.conc) : ""}${i.un ? " · " + esc(i.un) : ""}</div>
+    </div>
+    <div class="ra-corpo">
+      <div class="fx-grade">${campos.map(([k,rot])=>
+        `<div class="fx-item${LARGOS.includes(k)?" fx-largo":""}"><b>${rot}</b><span>${esc(i[k])}</span></div>`).join("")}</div>
+    </div>
+    </div>`;
+  cont.hidden = false;
+  fundo.hidden = false;
+}
+
+export { pintarInsumos, pintarFichaIns, alternarFam, aplicarFamIns, buscaExigeRedesenho,
   recolherTodas, todasRecolhidas };
