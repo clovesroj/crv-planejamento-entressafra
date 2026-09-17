@@ -1,7 +1,26 @@
-import { ARR_BASE, ARR_FORMAS, ARR_PAG, ETAPAS_ORD, PAG_LIVRE, arrPar, arrRat } from '../calculo/arrendamento.js';
+import { ARR_FORMAS, ARR_PAG, ETAPAS_ORD, PAG_LIVRE, arrPar, arrRat } from '../calculo/arrendamento.js';
 import { MESES, NM, clsMes } from '../nucleo/calendario.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
 import { barras, kpi, somaSel, tdMeses, th, thMeses } from './componentes.js';
+
+/* Meses de pagamento na própria linha do contrato: uma caixa por mês da janela.
+   Contrato paga em meses seguidos ou não, e é aqui que isso se configura —
+   marcar ou desmarcar leva a periodicidade para "Meses específicos" e a série
+   passa a ser a que está marcada. A grade Distribuição mensal marca os mesmos
+   meses, com o valor de cada pagamento à vista. */
+function celulaMeses(l, i){
+  const caixas = MESES.map((m,j)=>{
+    const on = l.pmes.includes(j);
+    // sem a classe do mes de proposito: o filtro de periodo esconde `.m<i>`, e a
+    // celula de configuracao precisa dos doze meses a mao, em qualquer filtro
+    return `<label class="etq${on?" on":""}" title="${on?"Pagamento em ":"Marcar pagamento em "}${m}">
+      <input type="checkbox" data-arrpm="${i}" data-m="${j}" ${on?"checked":""}>
+      <span>${m.slice(0,3)}</span></label>`;}).join("");
+  const nota = l.nParc
+    ? `<div class="hint">${esc(l.agenda)}</div>`
+    : `<div class="hint"><span class="badge b-warn">sem pagamento na janela</span></div>`;
+  return `<div class="etqs">${caixas}</div>${nota}`;
+}
 
 /* ---------- ARRENDAMENTOS ---------- */
 function pintarArrend(R){
@@ -16,9 +35,9 @@ function pintarArrend(R){
 
   const mesOpts = sel => `<option value="-1" ${sel===-1?"selected":""}>Fora do período</option>`+
     MESES.map((m,i)=>`<option value="${i}" ${sel===i?"selected":""}>${m}</option>`).join("");
-  $("#t_arr").innerHTML = th([["Fazenda"],["Grupo"],["Área (ha)",1],["Forma de pagamento"],["Qtd por ha",1],["Un."],
-    ["Valor informado"],["Periodicidade"],["1º pagamento"],["Meses de pagamento"],["Parcela",1],["R$/ha/ano",1],
-    ["Custo anual",1],["No orçamento",1],[""]])+"<tbody>"+
+  $("#t_arr").innerHTML = th([["Fazenda"],["Grupo"],["Área (ha)",1],["Forma de pagamento"],
+    ["Qtd por ha em cada pagamento",1],["Un."],["Periodicidade"],["1º pagamento"],
+    ["Meses de pagamento"],["Parcela",1],["R$/ha/ano",1],["Custo anual",1],["No orçamento",1],[""]])+"<tbody>"+
     (A.linhas.length ? A.linhas.map((l,i)=>`<tr>
       <td><input data-arr="${i}" data-f="faz" value="${esc(l.faz)}" style="text-align:left;min-width:170px"></td>
       <td><input data-arr="${i}" data-f="grupo" value="${esc(l.grupo)}" style="text-align:left;min-width:110px"></td>
@@ -27,20 +46,16 @@ function pintarArrend(R){
         `<option value="${k}" ${k===l.forma?"selected":""}>${f.nome}</option>`).join("")}</select></td>
       <td class="num"><input data-arr="${i}" data-f="qtd" value="${num(l.qtd)}" inputmode="decimal"></td>
       <td class="calc">${(ARR_FORMAS[l.forma]||{un:""}).un}</td>
-      <td><select data-arr="${i}" data-f="vbase" title="O valor informado é do ano ou de cada pagamento?"
-          >${Object.entries(ARR_BASE).map(([k,b])=>
-        `<option value="${k}" ${k===l.vbase?"selected":""}>${b.nome}</option>`).join("")}</select></td>
       <td><select data-arr="${i}" data-f="pag">${ARR_PAG.map(p=>`<option ${p===l.pag?"selected":""}>${p}</option>`).join("")}</select></td>
       <td><select data-arr="${i}" data-f="mes" ${l.pag==="Mensal"||l.pag===PAG_LIVRE?"disabled":""}>${mesOpts(l.mes0)}</select></td>
-      <td class="calc" style="min-width:160px">${l.nParc ? esc(l.agenda)
-        : '<span class="badge b-warn">sem pagamento na janela</span>'}</td>
+      <td style="min-width:232px">${celulaMeses(l, i)}</td>
       <td class="num ${l.nParc?"tot":"calc"}">${l.nParc ? l.nParc+"× "+brl(l.parcela) : "—"}
-        <span class="hint">${l.pagsAno} por ano · ${(ARR_BASE[l.vbase]||{}).curto}</span></td>
+        <span class="hint">${l.pagsAno} pagamento(s) por ano</span></td>
       <td class="num calc">${brl(l.rsHaAno,2)}</td><td class="num">${brl(l.anual)}</td>
       <td class="num tot">${brl(l.periodo)}</td>
       <td><button class="btn d" data-arrm="${i}">Remover</button></td></tr>`).join("")
-    : `<tr><td colspan="15" class="calc">Nenhuma fazenda cadastrada.</td></tr>`)+
-    `<tr><td class="tot" colspan="2">TOTAL</td><td class="num tot">${fmt(A.area)}</td><td colspan="8"></td>
+    : `<tr><td colspan="14" class="calc">Nenhuma fazenda cadastrada.</td></tr>`)+
+    `<tr><td class="tot" colspan="2">TOTAL</td><td class="num tot">${fmt(A.area)}</td><td colspan="7"></td>
      <td class="num tot">${A.area>0?brl(A.anual/A.area,2):"—"}</td><td class="num tot">${brl(A.anual)}</td>
      <td class="num tot">${brl(A.total)}</td><td></td></tr></tbody>`;
 

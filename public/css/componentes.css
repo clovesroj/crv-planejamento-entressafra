@@ -86,8 +86,30 @@ td select{height:28px;padding:0 8px;font-size:12.5px;min-width:110px}
 .tot{font-weight:700;color:var(--ink)}
 tr.sub td{background:var(--sunk);font-size:12px;padding:5px 12px}
 
+/* Cadastro de insumos: largura de coluna fixa.
+   Sem isto o navegador dimensiona as colunas pelo conteudo VISIVEL, e recolher
+   um grupo mudava a tabela inteira de lugar -- com tudo recolhido ela encolhia
+   503 px e as duas ultimas colunas caiam de 87 px para 22, porque nao sobrava
+   celula de corpo para dar largura a elas. O cabecalho e as faixas passavam a
+   cair em posicoes diferentes das que estavam abertos.
+
+   Com table-layout:fixed a largura sai do colgroup e nao do conteudo, entao
+   dobrar grupo nao mexe em coluna nenhuma. A soma passa da tela de proposito: a
+   tabela ja rola na horizontal, e coluna espremida e pior que rolagem. */
+/* min-width = soma do colgroup: sem ele, table-layout:fixed espremeria as 16
+   colunas para caber na tela estreita em vez de rolar, e campo espremido nao se
+   le nem se digita */
+#t_ins{table-layout:fixed;min-width:2000px}
+#t_ins td input,#t_ins td select{min-width:0;width:100%}
+#t_ins td{overflow:hidden;text-overflow:ellipsis}
+/* a faixa do grupo ocupa a linha toda e nao deve truncar o rotulo */
+#t_ins tr.stage td{overflow:visible}
+
 /* caixa de busca por nome, acima de qualquer tabela do app */
 .tbl-busca{max-width:320px;margin-bottom:10px}
+/* dentro de uma linha de controles, a margem propria da caixa a empurrava para
+   cima dos vizinhos: quem espaca ali e a propria linha */
+.row .tbl-busca{margin-bottom:0}
 
 /* cabecalho arrastavel: reordena coluna, preferencia pessoal (ver componentes.js) */
 th.th-arrasta{cursor:grab}
@@ -300,6 +322,30 @@ tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:under
 @media (max-width:640px){#rastro{padding:0}.ra-modal{width:100%;height:100%;max-height:100%;border-radius:0}}
 @media print{#rastro,#rastro_fundo{display:none!important}}
 
+/* Ficha tecnica do insumo, em modal.
+   Era sub-linha da tabela, e numa tabela de coluna fixa nao cabia: "Culturas
+   registradas" traz dezenas de culturas e "Estadio dos alvos" um paragrafo, e
+   os dois se sobrepunham dentro da largura da celula. Aqui o texto tem a tela e
+   quebra em coluna de largura propria. */
+#fichains_fundo{position:fixed;inset:0;z-index:90;background:rgba(10,17,12,.5);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);animation:raFundoIn .2s ease-out}
+#fichains_fundo[hidden]{display:none}
+#fichains{position:fixed;inset:0;z-index:95;display:flex;align-items:center;justify-content:center;padding:24px}
+#fichains[hidden]{display:none}
+.fx-modal{width:min(1020px,100%)}
+.fx-grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px 22px}
+.fx-item{display:flex;flex-direction:column;gap:3px;min-width:0;
+  padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--card)}
+.fx-item b{color:var(--grey);font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px}
+/* texto corrido: quebra em qualquer lugar em vez de estourar a coluna */
+.fx-item span{color:var(--ink);font-size:12.5px;line-height:1.5;overflow-wrap:anywhere}
+/* o campo de lista longa (culturas, estadio) ocupa a largura toda */
+.fx-item.fx-largo{grid-column:1/-1}
+@media (max-width:640px){#fichains{padding:0}
+  .fx-modal{width:100%;height:100%;max-height:100%;border-radius:0}
+  .fx-grade{grid-template-columns:1fr}}
+@media print{#fichains,#fichains_fundo{display:none!important}}
+
 /* Modal de rendimento por mes: mesmo container central com blur do rastro
    (#rendm/#rendm_fundo espelham #rastro/#rastro_fundo), mas e formulario —
    uma grade de 12 campos, um por mes, em vez de blocos de explicacao. */
@@ -352,6 +398,42 @@ tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:under
 @media (max-width:640px){#rendm{padding:0}.rm-modal{width:100%;height:100%;max-height:100%;border-radius:0}
   .rm-grade{grid-template-columns:1fr}}
 @media print{#rendm,#rendm_fundo{display:none!important}}
+
+/* Pre-visualizacao do relatorio: mesmo container central com blur, mas mais
+   largo (tabela de relatorio tem muita coluna) e com o corpo rolavel — e o
+   mesmo HTML que vira PDF, so que na tela em vez de motor de impressao. */
+#prev_rel_fundo{position:fixed;inset:0;z-index:90;background:rgba(10,17,12,.5);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);animation:raFundoIn .2s ease-out}
+#prev_rel_fundo[hidden]{display:none}
+#prev_rel{position:fixed;inset:0;z-index:95;display:flex;align-items:center;justify-content:center;padding:24px}
+#prev_rel[hidden]{display:none}
+.prev-modal{width:min(1100px,96vw);max-height:90vh}
+.prev-corpo .rel-logo{height:36px;width:auto;display:block;margin:0 0 12px;background:#fff;border-radius:6px;padding:4px 7px}
+.prev-corpo h1{font-family:var(--f-display);font-size:21px;font-weight:600;margin:0 0 4px;color:var(--ink)}
+.prev-corpo>p{font-size:12px;color:var(--grey);margin:0 0 18px}
+.prev-corpo h2{font-family:var(--f-display);font-size:15px;font-weight:600;margin:22px 0 8px;color:var(--ink)}
+.prev-corpo h2:first-of-type{margin-top:0}
+.prev-corpo table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px}
+.prev-corpo th,.prev-corpo td{border:1px solid var(--line);padding:5px 8px;text-align:left;white-space:normal}
+.prev-corpo thead{background:var(--th-bg);color:var(--th-ink)}
+@media (max-width:640px){#prev_rel{padding:0}.prev-modal{width:100%;height:100%;max-height:100%;border-radius:0}}
+@media print{#prev_rel,#prev_rel_fundo{display:none!important}}
+
+/* Painel de gerar relatorio: antes era um dropdown ancorado no botao da barra
+   superior — sem aquele botao (o atalho agora e so o do menu lateral), vira
+   modal central com blur, mesmo idioma dos outros. */
+#report_pop_fundo{position:fixed;inset:0;z-index:90;background:rgba(10,17,12,.5);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);animation:raFundoIn .2s ease-out}
+#report_pop_fundo[hidden]{display:none}
+#report_pop{position:fixed;inset:0;z-index:95;display:flex;align-items:center;justify-content:center;padding:24px}
+#report_pop[hidden]{display:none}
+.rp-modal{width:min(420px,100%)}
+.rp-modal .ra-corpo label{margin-top:10px}
+.rp-modal .ra-corpo label:first-child{margin-top:0}
+.rp-modal .ra-corpo .row{margin-top:10px}
+.rp-modal .ra-corpo .btn{flex:1}
+@media (max-width:640px){#report_pop{padding:0}.rp-modal{width:100%;height:100%;max-height:100%;border-radius:0}}
+@media print{#report_pop,#report_pop_fundo{display:none!important}}
 
 /* Filtro global de periodo, na barra superior: vale para toda tela que tenha
    numero decomposto por mes. A aba que nao tem serie mensal ignora e continua

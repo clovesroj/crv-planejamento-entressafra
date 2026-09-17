@@ -28,7 +28,9 @@ function irPara(b){
   cascatear(secao);
   window.scrollTo({top:0,behavior:"instant"});
 }
-document.querySelectorAll("nav button").forEach(b=>{ b.onclick=()=>irPara(b); });
+// so os botoes de secao navegam — o de Relatorio (acao, nao secao) tem logica
+// propria em io/relatorio.js, no mesmo idioma visual deste sub-menu
+document.querySelectorAll("nav button[data-s]").forEach(b=>{ b.onclick=()=>irPara(b); });
 
 /* ---------- sub-navegação: blocos recolhíveis de uma aba viram itens do
    menu, tipo uma pasta abrindo pros arquivos de dentro. Genérico — qualquer
@@ -79,7 +81,7 @@ function marcarLocal(b){
   $("#crumb_g").textContent = g ? g.dataset.g : "";
   $("#crumb_t").textContent = b.childNodes[0].textContent.trim();
 }
-document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{
+document.querySelectorAll("nav button[data-s]").forEach(b=>b.addEventListener("click",()=>{
   marcarLocal(b); document.body.classList.remove("menu-open");
 }));
 /* Recolher o menu: devolve a largura da barra as tabelas. A preferencia fica no

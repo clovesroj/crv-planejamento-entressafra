@@ -41,8 +41,15 @@ export const FAMILIAS_INSUMO = [
   {id:"inseticida",  nome:"Inseticidas",                    termos:["inseticida","formicida","cupinicida","acaricida"]},
   {id:"fungicida",   nome:"Fungicidas e nematicidas",       termos:["fungicida","nematicida"]},
   {id:"regulador",   nome:"Reguladores de crescimento",     termos:["regulador","maturador"]},
-  {id:"biologico",   nome:"Biológicos e inoculantes",       termos:["inoculante","agente biológico","bioativador","biológico"]},
+  {id:"biologico",   nome:"Biológicos e inoculantes",       termos:["inoculante","agente biológico","biológico"]},
   {id:"micro",       nome:"Micronutrientes",                termos:["micronutriente","microelemento"]},
+  /* Foliar antes de bioestimulante, e os dois antes de fertilizante: sem isso o
+     termo generico "fertilizante" engoliria "Fertilizante foliar" e
+     "Fertilizante/bioestimulante" antes de eles chegarem ao grupo proprio.
+     Produto que e foliar E bioestimulante fica em foliar, porque e a forma de
+     aplicacao que decide como ele entra no orcamento. */
+  {id:"foliar",      nome:"Fertilizantes foliares",         termos:["fertilizante foliar","adubo foliar","foliar"]},
+  {id:"bioestim",    nome:"Bioestimulantes",                termos:["bioestimulante","bioativador","estimulante"]},
   {id:"fertilizante",nome:"Fertilizantes",                  termos:["fertilizante","adubo","nutri"]},
   {id:"corretivo",   nome:"Corretivos e condicionadores",   termos:["corretivo","condicionador","calc","gesso"]},
   {id:"adjuvante",   nome:"Adjuvantes e veículos",          termos:["adjuvante","espalhante","antideriva","diluente","veículo","óleo mineral","óleo vegetal"]},

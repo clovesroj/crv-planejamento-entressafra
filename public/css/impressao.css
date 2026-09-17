@@ -1,5 +1,11 @@
 /* ---------- impressão (relatório PDF) ---------- */
 @media print{
+  /* sem @page, o PDF sai no tamanho que o driver de impressão do sistema tiver
+     como padrão — Letter em maquina configurada em ingles, por exemplo — e
+     relatorio pensado para A4 desalinhava a margem e cortava coluna do lado
+     direito. Fixando aqui, o relatorio sai em A4 mesmo que o padrao do sistema
+     seja outro. */
+  @page{size:A4;margin:14mm 12mm}
   .sidebar,.scrim,header,main,footer{display:none!important}
   .app{display:block}
   #print_report{display:block!important}
@@ -7,7 +13,25 @@
   #print_report h1{font-size:18px;margin:0 0 4px}
   #print_report h2{font-size:13px;margin:18px 0 6px;page-break-after:avoid}
   #print_report p{font-size:11px;color:#555;margin:0 0 10px}
-  #print_report table{width:100%;border-collapse:collapse;font-size:9.5px;margin-bottom:6px}
-  #print_report th,#print_report td{border:1px solid #ccc;padding:3px 5px;text-align:left;background:none;color:#000;position:static}
-  #print_report thead{background:#eee}
+  /* width:100% prende a tabela na largura da folha (nunca mais larga que isso)
+     e white-space:normal deixa o texto quebrar linha em vez de forçar a coluna
+     a abrir espaço — sem os dois, uma tabela com muita coluna ou um nome
+     comprido de atividade/conta empurrava a tabela pra fora da pagina e
+     cortava o lado direito, sem aviso nenhum.
+     table-layout NÃO é fixed de propósito: relatório como o de critério por
+     mês tem 19 colunas, e largura igual pra todas forçava célula de texto
+     curto (Cod, Un.) a ficar do mesmo tamanho que célula de frase inteira —
+     a de frase quebrava em várias linhas e a linha da tabela ficava mais alta
+     que uma página inteira. Nesse ponto o page-break-inside:avoid (que existia
+     aqui) não tinha como ser respeitado, e o motor de paginação reagia
+     empurrando a linha pra pagina seguinte inteira, deixando a anterior em
+     branco, e ainda cortava o resto no fim da pagina depois — era a causa do
+     "página em branco + página cortada". table-layout:auto deixa o navegador
+     dar mais espaço pra coluna de conteúdo maior, o que já evita boa parte das
+     linhas gigantes; sem o avoid, o pior caso agora é uma linha dividida entre
+     duas páginas — bem menos grave que sumir com o conteúdo. */
+  #print_report table{width:100%;border-collapse:collapse;font-size:9px;margin-bottom:6px}
+  #print_report thead{background:#eee;display:table-header-group} /* repete o cabecalho em cada folha nova */
+  #print_report th,#print_report td{border:1px solid #ccc;padding:3px 4px;text-align:left;background:none;
+    color:#000;position:static;white-space:normal;overflow-wrap:break-word;word-break:break-word}
 }

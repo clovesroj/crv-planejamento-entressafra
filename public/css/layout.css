@@ -94,13 +94,6 @@ header.topbar{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(
   white-space:nowrap;transition:background-color .12s,border-color .12s}
 .icon-btn:hover{background:var(--leaf-hover);border-color:var(--leaf-hover)}
 .icon-btn svg{width:16px;height:16px}
-.reportbox{position:relative}
-.report-pop{position:absolute;top:42px;right:0;background:var(--card);border:1px solid var(--line);
-  border-radius:var(--r);padding:14px;width:268px;box-shadow:var(--pop-shadow);z-index:60}
-.report-pop label{margin-top:10px}
-.report-pop label:first-child{margin-top:0}
-.report-pop .row{margin-top:10px}
-.report-pop .btn{flex:1}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);display:inline-block;box-shadow:0 0 0 3px var(--ok-bg)}
 .dot.warn{background:var(--warn);box-shadow:0 0 0 3px var(--warn-bg)}
 .dot.off{background:var(--muted);box-shadow:none}
@@ -135,9 +128,18 @@ h2{font-family:var(--f-display);font-size:28px;font-weight:600;line-height:1.1;l
 /* ===== menu recolhido =====
    A tela de trabalho e uma planilha larga: doze meses de plano, quinze colunas
    de dimensionamento. Recolher o menu devolve 232 px de largura util as
-   tabelas, e o estado fica no navegador de quem usa. */
-.app.menu-recolhido{grid-template-columns:0 minmax(0,1fr)}
+   tabelas, e o estado fica no navegador de quem usa.
+
+   Desliza em vez de aparecer/sumir seco: --side-w anima (registrada como
+   <length> em tokens.css), e a coluna da grid segue ela sozinha. O conteudo
+   de dentro do menu esconde por opacidade, nao display:none — some rapido ao
+   fechar (antes da largura acabar de encolher, pra nao mostrar texto
+   espremido) e só reaparece perto do fim ao abrir (transition-delay). */
+.app{transition:grid-template-columns .26s cubic-bezier(.4,0,.2,1)}
+.sidebar>*{transition:opacity .12s ease}
+.app.menu-recolhido{--side-w:0px}
 .app.menu-recolhido .sidebar{width:0;padding:0;overflow:hidden;border:0}
-.app.menu-recolhido .sidebar>*{display:none}
+.app.menu-recolhido .sidebar>*{opacity:0;pointer-events:none;transition-duration:.08s}
+.app:not(.menu-recolhido) .sidebar>*{transition-delay:.14s}
 /* com o menu fechado, o botao de abrir da barra superior aparece no desktop */
 .app.menu-recolhido .menu-btn{display:inline-grid!important}

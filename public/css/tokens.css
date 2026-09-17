@@ -31,6 +31,11 @@
   --r:8px; --r-sm:6px; --side-w:252px;
   color-scheme:light;
 }
+/* --side-w precisa ser um <length> registrado pra animar: variavel comum nao
+   interpola em transicao (pula direto pro valor final), trava — mesmo motivo
+   do glow dos cards KPI em componentes.css. Assim o menu recolher/abrir desliza
+   em vez de aparecer/sumir seco. */
+@property --side-w{syntax:'<length>';inherits:true;initial-value:252px}
 
 /* ---------- tokens: tema escuro (sistema) ---------- */
 @media (prefers-color-scheme: dark){

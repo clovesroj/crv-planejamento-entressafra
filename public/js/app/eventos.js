@@ -6,12 +6,12 @@ import { CFG } from '../dados/cfg.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
 import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, fornLista, gruposInsLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE } from '../nucleo/estado.js';
-import { FROTA_ABERTO, FROTA_UN, INS_ABERTO, MAQ, setFROTA_DEST, setFROTA_ORIG } from '../nucleo/estado.js';
+import { FROTA_ABERTO, FROTA_UN, INS_FICHA, MAQ, setFROTA_DEST, setFROTA_ORIG, setINS_FICHA } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { filtrarPorNome } from '../ui/componentes.js';
 import { alternarFam, aplicarFamIns, buscaExigeRedesenho, recolherTodas, todasRecolhidas } from '../ui/insumos.js';
 import { lerPremissas } from '../ui/premissas.js';
-import { leve, render, renderRastro, renderRendMensal } from './ciclo.js';
+import { leve, render, renderFichaIns, renderRastro, renderRendMensal } from './ciclo.js';
 import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarRastro, voltarRastro } from '../ui/rastro.js';
 import { abrirRendMensal, aberto as rendMensalAberto, fecharRendMensal } from '../ui/rendmensal.js';
 import { setAPOIO, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setINSX_V, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
@@ -319,11 +319,13 @@ document.addEventListener("click",e=>{
   if(alvoRendMes){ abrirRendMensal(alvoRendMes.dataset.rendmes); renderRendMensal(); return; }
   if((e.target.closest && e.target.closest("#rm_fechar")) || e.target.id==="rendm_fundo"){
     fecharRendMensal(); renderRendMensal(); return; }
+  // ficha tecnica em modal. E visao, nao dado: nao passa por salvar(), e redesenha
+  // so o modal, porque nenhum numero das abas muda ao abrir ou fechar.
+  if((e.target.closest && e.target.closest("#fx_fechar")) || e.target.id==="fichains_fundo"){
+    setINS_FICHA(null); renderFichaIns(); return; }
   const fx = e.target.closest && e.target.closest("[data-infx]");
-  if(fx){ const k = fx.dataset.infx;
-    // abrir a ficha tecnica e visao, nao dado: nao passa por salvar()
-    if(INS_ABERTO[k]) delete INS_ABERTO[k]; else INS_ABERTO[k]=true;
-    render(); return; }
+  if(fx){ setINS_FICHA(fx.dataset.infx === INS_FICHA ? null : fx.dataset.infx);
+    renderFichaIns(); return; }
   const ab = e.target.closest && e.target.closest("[data-abrefrota]");
   if(ab){ const k = ab.dataset.abrefrota;
     // abrir a lista de unidades e visao, nao dado: nao passa por salvar()

@@ -1,5 +1,44 @@
 # Histórico de mudanças
 
+## 2.22.0 — 2026-09-17 · Valor do arrendamento é o de cada pagamento
+
+**Reverte a opção "Valor informado" da 2.20.0** e corrige a conta direto, sem
+chave para o usuário virar.
+
+O valor cadastrado no contrato é o de **cada pagamento**, por hectare. O custo
+anual é a parcela vezes os pagamentos do contrato. Até a 2.19.0 o valor era
+tratado como anual e dividido entre as parcelas — daí um contrato semestral
+aparecer com metade do valor em cada mês (R$ 1.745.688 em vez de
+R$ 3.491.375). A 2.20.0 tentou resolver com uma opção por contrato; agora é o
+comportamento único.
+
+- **Qtd por ha em cada pagamento** é o nome da coluna, e as formas de pagamento
+  passam a dizer o mesmo: "R$ fixo por ha em cada pagamento", "t de cana por ha
+  em cada pagamento", "kg de ATR por ha em cada pagamento", "parceria — % da
+  produção em cada pagamento".
+- **R$/ha/ano** continua mostrando o valor anual por hectare (parcela × pagamentos
+  por ano), para comparar fazendas na mesma unidade.
+- Pagamentos por ano vêm da periodicidade — mensal 12, bimestral 6, trimestral 4,
+  semestral 2, anual 1 — e, em "meses específicos", dos meses marcados.
+- **Contrato anual não muda de valor.** Contrato com mais de um pagamento por ano
+  passa a custar a parcela vezes o número de pagamentos: semestral dobra, mensal
+  multiplica por doze. É o que o contrato diz.
+
+### Meses de pagamento no cadastro do contrato
+
+A marcação dos meses estava só na grade Distribuição mensal. Agora está também
+na **linha do contrato**, coluna "Meses de pagamento": uma caixa por mês da
+janela, para o contrato que paga em meses escolhidos, **seguidos ou não**.
+
+- Marcar ou desmarcar leva a periodicidade para "Meses específicos" e a agenda
+  passa a ser a que está marcada; a periodicidade continua gerando a série
+  sozinha a partir do 1º pagamento.
+- As caixas do cadastro mostram os doze meses em qualquer filtro de período —
+  diferente da grade mensal, que segue o filtro da barra de cima. Configuração
+  não se esconde: era o que impediria marcar Dez/Jan com a safra filtrada.
+- A grade Distribuição mensal marca os mesmos meses, com o valor de cada
+  pagamento à vista.
+
 ## 2.21.0 — 2026-09-17 · A classificação técnica chega ao cadastro salvo
 
 A planilha entrou no código na 2.19.0, mas quem já usava o sistema não via os

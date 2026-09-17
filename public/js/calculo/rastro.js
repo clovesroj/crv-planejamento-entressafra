@@ -199,8 +199,8 @@ function apresentacao(r, un){
     cab: ["Mês", "Produção", "Por dia efetivo", "Por dia corrido", "Horas de máquina", "h/dia por equip.",
           "Rendimento necessário", "Disponib. mecânica necessária", "Utilização necessária",
           "Eficiência operacional necessária"],
-    linhas: C.map(c=>[c.mes, fmt(c.q)+" "+un,
-      fmt(c.qDia,1)+" "+un+" (÷"+fmt(c.dias)+")",
+    linhas: C.map(c=>[c.mes + (c.parcial ? " (parcial)" : ""), fmt(c.q)+" "+un,
+      fmt(c.qDia,1)+" "+un+" (÷"+fmt(c.dias,1)+")",
       fmt(c.qDiaCorrido,1)+" "+un+" (÷"+fmt(c.diasCorridos)+")",
       fmt(c.horas)+" h", fmt(c.hDiaEquip,1)+" h",
       fmt(c.rendNec,2)+" "+un+"/h",
@@ -211,7 +211,8 @@ function apresentacao(r, un){
       `critério teria de ser sozinho, com os outros dois parados na premissa do mês. `+
       `São duas leituras da mesma produção: por dia efetivo divide pelos ${fmt(num(P.dias))} dias de operação `+
       `do mês, de ${fmt(num(P.hdia),1)} h cada, e é a meta; por dia corrido divide pelos dias do calendário, `+
-      `e é o termômetro de prazo. `+
+      `e é o termômetro de prazo. Os dias de cada mês saem da janela da atividade — mês marcado `+
+      `como parcial é o que a janela corta no meio, e vale só os dias cobertos. `+
       (apertados
         ? `${apertados} ${apertados>1?"meses pedem":"mês pede"} mais do que o critério entrega (⚠): é aí que entra `+
           `frota extra, turno a mais ou volume remanejado para outro mês. O critério de cada mês se ajusta no `+
