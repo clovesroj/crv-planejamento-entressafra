@@ -115,7 +115,7 @@ document.addEventListener("input",e=>{
       Object.keys(TRATC).forEach(c=>TRATC[c].forEach(l=>{ if(l.prod===antigo) l.prod=novo; }));
       if(INSUMO[antigo]){ INSUMO[novo]=INSUMO[antigo]; delete INSUMO[antigo]; }
       i.prod=novo;
-    } else if(["un","pa","conc","cod","classe"].includes(f)){ i[f]=t.value; }
+    } else if(["un","pa","conc","cod","classe","fam"].includes(f)){ i[f]=t.value; }
     else i[f]=num(t.value);
     salvar(); leve(); return; }
   if(t.dataset.mt!==undefined){ const l=matLista()[+t.dataset.mt];

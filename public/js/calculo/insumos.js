@@ -10,6 +10,20 @@ import { num } from '../nucleo/formato.js';
    primeiro termo que casar, na ordem do catalogo -- e la que a ordem do
    desempate esta documentada. Classe vazia ou desconhecida cai em "outros", que
    e o bloco que pede cadastro, nao um erro. */
+/* Familia de um produto, ja com a escolha manual.
+   `fam` e uma escolha do usuario e vence a deducao pela classe: a classe e texto
+   livre vindo da planilha, e vai haver produto cujo texto nao diz a familia que
+   a usina usa. Vazio volta a deduzir, que e o padrao -- assim o produto novo
+   entra no bloco certo sem ninguem ter de escolher. */
+function familiaDoInsumo(i){
+  const esc = (i && i.fam || "").trim();
+  if(esc){
+    const f = FAMILIAS_INSUMO.find(x => x.id === esc);
+    if(f) return f;
+  }
+  return familiaDe(i && i.classe);
+}
+
 function familiaDe(classe){
   const c = (classe || "").toLowerCase();
   if(!c) return FAMILIAS_INSUMO[FAMILIAS_INSUMO.length - 1];
@@ -30,7 +44,7 @@ function familiaDe(classe){
 function insumosPorFamilia(){
   const porFam = {};
   insLista().forEach((i, ix)=>{
-    const f = familiaDe(i.classe);
+    const f = familiaDoInsumo(i);
     (porFam[f.id] = porFam[f.id] || []).push({i, ix, pa: (i.pa || "").trim()});
   });
   const ord = (a, b) => {
@@ -199,6 +213,6 @@ function volumeDemandado(L){
 
 
 export { _tratCache, _tratKey, composicao, criarTrat, destravar, etapaTrat, etapasNoPlano, familiaDe,
-  insumosPorFamilia, mesclarBaseInsumos,
+  familiaDoInsumo, insumosPorFamilia, mesclarBaseInsumos,
   marcarEtapa, precoInsumo, removerTrat, renomearTrat, tratCodigos, tratCusto, tratEtapas,
   tratLista, tratListaTodos, tratTabela, usosTrat, volumeDemandado };

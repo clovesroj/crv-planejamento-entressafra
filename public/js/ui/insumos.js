@@ -1,5 +1,5 @@
-import { composicao, etapasNoPlano, insumosPorFamilia, precoInsumo, tratCodigos, tratEtapas, tratListaTodos } from '../calculo/insumos.js';
-import { TRAT_ETAPAS } from '../dados/insumos.js';
+import { composicao, etapasNoPlano, familiaDe, insumosPorFamilia, precoInsumo, tratCodigos, tratEtapas, tratListaTodos } from '../calculo/insumos.js';
+import { FAMILIAS_INSUMO, TRAT_ETAPAS } from '../dados/insumos.js';
 import { INSUMO, INS_ABERTO, P, TRATC, TRAT_NOME, TRAT_SEL, insLista } from '../nucleo/estado.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
 import { filtrarPorNome, kpi, th } from './componentes.js';
@@ -36,13 +36,13 @@ function pintarInsumos(R){
   // nome comercial e princípio ativo na frente; o resto da classificação
   // técnica fica na ficha, que abre por linha
   $("#t_ins").innerHTML = th([["Nome comercial"],["Princípio ativo"],["Código"],["Un."],
-    ["Concentração"],["Classe agronômica"],["Volume dem.",1],["Estoque",1],["Preço base",1],
+    ["Concentração"],["Classe agronômica"],["Grupo"],["Volume dem.",1],["Estoque",1],["Preço base",1],
     ["Preço corrigido",1],["Necessidade",1],["Custo de aquisição",1],["Usado em"],[""],[""]])+"<tbody>"+
     // quebra por família e, dentro dela, ordem alfabética de princípio ativo.
     // O `ix` que vai na linha é a posição original em insLista() — é por ele que
     // a edição acha o produto, então reordenar a tela não pode reordenar o índice.
     insumosPorFamilia().map(fam=>
-      `<tr class="stage"><td colspan="15">${fam.nome}
+      `<tr class="stage"><td colspan="16">${fam.nome}
         <span style="font-weight:400;opacity:.75"> · ${fam.itens.length} produto${
           fam.itens.length>1?"s":""}</span></td></tr>` +
     fam.itens.map(({i,ix})=>{
@@ -63,6 +63,11 @@ function pintarInsumos(R){
           `<option value="${u}" ${(i.un||"")===u?"selected":""}>${u||"—"}</option>`).join("")}</select></td>
         <td><input data-in="${ix}" data-f="conc" value="${esc(i.conc)}" style="min-width:110px" placeholder="ex.: 480 g/L"></td>
         <td><input data-in="${ix}" data-f="classe" value="${esc(i.classe)}" style="text-align:left;min-width:150px" placeholder="—"></td>
+        <td><select data-in="${ix}" data-f="fam" style="min-width:150px"
+              title="Em branco, o grupo sai da classe agronômica. Escolhendo aqui, a escolha manda e o produto muda de bloco.">
+          <option value=""${i.fam?"":" selected"}>auto · ${familiaDe(i.classe).nome}</option>
+          ${FAMILIAS_INSUMO.map(f=>`<option value="${f.id}"${i.fam===f.id?" selected":""}>${f.nome}</option>`).join("")}
+        </select></td>
         <td class="num calc">${fmt(vol,1)}</td>
         <td class="num"><input data-ie="${esc(i.prod)}" value="${est}" inputmode="decimal"></td>
         <td class="num"><input data-ip="${esc(i.prod)}" value="${preco}" inputmode="decimal"></td>
@@ -72,7 +77,7 @@ function pintarInsumos(R){
         <td>${ficha.length?`<button class="btn" data-infx="${esc(i.prod)}" title="Classificação técnica do produto">${
           aberta?"Fechar":"Ficha"}</button>`:'<span class="calc">—</span>'}</td>
         <td><button class="btn d" data-inrm="${ix}">Remover</button></td></tr>`+
-        (aberta && ficha.length ? `<tr class="sub"><td colspan="15">
+        (aberta && ficha.length ? `<tr class="sub"><td colspan="16">
           <div class="ficha">${ficha.map(([k,rot])=>
             `<div><b>${rot}</b><span>${esc(i[k])}</span></div>`).join("")}</div></td></tr>` : "");
     }).join("")).join("")+"</tbody>";
@@ -85,12 +90,16 @@ function pintarInsumos(R){
   // muda de bloco assim que ela for preenchida.
   const fams = insumosPorFamilia();
   const semClasse = insLista().filter(i => !(i.classe || "").trim()).length;
+  const manuais = insLista().filter(i => (i.fam || "").trim()).length;
   $("#ins_grupos").innerHTML =
     `Quebrado por classe agronômica e, dentro de cada bloco, em ordem alfabética de princípio ativo — `+
     `produto sem princípio ativo fica no fim do seu bloco. `+
     fams.map(f=>`<b>${f.nome}</b> ${f.itens.length}`).join(" · ") +
     (semClasse ? ` · <b style="color:var(--warn)">${semClasse} produto${semClasse>1?"s":""} sem classe agronômica</b> — `+
-      `preencha a coluna <b>Classe agronômica</b> na linha e o produto muda de bloco sozinho.` : "");
+      `preencha a coluna <b>Classe agronômica</b> na linha e o produto muda de bloco sozinho.` : "") +
+    ` A coluna <b>Grupo</b> permite mover o produto à mão quando a classe não disser a família certa;` +
+    ` em <i>auto</i>, ele segue a classe.` +
+    (manuais ? ` <b>${manuais} produto${manuais>1?"s":""}</b> com grupo escolhido à mão.` : "");
 
   // --- 2. composição do tratamento selecionado ---
   const codigos = tratCodigos();
