@@ -1,9 +1,10 @@
 import { ETAPAS_ORD, arrRat } from '../calculo/arrendamento.js';
 import { CFG } from '../dados/cfg.js';
 import { SEP_MOD, crmDe, crmEspDe } from '../calculo/crm.js';
-import { INSUMO, P } from '../nucleo/estado.js';
+import { INSUMO, P, insLista } from '../nucleo/estado.js';
 import { $, brl, fmt, num } from '../nucleo/formato.js';
 import { th } from './componentes.js';
+import { contasValores } from './contas.js';
 
 /* ---------- VALIDAÇÃO ---------- */
 function validar(R){
@@ -27,6 +28,10 @@ function validar(R){
   add(P.hdia>0&&P.hdia<=24,"Horas efetivas/dia plausíveis",fmt(P.hdia,1)+"h");
   add(P.disp>0&&P.disp<=100,"Disponibilidade mecânica em 0–100%",fmt(P.disp)+"%");
   add(P.dias>0&&P.dias<=31,"Dias efetivos/mês plausíveis",fmt(P.dias));
+  // velocidade zerada tira o tempo de viagem do ciclo (o motor conta o trecho como 0
+  // em vez de dividir por zero) e subdimensiona transporte e transbordo sem aviso
+  add(P.velC>0&&P.velV>0,"Velocidades do transporte preenchidas",
+      "carregado "+fmt(P.velC)+" km/h · vazio "+fmt(P.velV)+" km/h");
   add(P.diasTrab>0&&P.diasTrab<=7,"Dias trabalhados por colaborador em 1–7",fmt(P.diasTrab));
   add(R.MP.fatorEscala>=1,"Fator de rodízio coerente com a escala",R.MP.fatorEscala.toFixed(2));
   add(CFG.funcoes.every(f=>f.sal>0),"Todas as funções com salário preenchido","");
@@ -44,13 +49,21 @@ function validar(R){
   add(R.IR.linhas.every(l=>l.Ea>0&&l.Ea<=1),"Eficiência de aplicação de irrigação em 0–100%","");
   add(R.IR.linhas.filter(l=>l.potCV>0&&l.nConj<1).length===0,"Conjunto motobomba dimensionado","");
   add(P.capTransb>0,"Capacidade por viagem calculada (volume × densidade)",fmt(P.capTransb,1)+" t/viagem");
-  add(CFG.insumos.every(i=>{const o=INSUMO[i.prod]||{};return (o.preco!=null?num(o.preco):i.preco)>0;}),
-      "Todos os insumos com preço","");
+  // lê o cadastro EDITADO (insLista), não o original do CFG: insumo incluído pelo
+  // usuário sem preço passava nesta checagem, e renomeado era procurado pelo nome velho
+  const insSemPreco = insLista().filter(i=>{const o=INSUMO[i.prod]||{};return !((o.preco!=null?num(o.preco):num(i.preco))>0);});
+  add(insSemPreco.length===0,"Todos os insumos com preço",
+      insSemPreco.slice(0,4).map(i=>i.prod).join(", ")+(insSemPreco.length>4?"…":""));
   add(R.total>0,"Plano gera custo calculável",brl(R.total));
   const somaMeses=R.meses.reduce((s,x)=>s+x,0);
   add(Math.abs(somaMeses-R.total)<1,"Soma dos meses confere com o total",brl(somaMeses));
   const somaEt=Object.values(R.etapas).reduce((s,e)=>s+e.total,0);
   add(Math.abs(somaEt-R.total)<1,"Soma das etapas confere com o total",brl(somaEt));
+  // mesma conferência para o Plano de Contas: custo lançado duas vezes em contas
+  // diferentes, ou custo que não chega a conta nenhuma, aparece aqui
+  const somaContas=Object.values(contasValores(R)).reduce((s,x)=>s+(num(x)||0),0);
+  add(Math.abs(somaContas-R.total)<1,"Plano de Contas confere com o total",
+      brl(somaContas)+(R.total>0?" — "+fmt(somaContas/R.total*100,1)+"% do custo total":""));
   add(R.L.filter(r=>r.frotaR>12).length===0,"Atividade exigindo mais de 12 equipamentos",
       R.L.filter(r=>r.frotaR>12).length+"");
   add(R.TP.lugares>=R.efetivoTotal,"Transporte de pessoal cobre o efetivo total",

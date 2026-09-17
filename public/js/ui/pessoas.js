@@ -1,13 +1,12 @@
 import { deptIdx } from '../calculo/pessoas.js';
 import { CFG } from '../dados/cfg.js';
 import { MESES, NM } from '../nucleo/calendario.js';
-import { $, brl, fmt } from '../nucleo/formato.js';
+import { $, brl, esc, fmt } from '../nucleo/formato.js';
 import { barras, kpi, th } from './componentes.js';
 
 /* ---------- RESUMO DE PESSOAS ---------- */
 function pintarPessoas(R){
   const S = R.PS, sm = a => a.reduce((s,x)=>s+x,0);
-  const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
   const contaF = c => (CFG.funcoes.find(f=>f.cod===c)||{conta:"—"}).conta;
   const depts = Object.keys(S.porDept).sort((a,b)=>deptIdx(a)-deptIdx(b));
   const funs  = Object.keys(S.porFun).sort();

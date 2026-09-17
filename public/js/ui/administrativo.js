@@ -1,12 +1,11 @@
 import { admRat } from '../calculo/administrativo.js';
 import { ADM_CC, ADM_CRITERIOS, ADM_GRUPOS } from '../dados/administrativo.js';
 import { ETAPAS_ORD } from '../calculo/arrendamento.js';
-import { $, brl, fmt, num } from '../nucleo/formato.js';
+import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
 import { barrasH, kpi, th } from './componentes.js';
 import { P } from '../nucleo/estado.js';
 
 /* ---------- CUSTOS ADMINISTRATIVOS ---------- */
-const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
 
 function pintarAdm(R){
   const A = R.ADM, AD = R.AD, ha = P.plantio||1;

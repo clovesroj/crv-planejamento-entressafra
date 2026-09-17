@@ -74,7 +74,13 @@ document.addEventListener("input",e=>{
   if(t.dataset.in!==undefined){ const i=insLista()[+t.dataset.in], f=t.dataset.f;
     if(f==="prod"){
       const antigo=i.prod, novo=t.value;
-      // renomear mantém o vínculo: acompanha tratamentos, preços e estoques
+      // renomear mantém o vínculo: acompanha tratamentos, preços e estoques.
+      // O tratamento-base (sem customização) também cita o produto pelo nome, e
+      // fica no cadastro, onde não dá pra renomear: sem trazê-lo para TRATC
+      // antes, ele seguia apontando para o nome antigo, perdia o preço e o
+      // custo por hectare caía. destravar() é o mesmo passo de editar uma dose.
+      if(novo!==antigo) tratCodigos().forEach(c=>{
+        if(!TRATC[c] && composicao(c).some(l=>l.prod===antigo)) destravar(c); });
       Object.keys(TRATC).forEach(c=>TRATC[c].forEach(l=>{ if(l.prod===antigo) l.prod=novo; }));
       if(INSUMO[antigo]){ INSUMO[novo]=INSUMO[antigo]; delete INSUMO[antigo]; }
       i.prod=novo;

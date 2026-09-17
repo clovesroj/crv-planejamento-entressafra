@@ -1,5 +1,5 @@
 import { rastro } from '../calculo/rastro.js';
-import { $ } from '../nucleo/formato.js';
+import { $, esc } from '../nucleo/formato.js';
 
 /* ---------- MODAL DE RASTRO ----------
    Explica um KPI ou custo descendo a cadeia: total, centro de custo,
@@ -31,9 +31,11 @@ function pintarRastro(R){
   const r = rastro(R, pilha[pilha.length-1], periodo);
   if(!r){ fecharRastro(); cont.hidden = true; fundo.hidden = true; return; }
 
-  const linha = l => `<div class="ra-linha${l.ir?" ra-ir":""}"${l.ir?` data-rastro="${l.ir}" tabindex="0" role="button"`:""}>
-      <div class="ra-rot">${l.rot}${l.sub?`<span class="ra-sub">${l.sub}</span>`:""}</div>
-      <div class="ra-val">${l.val}${l.ir?'<span class="ra-seta">›</span>':""}</div>
+  // Tudo que vem de calculo/rastro.js é texto puro e pode citar nome de insumo,
+  // equipamento ou rota digitados pelo usuário — por isso passa por esc().
+  const linha = l => `<div class="ra-linha${l.ir?" ra-ir":""}"${l.ir?` data-rastro="${esc(l.ir)}" tabindex="0" role="button"`:""}>
+      <div class="ra-rot">${esc(l.rot)}${l.sub?`<span class="ra-sub">${esc(l.sub)}</span>`:""}</div>
+      <div class="ra-val">${esc(l.val)}${l.ir?'<span class="ra-seta">›</span>':""}</div>
     </div>`;
 
   // anima só na transição fechado→aberto — senão pisca a cada tecla digitada em qualquer campo
@@ -47,11 +49,11 @@ function pintarRastro(R){
         ${pilha.length>1 ? '<button class="btn" id="ra_voltar">‹ Voltar</button>' : ""}
         <button class="ghost-btn" id="ra_fechar" title="Fechar" aria-label="Fechar">✕</button>
       </div>
-      <div class="ra-tit">${r.titulo}</div>
-      <div class="ra-subtit">${r.subtitulo||""}</div>
-      <div class="ra-valor">${r.valor}</div>
+      <div class="ra-tit">${esc(r.titulo)}</div>
+      <div class="ra-subtit">${esc(r.subtitulo)}</div>
+      <div class="ra-valor">${esc(r.valor)}</div>
       ${r.voltar ? `<div class="ra-caminho">${pilha.map((c,i)=>
-        `<span${i===pilha.length-1?' class="ra-aqui"':""}>${nomeCurto(c)}</span>`).join(" › ")}</div>` : ""}
+        `<span${i===pilha.length-1?' class="ra-aqui"':""}>${esc(nomeCurto(c))}</span>`).join(" › ")}</div>` : ""}
       ${r.temPeriodo ? `<div class="ra-periodo">
         ${[["todos","Ano todo"],["safra","Safra"],["entressafra","Entressafra"]].map(([k,n])=>
           `<button data-ra-periodo="${k}" class="${periodo===k?"on":""}">${n}</button>`).join("")}
@@ -60,32 +62,32 @@ function pintarRastro(R){
     <div class="ra-corpo">
       ${(r.destaques||[]).length ? `<div class="ra-faixa">
         ${r.destaques.map(d=>`<div class="ra-dest">
-          <div class="ra-dest-rot">${d.rot}</div>
-          <div class="ra-dest-val">${d.val}</div>
-          ${d.sub?`<div class="ra-dest-sub">${d.sub}</div>`:""}
+          <div class="ra-dest-rot">${esc(d.rot)}</div>
+          <div class="ra-dest-val">${esc(d.val)}</div>
+          ${d.sub?`<div class="ra-dest-sub">${esc(d.sub)}</div>`:""}
         </div>`).join("")}
       </div>` : ""}
       ${(r.tabelas||[]).map(t=>`<div class="ra-bloco">
-        <div class="ra-bloco-tit">${t.titulo}</div>
+        <div class="ra-bloco-tit">${esc(t.titulo)}</div>
         <div class="tblwrap ra-tbl"><table>
-          <thead><tr>${t.cab.map((c,i)=>`<th${i?' class="num"':""}>${c}</th>`).join("")}</tr></thead>
+          <thead><tr>${t.cab.map((c,i)=>`<th${i?' class="num"':""}>${esc(c)}</th>`).join("")}</tr></thead>
           <tbody>${t.linhas.map(l=>`<tr>${l.map((c,i)=>
-            `<td${i?' class="num"':""}>${c}</td>`).join("")}</tr>`).join("")}
+            `<td${i?' class="num"':""}>${esc(c)}</td>`).join("")}</tr>`).join("")}
           ${t.rodape ? `<tr>${t.rodape.map((c,i)=>
-            `<td class="tot${i?" num":""}">${c}</td>`).join("")}</tr>` : ""}
+            `<td class="tot${i?" num":""}">${esc(c)}</td>`).join("")}</tr>` : ""}
           </tbody></table></div>
-        ${t.nota?`<div class="hint" style="margin-top:8px">${t.nota}</div>`:""}
+        ${t.nota?`<div class="hint" style="margin-top:8px">${esc(t.nota)}</div>`:""}
       </div>`).join("")}
       ${(r.blocos||[]).map(b=>`<div class="ra-bloco">
-        <div class="ra-bloco-tit">${b.titulo}</div>
+        <div class="ra-bloco-tit">${esc(b.titulo)}</div>
         ${b.linhas.map(linha).join("")}
       </div>`).join("")}
       ${(r.premissas||[]).length ? `<div class="ra-bloco ra-prem">
         <div class="ra-bloco-tit">Premissas usadas</div>
-        ${r.premissas.map(p=>`<div class="ra-linha"><div class="ra-rot">${p.rot}</div>
-          <div class="ra-val">${p.val}</div></div>`).join("")}
+        ${r.premissas.map(p=>`<div class="ra-linha"><div class="ra-rot">${esc(p.rot)}</div>
+          <div class="ra-val">${esc(p.val)}</div></div>`).join("")}
       </div>` : ""}
-      ${r.nota ? `<div class="hint" style="margin-top:10px">${r.nota}</div>` : ""}
+      ${r.nota ? `<div class="hint" style="margin-top:10px">${esc(r.nota)}</div>` : ""}
     </div>
     </div>`;
   cont.hidden = false;

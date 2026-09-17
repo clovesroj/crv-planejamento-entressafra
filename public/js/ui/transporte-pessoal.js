@@ -1,5 +1,5 @@
 import { NM, NM_PER, PERIODO_MESES } from '../nucleo/calendario.js';
-import { $, brl, fmt } from '../nucleo/formato.js';
+import { $, brl, esc, fmt } from '../nucleo/formato.js';
 import { kpi, th } from './componentes.js';
 
 /* ---------- TRANSPORTE DE PESSOAL ---------- */
@@ -21,8 +21,8 @@ function pintarTPess(R){
     ["Custo km",1],["Custo diárias",1],["Custo km extra",1],["Total",1],[""]])+"<tbody>"+
     T.linhas.map((l,i)=>
       `<tr>
-        <td><input data-tp="${i}" data-f="rota" value="${l.rota}" style="text-align:left;min-width:210px"></td>
-        <td><input data-tp="${i}" data-f="veic" value="${l.veic}" style="text-align:left;min-width:180px"></td>
+        <td><input data-tp="${i}" data-f="rota" value="${esc(l.rota)}" style="text-align:left;min-width:210px"></td>
+        <td><input data-tp="${i}" data-f="veic" value="${esc(l.veic)}" style="text-align:left;min-width:180px"></td>
         <td class="num"><input data-tp="${i}" data-f="cap" value="${l.cap}" inputmode="decimal"></td>
         <td colspan="3"></td>
         <td class="num"><input data-tp="${i}" data-f="rsKm" value="${l.rsKm}" inputmode="decimal"></td>

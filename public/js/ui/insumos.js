@@ -1,6 +1,6 @@
 import { composicao, precoInsumo, tratCodigos, tratLista } from '../calculo/insumos.js';
 import { INSUMO, P, TRATC, TRAT_NOME, TRAT_SEL, insLista } from '../nucleo/estado.js';
-import { $, brl, fmt, num } from '../nucleo/formato.js';
+import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
 import { kpi, th } from './componentes.js';
 import { setTRAT_SEL } from '../nucleo/estado.js';
 
@@ -28,15 +28,15 @@ function pintarInsumos(R){
       const nec   = Math.max(0,vol-est);
       const usos  = tratCodigos().filter(c=>composicao(c).some(l=>l.prod===i.prod)).length;
       return `<tr>
-        <td><input data-in="${ix}" data-f="prod" value="${i.prod}" style="text-align:left;min-width:190px"></td>
+        <td><input data-in="${ix}" data-f="prod" value="${esc(i.prod)}" style="text-align:left;min-width:190px"></td>
         <td><select data-in="${ix}" data-f="un" style="min-width:60px">
           <option value="kg" ${i.un==="kg"?"selected":""}>kg</option>
           <option value="lt" ${i.un==="lt"?"selected":""}>lt</option></select></td>
-        <td><input data-in="${ix}" data-f="pa" value="${i.pa||""}" style="text-align:left;min-width:150px" placeholder="a preencher"></td>
-        <td><input data-in="${ix}" data-f="conc" value="${i.conc||""}" style="min-width:90px" placeholder="ex.: 480 g/L"></td>
+        <td><input data-in="${ix}" data-f="pa" value="${esc(i.pa)}" style="text-align:left;min-width:150px" placeholder="a preencher"></td>
+        <td><input data-in="${ix}" data-f="conc" value="${esc(i.conc)}" style="min-width:90px" placeholder="ex.: 480 g/L"></td>
         <td class="num calc">${fmt(vol,1)}</td>
-        <td class="num"><input data-ie="${i.prod}" value="${est}" inputmode="decimal"></td>
-        <td class="num"><input data-ip="${i.prod}" value="${preco}" inputmode="decimal"></td>
+        <td class="num"><input data-ie="${esc(i.prod)}" value="${est}" inputmode="decimal"></td>
+        <td class="num"><input data-ip="${esc(i.prod)}" value="${preco}" inputmode="decimal"></td>
         <td class="num calc">${brl(corr,2)}</td><td class="num calc">${fmt(nec,1)}</td>
         <td class="num tot">${brl(nec*corr)}</td>
         <td class="num calc">${usos?usos+" trat.":"—"}</td>
@@ -46,9 +46,9 @@ function pintarInsumos(R){
   const codigos = tratCodigos();
   if(!TRAT_SEL || !codigos.includes(TRAT_SEL)) setTRAT_SEL(codigos[0]);
   $("#sel_trat").innerHTML = codigos.map(c=>
-    `<option value="${c}" ${c===TRAT_SEL?"selected":""}>${c}${TRAT_NOME[c]?" — "+TRAT_NOME[c]:""}${TRATC[c]?" (ajustado)":""}</option>`).join("");
+    `<option value="${c}" ${c===TRAT_SEL?"selected":""}>${c}${TRAT_NOME[c]?" — "+esc(TRAT_NOME[c]):""}${TRATC[c]?" (ajustado)":""}</option>`).join("");
   $("#in_trat_nome").value = TRAT_NOME[TRAT_SEL] || "";
-  $("#sel_prod").innerHTML = insLista().map(i=>`<option value="${i.prod}">${i.prod}</option>`).join("");
+  $("#sel_prod").innerHTML = insLista().map(i=>`<option value="${esc(i.prod)}">${esc(i.prod)}</option>`).join("");
 
   const comp = composicao(TRAT_SEL);
   const custoHa = comp.reduce((s,l)=>s+num(l.dose)*precoInsumo(l.prod),0);
@@ -58,9 +58,9 @@ function pintarInsumos(R){
     (comp.length? comp.map((l,i)=>{
       const pr = precoInsumo(l.prod), c = num(l.dose)*pr;
       const pp = custoHa>0 ? c/custoHa*100 : 0;
-      return `<tr><td>${l.prod}</td>
+      return `<tr><td>${esc(l.prod)}</td>
         <td class="num"><input data-td="${i}" value="${l.dose}" inputmode="decimal"></td>
-        <td class="calc">${l.un||"—"}</td>
+        <td class="calc">${esc(l.un||"—")}</td>
         <td class="num calc">${brl(pr,2)}</td>
         <td class="num tot">${brl(c,2)}</td>
         <td class="num calc">${fmt(pp,1)}%</td>
@@ -75,7 +75,7 @@ function pintarInsumos(R){
       const usos = R.L.filter(r=>r.trat===t.cod);
       const areaT = usos.reduce((s,u)=>s+u.total,0);
       return `<tr><td><b>${t.cod}</b></td>
-        <td class="calc">${TRAT_NOME[t.cod]||"—"}</td>
+        <td class="calc">${esc(TRAT_NOME[t.cod]||"—")}</td>
         <td class="num calc">${composicao(t.cod).length}</td>
         <td class="num tot">${brl(t.custo_ha,2)}</td>
         <td>${TRATC[t.cod]?'<span class="badge b-warn">ajustado</span>':'<span class="badge b-ok">original</span>'}</td>
@@ -85,9 +85,9 @@ function pintarInsumos(R){
   // --- 4. materiais ---
   $("#t_mat").innerHTML = th([["Categoria"],["Item"],["Un."],["Preço",1],["Qtd",1],["Total",1],[""]])+"<tbody>"+
     R.MT.linhas.map((m,i)=>`<tr>
-      <td><input data-mt="${i}" data-f="cat" value="${m.cat}" style="text-align:left;min-width:130px"></td>
-      <td><input data-mt="${i}" data-f="item" value="${m.item}" style="text-align:left;min-width:190px"></td>
-      <td><input data-mt="${i}" data-f="un" value="${m.un}" style="text-align:left;width:60px"></td>
+      <td><input data-mt="${i}" data-f="cat" value="${esc(m.cat)}" style="text-align:left;min-width:130px"></td>
+      <td><input data-mt="${i}" data-f="item" value="${esc(m.item)}" style="text-align:left;min-width:190px"></td>
+      <td><input data-mt="${i}" data-f="un" value="${esc(m.un)}" style="text-align:left;width:60px"></td>
       <td class="num"><input data-mt="${i}" data-f="preco" value="${m.preco}" inputmode="decimal"></td>
       <td class="num"><input data-mt="${i}" data-f="qtd" value="${m.qtd}" inputmode="decimal"></td>
       <td class="num tot">${brl(m.total)}</td>

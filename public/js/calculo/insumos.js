@@ -26,7 +26,11 @@ function destravar(cod){
 }
 let _tratCache = null, _tratKey = "";
 function tratTabela(){
-  const key = P.ipreco + "|" + JSON.stringify(INSUMO) + "|" + JSON.stringify(TRATC);
+  // A chave precisa ter tudo que o cálculo lê. precoInsumo() cai no cadastro
+  // editável (insLista) quando não há preço sobrescrito em INSUMO — sem ele na
+  // chave, renomear um produto e desfazer deixava o custo velho preso no cache.
+  const key = P.ipreco + "|" + JSON.stringify(INSUMO) + "|" + JSON.stringify(TRATC)
+            + "|" + JSON.stringify(insLista());
   if(_tratCache && _tratKey===key) return _tratCache;
   const m = {};
   tratCodigos().forEach(cod=>{

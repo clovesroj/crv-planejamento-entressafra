@@ -2,12 +2,11 @@
  * Aba Usuários — só-admin. Listener próprio, não passa pela delegação
  * central de app/eventos.js: gestão de usuário não é edição do plano.
  */
-import { $, fmt } from '../nucleo/formato.js';
+import { $, esc, fmt } from '../nucleo/formato.js';
 import { listarUsuarios, criarUsuario, atualizarUsuario, trocarSenha } from '../io/autenticacao.js';
 import { th } from './componentes.js';
 import { USUARIO } from '../nucleo/sessao.js';
 
-const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 const dataHora = iso => iso ? new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : 'nunca';
 
 async function pintarUsuarios() {

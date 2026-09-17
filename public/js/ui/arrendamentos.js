@@ -1,12 +1,11 @@
 import { ARR_FORMAS, ARR_PAG, ETAPAS_ORD, arrPar, arrRat } from '../calculo/arrendamento.js';
 import { MESES, NM } from '../nucleo/calendario.js';
-import { $, brl, fmt, num } from '../nucleo/formato.js';
+import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
 import { barras, kpi, th } from './componentes.js';
 
 /* ---------- ARRENDAMENTOS ---------- */
 function pintarArrend(R){
   const A = R.AR;
-  const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
   $("#k_arr").innerHTML =
     kpi("Área arrendada","",fmt(A.area)+" ha", A.linhas.length+" fazenda(s) cadastrada(s)","nat:arrend") +
     kpi("Custo anual","t",brl(A.anual), A.area>0?brl(A.anual/A.area,2)+"/ha/ano":"","nat:arrend") +

@@ -1,5 +1,5 @@
 import { CFG } from '../dados/cfg.js';
-import { $, brl, fmt } from '../nucleo/formato.js';
+import { $, brl, esc, fmt } from '../nucleo/formato.js';
 import { kpi, th } from './componentes.js';
 import { optFuncao } from './plano.js';
 
@@ -18,7 +18,7 @@ function pintarApoio(R){
   $("#t_apoio_eq").innerHTML = th([["Equipamento"],["Máquina base"],["Qtd",1],["Horas/mês",1],
     ["Função"],["Horas totais",1],["Diesel",1],["Manutenção",1],["MDO",1],["Total",1],[""]])+"<tbody>"+
     A.linhas.map((l,i)=>`<tr>
-      <td><input data-ap="${i}" data-f="nome" value="${l.nome}" style="text-align:left;min-width:170px"></td>
+      <td><input data-ap="${i}" data-f="nome" value="${esc(l.nome)}" style="text-align:left;min-width:170px"></td>
       <td><select data-ap="${i}" data-f="maq" style="min-width:170px">${
         Object.keys(CFG.maquinas).sort().map(m=>`<option ${m===l.maq?"selected":""}>${m}</option>`).join("")}</select></td>
       <td class="num"><input data-ap="${i}" data-f="qtd" value="${l.qtd}" inputmode="decimal"></td>

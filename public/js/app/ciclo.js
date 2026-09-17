@@ -96,10 +96,17 @@ function leve(){
     const k   = ehInput ? (foco.id || JSON.stringify(foco.dataset)) : null;
     const sel = ehInput ? foco.selectionStart : null;
     const txt = ehInput ? foco.value : null;
+    // Abas diferentes podem gerar campos com o mesmo dataset (Irrigação e Plano
+    // usam data-c/data-m para a mesma área). Procurar no documento inteiro
+    // achava primeiro o da aba escondida, o focus() falhava em silêncio e o
+    // cursor sumia no meio da digitação. Procura primeiro na aba de origem.
+    const abaId = ehInput ? (foco.closest("section[id]")||{}).id : null;
     render();
     if(k){
-      const novo=[...document.querySelectorAll("input")]
-        .find(i=>(i.id || JSON.stringify(i.dataset))===k);
+      const mesmo = i=>(i.id || JSON.stringify(i.dataset))===k;
+      const aba = abaId ? document.getElementById(abaId) : null;
+      const novo=(aba && [...aba.querySelectorAll("input")].find(mesmo))
+        || [...document.querySelectorAll("input")].find(mesmo);
       if(novo){
         // preserva exatamente o que estava digitado: reformatar no meio da digitação
         // fazia o número aparentar "voltar ao original" e a alteração se perder

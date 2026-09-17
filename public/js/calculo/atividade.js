@@ -6,6 +6,7 @@ import { DIM, P, PLANO, TERC_TAR } from '../nucleo/estado.js';
 import { num, pct } from '../nucleo/formato.js';
 import { precoDiesel } from './diesel.js';
 import { tratCusto } from './insumos.js';
+import { cicloTransporte } from './transporte.js';
 import { custoDaFuncao } from './mao-de-obra.js';
 
 
@@ -140,7 +141,7 @@ function linha(a, MP){
     let horas, capMes, frota;
     if(a.tipo==="transp"){
       const raio = a.src==="A02" ? P.raioMuda : P.raioSafra;
-      const ciclo = raio/P.velC + raio/P.velV + (P.tCarga+P.tDesc)/60;
+      const ciclo = cicloTransporte(raio);
       const cap = a.modo==="caminhao" ? P.capCam : P.capTransb;
       const viagens = cap>0 ? area/cap : 0;
       horas = P.dispTr>0 ? viagens*ciclo/(P.dispTr/100) : 0;

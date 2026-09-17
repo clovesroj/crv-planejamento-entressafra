@@ -1,11 +1,10 @@
 import { fornPar } from '../calculo/fornecedores.js';
 import { FORN_MODALIDADES, FORN_ORIGENS, FORN_QUALIDADE } from '../dados/fornecedores.js';
 import { MESES } from '../nucleo/calendario.js';
-import { $, brl, fmt, num } from '../nucleo/formato.js';
+import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
 import { barrasH, kpi, th } from './componentes.js';
 
 /* ---------- FORNECEDORES DE CANA ---------- */
-const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
 const ORIG = Object.keys(FORN_ORIGENS);
 
 function pintarForn(R){

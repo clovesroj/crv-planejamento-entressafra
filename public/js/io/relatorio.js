@@ -1,6 +1,6 @@
 import { calcularCompleto } from '../app/ciclo.js';
 import { LOGO } from '../dados/logo.js';
-import { $ } from '../nucleo/formato.js';
+import { $, esc } from '../nucleo/formato.js';
 import { RELATORIOS, montarSecoes } from './secoes.js';
 import { baixar } from './arquivo.js';
 
@@ -72,12 +72,14 @@ function gerarPDF(nivel, relId){
   const secoes = montarSecoes(calcularCompleto(), rel.id, nivel);
   // papel branco: logo azul original
   let html = `<img class="rel-logo" src="${LOGO}" alt="CRV Industrial">
-    <h1>CRV Industrial — ${rel.nome}</h1>
+    <h1>CRV Industrial — ${esc(rel.nome)}</h1>
     <p>Safra 2026/2027 · Unidade Capinópolis-MG · Relatório ${nivel==="detalhado"?"detalhado":"resumido"} ·
     gerado em ${new Date().toLocaleDateString("pt-BR")}</p>`;
+  // as células são texto puro (as mesmas vão para o Excel); nome de insumo com
+  // aspa ou < virava marcação no relatório impresso — esc() em tudo que é dado
   secoes.forEach(s=>{
-    html += `<h2>${s.titulo}</h2><table><thead><tr>${s.cab.map(c=>`<th>${c}</th>`).join("")}</tr></thead><tbody>`+
-      (s.linhas.length? s.linhas.map(l=>`<tr>${l.map(c=>`<td>${c}</td>`).join("")}</tr>`).join("")
+    html += `<h2>${esc(s.titulo)}</h2><table><thead><tr>${s.cab.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>`+
+      (s.linhas.length? s.linhas.map(l=>`<tr>${l.map(c=>`<td>${esc(c)}</td>`).join("")}</tr>`).join("")
         : `<tr><td colspan="${s.cab.length}">Sem dados lançados.</td></tr>`)+
       `</tbody></table>`;
   });

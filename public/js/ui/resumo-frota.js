@@ -1,7 +1,7 @@
 import { CFG } from '../dados/cfg.js';
 import { FROTA_ESP, contaOrigem, destinoDe, opcoesDestino, rotuloItem } from '../calculo/crm.js';
 import { FROTA_ABERTO, FROTA_ORIG } from '../nucleo/estado.js';
-import { $, fmt, num, pct } from '../nucleo/formato.js';
+import { $, esc, fmt, num, pct } from '../nucleo/formato.js';
 import { kpi, th } from './componentes.js';
 
 /* ---------- RESUMO DE FROTA ---------- */
@@ -109,7 +109,7 @@ function pintarResumoFrota(R){
     "</tbody>";
 
   $("#t_rf_tpess").innerHTML = th([["Rota"],["Veículo"],["Qtd",1],["Lugares",1]])+"<tbody>"+
-    tpess.map(t=>`<tr><td>${t.rota}</td><td class="calc">${t.veic}</td>
+    tpess.map(t=>`<tr><td>${esc(t.rota)}</td><td class="calc">${esc(t.veic)}</td>
       <td class="num tot">${fmt(t.qtd)}</td><td class="num calc">${fmt(t.lugares)}</td></tr>`).join("")+
     "</tbody>";
 

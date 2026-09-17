@@ -1,5 +1,119 @@
 # Histórico de mudanças
 
+## 2.16.1 — 2026-09-17 · Correções de continuidade e robustez
+
+Varredura de bugs em todas as abas, sem mudar estrutura nem regra de cálculo.
+Cada bug abaixo foi **reproduzido pela interface antes** de ser corrigido e
+**reproduzido de novo depois** para confirmar a correção.
+
+**O que não mudou:** com os dados de teste, o resultado de
+`calcularCompleto()` é idêntico ao da 2.16.0, bit a bit (impressão digital
+`a3e20bfd`, total R$ 47.488.025,98). Das 24 abas, 21 renderizam HTML idêntico;
+as três que mudaram estão explicadas no fim desta entrada.
+
+### Bugs corrigidos
+
+1. **Cursor sumia ao digitar a área na aba Irrigação.** Irrigação e Plano geram
+   campos com o mesmo `data-c`/`data-m`; `leve()` procurava o campo no documento
+   inteiro, achava primeiro o da aba escondida, o `focus()` falhava em silêncio e
+   o resto da digitação se perdia. Agora procura primeiro na aba de origem.
+   [app/ciclo.js](public/js/app/ciclo.js)
+
+2. **Velocidade do transporte zerada quebrava 5 abas.** Apagar `velC` ou `velV`
+   dividia por zero; o `Infinity` se espalhava por horas, frota e efetivo e
+   aparecia como texto na Capa, Plano, Dimensionamento, Mão de Obra e
+   Acompanhamento. A fórmula do ciclo também estava **duplicada** (custo e aba
+   Transporte, cada um com sua cópia): virou uma função só,
+   `cicloTransporte()`, com a mesma proteção que o motor já usa em `dispTr` e
+   `tch`. Para velocidades válidas a conta é idêntica.
+   [calculo/transporte.js](public/js/calculo/transporte.js) ·
+   [calculo/atividade.js](public/js/calculo/atividade.js)
+
+3. **`dias` zerado gerava `NaN` em `tonDia` do transporte.** Mesma proteção.
+
+4. **Texto com aspas corrompia dados.** Em 10 campos de texto livre, uma aspa
+   fechava o `value="..."` antes da hora: o campo exibia o nome cortado e a
+   próxima edição **gravava o nome cortado**. Isso já acontecia com dado real:
+   `Filtro de disco 3"` e `Mangueira hidráulica 1/2"` apareciam sem a polegada.
+   Em Insumos era pior — preço e estoque são gravados com o nome como chave
+   (`data-ip`), e a chave quebrava. Afetava apoio, rotas e veículos, produto,
+   princípio ativo, concentração, nome de tratamento (49 pontos da tela) e
+   materiais. `esc()`, que estava **copiado em 5 telas** — uma delas sem tratar
+   a aspa —, virou uma função única em
+   [nucleo/formato.js](public/js/nucleo/formato.js) e passou a ser aplicada em
+   todo texto digitado pelo usuário, inclusive no modal de rastro.
+
+5. **Renomear um insumo zerava o custo dos tratamentos-base.** O renome só
+   alcançava tratamentos customizados; os do cadastro seguiam citando o nome
+   antigo, sem preço. Ex.: renomear *Provence total* derrubava o tratamento
+   *1 SE* de R$ 301,85/ha para R$ 138,57/ha. Agora o tratamento-base é trazido
+   para os customizados (`destravar()`, o mesmo passo de editar uma dose) antes
+   do renome. [app/eventos.js](public/js/app/eventos.js)
+
+6. **Cache de tratamentos preso em valor velho.** A chave do cache não incluía o
+   cadastro editável de insumos, que o cálculo lê. Consequência visível:
+   renomear e desfazer o renome **não recuperava o custo**.
+   [calculo/insumos.js](public/js/calculo/insumos.js)
+
+7. **Relatório PDF interpretava texto como HTML.** Nome com aspa ou `<` virava
+   marcação no relatório impresso. O Excel e o CSV não tinham o problema.
+   [io/relatorio.js](public/js/io/relatorio.js)
+
+8. **"−26 pessoas" no detalhamento do efetivo.** A linha de reconciliação fazia
+   `efetivo da Capa − soma dos departamentos`, que dá negativo porque os
+   departamentos incluem os operadores de apoio e a Capa não inclui — de
+   propósito, como explica a aba Pessoas. Agora a linha diz o que é:
+   *Operadores de apoio — no detalhamento, fora do efetivo total: 26 pessoas*.
+   No detalhamento da frota, o título conta conjuntos e a lista conta máquinas e
+   implementos separados (90 × 169+); os dois rótulos agora dizem isso.
+   [calculo/rastro.js](public/js/calculo/rastro.js)
+
+9. **Validação aprovava insumo sem preço.** A checagem lia o cadastro original
+   (`CFG.insumos`), não o editado: insumo incluído pelo usuário sem preço
+   passava como ✓. [ui/validacao.js](public/js/ui/validacao.js)
+
+### Prevenção: conferências novas na aba Validação
+
+- **Velocidades do transporte preenchidas** — o motor não quebra mais com
+  velocidade zerada, mas o transporte sai subdimensionado; isso precisa aparecer.
+- **Plano de Contas confere com o total** — no mesmo padrão das conferências de
+  meses e etapas. **Hoje ela aparece como pendência**, ver abaixo.
+
+### Encontrado e não corrigido — precisa de decisão
+
+**O Plano de Contas soma R$ 53,7 mi contra um custo total de R$ 47,5 mi
+(113,1%).** A diferença, R$ 6.197.384, está inteira nas contas de mão de obra;
+todas as outras batem com o motor ao centavo. Causas:
+
+- as contas 200-15 a 200-18 já recebem o custo de mão de obra **cheio** (o
+  custo-hora embute encargos e benefícios), e 200-35/36 e 200-51 a 200-77
+  lançam encargos e benefícios **de novo**;
+- os benefícios são estimados como *efetivo × benefício × 12 meses*, o que passa
+  do total de mão de obra e deixa **INSS + FGTS negativos** (−R$ 147.135);
+- os benefícios das contas usam o valor do cadastro e **ignoram o ajuste feito
+  na aba Mão de Obra**;
+- a mão de obra do Apoio (R$ 60.793) não entra em conta nenhuma.
+
+Não foi corrigido porque a forma de repartir mão de obra entre salário, encargo
+e benefício é decisão contábil e mudaria números usados pela gestão. Está em
+[ui/contas.js](public/js/ui/contas.js), `contasValores()`.
+
+### As três abas cujo HTML mudou
+
+- **Validação** — as conferências novas.
+- **Capa** — contador de pendências de 7 para 8 (a do Plano de Contas).
+- **Insumos** — `Filtro de disco 3"` e `Mangueira hidráulica 1/2"` passam a
+  aparecer com a polegada (bug 4).
+
+### Como foi verificado
+
+App rodado com a API simulada (sessão e plano de produção como fixture) e
+exercitado pela interface: os 1.791 campos editáveis agrupados em 148 tipos
+(nenhuma exceção, mapa campo → estado idêntico antes e depois), as 41 premissas
+e os 101 tipos de campo numérico zerados, os 14 campos de texto com aspas e
+HTML, os 107 nós do modal de rastro abertos, relatórios resumido e detalhado.
+Grafo de importação: 86 módulos, 344 importações, sem ciclo.
+
 ## 2.16.0 — 2026-09-16 · KPIs interativos em todo o app
 
 Todo cartão de indicador (82 KPIs, nas 19 abas) agora abre a explicação de

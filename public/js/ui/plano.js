@@ -3,7 +3,7 @@ import { tratLista } from '../calculo/insumos.js';
 import { CFG } from '../dados/cfg.js';
 import { NM } from '../nucleo/calendario.js';
 import { TRAT_NOME } from '../nucleo/estado.js';
-import { $, brl, fmt, num } from '../nucleo/formato.js';
+import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
 import { th } from './componentes.js';
 import { MESES, PERIODO_MESES, periodoMes } from '../nucleo/calendario.js';
 
@@ -57,7 +57,7 @@ function pintarPlano(R){
   R.L.forEach(r=>{
     if(r.a.etapa!==et){et=r.a.etapa; h+=`<tr class="stage"><td colspan="${NM+10}">${et}</td></tr>`;}
     const opts=['<option value="">—</option>'].concat(TL.map(t=>
-      `<option value="${t.cod}" ${t.cod===r.trat?"selected":""}>${t.cod}${TRAT_NOME[t.cod]?" — "+TRAT_NOME[t.cod]:""} · ${brl(t.custo_ha,0)}/ha</option>`)).join("");
+      `<option value="${t.cod}" ${t.cod===r.trat?"selected":""}>${t.cod}${TRAT_NOME[t.cod]?" — "+esc(TRAT_NOME[t.cod]):""} · ${brl(t.custo_ha,0)}/ha</option>`)).join("");
     const auto = r.a.tipo==="transp";
     // janela de datas: define em que meses a atividade pode ser lancada
     const jIdx = r.janela.fonte==="datas" ? r.janela.idx : null;

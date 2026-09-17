@@ -380,7 +380,13 @@ function rastroPessoasTotal(R){
     blocos:[
       {titulo:"Por departamento", linhas: porDept.map(([d,o])=>({rot:d, val:fmt(o.qtd)+" pessoas", ir:"pessoas:dept:"+d,
           sub:`pico de ${fmt(o.pico)} em algum mês`}))
-        .concat(Math.abs(fora)>0.5 ? [{rot:"Fora do detalhamento por departamento", val:fmt(fora)+" pessoas"}] : [])},
+        // fora < 0 não é "pessoa negativa": o detalhamento soma os operadores de
+        // apoio, que o efetivo da Capa deixa de fora de propósito (ver ui/pessoas.js)
+        .concat(fora>0.5 ? [{rot:"Fora do detalhamento por departamento", val:fmt(fora)+" pessoas"}]
+          : fora<-0.5 ? [{rot: Math.abs(-fora-(PS.apoio||0))<0.5
+                ? "Operadores de apoio — no detalhamento, fora do efetivo total"
+                : "Contados no detalhamento e fora do efetivo total", val:fmt(-fora)+" pessoas"}]
+          : [])},
       {titulo:"Por função", linhas: porFun.map(([f,o])=>({rot:(PS.itens.find(i=>i.fcod===f)||{}).fnome||f,
           val:fmt(o.qtd)+" pessoas", ir:"pessoas:fun:"+f}))},
     ],
@@ -421,8 +427,10 @@ function rastroFrotaHoras(R){
 }
 function rastroFrotaOper(R){
   const itens = [...R.crmFrotaL].filter(l=>l.qtd>0).sort((a,b)=>b.qtd-a.qtd);
-  return {titulo:"Frota operacional", subtitulo:"Equipamentos necessários pelo plano", valor:fmt(R.frotaT)+" un",
-    blocos:[{titulo:"Por item de frota", linhas: itens.map(l=>({rot:l.item, val:fmt(l.qtd)+" un",
+  // O valor conta CONJUNTOS (máquina + implemento de cada frente = 1); a lista
+  // conta cada máquina e cada implemento em separado, por isso soma mais.
+  return {titulo:"Frota operacional", subtitulo:"Conjuntos necessários pelo plano — máquina e implemento contam como um", valor:fmt(R.frotaT)+" un",
+    blocos:[{titulo:"Por item de frota — máquinas e implementos contados separadamente", linhas: itens.map(l=>({rot:l.item, val:fmt(l.qtd)+" un",
       sub:`${fmt(l.hTotPlano)} ${l.unidade==="km"?"km":"h"} de uso pelo plano`}))}],
     premissas:premissasGerais()};
 }
