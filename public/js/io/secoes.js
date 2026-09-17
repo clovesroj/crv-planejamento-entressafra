@@ -3,6 +3,7 @@ import { ADM_CRITERIOS, ADM_GRUPOS } from '../dados/administrativo.js';
 import { ARR_FORMAS, ETAPAS_ORD, arrRat } from '../calculo/arrendamento.js';
 import { FORN_MODALIDADES } from '../dados/fornecedores.js';
 import { deptIdx } from '../calculo/pessoas.js';
+import { GERENCIAS, execucao, metasDeFrota, metasPorAtividade } from '../calculo/acompanhamento.js';
 import { CFG } from '../dados/cfg.js';
 import { CAT_LBL, MESES, PERIODOS, periodoMes } from '../nucleo/calendario.js';
 import { INSUMO, P, insLista } from '../nucleo/estado.js';
@@ -424,7 +425,45 @@ const ABAS_COMPLETO = ["resumo","premissas","area","producao","plantio","tratos"
   "transporte","frota","manutencao","maoDeObra","insumos","arrendamentos","fornecedores",
   "administracao","custoEtapa","contas","fluxo","cenarios","validacao"];
 
-/* Os 16 relatórios. `secoes` é a ordem em que as abas ou blocos saem. */
+/* ===== Metas e acompanhamento =====
+   Saem da mesma fonte da aba: metasPorAtividade e execucao. O relatorio nao
+   recalcula meta -- se recalculasse, a folha impressa e a tela poderiam
+   divergir no meio da reuniao. */
+function metasDe(R, ger){
+  const lin = metasPorAtividade(R).filter(m=>m.gerencia===ger);
+  return sec(ger==="agricola" ? "Metas agrícolas" : "Metas de logística",
+    "Metas — "+(GERENCIAS[ger]||ger),
+    ["Cod","Atividade","Etapa","Volume","Unid.","Janela","Rendimento","Frota","Efetivo",
+     "Meta/dia por equipamento","Horas/dia por equipamento","Meta/dia da frota","Custo"],
+    lin.map(m=>[m.cod, m.nome, m.etapa, fmt(m.total), m.un,
+      m.janela ? (m.janela.fonte==="datas" ? m.janela.ini+" a "+m.janela.fim : fmt(m.janela.meses,1)+" meses") : "—",
+      fmt(m.rend,2)+" "+m.un+"/h", fmt(m.frota), fmt(m.efetivo),
+      m.meta ? fmt(m.meta.qEquipDia,1)+" "+m.un : "—",
+      m.meta ? fmt(m.meta.hEquipDia,1)+" h" : "—",
+      m.meta ? fmt(m.meta.qFrotaDia,1)+" "+m.un : "—",
+      brl(m.custo)]));
+}
+
+SECOES.metasAgricola = R => metasDe(R, "agricola");
+SECOES.metasLogistica = R => metasDe(R, "logistica");
+SECOES.metasManutencao = R => sec("Metas de manutenção", "Metas — Gerência de Manutenção",
+  ["Máquina ou implemento","Atividades","Frota","Horas no plano","Horas por equipamento",
+   "CRM (R$/h)","CRM no plano"],
+  metasDeFrota(R).map(o=>[o.maq, fmt(o.ativs), fmt(o.frota), fmt(o.horas),
+    o.frota>0?fmt(o.horas/o.frota):"—", brl(o.crmHora,2), brl(o.crm)]));
+SECOES.acompanhamento = R => {
+  const ex = execucao(R, null);
+  return sec("Acompanhamento", "Execução do plano — plano x realizado",
+    ["Cod","Atividade","Gerência","Unid.", ...MESES.map(m=>m+" plano"), ...MESES.map(m=>m+" real"),
+     "Plano medido","Realizado","Aderência","A fazer"],
+    ex.linhas.map(l=>[l.cod, l.nome, GERENCIAS[l.gerencia]||l.gerencia, l.un,
+      ...l.meses.map(m=>fmt(m.plano)),
+      ...l.meses.map(m=>m.real!=null?fmt(m.real):"—"),
+      fmt(l.planoAte), l.lancados?fmt(l.realizado):"—",
+      l.aderencia!=null?pct(l.aderencia):"—", fmt(l.saldo)]));
+};
+
+/* Os 20 relatórios. `secoes` é a ordem em que as abas ou blocos saem. */
 const RELATORIOS = [
   {id:"anual",   nome:"Orçamento Agrícola Anual",     secoes: ABAS_COMPLETO},
   {id:"fazenda", nome:"Orçamento por Fazenda",        secoes:["resumo","porFazenda","arrendamentos","fornecedores"]},
@@ -442,6 +481,10 @@ const RELATORIOS = [
   {id:"forn",    nome:"Orçamento de Fornecedores",    secoes:["fornecedores","producao","logistica"]},
   {id:"caixa",   nome:"Fluxo de Caixa Agrícola",      secoes:["fluxo","mensal","periodos"]},
   {id:"indic",   nome:"Indicadores de Custo",         secoes:["indicadores","natureza","cenarios"]},
+  {id:"metaAgr", nome:"Metas — Gerência Agrícola",    secoes:["metasAgricola","planoOperacional","dimensionamento"]},
+  {id:"metaLog", nome:"Metas — Gerência de Logística",secoes:["metasLogistica","transporte","combustivel"]},
+  {id:"metaMan", nome:"Metas — Gerência de Manutenção",secoes:["metasManutencao","frota","manutencao"]},
+  {id:"acomp",   nome:"Acompanhamento do Plano",      secoes:["acompanhamento","metasAgricola","metasLogistica","metasManutencao"]},
 ];
 
 /* Seções extras que só saem no nível detalhado do relatório anual. */

@@ -65,6 +65,31 @@ function janelaDe(cod, meses){
   return {meses: NM, dias: NM * DIAS_MES, fonte: "ano inteiro", idx: []};
 }
 
+/* ===== Meta operacional de uma atividade =====
+   Traduz o dimensionamento no ritmo que o campo tem de manter. Mora aqui, e nao
+   na tela que a mostra, porque o mesmo numero vai para o modal da atividade, a
+   aba de acompanhamento e os relatorios de meta -- se cada um calculasse o seu,
+   a reuniao teria tres metas diferentes para a mesma atividade.
+
+   `horas` e tempo de maquina efetivamente operando (area / rendimento). A
+   disponibilidade e a utilizacao nao encolhem essa hora: elas alargam o dia de
+   calendario necessario para entrega-la. */
+function metaDe(r){
+  const jm = r.janela ? r.janela.meses : 0;
+  const dias = num(P.dias) * jm;                       // dias efetivos na janela
+  const hDisp = num(P.hdia) * (num(P.disp)/100);       // hora de maquina por dia
+  if(!(r.total > 0) || !(r.frotaR > 0) || !(dias > 0) || !(hDisp > 0) || !(jm > 0)) return null;
+  const hEq = r.horas / r.frotaR, qEq = r.total / r.frotaR;
+  return {
+    dias, hDisp, meses: jm, frota: r.frotaR,
+    hEquipDia: hEq/dias,  hEquipMes: hEq/jm,  hEquipPeriodo: hEq,
+    qEquipDia: qEq/dias,  qEquipMes: qEq/jm,  qEquipPeriodo: qEq,
+    hFrotaDia: r.horas/dias, hFrotaMes: r.horas/jm, hFrotaPeriodo: r.horas,
+    qFrotaDia: r.total/dias, qFrotaMes: r.total/jm, qFrotaPeriodo: r.total,
+    ocupa: (hEq/dias)/hDisp,
+  };
+}
+
 function linha(a, MP){
   const p = PLANO[a.cod] || {m:Array(NM).fill(0), trat:""};
   const meses = a.tipo==="transp"
@@ -167,4 +192,4 @@ function linha(a, MP){
           dieselMes: fracMes.map((fr,i)=>fr*soma("litros")*precoDiesel(i))};
 }
 
-export { MODOS_ORD, fatorDe, modosDe, linha, mixDe, tarifaTerc };
+export { MODOS_ORD, fatorDe, modosDe, linha, mixDe, tarifaTerc, metaDe };

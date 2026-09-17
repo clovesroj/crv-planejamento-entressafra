@@ -1,7 +1,7 @@
 import { CFG } from '../dados/cfg.js';
-import { APOIO, APOIO_FIXO, ARREND, ARR_PAR, ARR_RAT, BEN, CRM, DIESEL_MES, DIM, EDITADO, ENC, ESPOR, FORN, FORN_PAR, FROTA, CRM_ESP, MAQ, FROTA_UN, GRAT, INSUMO, INSX, MATX, NIV, P, PLANO, QUADRO, ADM, ADM_RAT, TERC_TAR, TPESS, TRATC, TRAT_NOME } from '../nucleo/estado.js';
+import { APOIO, APOIO_FIXO, ARREND, ARR_PAR, ARR_RAT, BEN, CRM, DIESEL_MES, DIM, EDITADO, ENC, ESPOR, FORN, FORN_PAR, FROTA, CRM_ESP, MAQ, FROTA_UN, REAL, GRAT, INSUMO, INSX, MATX, NIV, P, PLANO, QUADRO, ADM, ADM_RAT, TERC_TAR, TPESS, TRATC, TRAT_NOME } from '../nucleo/estado.js';
 import { setAPOIO, setAPOIO_FIXO, setARREND, setARR_PAR, setARR_RAT, setBEN, setCRM,
-         setDIESEL_MES, setDIM, setEDITADO, setFORN, setFORN_PAR, setENC, setESPOR, setFROTA, setCRM_ESP, setMAQ, setFROTA_UN, setGRAT, setINSUMO,
+         setDIESEL_MES, setDIM, setEDITADO, setFORN, setFORN_PAR, setENC, setESPOR, setFROTA, setCRM_ESP, setMAQ, setFROTA_UN, setREAL, setGRAT, setINSUMO,
          setINSX, setMATX, setNIV, setP, setPLANO, setQUADRO, setADM, setADM_RAT, setTERC_TAR, setTPESS, setTRATC,
          setTRAT_NOME } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
@@ -15,7 +15,7 @@ let REMOTO = null, saveTimer = null;
 /* ---------- persistência ---------- */
 function estado(){
   const s = {P,PLANO,DIM,INSUMO,ESPOR,TRATC,TRAT_NOME,DIESEL_MES,ARREND,ARR_PAR,ARR_RAT,FORN,FORN_PAR,ENC,BEN,NIV,GRAT,APOIO,APOIO_FIXO,
-             TERC_TAR,CRM,CRM_ESP,MAQ,FROTA_UN,MATX,INSX,FROTA,TPESS,QUADRO,ADM,ADM_RAT,FUN:CFG.funcoes.map(f=>f.sal),v:10};
+             TERC_TAR,CRM,CRM_ESP,MAQ,FROTA_UN,REAL,MATX,INSX,FROTA,TPESS,QUADRO,ADM,ADM_RAT,FUN:CFG.funcoes.map(f=>f.sal),v:10};
   // Campos que esta sessão nunca tocou ficam nulos ou vazios em memória. Enviá-los
   // apagava no servidor o que outra sessão já tinha preenchido — por isso são omitidos.
   Object.keys(s).forEach(k=>{
@@ -133,6 +133,7 @@ function aplicar(d){
   if(d.CRM_ESP) setCRM_ESP(d.CRM_ESP);
   if(d.MAQ) setMAQ(d.MAQ);
   if(d.FROTA_UN) setFROTA_UN(d.FROTA_UN);
+  if(d.REAL) setREAL(d.REAL);
   if(d.MATX) setMATX(d.MATX);
   if(d.INSX) setINSX(d.INSX);
   if(d.FROTA) setFROTA(d.FROTA);

@@ -4,7 +4,7 @@ import { composicao, destravar, tratCodigos } from '../calculo/insumos.js';
 import { CFG } from '../dados/cfg.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM } from '../nucleo/calendario.js';
-import { APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL } from '../nucleo/estado.js';
+import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES } from '../nucleo/estado.js';
 import { FROTA_ABERTO, FROTA_UN, MAQ, setFROTA_DEST, setFROTA_ORIG } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { aplicarFiltroPlano } from '../ui/plano.js';
@@ -18,6 +18,12 @@ import { setAPOIO, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setTPESS, se
 document.addEventListener("input",e=>{
   const t=e.target;
   if(t.id&&t.id.startsWith("p_")){ lerPremissas(); salvar(); render(); return; }
+  if(t.dataset.real!==undefined){ const c=t.dataset.real, i=+t.dataset.m;
+    REAL[c] = REAL[c] || Array(NM).fill("");
+    // campo vazio volta a nao ter lancamento, e o mes sai da conta de aderencia
+    REAL[c][i] = t.value.trim()==="" ? "" : num(t.value);
+    if(REAL[c].every(v=>v==="")) delete REAL[c];
+    salvar(); leve(); return; }
   if(t.dataset.c!==undefined&&t.dataset.m!==undefined){
     const c=t.dataset.c; PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""};
     PLANO[c].m[+t.dataset.m]=num(t.value); salvar(); leve(); return; }
@@ -134,6 +140,7 @@ document.addEventListener("change",e=>{
   if(t.id==="sel_fun"){ setFUN_SEL(t.value); render(); return; }
   if(t.id==="sel_cat"){ setCAT_SEL(t.value); render(); return; }
   if(t.id==="sel_orig"){ setFROTA_ORIG(t.value); render(); return; }
+  if(t.id==="sel_acomp_mes"){ setACOMP_MES(t.value===""?null:+t.value); render(); return; }
   if(t.id==="sel_dest"){ setFROTA_DEST(t.value); render(); return; }
   if(t.dataset.undest!==undefined){ const c=t.dataset.undest;
     FROTA_UN[c]=FROTA_UN[c]||{}; FROTA_UN[c].st=t.value; salvar(); render(); return; }

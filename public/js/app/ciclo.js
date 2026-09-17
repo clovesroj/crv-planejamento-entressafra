@@ -28,6 +28,7 @@ import { pintarResumoFrota } from '../ui/resumo-frota.js';
 import { pintarTPess } from '../ui/transporte-pessoal.js';
 import { pintarTransp } from '../ui/transporte.js';
 import { pintarValida } from '../ui/validacao.js';
+import { pintarAcomp } from '../ui/acompanhamento.js';
 
 /* Recorte do periodo escolhido na barra superior.
    So decompoe o que o motor ja produz mes a mes -- custo mensal, naturezas por
@@ -76,7 +77,7 @@ function render(){
     b.classList.toggle("on", b.dataset.periodo===PERIODO_SEL));
   pintarCapa(R); pintarMDO(R); pintarPlano(R); pintarDim(R); pintarTransp(R); pintarApoio(R); pintarCRM(R); pintarReforma(); pintarTPess(R);
   pintarIrrig(R); pintarInsumos(R); pintarArrend(R); pintarForn(R); pintarAdm(R); pintarCustos(R); pintarContas(R); pintarCombustivel(R); pintarResumoFrota(R); pintarPessoas(R);
-  pintarPainel(R); pintarValida(R); pintarRastro(R); pintarRendMensal(R);
+  pintarPainel(R); pintarValida(R); pintarAcomp(R); pintarRastro(R); pintarRendMensal(R);
 }
 /* O rastro se redesenha sozinho: render() inteiro custa ~500 ms porque refaz as
    22 abas, e abrir ou descer um nível não muda nenhuma delas. Só o modal, ~8 ms.

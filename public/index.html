@@ -28,6 +28,7 @@
       <div class="gl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 15a8 8 0 0 1 16 0"/><path d="M12 15l4.2-4.2"/><path d="M3 19h18"/></svg>Visão geral</div>
       <button class="on" data-s="capa">Capa</button>
       <button data-s="painel">Painel</button>
+      <button data-s="acomp">Acompanhamento do Plano</button>
       <button data-s="valida">Validação <span id="vbadge"></span></button>
     </div>
     <div class="navgroup" data-g="Planejamento">
@@ -736,6 +737,37 @@
 </section>
 
 <!-- ===== VALIDAÇÃO ===== -->
+<!-- ===== ACOMPANHAMENTO DO PLANO ===== -->
+<section id="acomp">
+  <h2>Acompanhamento do Plano</h2>
+  <p class="lead">As metas que cada gerência leva da reunião de planejamento e o quanto delas já foi
+  cumprido. A meta é a mesma que o modal da atividade mostra — não há dois números para a mesma coisa.</p>
+  <div class="grid g4" id="k_acomp" style="margin-bottom:16px"></div>
+
+  <div class="panel"><h3>Metas — Gerência Agrícola</h3>
+    <div class="tblwrap"><table id="t_meta_agricola"></table></div>
+    <div class="hint" style="margin-top:9px">Meta por dia de cada equipamento e da frota inteira, na janela
+    de execução da atividade. Hora produtiva é máquina operando, não jornada.</div></div>
+
+  <div class="panel"><h3>Metas — Gerência de Logística</h3>
+    <div class="tblwrap"><table id="t_meta_logistica"></table></div>
+    <div class="hint" style="margin-top:9px">Transporte e transbordo espelham a tonelada da colheita:
+    o volume não é lançado aqui, vem do Plano Operacional.</div></div>
+
+  <div class="panel"><h3>Metas — Gerência de Manutenção</h3>
+    <div class="tblwrap"><table id="t_meta_manut"></table></div>
+    <div class="hint" style="margin-top:9px">Horas que cada equipamento precisa entregar no plano e o CRM
+    que elas carregam. A frota que vai rodar e o provisionamento de reforma estão em Manutenção de Frota.</div></div>
+
+  <div class="panel"><h3>Execução: plano x realizado</h3>
+    <div class="row" style="margin-bottom:12px">
+      <div style="min-width:200px"><label>Medir até o mês</label><select id="sel_acomp_mes"></select></div>
+    </div>
+    <div class="tblwrap"><table id="t_acomp"></table></div>
+    <div class="hint" style="margin-top:9px">Lance o realizado de cada mês; o campo em branco mostra o plano
+    como referência. Mês sem lançamento fica fora da conta de aderência — não conta como zero executado.</div></div>
+</section>
+
 <section id="valida">
   <h2>Validação</h2>
   <p class="lead">Checagens automáticas de consistência.</p>
