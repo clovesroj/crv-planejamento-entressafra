@@ -38,6 +38,22 @@ function mesesEntre(ini, fim){
   return MESES.map((_,i)=>i).filter(i => i >= a && i <= b);
 }
 
+/* Dias de calendario do mes i que caem dentro da janela [ini, fim]. Zero quando
+   o mes esta todo fora dela. E o que permite dezembro que termina no dia 15
+   valer 15 dias, e nao 31. */
+function diasNoMesEntre(i, ini, fim){
+  const rot = MESES[i] || "";
+  const m = MES_NUM[rot.slice(0,3)] || 0;
+  if(!m || !ini || !fim) return 0;
+  const ano = 2000 + (+rot.slice(-2) || 0);
+  const mesIni = new Date(ano, m - 1, 1), mesFim = new Date(ano, m, 0);
+  const a = new Date(ini + "T00:00:00"), b = new Date(fim + "T00:00:00");
+  if(isNaN(a) || isNaN(b)) return 0;
+  const de = a > mesIni ? a : mesIni, ate = b < mesFim ? b : mesFim;
+  if(ate < de) return 0;
+  return Math.round((ate - de) / 86400000) + 1;
+}
+
 function perTag(i){ const p = periodoMes(i); return `<span class="per per-${p}">${p==="safra"?"Safra":"Entressafra"}</span>`; }
 
 /* Classe de uma coluna de mes. Sao duas marcas com papeis diferentes:
@@ -64,4 +80,4 @@ const CAT_LBL = {mdo:"Mão de obra", manut:"Manutenção (CRM)", diesel:"Diesel"
   terc:"Terceirização + transporte", arrend:"Arrendamento", fixo:"Fixos (adm./deprec.)", espor:"Esporádicos"};
 
 export { CAT_LBL, MESES, MESES_ENTRESSAFRA, MESES_SAFRA, MES_NUM, NM, NM_PER, PERIODOS, PERIODO_MESES,
-         clsMes, diasCorridos, indiceDaData, mesesEntre, perTag, periodoMes };
+         clsMes, diasCorridos, diasNoMesEntre, indiceDaData, mesesEntre, perTag, periodoMes };

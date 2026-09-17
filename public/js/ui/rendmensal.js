@@ -79,6 +79,8 @@ function pintarRendMensal(R){
         naquele critério, é o ${un}/h que o volume do mês exige.
         A hora efetiva do dia sai de ${fmt(P.hdia,1)} h de jornada × disponibilidade × utilização × eficiência —
         é por aí que dezembro chuvoso encolhe o dia sem que a máquina tenha quebrado.
+        <b>Os dias de cada mês saem da janela da atividade</b>: mês que a janela corta no meio vale
+        só os dias cobertos, e aparece marcado como <i>mês parcial</i>.
         A produção do mês aparece em <b>duas leituras</b>, e elas não são a mesma coisa.
         <b>Por dia efetivo</b> divide pelos ${fmt(P.dias)} dias de operação do mês (premissa) — é a
         <b>meta</b>, o ritmo a manter nos dias em que a frente vai a campo.
@@ -107,11 +109,13 @@ function pintarRendMensal(R){
       <div class="rm-cab">
         <b>${m}</b>
         <span class="${vazio?"calc":"rm-meta"}">${vazio?"sem volume":fmt(c.q)+" "+un}</span>
+        ${c.parcial ? `<span class="badge b-warn" title="A janela da atividade (${r.janela.ini} a ${r.janela.fim}) cobre ${fmt(c.diasCorridos)} dos ${fmt(c.diasCheios)} dias deste mês. Os divisores já são os do pedaço coberto.">mês parcial</span>` : ""}
       </div>
       ${vazio ? "" : `
       <div class="rm-metas">
-        <span title="${fmt(c.q)} ${un} ÷ ${fmt(c.dias)} dias de operação = ${fmt(c.qDia,1)} ${un}. É a meta: o ritmo a manter nos dias em que a frente vai a campo.">Por dia efetivo
-          <b>${fmt(c.qDia,1)} ${un}</b> <span class="calc">÷ ${fmt(c.dias)} dias</span></span>
+        <span title="${fmt(c.q)} ${un} ÷ ${fmt(c.dias,1)} dias de operação = ${fmt(c.qDia,1)} ${un}. É a meta: o ritmo a manter nos dias em que a frente vai a campo.${
+          c.parcial ? " O mês e parcial: a janela cobre "+fmt(c.diasCorridos)+" dos "+fmt(c.diasCheios)+" dias, e os dias de operação caem na mesma proporção." : ""}">Por dia efetivo
+          <b>${fmt(c.qDia,1)} ${un}</b> <span class="calc">÷ ${fmt(c.dias,1)} dias</span></span>
         <span title="${fmt(c.q)} ${un} ÷ ${fmt(c.diasCorridos)} dias do mês = ${fmt(c.qDiaCorrido,1)} ${un}. É o termômetro: o ritmo contra o calendário, para saber se o mês está no prazo.">Por dia corrido
           <b>${fmt(c.qDiaCorrido,1)} ${un}</b> <span class="calc">÷ ${fmt(c.diasCorridos)} dias</span></span>
         <span title="${fmt(c.qDia,1)} ${un}/dia ÷ ${fmt(c.n)} equipamento(s)">Por equip./dia

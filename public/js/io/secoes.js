@@ -525,14 +525,15 @@ function criterioDe(R, ger){
   const nome = ger ? (GERENCIAS[ger]||ger) : "todas as gerências";
   return sec(ger ? "Critério por mês" : "Critério por mês — geral",
     "Critério por mês — " + nome,
-    ["Mês","Cod","Atividade","Etapa"].concat(ger ? [] : ["Gerência"]).concat(
+    ["Mês","Janela do mês","Cod","Atividade","Etapa"].concat(ger ? [] : ["Gerência"]).concat(
     ["Produção","Unid.","Por dia efetivo","Dias de operação","Por dia corrido","Dias do mês",
      "Frota","Rendimento","Horas de máquina","Horas/dia por equipamento","Horas efetivas/dia",
      "Disponibilidade","Utilização","Eficiência",
      "Rendimento necessário","Disponibilidade necessária","Utilização necessária","Eficiência necessária",
      "Situação"]),
-    lin.map(c=>[c.mes, c.cod, c.nome, c.etapa].concat(ger ? [] : [GERENCIAS[c.gerencia]||c.gerencia]).concat(
-      [fmt(c.q), c.un, fmt(c.qDia,1), fmt(c.dias), fmt(c.qDiaCorrido,1), fmt(c.diasCorridos),
+    lin.map(c=>[c.mes, c.parcial ? "parcial ("+fmt(c.diasCorridos)+" de "+fmt(c.diasCheios)+" dias)" : "mês inteiro",
+      c.cod, c.nome, c.etapa].concat(ger ? [] : [GERENCIAS[c.gerencia]||c.gerencia]).concat(
+      [fmt(c.q), c.un, fmt(c.qDia,1), fmt(c.dias,1), fmt(c.qDiaCorrido,1), fmt(c.diasCorridos),
        fmt(c.n), fmt(c.rend,2)+" "+c.un+"/h", fmt(c.horas), fmt(c.hDiaEquip,1), fmt(c.hDispEquip,1),
        pct(c.disp), pct(c.util), pct(c.efic),
        fmt(c.rendNec,2)+" "+c.un+"/h", pct(c.dispNec), pct(c.utilNec), pct(c.eficNec),

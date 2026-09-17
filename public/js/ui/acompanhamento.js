@@ -85,11 +85,12 @@ function pintarAcomp(R){
     ["Por dia efetivo",1],["Por dia corrido",1],["Frota",1],["Rend.",1],["Horas",1],
     ["h/dia · equip.",1],["Rend. nec.",1],["Disp. nec.",1],["Utiliz. nec.",1],["Efic. nec.",1],["Situação"]])+"<tbody>"+
     (crit.length ? crit.map(c=>`<tr>
-      <td class="tot">${c.mes}</td><td>${c.cod}</td><td>${c.nome}</td>
+      <td class="tot">${c.mes}${c.parcial?' <span class="badge b-warn">parcial</span>':""}</td><td>${c.cod}</td><td>${c.nome}</td>
       <td class="calc">${GERENCIAS[c.gerencia]||c.gerencia}</td>
       <td class="num tot">${fmt(c.q)} ${c.un}</td>
-      <td class="num tot" title="${fmt(c.q)} ${c.un} ÷ ${fmt(c.dias)} dias de operação">${fmt(c.qDia,1)}
-        <span class="calc">÷${fmt(c.dias)}</span></td>
+      <td class="num tot" title="${fmt(c.q)} ${c.un} ÷ ${fmt(c.dias,1)} dias de operação${
+        c.parcial?" (mês parcial: a janela cobre "+fmt(c.diasCorridos)+" dos "+fmt(c.diasCheios)+" dias)":""}">${fmt(c.qDia,1)}
+        <span class="calc">÷${fmt(c.dias,1)}</span></td>
       <td class="num calc" title="${fmt(c.q)} ${c.un} ÷ ${fmt(c.diasCorridos)} dias do mês">${fmt(c.qDiaCorrido,1)}
         <span class="calc">÷${fmt(c.diasCorridos)}</span></td>
       <td class="num calc">${fmt(c.n)}</td>

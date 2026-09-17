@@ -1,7 +1,7 @@
 import { maqDe } from './crm.js';
 import { CFG } from '../dados/cfg.js';
 import { fatorEscala } from '../dados/escalas.js';
-import { MESES, NM, diasCorridos, mesesEntre } from '../nucleo/calendario.js';
+import { MESES, NM, diasCorridos, diasNoMesEntre, mesesEntre } from '../nucleo/calendario.js';
 import { DIM, P, PLANO, TERC_TAR } from '../nucleo/estado.js';
 import { num, pct } from '../nucleo/formato.js';
 import { precoDiesel } from './diesel.js';
@@ -127,6 +127,23 @@ function temCriterioMensal(cod){
     Array.isArray(d[k]) && d[k].some(v => num(v) > 0));
 }
 
+/* Dias que a janela da atividade realmente cobre no mes.
+   Dezembro que termina no dia 15 vale 15 dias de calendario, nao 31, e os dias
+   de operacao encolhem na mesma proporcao. Sem isso a meta do mes parcial sai
+   diluida: o volume inteiro dividido por um mes que nao vai acontecer todo, o
+   que faz o criterio parecer folgado justamente no mes que tem menos dia.
+
+   Mes com volume lancado fora da janela declarada usa o mes cheio: o volume
+   esta ali e tem de ser feito, e o Plano Operacional ja marca o desencontro na
+   celula. Dividir por zero dia seria pior do que usar o mes todo. */
+function diasDoMes(i, jan){
+  const cheio = diasCorridos(i);
+  const cobertos = jan && jan.fonte === "datas" ? diasNoMesEntre(i, jan.ini, jan.fim) : cheio;
+  const corridos = cobertos > 0 ? cobertos : cheio;
+  return {corridos, efetivos: num(P.dias) * (corridos / cheio),
+          parcial: corridos < cheio, cheio};
+}
+
 /* ===== Criterio operacional, mes a mes =====
    A meta por equipamento responde o ritmo medio da janela. O mes nao e medio:
    outubro pede mais que abril, e e no mes cheio que o criterio aperta.
@@ -141,13 +158,15 @@ function temCriterioMensal(cod){
    rendimento e para o modal da atividade -- se cada um calculasse o seu, a
    reuniao teria duas metas para o mesmo mes. */
 function criterioMensal(r){
-  const diasMes = num(P.dias), hDia = num(P.hdia);
+  const hDia = num(P.hdia);
   const nPad = r.frotaR || 0;
   // mix de modos e transporte nao tem rendimento de premissa unico -- ali a
   // media do periodo e o unico numero que representa a atividade
   const rendPad = r.rendPremissa > 0 ? r.rendPremissa : r.rend;
   return r.meses.map((qq, i)=>{
     const q = num(qq);
+    const D = diasDoMes(i, r.janela);
+    const diasMes = D.efetivos;
     const c = criterioDoMes(r.a.cod, i, r.util);
     const n = c.frota > 0 ? c.frota : nPad;
     // com a frota do mes fixada, as horas sao a capacidade dela e o rendimento
@@ -170,9 +189,9 @@ function criterioMensal(r){
       // dias em que vai a campo, e o ritmo contra o calendario, que e como se
       // acompanha "estamos no dia 12 de outubro". A primeira e a meta; a segunda
       // e o termometro
-      dias: diasMes, diasCorridos: diasCorridos(i),
+      dias: diasMes, diasCorridos: D.corridos, parcial: D.parcial, diasCheios: D.cheio,
       qDia: diasMes > 0 ? q/diasMes : 0,
-      qDiaCorrido: diasCorridos(i) > 0 ? q/diasCorridos(i) : 0,
+      qDiaCorrido: D.corridos > 0 ? q/D.corridos : 0,
       qDiaEquip: n > 0 && diasMes > 0 ? q/n/diasMes : 0,
       hDiaEquip: n > 0 && diasMes > 0 ? horas/n/diasMes : 0,
       hDispEquip, cap,
@@ -261,7 +280,7 @@ function linha(a, MP){
         // frota fixada no mes: as horas sao a capacidade dela, e o rendimento do
         // mes passa a ser o que fecha a conta (a inversao do Dimensionamento,
         // aplicada mes a mes)
-        if(c.frota>0) return s + c.frota * P.dias * P.hdia * c.disp * c.util * c.efic;
+        if(c.frota>0) return s + c.frota * diasDoMes(i, jan).efetivos * P.hdia * c.disp * c.util * c.efic;
         const rendEf = c.rend>0 ? c.rend : f.rend;
         return s + (rendEf>0 ? qq/rendEf : 0);
       }, 0);
@@ -324,4 +343,5 @@ function linha(a, MP){
           dieselMes: fracMes.map((fr,i)=>fr*soma("litros")*precoDiesel(i))};
 }
 
-export { MODOS_ORD, criterioMensal, fatorDe, modosDe, linha, mixDe, tarifaTerc, metaDe, temCriterioMensal };
+export { MODOS_ORD, criterioMensal, diasDoMes, fatorDe, modosDe, linha, mixDe, tarifaTerc, metaDe,
+  temCriterioMensal };
