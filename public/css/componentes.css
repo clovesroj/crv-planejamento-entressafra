@@ -107,6 +107,9 @@ tr.sub td{background:var(--sunk);font-size:12px;padding:5px 12px}
 
 /* caixa de busca por nome, acima de qualquer tabela do app */
 .tbl-busca{max-width:320px;margin-bottom:10px}
+/* dentro de uma linha de controles, a margem propria da caixa a empurrava para
+   cima dos vizinhos: quem espaca ali e a propria linha */
+.row .tbl-busca{margin-bottom:0}
 
 /* cabecalho arrastavel: reordena coluna, preferencia pessoal (ver componentes.js) */
 th.th-arrasta{cursor:grab}
