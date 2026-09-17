@@ -22,14 +22,19 @@ function realDe(cod){
   return Array.isArray(a) ? a : Array(NM).fill("");
 }
 
-/* Gerencia responsavel por uma atividade, pela etapa do plano.
-   Colheita, preparo de solo, plantio e todo o transporte respondem a logistica.
-   Ficam com a agricola os tratos culturais e o apoio -- o que acontece na cana
-   ja plantada. */
-const ETAPA_LOGISTICA = ["COLHEITA", "PREPARO DE SOLO", "PLANTIO"];
+/* Gerencia responsavel por uma atividade.
+   A agricola responde pelos tratos culturais -- e ali que moram irrigacao e
+   fertirrigacao, que sao tratos da cana em pe, nao etapa separada. Todo o resto
+   e da logistica: preparo, plantio, colheita, apoio e conservacao, transporte e
+   transbordo.
+
+   A lista e de quem fica com a agricola, nao de quem vai para a logistica: uma
+   etapa nova entra como logistica ate que se diga o contrario, que e o lado
+   seguro de errar num plano cujo peso esta na operacao pesada. */
+const ETAPA_AGRICOLA = ["TRATOS CULTURAIS"];
 function gerenciaDe(a){
   if(a.tipo === "transp") return "logistica";
-  return ETAPA_LOGISTICA.includes(a.etapa) ? "logistica" : "agricola";
+  return ETAPA_AGRICOLA.includes(a.etapa) ? "agricola" : "logistica";
 }
 
 /**
