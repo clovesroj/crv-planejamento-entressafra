@@ -206,8 +206,11 @@ footer{display:flex;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;co
 #t_plano td.mes-safra input{border-color:#B9CDB6}
 #t_plano td.mes-entressafra input{border-color:var(--edit-line)}
 /* o filtro apenas esconde as colunas do outro período */
-#t_plano.so-safra .mes-entressafra{display:none}
-#t_plano.so-entressafra .mes-safra{display:none}
+/* Filtro de periodo da barra superior. A marca fica no <body> para valer em
+   toda tabela mensal do sistema, nao so na do plano -- as cores acima seguem
+   restritas ao plano, que e onde o mes e campo de lancamento. */
+body.so-safra .mes-entressafra{display:none}
+body.so-entressafra .mes-safra{display:none}
 
 /* Bloco recolhivel com titulo destacado — usado nos tres dimensionamentos.
    <details> nativo: recolhe sem JavaScript e responde ao teclado. */

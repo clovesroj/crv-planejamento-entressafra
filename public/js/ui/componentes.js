@@ -1,3 +1,4 @@
+import { MESES, clsMes } from '../nucleo/calendario.js';
 import { brl, fmt } from '../nucleo/formato.js';
 
 // chave opcional: a chave do rastro. Com ela o card vira botão e abre a
@@ -8,6 +9,23 @@ const th=a=>`<thead><tr>${a.map(x=>{
   const c=[x[1]?"num":"", x[2]||""].filter(Boolean).join(" ");
   return `<th${c?` class="${c}"`:""}>${x[0]}</th>`;
 }).join("")}</tr></thead>`;
+
+/* ---------- COLUNAS DE MÊS ----------
+   Toda tabela mensal obedece ao filtro de período da barra superior. Quem
+   esconde a coluna é o CSS, pela classe de período que estas duas funções
+   carimbam no cabeçalho e na célula — por isso as duas têm de ser usadas juntas.
+
+   O total é o que exige cuidado: esconder oito colunas e deixar o total do ano
+   ao lado das quatro que sobraram é pior do que não filtrar, porque a linha
+   deixa de fechar na tela e quem lê some com a diferença. Daí somaSel() e
+   maxSel(), que refazem o fechamento sobre os meses à mostra. */
+const thMeses = () => MESES.map((m,i)=>[m,1,clsMes(i)]);
+const tdMeses = (arr, f, cls="num calc") =>
+  arr.map((v,i)=>`<td class="${cls} ${clsMes(i)}">${f(v,i)}</td>`).join("");
+/** Soma de uma série mensal restrita aos meses que o filtro deixa à mostra. */
+const somaSel = (arr, SEL) => SEL.meses.reduce((s,i)=>s+(+arr[i]||0), 0);
+/** Pico de uma série mensal dentro do período filtrado. */
+const maxSel  = (arr, SEL) => SEL.meses.reduce((m,i)=>Math.max(m, +arr[i]||0), 0);
 
 /* ---------- GRÁFICOS ---------- */
 function barras(el,dados,cor,un){
@@ -37,4 +55,4 @@ function barrasH(el,dados){
 }
 
 
-export { barras, barrasH, kpi, th };
+export { barras, barrasH, kpi, maxSel, somaSel, tdMeses, th, thMeses };

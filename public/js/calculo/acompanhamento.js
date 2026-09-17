@@ -59,9 +59,15 @@ function metasPorAtividade(R){
  * Execucao: plano contra realizado, mes a mes e acumulado.
  * `ateMes` limita a conta aos meses ja decorridos -- sem isso, a aderencia de
  * um plano no comeco da safra pareceria catastrofica.
+ * `mesesOk` e o recorte de periodo da barra superior. Sao dois cortes com
+ * perguntas diferentes: ateMes e "ate onde ja medimos", mesesOk e "de que
+ * periodo estamos falando". Com a safra selecionada, a aderencia passa a ser a
+ * da safra -- e nao a do ano com as colunas de entressafra escondidas, que e o
+ * numero errado ao lado da tabela certa.
  */
-function execucao(R, ateMes){
+function execucao(R, ateMes, mesesOk){
   const lim = ateMes == null ? NM - 1 : Math.max(0, Math.min(NM - 1, ateMes));
+  const noPeriodo = i => !mesesOk || mesesOk.includes(i);
   const linhas = R.L.filter(r => r.total > 0).map(r=>{
     const real = realDe(r.a.cod);
     // A aderencia compara o que foi medido com o plano DAQUELES meses. Somar o
@@ -72,7 +78,7 @@ function execucao(R, ateMes){
       const p = num(r.meses[i]);
       const v = real[i];
       const temReal = v !== "" && v != null;
-      if(i <= lim){
+      if(i <= lim && noPeriodo(i)){
         if(temReal){ plan += p; feito += num(v); lancados++; }
         else if(p > 0) semLanc++;   // mes planejado que ainda nao foi reportado
       }
@@ -80,13 +86,14 @@ function execucao(R, ateMes){
               desvio: temReal ? num(v) - p : null};
     });
     const custoUn = r.total > 0 ? r.direto/r.total : 0;
+    const totalPer = mesesOk ? mesesOk.reduce((s,i)=>s+num(r.meses[i]), 0) : r.total;
     const gap = Math.max(0, plan - feito);          // o que deveria ter sido feito e nao foi
     return {
       cod: r.a.cod, nome: r.a.nome, etapa: r.a.etapa, un: r.a.un.split("/")[0],
       gerencia: gerenciaDe(r.a),
-      totalPlano: r.total, planoAte: plan, realizado: feito, lancados, semLanc,
+      totalPlano: totalPer, planoAte: plan, realizado: feito, lancados, semLanc,
       aderencia: plan > 0 && lancados > 0 ? feito/plan : null,
-      saldo: r.total - feito, custoUn, gap, gapValor: gap*custoUn,
+      saldo: totalPer - feito, custoUn, gap, gapValor: gap*custoUn,
       meses,
     };
   });
@@ -122,8 +129,8 @@ function metasDeFrota(R){
  * Ordenado pelo atraso em dinheiro, nao pelo percentual: 10% de atraso em
  * 2.400 ha pesa mais que 50% em 20 ha, e e o primeiro que o diretor cobra.
  */
-function excecoes(R, ateMes){
-  const ex = execucao(R, ateMes);
+function excecoes(R, ateMes, mesesOk){
+  const ex = execucao(R, ateMes, mesesOk);
   const atraso = ex.linhas
     .filter(l => l.aderencia != null && l.aderencia < 0.95 && l.gap > 0)
     .sort((a,b) => b.gapValor - a.gapValor);
@@ -135,8 +142,8 @@ function excecoes(R, ateMes){
 }
 
 /** Uma linha por gerencia: e o resumo que abre a conversa com cada gerente. */
-function porGerencia(R, ateMes){
-  const ex = execucao(R, ateMes);
+function porGerencia(R, ateMes, mesesOk){
+  const ex = execucao(R, ateMes, mesesOk);
   return Object.keys(GERENCIAS).map(g=>{
     const lin = ex.linhas.filter(l => l.gerencia === g);
     const medidos = lin.filter(l => l.lancados > 0);

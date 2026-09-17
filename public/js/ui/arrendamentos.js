@@ -1,7 +1,7 @@
 import { ARR_FORMAS, ARR_PAG, ETAPAS_ORD, arrPar, arrRat } from '../calculo/arrendamento.js';
 import { MESES, NM } from '../nucleo/calendario.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
-import { barras, kpi, th } from './componentes.js';
+import { barras, kpi, somaSel, tdMeses, th, thMeses } from './componentes.js';
 
 /* ---------- ARRENDAMENTOS ---------- */
 function pintarArrend(R){
@@ -66,11 +66,12 @@ function pintarArrend(R){
      <td class="num tot">${ratSoma>0?"100,0%":"—"}</td>
      <td class="num tot">${brl(ETAPAS_ORD.reduce((s,e)=>s+((R.etapas[e]||{}).arrend||0),0))}</td><td colspan="2"></td></tr></tbody>`;
 
-  $("#t_arr_mes").innerHTML = th([["Fazenda"],...MESES.map(m=>[m,1]),["Total",1]])+"<tbody>"+
-    A.linhas.map(l=>`<tr><td>${esc(l.faz)}</td>`+l.mes.map(v=>`<td class="num calc">${brl(v)}</td>`).join("")+
-      `<td class="num">${brl(l.periodo)}</td></tr>`).join("")+
-    `<tr><td class="tot">TOTAL</td>`+A.mes.map(v=>`<td class="num tot">${brl(v)}</td>`).join("")+
-    `<td class="num tot">${brl(A.total)}</td></tr></tbody>`;
+  const SEL = R.SEL;
+  $("#t_arr_mes").innerHTML = th([["Fazenda"],...thMeses(),[SEL.parcial?"Total do período":"Total",1]])+"<tbody>"+
+    A.linhas.map(l=>`<tr><td>${esc(l.faz)}</td>`+tdMeses(l.mes, v=>brl(v))+
+      `<td class="num">${brl(somaSel(l.mes, SEL))}</td></tr>`).join("")+
+    `<tr><td class="tot">TOTAL</td>`+tdMeses(A.mes, v=>brl(v), "num tot")+
+    `<td class="num tot">${brl(somaSel(A.mes, SEL))}</td></tr></tbody>`;
   barras($("#ch_arr"), MESES.map((m,i)=>({l:m, v:A.mes[i]})), "#A5503A");
 }
 

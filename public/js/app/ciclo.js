@@ -76,6 +76,11 @@ function render(){
   $("#c_arr").value=R.AR.area>0?brl(R.AR.anual/R.AR.area,2):"—";
   document.querySelectorAll("#per_sel [data-periodo]").forEach(b=>
     b.classList.toggle("on", b.dataset.periodo===PERIODO_SEL));
+  // O filtro esconde as colunas do outro periodo em toda tabela mensal. A marca
+  // vai no <body> justamente para nao depender da aba aberta: quem trocar de aba
+  // com a safra selecionada encontra a proxima tela ja filtrada.
+  document.body.classList.toggle("so-safra", PERIODO_SEL==="safra");
+  document.body.classList.toggle("so-entressafra", PERIODO_SEL==="entressafra");
   pintarCapa(R); pintarMDO(R); pintarPlano(R); pintarDim(R); pintarTransp(R); pintarApoio(R); pintarCRM(R); pintarReforma(); pintarTPess(R);
   pintarIrrig(R); pintarInsumos(R); pintarArrend(R); pintarForn(R); pintarAdm(R); pintarCustos(R); pintarContas(R); pintarCombustivel(R); pintarResumoFrota(R); pintarPessoas(R);
   pintarPainel(R); pintarValida(R); pintarAcomp(R); pintarRastro(R); pintarRendMensal(R);

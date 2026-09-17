@@ -1,9 +1,9 @@
 import { linha } from '../calculo/atividade.js';
 import { CRM_COMP } from '../calculo/crm.js';
-import { MESES, periodoMes } from '../nucleo/calendario.js';
+import { MESES, clsMes, periodoMes } from '../nucleo/calendario.js';
 import { P } from '../nucleo/estado.js';
 import { $, brl, fmt } from '../nucleo/formato.js';
-import { barras, barrasH, kpi, th } from './componentes.js';
+import { barras, barrasH, kpi, somaSel, tdMeses, th } from './componentes.js';
 import { comps } from './custos.js';
 
 /* ---------- PAINEL ---------- */
@@ -40,15 +40,16 @@ function pintarPainel(R){
   const catLbl = {mdo:"Mão de obra",manut:"Manutenção (CRM)",diesel:"Diesel",insumo:"Insumos + irrigação",
     terc:"Terceirização + transporte",arrend:"Arrendamento",fixo:"Fixos (adm./deprec.)",espor:"Esporádicos"};
   const catKeys = Object.keys(catLbl);
-  $("#t_grandes").innerHTML = th([["Conta"],...MESES.map((m,i)=>[`${m}<br><small>${periodoMes(i)==="safra"?"safra":"entressafra"}</small>`,1]),
-      ["Total",1],["Safra",1],["Entressafra",1]])+"<tbody>"+
-    catKeys.map(k=>{const linha=R.mesesCat[k], tot=linha.reduce((s,v)=>s+v,0);
-      return `<tr><td>${catLbl[k]}</td>`+linha.map(v=>`<td class="num calc">${brl(v,0)}</td>`).join("")+
-        `<td class="num tot">${brl(tot)}</td><td class="num">${brl(R.PER.safra.cat[k])}</td>`+
+  const SEL = R.SEL;
+  const totMes = MESES.map((m,i)=>catKeys.reduce((s,k)=>s+R.mesesCat[k][i],0));
+  $("#t_grandes").innerHTML = th([["Conta"],...MESES.map((m,i)=>[`${m}<br><small>${periodoMes(i)==="safra"?"safra":"entressafra"}</small>`,1,clsMes(i)]),
+      [SEL.parcial?"Total do período":"Total",1],["Safra",1],["Entressafra",1]])+"<tbody>"+
+    catKeys.map(k=>{const linha=R.mesesCat[k];
+      return `<tr><td>${catLbl[k]}</td>`+tdMeses(linha, v=>brl(v,0))+
+        `<td class="num tot">${brl(somaSel(linha, SEL))}</td><td class="num">${brl(R.PER.safra.cat[k])}</td>`+
         `<td class="num">${brl(R.PER.entressafra.cat[k])}</td></tr>`;}).join("")+
-    `<tr><td class="tot">TOTAL</td>`+
-    MESES.map((m,i)=>`<td class="num tot">${brl(catKeys.reduce((s,k)=>s+R.mesesCat[k][i],0),0)}</td>`).join("")+
-    `<td class="num tot">${brl(catKeys.reduce((s,k)=>s+R.mesesCat[k].reduce((a,v)=>a+v,0),0))}</td>`+
+    `<tr><td class="tot">TOTAL</td>`+tdMeses(totMes, v=>brl(v,0), "num tot")+
+    `<td class="num tot">${brl(somaSel(totMes, SEL))}</td>`+
     `<td class="num tot">${brl(R.PER.safra.total)}</td><td class="num tot">${brl(R.PER.entressafra.total)}</td></tr></tbody>`;
   barrasH($("#ch_comp"),comps(R).filter(([,v])=>v>0).map(([l,v])=>({l,v})));
 

@@ -2,8 +2,8 @@ import { FROTA_ESP, SEP_MOD, chaveDoModelo, destinoDe, espDe, modDe, opcoesDesti
          unidadesDoModelo } from '../calculo/crm.js';
 import { DIM, FROTA_ABERTO, QUADRO } from '../nucleo/estado.js';
 import { $, brl, fmt, num, pct } from '../nucleo/formato.js';
-import { MESES, NM } from '../nucleo/calendario.js';
-import { kpi, th } from './componentes.js';
+import { MESES, NM, clsMes } from '../nucleo/calendario.js';
+import { kpi, maxSel, tdMeses, th, thMeses } from './componentes.js';
 import { ESCALAS } from '../dados/escalas.js';
 import { quadroBase } from '../calculo/quadro.js';
 
@@ -109,6 +109,7 @@ function pintarDim(R){
    inteiro contrataria gente para meses em que a atividade nem roda. */
 function pintarDimPessoas(R){
   const PS = R.PS;
+  const SEL = R.SEL;   // recorte de meses da barra superior
   const qv = (f,k) => num((QUADRO[f]||{})[k]);
   const BASE = quadroBase();
   // o ativo vem do ERP; o campo da tela e um ajuste opcional que sobrepoe a base
@@ -219,20 +220,20 @@ function pintarDimPessoas(R){
         if(falta>0) faltaMes[i] += falta;
         const ehPico = v>0 && v===o.pico;
         const estilo = falta>0 ? ' style="background:var(--bad-bg);color:var(--bad);font-weight:600"' : '';
-        return `<td class="num ${falta>0?"":"calc"}"${estilo} title="${MESES[i]}: precisa de ${fmt(v)}, disponível ${fmt(disp)}">${
+        return `<td class="num ${falta>0?"":"calc"} ${clsMes(i)}"${estilo} title="${MESES[i]}: precisa de ${fmt(v)}, disponível ${fmt(disp)}">${
           v>0 ? (ehPico?`<b>${fmt(v)}</b>`:fmt(v)) : "—"}</td>`;
       }).join("") +
-      `<td class="num tot">${fmt(o.pico)}</td></tr>`;
+      `<td class="num tot">${fmt(maxSel(o.qtdMes, SEL))}</td></tr>`;
   }).join("");
 
-  $("#t_pes_mes").innerHTML = th([["Função"],["Disponível",1],...MESES.map(m=>[m,1]),["Pico",1]])+"<tbody>"+
+  $("#t_pes_mes").innerHTML = th([["Função"],["Disponível",1],...thMeses(),[SEL.parcial?"Pico no período":"Pico",1]])+"<tbody>"+
     (funcoes.length ? corpoMes : `<tr><td colspan="${NM+3}" class="calc">Sem função dimensionada.</td></tr>`)+
     `<tr><td class="tot">NECESSIDADE TOTAL</td><td class="num tot">${fmt(tot.disp)}</td>` +
-    PS.qtdMes.map(v=>`<td class="num tot">${fmt(v)}</td>`).join("") +
-    `<td class="num tot">${fmt(Math.max(...PS.qtdMes))}</td></tr>` +
+    tdMeses(PS.qtdMes, v=>fmt(v), "num tot") +
+    `<td class="num tot">${fmt(maxSel(PS.qtdMes, SEL))}</td></tr>` +
     `<tr><td class="calc">A contratar no mês</td><td></td>` +
-    faltaMes.map(v=>`<td class="num ${v>0?"":"calc"}">${v>0?`<span class="badge b-bad">+${fmt(v)}</span>`:"—"}</td>`).join("") +
-    `<td class="num tot">${faltaMes.some(v=>v>0)?"+"+fmt(Math.max(...faltaMes)):"—"}</td></tr></tbody>`;
+    tdMeses(faltaMes, v=>v>0?`<span class="badge b-bad">+${fmt(v)}</span>`:"—", "num") +
+    `<td class="num tot">${maxSel(faltaMes, SEL)>0?"+"+fmt(maxSel(faltaMes, SEL)):"—"}</td></tr></tbody>`;
 
   const iPicoGeral = PS.qtdMes.indexOf(Math.max(...PS.qtdMes));
   $("#k_dim_pes").innerHTML =

@@ -1,7 +1,7 @@
 import { MESES, NM } from '../nucleo/calendario.js';
 import { DIESEL_MES, P } from '../nucleo/estado.js';
 import { $, brl, fmt, num } from '../nucleo/formato.js';
-import { barras, kpi, th } from './componentes.js';
+import { barras, kpi, somaSel, tdMeses, th, thMeses } from './componentes.js';
 
 /* ---------- COMBUSTÍVEL ---------- */
 function pintarCombustivel(R){
@@ -17,21 +17,23 @@ function pintarCombustivel(R){
     kpi("Preço médio ponderado","g",brl(litrosT>0?custoT/litrosT:P.diesel,2)+"/L","ponderado pelo volume mensal","diesel:total") +
     kpi("Mês de pico","a",litrosT>0?MESES[iPico]:"—", litrosT>0?fmt(litrosMes[iPico])+" L":"sem volume lançado","diesel:total");
 
-  $("#t_comb_preco").innerHTML = th([[""],...MESES.map(m=>[m,1])]) + "<tbody>" +
-    `<tr><td>Preço (R$/L)</td>` + MESES.map((m,i)=>{
+  const SEL = R.SEL;
+  $("#t_comb_preco").innerHTML = th([[""],...thMeses()]) + "<tbody>" +
+    `<tr><td>Preço (R$/L)</td>` + tdMeses(MESES, (m,i)=>{
       const v = DIESEL_MES[i];
-      return `<td class="num"><input data-dm="${i}" value="${v!=null?+num(v).toFixed(4):""}"
-        placeholder="${+P.diesel.toFixed(2)}" inputmode="decimal"></td>`;}).join("") + `</tr></tbody>`;
+      return `<input data-dm="${i}" value="${v!=null?+num(v).toFixed(4):""}"
+        placeholder="${+P.diesel.toFixed(2)}" inputmode="decimal">`;}, "num") + `</tr></tbody>`;
 
   const linhaTab = (rot,arr,f,forte)=>`<tr><td${forte?' class="tot"':''}>${rot}</td>`+
-    arr.map(v=>`<td class="num ${forte?"tot":"calc"}">${f(v)}</td>`).join("")+
-    `<td class="num tot">${f(soma(arr))}</td></tr>`;
-  let tm = th([["Mês"],...MESES.map(m=>[m,1]),["Total",1]]) + "<tbody>" +
+    tdMeses(arr, v=>f(v), forte?"num tot":"num calc")+
+    `<td class="num tot">${f(somaSel(arr, SEL))}</td></tr>`;
+  let tm = th([["Mês"],...thMeses(),[SEL.parcial?"Total do período":"Total",1]]) + "<tbody>" +
     linhaTab("Litros — operação do plano", C.litrosOperMes, v=>fmt(v)) +
     linhaTab("Litros — equipamentos de apoio", C.litrosApoioMes, v=>fmt(v)) +
     linhaTab("Volume de diesel necessário (L)", litrosMes, v=>fmt(v), true) +
-    `<tr><td>Preço aplicado (R$/L)</td>` + C.preco.map(p=>`<td class="num calc">${brl(p,2)}</td>`).join("") +
-    `<td class="num calc">${litrosT>0?brl(custoT/litrosT,2):"—"}</td></tr>` +
+    `<tr><td>Preço aplicado (R$/L)</td>` + tdMeses(C.preco, p=>brl(p,2)) +
+    `<td class="num calc">${(()=>{const l=somaSel(litrosMes,SEL);
+      return l>0?brl(somaSel(custoMes,SEL)/l,2):"—";})()}</td></tr>` +
     linhaTab("Custo de diesel (R$)", custoMes, v=>brl(v), true);
   if(C.litrosIrrig>0)
     tm += linhaTab("Irrigação com motobomba a diesel (L) — custo em Irrigação", C.litrosIrrigMes, v=>fmt(v));

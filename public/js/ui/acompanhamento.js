@@ -1,8 +1,8 @@
 import { GERENCIAS, excecoes, metasDeFrota, metasPorAtividade, porGerencia } from '../calculo/acompanhamento.js';
-import { MESES } from '../nucleo/calendario.js';
+import { MESES, clsMes } from '../nucleo/calendario.js';
 import { ACOMP_MES, REAL } from '../nucleo/estado.js';
 import { $, brl, fmt, pct } from '../nucleo/formato.js';
-import { kpi, th } from './componentes.js';
+import { kpi, tdMeses, th, thMeses } from './componentes.js';
 
 /* ---------- ACOMPANHAMENTO DO PLANO ----------
    Duas leituras na mesma aba: a meta que cada gerência leva da reunião de
@@ -10,9 +10,12 @@ import { kpi, th } from './componentes.js';
    da atividade mostra — vem de metaDe(), não é recalculada aqui. */
 function pintarAcomp(R){
   const metas = metasPorAtividade(R);
-  const E  = excecoes(R, ACOMP_MES);
+  // o recorte de periodo vem da barra superior; "ate o mes" continua sendo a
+  // pergunta separada de quanto ja foi medido
+  const SEL = R.SEL;
+  const E  = excecoes(R, ACOMP_MES, SEL.parcial ? SEL.meses : null);
   const ex = E.ex;
-  const ger = porGerencia(R, ACOMP_MES);
+  const ger = porGerencia(R, ACOMP_MES, SEL.parcial ? SEL.meses : null);
 
   $("#sel_acomp_mes").innerHTML =
     `<option value="">Ano todo</option>` +
@@ -23,7 +26,7 @@ function pintarAcomp(R){
   $("#k_acomp").innerHTML =
     kpi("Aderência ao plano", aderCor(ex.aderenciaGeral),
         ex.aderenciaGeral!=null ? pct(ex.aderenciaGeral) : "—",
-        ex.aderenciaGeral!=null ? "até "+ex.mesLabel+" · "+fmt(ex.comLancamento)+" de "+fmt(ex.total)+" atividades medidas"
+        ex.aderenciaGeral!=null ? "até "+ex.mesLabel+(SEL.parcial?" · "+SEL.rotulo:"")+" · "+fmt(ex.comLancamento)+" de "+fmt(ex.total)+" atividades medidas"
           : "nada lançado: sem execução não há o que medir") +
     kpi("Atividades fora da meta", E.atraso.length?"a":"g", fmt(E.atraso.length),
         E.atraso.length ? "abaixo de 95% do plano medido" : "todas as medidas em dia") +
@@ -107,11 +110,11 @@ function pintarAcomp(R){
 
   // ===== execução =====
   $("#t_acomp").innerHTML = th([["Cod"],["Atividade"],["Gerência"],
-    ...MESES.map(m=>[m,1]),["Plano medido",1],["Realizado",1],["Aderência",1],["A fazer",1]])+"<tbody>"+
+    ...thMeses(),["Plano medido",1],["Realizado",1],["Aderência",1],["A fazer",1]])+"<tbody>"+
     ex.linhas.map(l=>`<tr>
       <td>${l.cod}</td><td>${l.nome}</td>
       <td class="calc">${GERENCIAS[l.gerencia]||l.gerencia}</td>
-      ${l.meses.map(m=>`<td class="num${m.i>ex.ateMes?" fora-janela":""}">
+      ${l.meses.map(m=>`<td class="num ${clsMes(m.i)}${m.i>ex.ateMes?" fora-janela":""}">
         <input data-real="${l.cod}" data-m="${m.i}" value="${m.real!=null?m.real:""}"
                placeholder="${m.plano?fmt(m.plano):"—"}" inputmode="decimal"
                title="Plano: ${fmt(m.plano)} ${l.un}"></td>`).join("")}
@@ -121,7 +124,7 @@ function pintarAcomp(R){
         l.aderencia!=null?pct(l.aderencia):"—"}</td>
       <td class="num calc">${fmt(l.saldo)} ${l.un}</td></tr>`).join("")+
     `<tr><td class="tot" colspan="3">TOTAL DAS ATIVIDADES COM LANÇAMENTO</td>
-     <td colspan="${MESES.length}"></td>
+     ${tdMeses(MESES, ()=>"", "")}
      <td class="num tot">${fmt(ex.planoAte)}</td>
      <td class="num tot">${fmt(ex.realizado)}</td>
      <td class="num tot" style="${corAder(ex.aderenciaGeral)}">${

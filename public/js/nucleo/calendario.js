@@ -40,8 +40,13 @@ function mesesEntre(ini, fim){
 
 function perTag(i){ const p = periodoMes(i); return `<span class="per per-${p}">${p==="safra"?"Safra":"Entressafra"}</span>`; }
 
+/* Classe de periodo de uma coluna de mes. E por ela que o filtro da barra
+   superior esconde a coluna: o CSS casa .so-safra .mes-entressafra, e vice-versa.
+   Cabecalho e celula precisam levar a mesma marca, senao a tabela desalinha. */
+function clsMes(i){ return "mes-" + periodoMes(i); }
+
 const CAT_LBL = {mdo:"Mão de obra", manut:"Manutenção (CRM)", diesel:"Diesel", insumo:"Insumos + irrigação",
   terc:"Terceirização + transporte", arrend:"Arrendamento", fixo:"Fixos (adm./deprec.)", espor:"Esporádicos"};
 
 export { CAT_LBL, MESES, MESES_ENTRESSAFRA, MESES_SAFRA, MES_NUM, NM, NM_PER, PERIODOS, PERIODO_MESES,
-         indiceDaData, mesesEntre, perTag, periodoMes };
+         clsMes, indiceDaData, mesesEntre, perTag, periodoMes };

@@ -2,7 +2,7 @@ import { fornPar } from '../calculo/fornecedores.js';
 import { FORN_MODALIDADES, FORN_ORIGENS, FORN_QUALIDADE } from '../dados/fornecedores.js';
 import { MESES } from '../nucleo/calendario.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
-import { barrasH, kpi, th } from './componentes.js';
+import { barrasH, kpi, somaSel, tdMeses, th, thMeses } from './componentes.js';
 
 /* ---------- FORNECEDORES DE CANA ---------- */
 const ORIG = Object.keys(FORN_ORIGENS);
@@ -112,12 +112,13 @@ function pintarForn(R){
      <td class="num tot">100,0%</td></tr></tbody>`;
 
   /* ---- entrada de cana por mês e origem ---- */
-  $("#t_forn_mes").innerHTML = th([["Origem"],...MESES.map(m=>[m,1]),["Total (t)",1]])+"<tbody>"+
+  const SEL = R.SEL;
+  $("#t_forn_mes").innerHTML = th([["Origem"],...thMeses(),[SEL.parcial?"Total do período (t)":"Total (t)",1]])+"<tbody>"+
     ORIG.filter(o=>O[o].ton>0.5).map(o=>{ const x=O[o];
-      return `<tr><td>${x.nome}</td>`+x.mes.map(v=>`<td class="num calc">${v>0?fmt(v):"—"}</td>`).join("")+
-        `<td class="num tot">${fmt(x.ton)}</td></tr>`; }).join("")+
-    `<tr><td class="tot">TOTAL</td>`+F.tonMes.map(v=>`<td class="num tot">${fmt(v)}</td>`).join("")+
-    `<td class="num tot">${fmt(F.tonTotal)}</td></tr></tbody>`;
+      return `<tr><td>${x.nome}</td>`+tdMeses(x.mes, v=>v>0?fmt(v):"—")+
+        `<td class="num tot">${fmt(somaSel(x.mes, SEL))}</td></tr>`; }).join("")+
+    `<tr><td class="tot">TOTAL</td>`+tdMeses(F.tonMes, v=>fmt(v), "num tot")+
+    `<td class="num tot">${fmt(somaSel(F.tonMes, SEL))}</td></tr></tbody>`;
 
   barrasH($("#ch_forn"), ORIG.filter(o=>O[o].custo>0).map(o=>({l:O[o].nome, v:O[o].custo})));
 

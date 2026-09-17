@@ -1,5 +1,5 @@
 import { CFG } from '../dados/cfg.js';
-import { CAT_LBL, MESES, perTag } from '../nucleo/calendario.js';
+import { CAT_LBL, MESES, clsMes, perTag } from '../nucleo/calendario.js';
 import { ESPOR, P } from '../nucleo/estado.js';
 import { $, brl, fmt } from '../nucleo/formato.js';
 import { kpi, th } from './componentes.js';
@@ -66,10 +66,14 @@ function pintarCustos(R){
     `<tr><td class="tot">TOTAL</td><td class="num tot">${brl(R.total)}</td>
      <td class="num tot">100,0%</td><td class="num tot">${brl(R.total/ha,0)}</td><td></td></tr></tbody>`;
 
-  $("#t_mensal").innerHTML = th([["Mês"],["Período"],["Custo",1],["% do total",1],["Acumulado",1],["Curva"]])+"<tbody>"+
-    (()=>{let ac=0; return MESES.map((m,i)=>{ac+=R.meses[i];
-      const p=R.total>0?R.meses[i]/R.total*100:0, pa=R.total>0?ac/R.total*100:0;
-      return `<tr data-rastro="mes:${i}" title="Clique para ver a composição do mês"><td>${m}</td><td>${perTag(i)}</td><td class="num">${brl(R.meses[i])}</td>
+  // aqui o mês é linha, não coluna: a mesma classe de período serve, o CSS
+  // esconde a linha inteira. Percentual e acumulado passam a ser do período
+  // filtrado, senão a última linha visível fecharia em 33% e pareceria erro.
+  const base = R.SEL.total || 1;
+  $("#t_mensal").innerHTML = th([["Mês"],["Período"],["Custo",1],[R.SEL.parcial?"% do período":"% do total",1],["Acumulado",1],["Curva"]])+"<tbody>"+
+    (()=>{let ac=0; return MESES.map((m,i)=>{if(R.SEL.meses.includes(i)) ac+=R.meses[i];
+      const p=R.meses[i]/base*100, pa=ac/base*100;
+      return `<tr class="${clsMes(i)}" data-rastro="mes:${i}" title="Clique para ver a composição do mês"><td>${m}</td><td>${perTag(i)}</td><td class="num">${brl(R.meses[i])}</td>
         <td class="num calc">${fmt(p,1)}%</td><td class="num calc">${brl(ac)}</td>
         <td><div class="bar"><i style="width:${pa}%"></i></div></td></tr>`;}).join("");})()+"</tbody>";
 
