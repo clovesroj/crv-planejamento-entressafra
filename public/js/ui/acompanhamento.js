@@ -74,7 +74,8 @@ function pintarAcomp(R){
   ["agricola","logistica"].forEach(g=>{
     const lin = metas.filter(m=>m.gerencia===g);
     $("#t_meta_"+g).innerHTML = th([["Cod"],["Atividade"],["Etapa"],["Volume",1],["Janela"],
-      ["Rend.",1],["Frota",1],["Efetivo",1],["Meta/dia · equip.",1],["Meta/dia · frota",1],["Custo",1]])+"<tbody>"+
+      ["Rend.",1],["Frota",1],["Efetivo",1],["Meta/dia efetivo · equip.",1],
+      ["Meta/dia efetivo · frota",1],["Custo",1]])+"<tbody>"+
       (lin.length ? lin.map(m=>`<tr>
         <td>${m.cod}</td><td>${m.nome}</td><td class="calc">${m.etapa}</td>
         <td class="num tot">${fmt(m.total)} ${m.un}</td>
@@ -85,7 +86,7 @@ function pintarAcomp(R){
         <td class="num ${m.meta?"tot":"calc"}">${m.meta
           ? fmt(m.meta.qEquipDia,1)+" "+m.un+" · "+fmt(m.meta.hEquipDia,1)+" h" : "—"}</td>
         <td class="num ${m.meta?"tot":"calc"}">${m.meta
-          ? fmt(m.meta.qFrotaDia,1)+" "+m.un+"/dia" : "—"}</td>
+          ? fmt(m.meta.qFrotaDia,1)+" "+m.un : "—"}</td>
         <td class="num calc">${brl(m.custo)}</td></tr>`).join("")
         : `<tr><td colspan="11" class="calc">Nenhuma atividade com volume lançado para esta gerência.</td></tr>`)+
       "</tbody>";

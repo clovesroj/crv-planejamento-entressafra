@@ -79,7 +79,9 @@ function pintarRendMensal(R){
         naquele critério, é o ${un}/h que o volume do mês exige.
         A hora efetiva do dia sai de ${fmt(P.hdia,1)} h de jornada × disponibilidade × utilização × eficiência —
         é por aí que dezembro chuvoso encolhe o dia sem que a máquina tenha quebrado.
-        Base de calendário: ${fmt(P.dias)} dias efetivos por mês.
+        <b>Todo "por dia" aqui é por dia efetivo: ${fmt(P.dias)} por mês, não 30.</b>
+        Dia efetivo é dia de operação — dividir a produção do mês por 30 dá um número menor,
+        e é um número que a operação não persegue. O valor está em Premissas.
       </div>
       ${comVolume.length ? `<div class="rm-resumo ${apertados?"rm-alerta":"rm-ok"}">
         ${apertados
@@ -106,9 +108,11 @@ function pintarRendMensal(R){
       </div>
       ${vazio ? "" : `
       <div class="rm-metas">
-        <span>Por dia <b>${fmt(c.qDia,1)} ${un}</b></span>
-        <span>Por equip./dia <b>${fmt(c.qDiaEquip,1)} ${un}</b></span>
-        <span>Horas <b>${fmt(c.horas)} h</b></span>
+        <span title="${fmt(c.q)} ${un} ÷ ${fmt(P.dias)} dias efetivos = ${fmt(c.qDia,1)} ${un}/dia. Dia efetivo é dia de operação, não dia de calendário — o mês tem ${fmt(P.dias)}, não 30.">Por dia efetivo
+          <b>${fmt(c.qDia,1)} ${un}</b> <span class="calc">÷ ${fmt(P.dias)} dias</span></span>
+        <span title="${fmt(c.qDia,1)} ${un}/dia ÷ ${fmt(c.n)} equipamento(s)">Por equip./dia
+          <b>${fmt(c.qDiaEquip,1)} ${un}</b></span>
+        <span title="${fmt(c.q)} ${un} ÷ ${fmt(c.rend,2)} ${un}/h">Horas <b>${fmt(c.horas)} h</b></span>
       </div>`}
       <div class="rm-campos">
         <label>Frota
