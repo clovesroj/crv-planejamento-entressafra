@@ -15,6 +15,13 @@
  *           157 linhas — um mesmo tratamento aparece em varias linhas
  */
 
+/* Versao do cadastro base de insumos. SOBE em uma unidade sempre que produto
+   novo entrar em INSUMOS: e por ela que o documento ja salvo sabe que tem
+   produto novo para receber (io/persistencia.js mescla na leitura).
+     1  cadastro original, 57 produtos
+     2  classificacao tecnica da planilha CRV, 159 produtos */
+export const INSUMOS_V = 2;
+
 /* Etapas em que um tratamento pode ser usado. O plano diz em que etapa cada
    atividade acontece; aqui se marca para que etapa o tratamento foi montado,
    e a aba Validacao avisa quando as duas coisas discordam. */

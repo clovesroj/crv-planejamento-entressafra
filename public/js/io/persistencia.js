@@ -1,9 +1,10 @@
 import { CFG } from '../dados/cfg.js';
-import { APOIO, APOIO_FIXO, ARREND, ARR_PAR, ARR_RAT, BEN, CRM, DIESEL_MES, DIM, EDITADO, ENC, ESPOR, FORN, FORN_PAR, FROTA, CRM_ESP, MAQ, FROTA_UN, REAL, GRAT, INSUMO, INSX, MATX, NIV, P, PLANO, QUADRO, ADM, ADM_RAT, TERC_TAR, TPESS, TRATC, TRAT_DEL, TRAT_ETAPA, TRAT_NOME } from '../nucleo/estado.js';
+import { APOIO, APOIO_FIXO, ARREND, ARR_PAR, ARR_RAT, BEN, CRM, DIESEL_MES, DIM, EDITADO, ENC, ESPOR, FORN, FORN_PAR, FROTA, CRM_ESP, MAQ, FROTA_UN, REAL, GRAT, INSUMO, INSX, INSX_V, MATX, NIV, P, PLANO, QUADRO, ADM, ADM_RAT, TERC_TAR, TPESS, TRATC, TRAT_DEL, TRAT_ETAPA, TRAT_NOME } from '../nucleo/estado.js';
 import { setAPOIO, setAPOIO_FIXO, setARREND, setARR_PAR, setARR_RAT, setBEN, setCRM,
          setDIESEL_MES, setDIM, setEDITADO, setFORN, setFORN_PAR, setENC, setESPOR, setFROTA, setCRM_ESP, setMAQ, setFROTA_UN, setREAL, setGRAT, setINSUMO,
          setINSX, setMATX, setNIV, setP, setPLANO, setQUADRO, setADM, setADM_RAT, setTERC_TAR, setTPESS, setTRATC,
-         setTRAT_DEL, setTRAT_ETAPA, setTRAT_NOME } from '../nucleo/estado.js';
+         setTRAT_DEL, setTRAT_ETAPA, setTRAT_NOME, setINSX_V } from '../nucleo/estado.js';
+import { mesclarBaseInsumos } from '../calculo/insumos.js';
 import { $, num } from '../nucleo/formato.js';
 import { MESES, NM } from '../nucleo/calendario.js';
 import { claudeUse } from './arquivo.js';
@@ -15,7 +16,7 @@ let REMOTO = null, saveTimer = null;
 /* ---------- persistência ---------- */
 function estado(){
   const s = {P,PLANO,DIM,INSUMO,ESPOR,TRATC,TRAT_NOME,TRAT_ETAPA,TRAT_DEL,DIESEL_MES,ARREND,ARR_PAR,ARR_RAT,FORN,FORN_PAR,ENC,BEN,NIV,GRAT,APOIO,APOIO_FIXO,
-             TERC_TAR,CRM,CRM_ESP,MAQ,FROTA_UN,REAL,MATX,INSX,FROTA,TPESS,QUADRO,ADM,ADM_RAT,FUN:CFG.funcoes.map(f=>f.sal),v:10};
+             TERC_TAR,CRM,CRM_ESP,MAQ,FROTA_UN,REAL,MATX,INSX,INSX_V,FROTA,TPESS,QUADRO,ADM,ADM_RAT,FUN:CFG.funcoes.map(f=>f.sal),v:10};
   // Campos que esta sessão nunca tocou ficam nulos ou vazios em memória. Enviá-los
   // apagava no servidor o que outra sessão já tinha preenchido — por isso são omitidos.
   Object.keys(s).forEach(k=>{
@@ -160,6 +161,18 @@ function aplicar(d){
   if(d.REAL) setREAL(d.REAL);
   if(d.MATX) setMATX(d.MATX);
   if(d.INSX) setINSX(d.INSX);
+  setINSX_V(d.INSX_V);
+  /* Cadastro de insumos gravado antes de a base crescer nao conhece os produtos
+     novos — o documento manda sobre CFG.insumos. Mescla uma vez por versao da
+     base: produto que falta entra, campo tecnico vazio se completa, e o que o
+     usuario ajustou (nome, preco, estoque) fica como esta. Uma vez por versao,
+     para que produto removido de proposito nao volte na leitura seguinte. */
+  if(d.INSX && INSX_V < CFG.insumos_v){
+    const r = mesclarBaseInsumos();
+    setINSX_V(CFG.insumos_v);
+    if(r.novos || r.completados)
+      console.info(`cadastro de insumos atualizado: +${r.novos} produto(s), ${r.completados} completado(s), ${r.total} no total`);
+  } else if(!d.INSX) setINSX_V(CFG.insumos_v);
   if(d.FROTA) setFROTA(d.FROTA);
   if(d.TPESS) setTPESS(d.TPESS);
   if(d.QUADRO) setQUADRO(d.QUADRO);

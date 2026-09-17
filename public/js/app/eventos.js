@@ -1,7 +1,7 @@
 import { ETAPAS_ORD, PAG_LIVRE, mesesPag } from '../calculo/arrendamento.js';
 import { AG_SEM_FROTA, FROTA_AG, FROTA_ESP, SEP_MOD, crmDe, espDe } from '../calculo/crm.js';
-import { composicao, criarTrat, destravar, marcarEtapa, removerTrat, renomearTrat,
-  tratCodigos, usosTrat } from '../calculo/insumos.js';
+import { composicao, criarTrat, destravar, marcarEtapa, mesclarBaseInsumos, removerTrat,
+  renomearTrat, tratCodigos, usosTrat } from '../calculo/insumos.js';
 import { CFG } from '../dados/cfg.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
@@ -12,7 +12,7 @@ import { lerPremissas } from '../ui/premissas.js';
 import { leve, render, renderRastro, renderRendMensal } from './ciclo.js';
 import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarRastro, voltarRastro } from '../ui/rastro.js';
 import { abrirRendMensal, aberto as rendMensalAberto, fecharRendMensal } from '../ui/rendmensal.js';
-import { setAPOIO, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
+import { setAPOIO, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setINSX_V, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
 import { USUARIO, podeEditar } from '../nucleo/sessao.js';
 
 /* Renomear ou remover um tratamento mexe tambem nas atividades que o usam, e
@@ -373,6 +373,15 @@ $("#btn_tp_reset").onclick=()=>{
 $("#btn_ins_add").onclick=()=>{
   insLista().push({prod:"Novo insumo", un:"kg", pa:"", conc:"", est:0, preco:0});
   salvar(); render();
+};
+$("#btn_ins_sinc").onclick=()=>{
+  const r = mesclarBaseInsumos();
+  setINSX_V(CFG.insumos_v);
+  salvar(true); render();
+  alert(r.novos || r.completados
+    ? `Cadastro atualizado: ${r.novos} produto(s) novo(s) e ${r.completados} com a classificação técnica `+
+      `completada. São ${r.total} produtos no cadastro.`
+    : `Nada a trazer: os ${r.total} produtos do cadastro já estão com a classificação técnica da base.`);
 };
 $("#btn_ins_reset").onclick=()=>{
   if(!confirm("Restaurar o cadastro original de insumos? Preços e estoques ajustados são mantidos.")) return;

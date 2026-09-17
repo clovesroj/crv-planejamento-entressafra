@@ -4,6 +4,37 @@ import { INSUMO, P, PLANO, TRATC, TRAT_DEL, TRAT_ETAPA, TRAT_NOME, insLista } fr
 import { num } from '../nucleo/formato.js';
 
 /* ================== INSUMOS E TRATAMENTOS ================== */
+
+/* ---------- cadastro de insumos: mesclar o que veio da base ----------
+   O cadastro de insumos e editavel, entao mora no documento salvo (INSX). Isso
+   tem um efeito: documento gravado antes de a base crescer nunca ve os produtos
+   novos, porque o documento manda. Daí esta mesclagem, chamada na leitura do
+   documento e pelo botao da aba Insumos.
+
+   A regra e a do cadastro: produto que falta entra; produto que ja esta recebe
+   so o campo tecnico que estiver vazio; nome, preco e estoque que o usuario
+   ajustou ficam como estao; produto que existe no documento e nao existe na
+   base fica onde esta. */
+const CAMPOS_TEC = ["pa","cod","un","conc","classe","categ","form","modo","mec","grupo",
+                    "fab","tox","culturas","estadio","status","obs","base"];
+// compara nome de produto sem depender de acento, caixa ou pontuacao
+function chaveProd(v){
+  return String(v==null?"":v).normalize("NFD").replace(/[̀-ͯ]/g,"")
+    .replace(/[^A-Za-z0-9]+/g," ").trim().toUpperCase();
+}
+function mesclarBaseInsumos(){
+  const lista = insLista();
+  const jaTem = new Map(lista.map(i=>[chaveProd(i.prod), i]));
+  let novos = 0, completados = 0;
+  CFG.insumos.forEach(base=>{
+    const atual = jaTem.get(chaveProd(base.prod));
+    if(!atual){ lista.push({...base}); novos++; return; }
+    let mudou = false;
+    CAMPOS_TEC.forEach(k=>{ if(base[k] && !atual[k]){ atual[k]=base[k]; mudou=true; } });
+    if(mudou) completados++;
+  });
+  return {novos, completados, total:lista.length};
+}
 function precoInsumo(prod){
   const ov = INSUMO[prod];
   const base = ov && ov.preco!=null ? num(ov.preco)
@@ -128,6 +159,6 @@ function volumeDemandado(L){
 }
 
 
-export { _tratCache, _tratKey, composicao, criarTrat, destravar, etapaTrat, etapasNoPlano,
+export { _tratCache, _tratKey, composicao, criarTrat, destravar, etapaTrat, etapasNoPlano, mesclarBaseInsumos,
   marcarEtapa, precoInsumo, removerTrat, renomearTrat, tratCodigos, tratCusto, tratEtapas,
   tratLista, tratListaTodos, tratTabela, usosTrat, volumeDemandado };

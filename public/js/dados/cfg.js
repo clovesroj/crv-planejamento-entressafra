@@ -33,7 +33,7 @@ import { CONTAS, CC_LIST } from './plano-contas.js';
 import { IRR_TEC, IRR_CUSTOS, IRR_ACTS } from './irrigacao.js';
 import { MATERIAIS } from './materiais.js';
 import { APOIO_FROTA, APOIO_EQ } from './apoio.js';
-import { INSUMOS, TRAT_DET } from './insumos.js';
+import { INSUMOS, INSUMOS_V, TRAT_DET } from './insumos.js';
 import { TRANSP_PAR } from './transporte.js';
 import { MODOS, TERC_TAR_PAD } from './modos.js';
 import { CRM_ITENS, CRM_CATS } from './crm.js';
@@ -56,6 +56,7 @@ export const CFG = {
   materiais:    MATERIAIS,
   apoio:        APOIO_FROTA,
   insumos:      INSUMOS,
+  insumos_v:    INSUMOS_V,
   trat_det:     TRAT_DET,
   transp_par:   TRANSP_PAR,
   apoio_eq:     APOIO_EQ,

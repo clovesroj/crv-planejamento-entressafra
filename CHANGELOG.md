@@ -1,5 +1,33 @@
 # Histórico de mudanças
 
+## 2.21.0 — 2026-09-17 · A classificação técnica chega ao cadastro salvo
+
+A planilha entrou no código na 2.19.0, mas quem já usava o sistema não via os
+produtos novos. Motivo: o cadastro de insumos é editável, então ele mora no
+**documento salvo** — e o documento manda sobre a base do código. Documento
+gravado antes da 2.19.0 seguia com os 57 produtos antigos.
+
+Agora o documento recebe o que a base tem de novo, na primeira abertura:
+
+- Produto que falta **entra**; campo técnico vazio (princípio ativo, código do
+  material, unidade, concentração, classe, categoria, formulação, modo e
+  mecanismo de ação, grupo químico, fabricante, toxicológica, culturas, estádio)
+  **se completa**; nome, preço e estoque que o usuário ajustou **ficam como
+  estão**; produto que existe só no cadastro do usuário **fica onde está**.
+- A mesclagem roda **uma vez por versão da base** (`INSUMOS_V` em
+  `dados/insumos.js`, `INSX_V` no documento). Assim, produto removido de
+  propósito não volta a cada abertura.
+- O botão **Atualizar com a classificação técnica**, na aba Insumos, refaz a
+  mesclagem quando o usuário quiser e diz quantos produtos entraram e quantos
+  tiveram a ficha completada.
+- Quem adicionar produto novo em `INSUMOS` de agora em diante sobe `INSUMOS_V`
+  em um — é o que faz o documento já salvo receber a novidade.
+
+Num documento com os 57 produtos antigos, preço do Sencor e estoque da Ureia
+editados e um produto próprio da usina: passa a 160 produtos, o preço e o
+estoque editados continuam, a Ureia ganha o princípio ativo e o produto próprio
+permanece.
+
 ## 2.20.0 — 2026-09-17 · Valor do arrendamento por ano ou por pagamento
 
 O contrato de arrendamento passa a dizer **o que o valor cadastrado representa**:

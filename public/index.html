@@ -471,6 +471,7 @@
     <div class="tblwrap"><table id="t_ins"></table></div>
     <div class="row" style="margin-top:10px">
       <button class="btn p" id="btn_ins_add">Adicionar insumo</button>
+      <button class="btn" id="btn_ins_sinc">Atualizar com a classificação técnica</button>
       <button class="btn" id="btn_ins_reset">Restaurar cadastro original</button></div>
     <div class="hint" style="margin-top:9px">Nome comercial, princípio ativo, código do material, unidade,
     concentração, classe, estoque e preço são editáveis. <b>Ficha</b> abre a classificação técnica do produto —
@@ -478,7 +479,11 @@
     toxicológica, culturas registradas e momento de aplicação. "Volume dem." é calculado automaticamente pela
     alocação dos tratamentos no Plano Operacional (área × dose). Renomear um produto mantém o vínculo com os
     tratamentos que já o utilizam. Produto que veio da classificação técnica entra sem preço: enquanto faltar,
-    ele aparece marcado aqui e na aba Validação.</div></div>
+    ele aparece marcado aqui e na aba Validação.
+    <br><b>Atualizar com a classificação técnica</b> traz para este cadastro o que a base do sistema tem de novo:
+    produto que falta entra, campo técnico vazio se completa, e nome, preço e estoque que você ajustou ficam como
+    estão — produto seu que não existe na base também fica. Isso já acontece sozinho na primeira abertura depois de
+    a base crescer; o botão serve para refazer quando quiser.</div></div>
 
   <div class="panel"><h3>2. Composição dos tratamentos</h3>
     <div class="row" style="margin-bottom:12px">

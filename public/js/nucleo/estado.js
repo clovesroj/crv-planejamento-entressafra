@@ -27,6 +27,7 @@ let TERC_TAR = {};       // cod da atividade -> tarifa de terceirização (R$/ha
 let CRM = {};            // item -> {pecas,terc,consumo,lubrif} ajustados
 let MATX = null;         // materiais de manutenção (lista editável)
 let INSX = null;         // cadastro de insumos (lista editável: incluir/alterar/remover)
+let INSX_V = 0;          // versão do cadastro base que este documento já recebeu
 let FROTA = {};          // item -> {qtd, hmes} frota prevista para manutenção
 let MAQ = {};            // item -> {d,h,u} ajustados: diesel L/h, horas/mês, utilização
 let CRM_ESP = {};        // especialidade -> taxa padrão herdada pelos modelos dela
@@ -69,7 +70,7 @@ let TRAT_SEL = null;
 
 export {
   P, PLANO, DIM, INSUMO, ESPOR, TRATC, NIV, GRAT, APOIO, TERC_TAR, CRM, MATX,
-  INSX, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, INS_ABERTO, APOIO_FIXO, TRAT_NOME, TRAT_ETAPA, TRAT_DEL, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
+  INSX, INSX_V, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, INS_ABERTO, APOIO_FIXO, TRAT_NOME, TRAT_ETAPA, TRAT_DEL, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
   TPESS, QUADRO, ADM, ADM_RAT, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL,
 };
 
@@ -86,6 +87,7 @@ export const setTERC_TAR   = v => { TERC_TAR = v; };
 export const setCRM        = v => { CRM = v; };
 export const setMATX       = v => { MATX = v; };
 export const setINSX       = v => { INSX = v; };
+export const setINSX_V     = v => { INSX_V = +v || 0; };
 export const setFROTA      = v => { FROTA = v; };
 export const setCRM_ESP    = v => { CRM_ESP = v; };
 export const setMAQ        = v => { MAQ = v; };
