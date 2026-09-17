@@ -80,6 +80,9 @@ header.topbar{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(
 .chip{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:999px;
   border:1px solid var(--line);background:var(--sunk);font-size:12px;color:var(--grey);white-space:nowrap}
 .chip b{color:var(--ink);font-weight:600}
+/* especificidade de .chip empataria com [hidden] do navegador, e regra de autor
+   vence — mesmo caso da tela de login: sem isto o chip.hidden=true continua visível */
+.chip[hidden]{display:none}
 .menu-btn{display:none!important}
 .ghost-btn{height:34px;width:34px;display:inline-grid;place-items:center;border-radius:var(--r-sm);
   border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;
