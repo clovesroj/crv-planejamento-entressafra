@@ -2,6 +2,7 @@ import { CFG } from '../dados/cfg.js';
 import { CLASSES_GRUPO, FAMILIAS_INSUMO, TRAT_ETAPAS } from '../dados/insumos.js';
 import { FAM_CLASSE, FAM_NOME, INSUMO, P, PLANO, TRATC, TRAT_DEL, TRAT_ETAPA, TRAT_NOME, insLista, gruposInsLista } from '../nucleo/estado.js';
 import { num } from '../nucleo/formato.js';
+import { fatorParaBase } from '../nucleo/unidades.js';
 
 /* ================== INSUMOS E TRATAMENTOS ================== */
 
@@ -272,6 +273,17 @@ function renomearTrat(de, para){
   Object.values(PLANO).forEach(p=>{ if(p.trat===de) p.trat = novo; });
   return true;
 }
+/** Dose de uma linha de composição, convertida pra unidade do cadastro do
+    insumo — a que o preço usa (precoInsumo). É o que permite dosar em kg/ha
+    um produto comprado em ton (ou g/ha, ml/ha...) sem mexer no preço nem na
+    dose que a pessoa lançou: o custo por hectare sai igual, só muda a unidade
+    de digitação. Linha sem unidade própria, ou unidade igual à do cadastro,
+    não converte — é o caso de toda linha de hoje, então nenhum custo já
+    calculado muda com isto. */
+function doseBase(l){
+  const reg = insLista().find(i => i.prod === l.prod);
+  return num(l.dose) * fatorParaBase(l.un, reg && reg.un);
+}
 // destrava a composição para edição (copia a base uma única vez)
 function destravar(cod){
   if(!TRATC[cod]) TRATC[cod] = composicao(cod).map(l=>({...l}));
@@ -287,7 +299,7 @@ function tratTabela(){
   if(_tratCache && _tratKey===key) return _tratCache;
   const m = {};
   tratCodigos().forEach(cod=>{
-    m[cod] = composicao(cod).reduce((s,l)=>s + num(l.dose)*precoInsumo(l.prod), 0);
+    m[cod] = composicao(cod).reduce((s,l)=>s + doseBase(l)*precoInsumo(l.prod), 0);
   });
   _tratCache = m; _tratKey = key;
   return m;
@@ -310,13 +322,13 @@ function volumeDemandado(L){
   const v = {};
   L.forEach(r=>{
     if(!r.trat || !r.ehHa || r.total<=0) return;
-    composicao(r.trat).forEach(l=>{ v[l.prod]=(v[l.prod]||0)+r.total*num(l.dose); });
+    composicao(r.trat).forEach(l=>{ v[l.prod]=(v[l.prod]||0)+r.total*doseBase(l); });
   });
   return v;
 }
 
 
-export { _tratCache, _tratKey, codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, etapaTrat, etapasNoPlano, familiaDe,
+export { _tratCache, _tratKey, codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, doseBase, etapaTrat, etapasNoPlano, familiaDe,
   familiaDoInsumo, insumosPorFamilia, mesclarBaseInsumos,
   marcarEtapa, precoInsumo, removerGrupoInsumo, removerTrat, renomearGrupoInsumo, renomearTrat, setClasseGrupo, todasFamilias, tratCodigos, tratCusto, tratEtapas,
   tratLista, tratListaTodos, tratTabela, usosTrat, volumeDemandado };
