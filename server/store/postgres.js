@@ -99,9 +99,12 @@ function storePostgres(url) {
       await garantirTabela();
       return Number((await pool.query('SELECT count(*)::int AS n FROM usuarios')).rows[0].n);
     },
+    // Sem diferenciar maiúsculas/minúsculas: "PEDRO.FERREIRA" cadastrado por um
+    // admin e "pedro.ferreira" digitado no login são a mesma pessoa — quem
+    // cadastra e quem loga raramente concordam na caixa exata.
     async usuarioPorLogin(login) {
       await garantirTabela();
-      const r = await pool.query('SELECT * FROM usuarios WHERE login = $1', [login]);
+      const r = await pool.query('SELECT * FROM usuarios WHERE lower(login) = lower($1)', [login]);
       return r.rows[0] || null;
     },
     async usuarioPorId(id) {
