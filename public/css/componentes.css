@@ -105,10 +105,10 @@ tr.sub td{background:var(--sunk);font-size:12px;padding:5px 12px}
    Com table-layout:fixed a largura sai do colgroup e nao do conteudo, entao
    dobrar grupo nao mexe em coluna nenhuma. A soma passa da tela de proposito: a
    tabela ja rola na horizontal, e coluna espremida e pior que rolagem. */
-/* min-width = soma do colgroup: sem ele, table-layout:fixed espremeria as 16
+/* min-width = soma do colgroup: sem ele, table-layout:fixed espremeria as 17
    colunas para caber na tela estreita em vez de rolar, e campo espremido nao se
    le nem se digita */
-#t_ins{table-layout:fixed;min-width:2000px}
+#t_ins{table-layout:fixed;min-width:1880px}
 #t_ins td input,#t_ins td select{min-width:0;width:100%}
 #t_ins td{overflow:hidden;text-overflow:ellipsis}
 /* a faixa do grupo ocupa a linha toda e nao deve truncar o rotulo */

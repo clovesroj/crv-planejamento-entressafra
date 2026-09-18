@@ -89,14 +89,14 @@ function pintarInsumos(R){
   const btnRec = $("#btn_ins_recolher");
   if(btnRec) btnRec.textContent = todasRecolhidas() ? "Abrir todos" : "Recolher todos";
 
-  // nome comercial e princípio ativo na frente; o resto da classificação
-  // técnica fica na ficha, que abre por linha
+  // codigo, nome comercial e principio ativo na frente; o resto da
+  // classificacao tecnica fica na ficha, que abre por linha
   // colgroup fixa a largura de cada coluna: com table-layout:fixed, recolher um
   // grupo deixa de mexer na largura das outras (ver componentes.css)
-  const COLS = [210,210,100,84,128,168,168,104,96,100,116,104,132,92,140,84,84,104];
+  const COLS = [90,190,190,70,110,140,150,90,85,85,100,90,115,80,130,75,80,90];
   $("#t_ins").innerHTML =
     `<colgroup>${COLS.map(w=>`<col style="width:${w}px">`).join("")}</colgroup>` +
-    th([["Nome comercial"],["Princípio ativo"],["Código"],["Un."],
+    th([["Código"],["Nome comercial"],["Princípio ativo"],["Un."],
     ["Concentração"],["Classe agronômica"],["Grupo"],["Volume dem.",1],["Estoque",1],["Preço base",1],
     ["Preço corrigido",1],["Necessidade",1],["Custo de aquisição",1],["Usado em"],["Bula"],[""],[""],[""]])+"<tbody>"+
     // quebra por família e, dentro dela, ordem alfabética de princípio ativo.
@@ -122,12 +122,12 @@ function pintarInsumos(R){
       // mesmo dataset ao mesmo tempo confundiam o foco ao digitar em qualquer um
       const editando = INS_EDIT === i.prod;
       return `<tr${editando?' style="opacity:.6"':''}>
+        <td>${editando?`<span class="calc">${esc(i.cod)||"—"}</span>`
+          :`<input data-in="${ix}" data-f="cod" value="${esc(i.cod)}" placeholder="—">`}</td>
         <td>${editando?`<span class="calc">${esc(i.prod)}</span>`
           :`<input data-in="${ix}" data-f="prod" value="${esc(i.prod)}" style="text-align:left">`}</td>
         <td>${editando?`<span class="calc">${esc(i.pa)||"—"}</span>`
           :`<input data-in="${ix}" data-f="pa" value="${esc(i.pa)}" style="text-align:left" placeholder="a preencher">`}</td>
-        <td>${editando?`<span class="calc">${esc(i.cod)||"—"}</span>`
-          :`<input data-in="${ix}" data-f="cod" value="${esc(i.cod)}" placeholder="—">`}</td>
         <td>${editando?`<span class="calc">${esc(i.un)||"—"}</span>`
           :`<select data-in="${ix}" data-f="un">${UNIDADES.map(u=>
           `<option value="${u}" ${(i.un||"")===u?"selected":""}>${u||"—"}</option>`).join("")}</select>`}</td>
@@ -333,9 +333,9 @@ function pintarEditIns(){
     </div>
     <div class="ra-corpo">
       <div class="fx-grade">
+        ${campo("Código do material", `<input data-in="${ix}" data-f="cod" value="${esc(i.cod)}" placeholder="—">`)}
         ${campo("Nome comercial", `<input data-in="${ix}" data-f="prod" value="${esc(i.prod)}" style="text-align:left">`)}
         ${campo("Princípio ativo", `<input data-in="${ix}" data-f="pa" value="${esc(i.pa)}" style="text-align:left" placeholder="a preencher">`)}
-        ${campo("Código do material", `<input data-in="${ix}" data-f="cod" value="${esc(i.cod)}" placeholder="—">`)}
         ${campo("Unidade", `<select data-in="${ix}" data-f="un">${UNIDADES.map(u=>
           `<option value="${u}" ${(i.un||"")===u?"selected":""}>${u||"—"}</option>`).join("")}</select>`)}
         ${campo("Concentração", `<input data-in="${ix}" data-f="conc" value="${esc(i.conc)}" placeholder="ex.: 480 g/L">`)}
