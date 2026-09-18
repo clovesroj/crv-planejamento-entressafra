@@ -8,6 +8,8 @@ const TETO_CASCATA = 8, PASSO_CASCATA = 45;
 function cascatear(secao){
   const alvos = [];
   secao.querySelectorAll(".hero, .kpi, .panel, .tblwrap").forEach(el=>{
+    const blocoPai = el.closest("details.bloco");
+    if (blocoPai && !blocoPai.open) return;   // bloco fechado (pagina que nao esta na tela): nao conta pro atraso da visivel
     if (alvos.some(a=>a.contains(el))) return;               // já cobre este elemento, evita zoom duplicado
     if (el.matches(".panel") && el.querySelector(".kpi")) return; // painel-grade de KPI: cada card anima, não o painel
     if (el.matches(".tblwrap") && el.closest(".panel")) return;   // tabela dentro de painel: o painel já anima
@@ -32,11 +34,14 @@ function irPara(b){
 // propria em io/relatorio.js, no mesmo idioma visual deste sub-menu
 document.querySelectorAll("nav button[data-s]").forEach(b=>{ b.onclick=()=>irPara(b); });
 
-/* ---------- sub-navegação: blocos recolhíveis de uma aba viram itens do
-   menu, tipo uma pasta abrindo pros arquivos de dentro. Genérico — qualquer
-   aba com <details class="bloco" id="..."> como filho direto ganha isso
-   sozinha (hoje só Dimensionamento; se outra aba adotar o mesmo padrão de
-   blocos, o menu acompanha sem precisar cadastrar nada aqui). */
+/* ---------- sub-navegação: blocos de uma aba viram páginas de verdade, tipo
+   abas de um app — só a página escolhida existe na tela, as outras somem por
+   completo (não é acordeão: um bloco fora da página ativa nem aparece
+   recolhido, [hidden] tira do layout). Antes todo bloco nascia aberto e o
+   clique no menu só dava scroll até um bloco que já estava visível; depois só
+   fechava os outros, mas o título deles continuava na tela. Genérico —
+   qualquer aba com <details class="bloco" id=""> como filho direto ganha isso
+   sozinha. */
 document.querySelectorAll("nav button[data-s]").forEach(b=>{
   const secao = document.getElementById(b.dataset.s);
   const blocos = secao ? [...secao.querySelectorAll(":scope > details.bloco[id]")] : [];
@@ -55,15 +60,32 @@ document.querySelectorAll("nav button[data-s]").forEach(b=>{
     return `<button type="button">${tit ? tit.textContent : bl.id}</button>`;
   }).join("")}</div>`;
   b.insertAdjacentElement("afterend", sub);
+  const itens = [...sub.querySelectorAll("button")];
 
-  [...sub.querySelectorAll("button")].forEach((item,i)=>{
+  function mostrar(i){
+    blocos.forEach((bl,j)=>{
+      const ativo = j===i;
+      bl.open = ativo;      // so estilo (chevron, borda) — quem tira da tela e o hidden
+      bl.hidden = !ativo;
+    });
+    itens.forEach((it,j)=>it.classList.toggle("on", j===i));
+  }
+  // estado inicial: o bloco que ja nasce com "open" no HTML e a primeira pagina
+  mostrar(Math.max(0, blocos.findIndex(bl=>bl.open)));
+
+  itens.forEach((item,i)=>{
     item.onclick = e=>{
       e.stopPropagation();               // não deixa isto tocar o toggle do botão-pai
       irPara(b);
-      const alvo = blocos[i];
-      alvo.open = true;
-      alvo.scrollIntoView({behavior:"smooth", block:"start"});
+      mostrar(i);
+      marcarLocal(b);
+      document.body.classList.remove("menu-open");   // no celular, escolher a página já fecha o menu
     };
+  });
+  // a pagina ativa e a unica visivel, entao o titulo dela continua clicavel
+  // (accessibilidade/teclado) — mas fechar sozinha deixaria a tela em branco
+  blocos.forEach(bl=>{
+    bl.addEventListener("toggle", ()=>{ if(!bl.open && !bl.hidden) bl.open = true; });
   });
 
   // clique no botão-pai também abre/fecha a listinha, além de navegar —

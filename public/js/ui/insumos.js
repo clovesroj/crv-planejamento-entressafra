@@ -2,7 +2,7 @@ import { composicao, etapasNoPlano, familiaDe, insumosPorFamilia, precoInsumo, t
 import { TRAT_ETAPAS } from '../dados/insumos.js';
 import { INSUMO, INS_FICHA, P, TRATC, TRAT_NOME, TRAT_SEL, insLista } from '../nucleo/estado.js';
 import { $, brl, esc, fmt, num, urlWeb } from '../nucleo/formato.js';
-import { kpi, th } from './componentes.js';
+import { kpi, ligarBuscaSelect, th } from './componentes.js';
 import { setTRAT_SEL } from '../nucleo/estado.js';
 
 /* ---------- INSUMOS ---------- */
@@ -54,6 +54,12 @@ function buscaExigeRedesenho(alvo, valor){
   TINHA_TERMO = tem;
   return virou && Object.values(FAM_FECHADA).some(Boolean);
 }
+
+// "Adicionar produto": os 159+ produtos do cadastro num select nativo eram uma
+// lista sem busca pra rolar inteira -- vira combobox pesquisável, ligado uma
+// vez só (os elementos são fixos no HTML, só o conteúdo da lista muda a cada tecla).
+const buscaProd = ligarBuscaSelect("#busca_prod", "#lista_prod", "#sel_prod", insLista,
+  i => i.prod + (i.pa ? " — " + i.pa : ""), i => i.prod);
 
 function pintarInsumos(R){
   const TL = tratListaTodos();
@@ -157,8 +163,7 @@ function pintarInsumos(R){
     `<option value="${c}" ${c===TRAT_SEL?"selected":""}>${c}${TRAT_NOME[c]?" — "+esc(TRAT_NOME[c]):""}${TRATC[c]?" (ajustado)":""}</option>`).join("");
   $("#in_trat_nome").value = TRAT_NOME[TRAT_SEL] || "";
   $("#in_trat_cod").value = TRAT_SEL || "";
-  $("#sel_prod").innerHTML = insLista().map(i=>
-    `<option value="${esc(i.prod)}">${esc(i.prod)}${i.pa?" — "+esc(i.pa):""}</option>`).join("");
+  buscaProd && buscaProd.limpar();
   $("#c_etapa_sel").innerHTML = TRAT_SEL ? celulaEtapas(TRAT_SEL) : "";
 
   const comp = composicao(TRAT_SEL);

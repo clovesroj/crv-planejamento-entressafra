@@ -214,45 +214,62 @@
 <section id="mdo">
   <h2>Mão de Obra</h2>
   <p class="lead">Encargos, benefícios, quadro de funções e escala de trabalho. O custo-hora de cada função
-  alimenta todas as atividades do plano.</p>
+  alimenta todas as atividades do plano. Três páginas — use o menu ao lado para trocar.</p>
   <div class="grid g4" id="k_mdo" style="margin-bottom:16px"></div>
-  <div class="panel"><h3>Turnos e escalas</h3><div class="grid g4">
-    <div><label>Dias de operação/semana</label><input type="number" id="p_diasOper" step="1"></div>
-    <div><label>Dias trabalhados/colaborador</label><input type="number" id="p_diasTrab" step="1"><div class="hint">6 no 6x1 · 5 no 5x2</div></div>
-    <div><label>Horas por turno</label><input type="number" id="p_hTurno" step="1"></div>
-    <div><label>Fator de rodízio</label><input id="c_escala" disabled></div>
-  </div></div>
-  <div class="panel"><h3>Encargos sociais</h3>
-    <input type="search" class="tbl-busca" data-alvo="#t_enc" placeholder="Buscar encargo...">
-    <div class="tblwrap"><table id="t_enc"></table></div>
-    <div class="hint" style="margin-top:9px">Percentuais editáveis. A coluna "Original" preserva o valor de
-    referência para comparação; "Impacto p/ F01" mostra quanto o encargo custa no operador de máquinas.</div></div>
-  <div class="panel"><h3>Benefícios (R$/colaborador/mês)</h3>
-    <input type="search" class="tbl-busca" data-alvo="#t_ben" placeholder="Buscar benefício...">
-    <div class="tblwrap"><table id="t_ben"></table></div>
-    <div class="row" style="margin-top:10px">
-      <button class="btn" id="btn_mdo_reset">Restaurar encargos e benefícios originais</button></div></div>
-  <div class="panel"><h3>Quadro de funções</h3>
-    <input type="search" class="tbl-busca" data-alvo="#t_fun" placeholder="Buscar cargo ou função...">
-    <div class="tblwrap"><table id="t_fun"></table></div>
-    <div class="hint" style="margin-top:9px">Cargos como estão cadastrados no ERP. O salário é editável e veio
-    por herança do cargo equivalente do cadastro anterior — é valor de partida, a confirmar com a folha.</div></div>
 
-  <div class="panel"><h3>Gratificação por cargo</h3>
-    <div class="row">
-      <div style="min-width:320px"><label for="sel_fun">Cargo</label><select id="sel_fun"></select></div>
-      <div style="width:150px"><label for="sel_grat_tipo">Gratificação</label><select id="sel_grat_tipo">
-        <option value="R$">Valor fixo (R$)</option><option value="%">Percentual (%)</option></select></div>
-      <div style="width:130px"><label for="in_grat">Valor da gratificação</label>
-        <input type="number" id="in_grat" step="0.01" value="0"></div>
-      <div style="align-self:flex-end"><button class="btn" id="btn_niv_reset">Remover gratificação</button></div>
+  <details class="bloco" id="bl_mdo_quadro" open>
+    <summary><span class="bl-tit">Turnos, quadro e gratificação</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Turnos e escalas</h3><div class="grid g4">
+        <div><label>Dias de operação/semana</label><input type="number" id="p_diasOper" step="1"></div>
+        <div><label>Dias trabalhados/colaborador</label><input type="number" id="p_diasTrab" step="1"><div class="hint">6 no 6x1 · 5 no 5x2</div></div>
+        <div><label>Horas por turno</label><input type="number" id="p_hTurno" step="1"></div>
+        <div><label>Fator de rodízio</label><input id="c_escala" disabled></div>
+      </div></div>
+      <div class="panel"><h3>Quadro de funções</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_fun" placeholder="Buscar cargo ou função...">
+        <div class="tblwrap"><table id="t_fun"></table></div>
+        <div class="hint" style="margin-top:9px">Cargos como estão cadastrados no ERP. O salário é editável e veio
+        por herança do cargo equivalente do cadastro anterior — é valor de partida, a confirmar com a folha.</div></div>
+      <div class="panel"><h3>Gratificação por cargo</h3>
+        <div class="row">
+          <div style="min-width:320px"><label for="sel_fun">Cargo</label><select id="sel_fun"></select></div>
+          <div style="width:150px"><label for="sel_grat_tipo">Gratificação</label><select id="sel_grat_tipo">
+            <option value="R$">Valor fixo (R$)</option><option value="%">Percentual (%)</option></select></div>
+          <div style="width:130px"><label for="in_grat">Valor da gratificação</label>
+            <input type="number" id="in_grat" step="0.01" value="0"></div>
+          <div style="align-self:flex-end"><button class="btn" id="btn_niv_reset">Remover gratificação</button></div>
+        </div>
+        <div class="hint" style="margin-top:9px">A gratificação é remuneração e entra na base de cálculo dos encargos.
+        O nível está no próprio cargo do ERP (Motorista II e III, Op. Máquinas I, II e III), então não há mais faixa
+        I a V por função.</div></div>
     </div>
-    <div class="hint" style="margin-top:9px">A gratificação é remuneração e entra na base de cálculo dos encargos.
-    O nível está no próprio cargo do ERP (Motorista II e III, Op. Máquinas I, II e III), então não há mais faixa
-    I a V por função.</div></div>
-  <div class="panel"><h3>Estrutura indireta e equipe de manutenção</h3>
-    <input type="search" class="tbl-busca" data-alvo="#t_ind" placeholder="Buscar função...">
-    <div class="tblwrap"><table id="t_ind"></table></div></div>
+  </details>
+
+  <details class="bloco" id="bl_mdo_encargos">
+    <summary><span class="bl-tit">Encargos e benefícios</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Encargos sociais</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_enc" placeholder="Buscar encargo...">
+        <div class="tblwrap"><table id="t_enc"></table></div>
+        <div class="hint" style="margin-top:9px">Percentuais editáveis. A coluna "Original" preserva o valor de
+        referência para comparação; "Impacto p/ F01" mostra quanto o encargo custa no operador de máquinas.</div></div>
+      <div class="panel"><h3>Benefícios (R$/colaborador/mês)</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_ben" placeholder="Buscar benefício...">
+        <div class="tblwrap"><table id="t_ben"></table></div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn" id="btn_mdo_reset">Restaurar encargos e benefícios originais</button></div></div>
+    </div>
+  </details>
+
+  <details class="bloco" id="bl_mdo_indireta">
+    <summary><span class="bl-tit">Estrutura indireta</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Estrutura indireta e equipe de manutenção</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_ind" placeholder="Buscar função...">
+        <div class="tblwrap"><table id="t_ind"></table></div></div>
+    </div>
+  </details>
 </section>
 
 <!-- ===== PLANO ===== -->
@@ -277,8 +294,8 @@
 <!-- ===== DIMENSIONAMENTO ===== -->
 <section id="dimens">
   <h2>Dimensionamento</h2>
-  <p class="lead">Três dimensionamentos, um por bloco: atividade, frota e pessoas. Clique no título para recolher
-  o bloco que não estiver usando.</p>
+  <p class="lead">Três dimensionamentos, um por página: atividade, frota e pessoas. Use o menu ao lado para trocar
+  de página.</p>
 
   <details class="bloco" id="bl_dim_ativ" open>
     <summary><span class="bl-tit">Dimensionamento por atividade</span>
@@ -292,7 +309,7 @@
     </div>
   </details>
 
-  <details class="bloco" id="bl_dim_frota" open>
+  <details class="bloco" id="bl_dim_frota">
     <summary><span class="bl-tit">Dimensionamento de frota</span>
       <span class="bl-sub" id="bl_frota_sub"></span></summary>
     <div class="bloco-corpo">
@@ -311,7 +328,7 @@
     </div>
   </details>
 
-  <details class="bloco" id="bl_dim_pessoas" open>
+  <details class="bloco" id="bl_dim_pessoas">
     <summary><span class="bl-tit">Dimensionamento de pessoas</span>
       <span class="bl-sub" id="bl_pes_sub"></span></summary>
     <div class="bloco-corpo">
@@ -388,40 +405,53 @@
 <section id="frota">
   <h2>Manutenção de Frota — CRM</h2>
   <p class="lead">Custos de reparos e manutenção por modelo, estratificados em peças, serviços de terceiros,
-  materiais de uso e consumo e lubrificantes. O valor por hora alimenta todas as atividades que usam o equipamento.</p>
+  materiais de uso e consumo e lubrificantes. O valor por hora alimenta todas as atividades que usam o equipamento.
+  Duas páginas — use o menu ao lado para trocar.</p>
   <div class="grid g4" id="k_crm" style="margin-bottom:16px"></div>
-  <div class="panel"><h3>Parâmetros por especialidade e modelo</h3>
-    <div class="row" style="margin-bottom:12px">
-      <div style="min-width:240px"><label>Agrupamento</label><select id="sel_cat"></select></div>
-      <div style="min-width:180px"><label>Origem</label><select id="sel_orig">
-        <option value="todos">Próprios e terceiros</option>
-        <option value="proprio">Somente próprios</option>
-        <option value="terceiro">Somente terceiros</option></select></div>
-      <div style="min-width:190px"><label>Destino na safra</label><select id="sel_dest">
-        <option value="todos">Rodando e em reforma</option>
-        <option value="roda">Somente o que vai rodar</option>
-        <option value="reforma">Somente o que vai reformar</option>
-        <option value="standby">Somente o que está em stand by</option></select></div>
-      <div style="align-self:flex-end"><button class="btn" id="btn_crm_reset">Restaurar padrões do agrupamento</button></div>
+
+  <details class="bloco" id="bl_frota_param" open>
+    <summary><span class="bl-tit">Parâmetros</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Parâmetros por especialidade e modelo</h3>
+        <div class="row" style="margin-bottom:12px">
+          <div style="min-width:240px"><label>Agrupamento</label><select id="sel_cat"></select></div>
+          <div style="min-width:180px"><label>Origem</label><select id="sel_orig">
+            <option value="todos">Próprios e terceiros</option>
+            <option value="proprio">Somente próprios</option>
+            <option value="terceiro">Somente terceiros</option></select></div>
+          <div style="min-width:190px"><label>Destino na safra</label><select id="sel_dest">
+            <option value="todos">Rodando e em reforma</option>
+            <option value="roda">Somente o que vai rodar</option>
+            <option value="reforma">Somente o que vai reformar</option>
+            <option value="standby">Somente o que está em stand by</option></select></div>
+          <div style="align-self:flex-end"><button class="btn" id="btn_crm_reset">Restaurar padrões do agrupamento</button></div>
+        </div>
+        <div class="hint" style="margin-bottom:10px">A taxa lançada na linha da <b>especialidade</b> vale para todos
+        os modelos dela. Um modelo só precisa de número próprio quando foge da média da especialidade — nesse caso o
+        valor dele prevalece. A contagem de unidades vem da base cadastral da frota.</div>
+        <input type="search" class="tbl-busca" data-alvo="#t_crm" placeholder="Buscar especialidade ou modelo...">
+        <div class="tblwrap"><table id="t_crm"></table></div></div>
+      <div class="panel"><h3>Parâmetros de máquina do plano</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_maq" placeholder="Buscar item do plano...">
+        <div class="tblwrap"><table id="t_maq"></table></div>
+        <div class="hint" style="margin-top:9px">Premissas de projeto, não medição de campo: consumo de diesel,
+        horas disponíveis por mês e fator de utilização típico. São do item do plano, não do modelo — a mesma
+        colhedora pode entrar com número diferente colhendo cana e colhendo muda. Em branco, vale o cadastro.</div></div>
     </div>
-    <div class="hint" style="margin-bottom:10px">A taxa lançada na linha da <b>especialidade</b> vale para todos
-    os modelos dela. Um modelo só precisa de número próprio quando foge da média da especialidade — nesse caso o
-    valor dele prevalece. A contagem de unidades vem da base cadastral da frota.</div>
-    <input type="search" class="tbl-busca" data-alvo="#t_crm" placeholder="Buscar especialidade ou modelo...">
-    <div class="tblwrap"><table id="t_crm"></table></div></div>
-  <div class="panel"><h3>Parâmetros de máquina do plano</h3>
-    <input type="search" class="tbl-busca" data-alvo="#t_maq" placeholder="Buscar item do plano...">
-    <div class="tblwrap"><table id="t_maq"></table></div>
-    <div class="hint" style="margin-top:9px">Premissas de projeto, não medição de campo: consumo de diesel,
-    horas disponíveis por mês e fator de utilização típico. São do item do plano, não do modelo — a mesma
-    colhedora pode entrar com número diferente colhendo cana e colhendo muda. Em branco, vale o cadastro.</div></div>
-  <div class="panel"><h3>CRM projetado por componente</h3>
-    <div class="tblwrap"><table id="t_crm_comp"></table></div></div>
-  <div class="panel"><h3>CRM rateado por etapa</h3>
-    <div class="tblwrap"><table id="t_crm_etapa"></table></div>
-    <div class="hint" style="margin-top:9px">O CRM é calculado pela frota prevista (quantidade x horas por
-    equipamento) e alocado às etapas pelas horas de cada conjunto no plano. Equipamentos previstos que não
-    aparecem no plano operacional entram em "FROTA ADICIONAL".</div></div>
+  </details>
+
+  <details class="bloco" id="bl_frota_crm">
+    <summary><span class="bl-tit">CRM</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>CRM projetado por componente</h3>
+        <div class="tblwrap"><table id="t_crm_comp"></table></div></div>
+      <div class="panel"><h3>CRM rateado por etapa</h3>
+        <div class="tblwrap"><table id="t_crm_etapa"></table></div>
+        <div class="hint" style="margin-top:9px">O CRM é calculado pela frota prevista (quantidade x horas por
+        equipamento) e alocado às etapas pelas horas de cada conjunto no plano. Equipamentos previstos que não
+        aparecem no plano operacional entram em "FROTA ADICIONAL".</div></div>
+    </div>
+  </details>
 </section>
 
 <!-- ===== TRANSPORTE DE PESSOAL ===== -->
@@ -493,7 +523,11 @@
     <input type="search" class="tbl-busca" data-alvo="#t_comp" placeholder="Buscar produto no tratamento...">
     <div class="tblwrap"><table id="t_comp"></table></div>
     <div class="row" style="margin-top:12px">
-      <div style="min-width:280px"><label>Adicionar produto</label><select id="sel_prod"></select></div>
+      <div style="min-width:280px;position:relative"><label for="busca_prod">Adicionar produto</label>
+        <input type="text" id="busca_prod" autocomplete="off" placeholder="Buscar produto..."
+               role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="lista_prod">
+        <input type="hidden" id="sel_prod">
+        <div class="lista-select" id="lista_prod" role="listbox" hidden></div></div>
       <div style="width:120px"><label>Dose por ha</label><input type="number" id="in_dose" step="0.01" value="1"></div>
       <div style="align-self:flex-end"><button class="btn p" id="btn_add_prod">Adicionar</button></div>
     </div>
@@ -580,39 +614,53 @@
   <h2>Fornecedores de Cana</h2>
   <p class="lead">Matéria-prima das quatro origens — cana própria, arrendada, de fornecedor e de parceria — com
   contrato, entrega, qualidade e logística de cada fornecedor. As origens são consolidadas sem misturar a
-  natureza contábil: própria e arrendada são custo de produção do plano; fornecedor e parceria são aquisição.</p>
+  natureza contábil: própria e arrendada são custo de produção do plano; fornecedor e parceria são aquisição.
+  Três páginas — use o menu ao lado para trocar.</p>
   <div class="grid g4" id="k_forn" style="margin-bottom:16px"></div>
 
-  <div class="panel"><h3>Parâmetros de matéria-prima</h3><div class="grid g4">
-    <div><label for="fnp_precoAtr">Preço do kg de ATR (R$)</label><input data-fnp="precoAtr" id="fnp_precoAtr" inputmode="decimal"><div class="hint">Usado quando a linha não traz preço próprio</div></div>
-    <div><label for="fnp_atrPropria">ATR da cana própria (kg/t)</label><input data-fnp="atrPropria" id="fnp_atrPropria" inputmode="decimal"></div>
-    <div><label for="fnp_freteKm">Frete (R$/t por km)</label><input data-fnp="freteKm" id="fnp_freteKm" inputmode="decimal"><div class="hint">Aplicado à distância quando o frete fica em branco</div></div>
-    <div><label for="fnp_areaPropria">Área própria (ha)</label><input data-fnp="areaPropria" id="fnp_areaPropria" inputmode="decimal"><div class="hint">O resto da área do plano é tratado como arrendada</div></div>
-  </div></div>
+  <details class="bloco" id="bl_forn_cadastro" open>
+    <summary><span class="bl-tit">Parâmetros e cadastro</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Parâmetros de matéria-prima</h3><div class="grid g4">
+        <div><label for="fnp_precoAtr">Preço do kg de ATR (R$)</label><input data-fnp="precoAtr" id="fnp_precoAtr" inputmode="decimal"><div class="hint">Usado quando a linha não traz preço próprio</div></div>
+        <div><label for="fnp_atrPropria">ATR da cana própria (kg/t)</label><input data-fnp="atrPropria" id="fnp_atrPropria" inputmode="decimal"></div>
+        <div><label for="fnp_freteKm">Frete (R$/t por km)</label><input data-fnp="freteKm" id="fnp_freteKm" inputmode="decimal"><div class="hint">Aplicado à distância quando o frete fica em branco</div></div>
+        <div><label for="fnp_areaPropria">Área própria (ha)</label><input data-fnp="areaPropria" id="fnp_areaPropria" inputmode="decimal"><div class="hint">O resto da área do plano é tratado como arrendada</div></div>
+      </div></div>
+      <div class="panel"><h3>Cadastro de fornecedores</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_forn" placeholder="Buscar fornecedor...">
+        <div class="tblwrap"><table id="t_forn"></table></div>
+        <div class="row" style="margin-top:10px"><button class="btn p" id="btn_forn_add">Adicionar fornecedor</button></div>
+        <div class="hint" style="margin-top:9px">Toneladas estimadas em branco usam área × TCH. O preço segue a
+        modalidade: <b>Consecana</b> em R$/kg de ATR, <b>preço fixo</b> em R$/t, <b>parceria</b> em % da produção e
+        <b>permuta</b> valorada pelo Consecana. Custo da linha = cana + prêmio − descontos + frete + logística.</div></div>
+    </div>
+  </details>
 
-  <div class="panel"><h3>Cadastro de fornecedores</h3>
-    <input type="search" class="tbl-busca" data-alvo="#t_forn" placeholder="Buscar fornecedor...">
-    <div class="tblwrap"><table id="t_forn"></table></div>
-    <div class="row" style="margin-top:10px"><button class="btn p" id="btn_forn_add">Adicionar fornecedor</button></div>
-    <div class="hint" style="margin-top:9px">Toneladas estimadas em branco usam área × TCH. O preço segue a
-    modalidade: <b>Consecana</b> em R$/kg de ATR, <b>preço fixo</b> em R$/t, <b>parceria</b> em % da produção e
-    <b>permuta</b> valorada pelo Consecana. Custo da linha = cana + prêmio − descontos + frete + logística.</div></div>
+  <details class="bloco" id="bl_forn_entrega">
+    <summary><span class="bl-tit">Entrega e qualidade</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Entrega, qualidade e histórico</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_forn_qual" placeholder="Buscar fornecedor...">
+        <div class="tblwrap"><table id="t_forn_qual"></table></div>
+        <div class="hint" style="margin-top:9px">Frete marcado com * foi calculado pela distância × tarifa por km.
+        A variação compara a tonelada estimada com a entregue na safra anterior.</div></div>
+    </div>
+  </details>
 
-  <div class="panel"><h3>Entrega, qualidade e histórico</h3>
-    <input type="search" class="tbl-busca" data-alvo="#t_forn_qual" placeholder="Buscar fornecedor...">
-    <div class="tblwrap"><table id="t_forn_qual"></table></div>
-    <div class="hint" style="margin-top:9px">Frete marcado com * foi calculado pela distância × tarifa por km.
-    A variação compara a tonelada estimada com a entregue na safra anterior.</div></div>
-
-  <div class="panel"><h3>Consolidado por origem</h3>
-    <div class="tblwrap"><table id="t_forn_orig"></table></div>
-    <div id="ch_forn" style="margin-top:14px"></div>
-    <div class="hint" style="margin-top:9px" id="forn_nota"></div></div>
-
-  <div class="panel"><h3>Entrada de cana por mês</h3>
-    <div class="tblwrap"><table id="t_forn_mes"></table></div>
-    <div class="hint" style="margin-top:9px">A cana própria e a arrendada seguem a colheita do Plano Operacional;
-    a de terceiros, o período de entrega de cada contrato.</div></div>
+  <details class="bloco" id="bl_forn_consolidado">
+    <summary><span class="bl-tit">Consolidado</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Consolidado por origem</h3>
+        <div class="tblwrap"><table id="t_forn_orig"></table></div>
+        <div id="ch_forn" style="margin-top:14px"></div>
+        <div class="hint" style="margin-top:9px" id="forn_nota"></div></div>
+      <div class="panel"><h3>Entrada de cana por mês</h3>
+        <div class="tblwrap"><table id="t_forn_mes"></table></div>
+        <div class="hint" style="margin-top:9px">A cana própria e a arrendada seguem a colheita do Plano Operacional;
+        a de terceiros, o período de entrega de cada contrato.</div></div>
+    </div>
+  </details>
 </section>
 
 <!-- ===== ARRENDAMENTOS ===== -->
@@ -620,48 +668,66 @@
   <h2>Arrendamentos</h2>
   <p class="lead">Fazendas ou grupos de fazendas arrendadas, com área e forma de pagamento. O custo é calculado
   automaticamente, distribuído nos meses do orçamento e rateado entre as etapas pela referência PECEGE/USP.
-  Alimenta Custos, Plano de Contas (ARR-01) e Painel.</p>
+  Alimenta Custos, Plano de Contas (ARR-01) e Painel. Três páginas — use o menu ao lado para trocar.</p>
   <div class="grid g4" id="k_arr" style="margin-bottom:16px"></div>
-  <div class="panel"><h3>Parâmetros de pagamento</h3><div class="grid g4">
-    <div><label>ATR médio (kg/t)</label><input data-arp="atr" id="arp_atr" inputmode="decimal"><div class="hint">Converte t de cana em kg de ATR</div></div>
-    <div><label>Preço do kg de ATR (R$)</label><input data-arp="precoAtr" id="arp_precoAtr" inputmode="decimal"><div class="hint">Consecana acumulado da safra</div></div>
-    <div><label>Produtividade para parceria (t/ha)</label><input data-arp="tchParc" id="arp_tchParc" inputmode="decimal"><div class="hint">Base do % da produção</div></div>
-    <div><label>Apropriação no orçamento</label><select id="arp_criterio">
-      <option value="competencia">Competência — 1/12 do valor anual por mês</option>
-      <option value="caixa">Caixa — no mês de cada pagamento</option></select></div>
-  </div></div>
-  <div class="panel"><h3>Fazendas arrendadas</h3>
-    <input type="search" class="tbl-busca" data-alvo="#t_arr" placeholder="Buscar fazenda ou grupo...">
-    <div class="tblwrap"><table id="t_arr"></table></div>
-    <div class="row" style="margin-top:10px"><button class="btn p" id="btn_arr_add">Adicionar fazenda</button></div>
-    <div class="hint" style="margin-top:9px">O valor cadastrado é o de <b>cada pagamento</b>, por hectare, e o custo
-    anual é a parcela vezes os pagamentos do contrato. Por forma de pagamento, a parcela por ha é:
-    <b>R$ fixo</b> = valor informado · <b>t de cana</b> = t/ha × ATR × R$/kg ATR ·
-    <b>kg de ATR</b> = kg/ha × R$/kg ATR · <b>parceria</b> = % × produtividade × ATR × R$/kg ATR.
-    <b>Meses de pagamento</b> se configura na própria linha do contrato: marque os meses em que aquele contrato paga,
-    seguidos ou não — a periodicidade passa a "Meses específicos" e a agenda é a que estiver marcada. A periodicidade
-    também gera a série sozinha a partir do 1º pagamento (mensal, bimestral, trimestral, semestral ou anual). A grade
-    <b>Distribuição mensal</b> marca os mesmos meses, com o valor de cada pagamento à vista. Pagamento que cairia fora
-    da janela do orçamento não entra no orçamento, mas continua contando no custo anual do contrato, e a aba Validação
-    avisa. Os meses valem no critério Caixa; em Competência cada mês recebe 1/12 do custo anual.
-    Use o campo Grupo para somar fazendas de um mesmo bloco ou proprietário.</div></div>
-  <div class="panel"><h3>Resumo por grupo de fazendas</h3><div class="tblwrap"><table id="t_arr_grupo"></table></div></div>
-  <div class="panel"><h3>Rateio por etapa — referência PECEGE/USP</h3>
-    <div class="tblwrap"><table id="t_arr_rat"></table></div>
-    <div class="row" style="margin-top:10px"><button class="btn" id="btn_arr_rat_reset">Restaurar percentuais de referência</button></div>
-    <div class="hint" style="margin-top:9px">Percentuais-padrão editáveis — confirme com o relatório de custos PECEGE/USP
-    adotado pela empresa. Se a soma não fechar 100%, os valores são normalizados e a aba Validação avisa. Em tratos
-    culturais, cana soca e cana planta dividem a parcela pela área tratada. O valor de cada etapa aparece na coluna
-    Arrendamento da aba Custos.</div></div>
-  <div class="panel"><h3>Distribuição mensal</h3>
-    <input type="search" class="tbl-busca" data-alvo="#t_arr_mes" placeholder="Buscar fazenda...">
-    <div class="tblwrap"><table id="t_arr_mes"></table></div>
-    <div class="hint" style="margin-top:9px">Marque na grade os meses em que cada contrato paga — podem ser
-    seguidos ou não. O valor anual se divide em parcelas iguais entre os meses marcados. Pagamento que cairia fora da
-    janela do orçamento não entra, e a aba Validação avisa quando um contrato fica sem nenhum pagamento dentro dela.
-    Com o filtro de período da barra de cima em Safra ou Entressafra, só os meses do período aparecem na grade —
-    volte para Ano todo para marcar os demais.</div>
-    <div id="ch_arr" style="margin-top:14px"></div></div>
+
+  <details class="bloco" id="bl_arr_cadastro" open>
+    <summary><span class="bl-tit">Parâmetros e fazendas</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Parâmetros de pagamento</h3><div class="grid g4">
+        <div><label>ATR médio (kg/t)</label><input data-arp="atr" id="arp_atr" inputmode="decimal"><div class="hint">Converte t de cana em kg de ATR</div></div>
+        <div><label>Preço do kg de ATR (R$)</label><input data-arp="precoAtr" id="arp_precoAtr" inputmode="decimal"><div class="hint">Consecana acumulado da safra</div></div>
+        <div><label>Produtividade para parceria (t/ha)</label><input data-arp="tchParc" id="arp_tchParc" inputmode="decimal"><div class="hint">Base do % da produção</div></div>
+        <div><label>Apropriação no orçamento</label><select id="arp_criterio">
+          <option value="competencia">Competência — 1/12 do valor anual por mês</option>
+          <option value="caixa">Caixa — no mês de cada pagamento</option></select></div>
+      </div></div>
+      <div class="panel"><h3>Fazendas arrendadas</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_arr" placeholder="Buscar fazenda ou grupo...">
+        <div class="tblwrap"><table id="t_arr"></table></div>
+        <div class="row" style="margin-top:10px"><button class="btn p" id="btn_arr_add">Adicionar fazenda</button></div>
+        <div class="hint" style="margin-top:9px">O valor cadastrado é o de <b>cada pagamento</b>, por hectare, e o custo
+        anual é a parcela vezes os pagamentos do contrato. Por forma de pagamento, a parcela por ha é:
+        <b>R$ fixo</b> = valor informado · <b>t de cana</b> = t/ha × ATR × R$/kg ATR ·
+        <b>kg de ATR</b> = kg/ha × R$/kg ATR · <b>parceria</b> = % × produtividade × ATR × R$/kg ATR.
+        <b>Meses de pagamento</b> se configura na própria linha do contrato: marque os meses em que aquele contrato paga,
+        seguidos ou não — a periodicidade passa a "Meses específicos" e a agenda é a que estiver marcada. A periodicidade
+        também gera a série sozinha a partir do 1º pagamento (mensal, bimestral, trimestral, semestral ou anual). A grade
+        <b>Distribuição mensal</b> marca os mesmos meses, com o valor de cada pagamento à vista. Pagamento que cairia fora
+        da janela do orçamento não entra no orçamento, mas continua contando no custo anual do contrato, e a aba Validação
+        avisa. Os meses valem no critério Caixa; em Competência cada mês recebe 1/12 do custo anual.
+        Use o campo Grupo para somar fazendas de um mesmo bloco ou proprietário.</div></div>
+    </div>
+  </details>
+
+  <details class="bloco" id="bl_arr_rateio">
+    <summary><span class="bl-tit">Rateio</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Resumo por grupo de fazendas</h3><div class="tblwrap"><table id="t_arr_grupo"></table></div></div>
+      <div class="panel"><h3>Rateio por etapa — referência PECEGE/USP</h3>
+        <div class="tblwrap"><table id="t_arr_rat"></table></div>
+        <div class="row" style="margin-top:10px"><button class="btn" id="btn_arr_rat_reset">Restaurar percentuais de referência</button></div>
+        <div class="hint" style="margin-top:9px">Percentuais-padrão editáveis — confirme com o relatório de custos PECEGE/USP
+        adotado pela empresa. Se a soma não fechar 100%, os valores são normalizados e a aba Validação avisa. Em tratos
+        culturais, cana soca e cana planta dividem a parcela pela área tratada. O valor de cada etapa aparece na coluna
+        Arrendamento da aba Custos.</div></div>
+    </div>
+  </details>
+
+  <details class="bloco" id="bl_arr_mensal">
+    <summary><span class="bl-tit">Distribuição mensal</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Distribuição mensal</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_arr_mes" placeholder="Buscar fazenda...">
+        <div class="tblwrap"><table id="t_arr_mes"></table></div>
+        <div class="hint" style="margin-top:9px">Marque na grade os meses em que cada contrato paga — podem ser
+        seguidos ou não. O valor anual se divide em parcelas iguais entre os meses marcados. Pagamento que cairia fora da
+        janela do orçamento não entra, e a aba Validação avisa quando um contrato fica sem nenhum pagamento dentro dela.
+        Com o filtro de período da barra de cima em Safra ou Entressafra, só os meses do período aparecem na grade —
+        volte para Ano todo para marcar os demais.</div>
+        <div id="ch_arr" style="margin-top:14px"></div></div>
+    </div>
+  </details>
 </section>
 
 <!-- ===== CUSTOS ADMINISTRATIVOS ===== -->
@@ -669,41 +735,55 @@
   <h2>Custos Administrativos</h2>
   <p class="lead">Estrutura, pessoal, tecnologia, instalações, serviços e despesas gerais da administração, cada
   linha com o seu critério de rateio entre as etapas do plano. O total alimenta Custos, Plano de Contas (EST-01)
-  e Painel.</p>
+  e Painel. Três páginas — use o menu ao lado para trocar.</p>
   <div class="grid g4" id="k_adm" style="margin-bottom:16px"></div>
 
-  <div class="panel"><h3>Linhas de custo</h3>
-    <input type="search" class="tbl-busca" data-alvo="#t_adm" placeholder="Buscar linha de custo...">
-    <div class="tblwrap"><table id="t_adm"></table></div>
-    <div class="row" style="margin-top:10px"><button class="btn p" id="btn_adm_add">Adicionar linha</button></div>
-    <div class="hint" style="margin-top:9px">Valores em R$ por mês; o total do período multiplica pelos meses do
-    orçamento. Critérios: <b>hectare</b>, <b>tonelada</b>, <b>horas-máquina</b> e <b>custo direto</b> rateiam
-    proporcionalmente à etapa; <b>percentual por etapa</b> usa os percentuais do painel ao lado;
-    <b>centro de custo</b> joga a linha inteira na etapa escolhida. Linha cujo critério não tem base no plano
-    fica sem rateio e volta para o rateio indireto geral — a coluna Rateio avisa.</div></div>
+  <details class="bloco" id="bl_adm_linhas" open>
+    <summary><span class="bl-tit">Linhas de custo</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Linhas de custo</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_adm" placeholder="Buscar linha de custo...">
+        <div class="tblwrap"><table id="t_adm"></table></div>
+        <div class="row" style="margin-top:10px"><button class="btn p" id="btn_adm_add">Adicionar linha</button></div>
+        <div class="hint" style="margin-top:9px">Valores em R$ por mês; o total do período multiplica pelos meses do
+        orçamento. Critérios: <b>hectare</b>, <b>tonelada</b>, <b>horas-máquina</b> e <b>custo direto</b> rateiam
+        proporcionalmente à etapa; <b>percentual por etapa</b> usa os percentuais do painel ao lado;
+        <b>centro de custo</b> joga a linha inteira na etapa escolhida. Linha cujo critério não tem base no plano
+        fica sem rateio e volta para o rateio indireto geral — a coluna Rateio avisa.</div></div>
+    </div>
+  </details>
 
-  <div class="grid g2">
-    <div class="panel"><h3>Percentuais por etapa</h3>
-      <div class="tblwrap"><table id="t_adm_pct"></table></div>
-      <div class="hint" style="margin-top:9px">Valem para as linhas com critério "percentual por etapa". Se a soma
-      não fechar 100%, os valores são normalizados.</div></div>
-    <div class="panel"><h3>Composição por grupo</h3>
-      <div class="tblwrap"><table id="t_adm_grupo"></table></div>
-      <div id="ch_adm" style="margin-top:12px"></div></div>
-  </div>
+  <details class="bloco" id="bl_adm_composicao">
+    <summary><span class="bl-tit">Composição</span></summary>
+    <div class="bloco-corpo">
+      <div class="grid g2">
+        <div class="panel"><h3>Percentuais por etapa</h3>
+          <div class="tblwrap"><table id="t_adm_pct"></table></div>
+          <div class="hint" style="margin-top:9px">Valem para as linhas com critério "percentual por etapa". Se a soma
+          não fechar 100%, os valores são normalizados.</div></div>
+        <div class="panel"><h3>Composição por grupo</h3>
+          <div class="tblwrap"><table id="t_adm_grupo"></table></div>
+          <div id="ch_adm" style="margin-top:12px"></div></div>
+      </div>
+    </div>
+  </details>
 
-  <div class="panel"><h3>Rateio por etapa</h3>
-    <div class="tblwrap"><table id="t_adm_etapa"></table></div></div>
-
-  <div class="panel"><h3>Total por critério de rateio</h3>
-    <div class="tblwrap"><table id="t_adm_crit"></table></div></div>
+  <details class="bloco" id="bl_adm_rateio">
+    <summary><span class="bl-tit">Rateio</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Rateio por etapa</h3>
+        <div class="tblwrap"><table id="t_adm_etapa"></table></div></div>
+      <div class="panel"><h3>Total por critério de rateio</h3>
+        <div class="tblwrap"><table id="t_adm_crit"></table></div></div>
+    </div>
+  </details>
 </section>
 
 <!-- ===== CUSTOS ===== -->
 <section id="custos">
   <h2>Custos</h2>
   <p class="lead">Custo por etapa, calculado automaticamente a partir do Plano Operacional, seguido da composição
-  consolidada por natureza e da evolução mensal.</p>
+  consolidada por natureza e da evolução mensal. Três páginas — use o menu ao lado para trocar.</p>
   <div class="grid g4" id="k_custo" style="margin-bottom:16px"></div>
   <div class="row" style="margin-bottom:14px">
     <button class="btn p" data-rastro="total">Explicar o custo total</button>
@@ -711,105 +791,159 @@
     tabelas para abrir a composição, e desça até a premissa.</span>
   </div>
 
-  <div class="panel"><h3>Custos por período — safra × entressafra</h3>
-    <div class="grid g4" id="k_per" style="margin-bottom:14px"></div>
-    <div style="display:grid;gap:12px">
-      <div class="tblwrap"><table id="t_per_cat"></table></div>
-      <div class="tblwrap"><table id="t_per_etapa"></table></div>
+  <details class="bloco" id="bl_custos_periodo" open>
+    <summary><span class="bl-tit">Por período</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Custos por período — safra × entressafra</h3>
+        <div class="grid g4" id="k_per" style="margin-bottom:14px"></div>
+        <div style="display:grid;gap:12px">
+          <div class="tblwrap"><table id="t_per_cat"></table></div>
+          <div class="tblwrap"><table id="t_per_etapa"></table></div>
+        </div>
+        <div class="hint" style="margin-top:9px">Safra: abril, maio, junho, julho, agosto, setembro, outubro e novembro · entressafra: dezembro, janeiro, fevereiro e março. Cada mês do
+        orçamento entra no período do seu calendário, e os valores seguem a mesma distribuição mensal da tabela
+        "Custo mensal". <span id="per_nota"></span></div></div>
     </div>
-    <div class="hint" style="margin-top:9px">Safra: abril, maio, junho, julho, agosto, setembro, outubro e novembro · entressafra: dezembro, janeiro, fevereiro e março. Cada mês do
-    orçamento entra no período do seu calendário, e os valores seguem a mesma distribuição mensal da tabela
-    "Custo mensal". <span id="per_nota"></span></div></div>
+  </details>
 
-  <div class="panel"><h3>Custo por etapa</h3><div class="tblwrap"><table id="t_unit"></table></div>
-    <div class="hint" style="margin-top:9px">Diesel (com o dos equipamentos de apoio rateado pelos litros de cada etapa e o preço de cada mês), mão de obra, manutenção (CRM), insumos e terceirização de
-    atividades são apurados por etapa diretamente das atividades do Plano Operacional. Os demais custos
-    (apoio, irrigação, transporte de pessoal, terceirizações por contrato, esporádicos,
-    administração e depreciação) são indiretos ao plano como um todo e rateados proporcionalmente ao custo
-    direto de cada etapa. O arrendamento tem coluna própria: é distribuído entre as etapas pelos percentuais
-    de referência PECEGE/USP da aba Arrendamentos.</div></div>
+  <details class="bloco" id="bl_custos_etapa">
+    <summary><span class="bl-tit">Por etapa e natureza</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Custo por etapa</h3><div class="tblwrap"><table id="t_unit"></table></div>
+        <div class="hint" style="margin-top:9px">Diesel (com o dos equipamentos de apoio rateado pelos litros de cada etapa e o preço de cada mês), mão de obra, manutenção (CRM), insumos e terceirização de
+        atividades são apurados por etapa diretamente das atividades do Plano Operacional. Os demais custos
+        (apoio, irrigação, transporte de pessoal, terceirizações por contrato, esporádicos,
+        administração e depreciação) são indiretos ao plano como um todo e rateados proporcionalmente ao custo
+        direto de cada etapa. O arrendamento tem coluna própria: é distribuído entre as etapas pelos percentuais
+        de referência PECEGE/USP da aba Arrendamentos.</div></div>
+      <div class="panel"><h3>Composição por natureza</h3><div class="tblwrap"><table id="t_custo"></table></div></div>
+    </div>
+  </details>
 
-  <div class="panel"><h3>Composição por natureza</h3><div class="tblwrap"><table id="t_custo"></table></div></div>
-  <div class="panel"><h3>Custo mensal</h3><div class="tblwrap"><table id="t_mensal"></table></div></div>
-  <div class="panel"><h3>Custos adicionais esporádicos</h3>
-    <input type="search" class="tbl-busca" data-alvo="#t_esp" placeholder="Buscar lançamento...">
-    <div class="tblwrap"><table id="t_esp"></table></div>
-    <div class="row" style="margin-top:10px"><button class="btn" id="btn_esp">Adicionar lançamento</button></div></div>
+  <details class="bloco" id="bl_custos_mensal">
+    <summary><span class="bl-tit">Mensal e esporádicos</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Custo mensal</h3><div class="tblwrap"><table id="t_mensal"></table></div></div>
+      <div class="panel"><h3>Custos adicionais esporádicos</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_esp" placeholder="Buscar lançamento...">
+        <div class="tblwrap"><table id="t_esp"></table></div>
+        <div class="row" style="margin-top:10px"><button class="btn" id="btn_esp">Adicionar lançamento</button></div></div>
+    </div>
+  </details>
 </section>
 
 <!-- ===== PLANO DE CONTAS ===== -->
 <section id="contas">
   <h2>Plano de Contas</h2>
   <p class="lead">Estrutura oficial de contas do departamento agrícola, agrupada por natureza, com o custo
-  projetado de cada conta calculado automaticamente a partir do plano.</p>
+  projetado de cada conta calculado automaticamente a partir do plano. Duas páginas — use o menu ao lado para
+  trocar.</p>
   <div class="grid g4" id="k_cc" style="margin-bottom:16px"></div>
-  <div class="panel"><h3>Contas</h3>
-    <input type="search" class="tbl-busca" data-alvo="#t_contas" placeholder="Buscar conta...">
-    <div class="tblwrap"><table id="t_contas"></table></div>
-    <div class="hint" style="margin-top:9px">O custo projetado é apurado direto do plano onde há uma fonte
-    de dados equivalente (mão de obra por origem, CRM por componente, diesel, insumos, irrigação, terceirizações
-    depreciação/administração e arrendamento). Contas marcadas "—" não têm um detalhamento equivalente neste modelo
-    (ex.: pneus, EPC, cursos) — o valor delas está diluído em contas mais amplas do mesmo grupo, não é
-    contado à parte. Encargos e benefícios individuais (INSS, FGTS, vale-refeição etc.) são decompostos do
-    total de mão de obra usando o peso de cada item nas Premissas de Mão de Obra.</div></div>
-  <div class="panel"><h3>Prestação de serviço por atividade</h3>
-    <input type="search" class="tbl-busca" data-alvo="#t_tarifa" placeholder="Buscar atividade...">
-    <div class="tblwrap"><table id="t_tarifa"></table></div>
-    <div class="hint" style="margin-top:9px">Aparecem aqui as atividades com percentual na coluna "3º" do
-    Plano Operacional. A tarifa é por hectare e substitui máquina e mão de obra próprias naquela fatia da área.
-    Alimenta a conta 200-124.</div></div>
-  <div class="panel"><h3>Terceirizações por centro de custo</h3>
-    <input type="search" class="tbl-busca" data-alvo="#t_terc" placeholder="Buscar serviço...">
-    <div class="tblwrap"><table id="t_terc"></table></div>
-    <div class="hint" style="margin-top:9px">T01 alimenta a conta 200-126; T02 e T03 alimentam a conta 200-124.</div></div>
+
+  <details class="bloco" id="bl_contas_lista" open>
+    <summary><span class="bl-tit">Contas</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Contas</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_contas" placeholder="Buscar conta...">
+        <div class="tblwrap"><table id="t_contas"></table></div>
+        <div class="hint" style="margin-top:9px">O custo projetado é apurado direto do plano onde há uma fonte
+        de dados equivalente (mão de obra por origem, CRM por componente, diesel, insumos, irrigação, terceirizações
+        depreciação/administração e arrendamento). Contas marcadas "—" não têm um detalhamento equivalente neste modelo
+        (ex.: pneus, EPC, cursos) — o valor delas está diluído em contas mais amplas do mesmo grupo, não é
+        contado à parte. Encargos e benefícios individuais (INSS, FGTS, vale-refeição etc.) são decompostos do
+        total de mão de obra usando o peso de cada item nas Premissas de Mão de Obra.</div></div>
+    </div>
+  </details>
+
+  <details class="bloco" id="bl_contas_terc">
+    <summary><span class="bl-tit">Terceirização</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Prestação de serviço por atividade</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_tarifa" placeholder="Buscar atividade...">
+        <div class="tblwrap"><table id="t_tarifa"></table></div>
+        <div class="hint" style="margin-top:9px">Aparecem aqui as atividades com percentual na coluna "3º" do
+        Plano Operacional. A tarifa é por hectare e substitui máquina e mão de obra próprias naquela fatia da área.
+        Alimenta a conta 200-124.</div></div>
+      <div class="panel"><h3>Terceirizações por centro de custo</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_terc" placeholder="Buscar serviço...">
+        <div class="tblwrap"><table id="t_terc"></table></div>
+        <div class="hint" style="margin-top:9px">T01 alimenta a conta 200-126; T02 e T03 alimentam a conta 200-124.</div></div>
+    </div>
+  </details>
 </section>
 
 <!-- ===== COMBUSTÍVEL ===== -->
 <section id="combust">
   <h2>Combustível — Diesel</h2>
   <p class="lead">Consumo de diesel dimensionado pela frota do plano (horas de cada conjunto × consumo em L/h),
-  volume necessário mês a mês e preço projetado por mês. O custo alimenta Custos, Plano de Contas (200-110) e Painel.</p>
+  volume necessário mês a mês e preço projetado por mês. O custo alimenta Custos, Plano de Contas (200-110) e Painel.
+  Duas páginas — use o menu ao lado para trocar.</p>
   <div class="grid g4" id="k_comb" style="margin-bottom:16px"></div>
-  <div class="panel"><h3>Preço do diesel por mês (R$/L)</h3>
-    <div class="tblwrap"><table id="t_comb_preco"></table></div>
-    <div class="row" style="margin-top:12px">
-      <div style="width:170px"><label>Reajuste mensal (%)</label><input type="number" id="in_diesel_reaj" step="0.1" value="0"></div>
-      <div style="align-self:flex-end"><button class="btn p" id="btn_diesel_reaj">Projetar a partir do preço base</button></div>
-      <div style="align-self:flex-end"><button class="btn" id="btn_diesel_base">Usar preço base em todos os meses</button></div>
+
+  <details class="bloco" id="bl_comb_preco" open>
+    <summary><span class="bl-tit">Preço e volume</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Preço do diesel por mês (R$/L)</h3>
+        <div class="tblwrap"><table id="t_comb_preco"></table></div>
+        <div class="row" style="margin-top:12px">
+          <div style="width:170px"><label>Reajuste mensal (%)</label><input type="number" id="in_diesel_reaj" step="0.1" value="0"></div>
+          <div style="align-self:flex-end"><button class="btn p" id="btn_diesel_reaj">Projetar a partir do preço base</button></div>
+          <div style="align-self:flex-end"><button class="btn" id="btn_diesel_base">Usar preço base em todos os meses</button></div>
+        </div>
+        <div class="hint" style="margin-top:9px">Mês em branco usa o preço base das Premissas. O reajuste aplica
+        juros compostos mês a mês, partindo do preço base no primeiro mês; depois é possível ajustar cada mês à mão.</div></div>
+      <div class="panel"><h3>Volume e custo mensal</h3>
+        <div class="tblwrap"><table id="t_comb_mes"></table></div>
+        <div id="ch_comb" style="margin-top:14px"></div></div>
     </div>
-    <div class="hint" style="margin-top:9px">Mês em branco usa o preço base das Premissas. O reajuste aplica
-    juros compostos mês a mês, partindo do preço base no primeiro mês; depois é possível ajustar cada mês à mão.</div></div>
-  <div class="panel"><h3>Volume e custo mensal</h3>
-    <div class="tblwrap"><table id="t_comb_mes"></table></div>
-    <div id="ch_comb" style="margin-top:14px"></div></div>
-  <div class="panel"><h3>Consumo por etapa</h3>
-    <div class="tblwrap"><table id="t_comb_etapa"></table></div>
-    <div class="hint" style="margin-top:9px">O diesel dos equipamentos de apoio é rateado entre as etapas
-    proporcionalmente aos litros consumidos por cada uma — o mesmo valor aparece na coluna Diesel da aba Custos.</div></div>
-  <div class="panel"><h3>Consumo por equipamento</h3>
-    <input type="search" class="tbl-busca" data-alvo="#t_comb_maq" placeholder="Buscar equipamento...">
-    <div class="tblwrap"><table id="t_comb_maq"></table></div></div>
+  </details>
+
+  <details class="bloco" id="bl_comb_consumo">
+    <summary><span class="bl-tit">Consumo</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Consumo por etapa</h3>
+        <div class="tblwrap"><table id="t_comb_etapa"></table></div>
+        <div class="hint" style="margin-top:9px">O diesel dos equipamentos de apoio é rateado entre as etapas
+        proporcionalmente aos litros consumidos por cada uma — o mesmo valor aparece na coluna Diesel da aba Custos.</div></div>
+      <div class="panel"><h3>Consumo por equipamento</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_comb_maq" placeholder="Buscar equipamento...">
+        <div class="tblwrap"><table id="t_comb_maq"></table></div></div>
+    </div>
+  </details>
 </section>
 
 <!-- ===== RESUMO DE FROTA ===== -->
 <section id="resumofrota">
   <h2>Resumo de Frota</h2>
   <p class="lead">Consolidado de toda a necessidade de veículos e equipamentos projetados pelo plano —
-  frota operacional, apoio de utilização fixa, transporte de pessoal e irrigação.</p>
+  frota operacional, apoio de utilização fixa, transporte de pessoal e irrigação. Duas páginas — use o menu ao
+  lado para trocar.</p>
   <div class="grid g4" id="k_resfrota" style="margin-bottom:16px"></div>
-  <div class="panel"><h3>Frota operacional e apoio configurável (máquinas, implementos)</h3>
-    <input type="search" class="tbl-busca" data-alvo="#t_rf_oper" placeholder="Buscar especialidade ou item...">
-    <div class="tblwrap"><table id="t_rf_oper"></table></div>
-    <div class="hint" style="margin-top:9px">Quantidade dimensionada pelo Plano Operacional e pela aba Apoio;
-    "frota adicional" indica quantidade prevista além da exigida pelo plano (ver Manutenção de Frota).</div></div>
-  <div class="panel"><h3>Frota de apoio (utilização fixa)</h3>
-    <input type="search" class="tbl-busca" data-alvo="#t_rf_apoio" placeholder="Buscar veículo ou máquina...">
-    <div class="tblwrap"><table id="t_rf_apoio"></table></div></div>
-  <div class="panel"><h3>Transporte de pessoal</h3>
-    <input type="search" class="tbl-busca" data-alvo="#t_rf_tpess" placeholder="Buscar rota...">
-    <div class="tblwrap"><table id="t_rf_tpess"></table></div></div>
-  <div class="panel"><h3>Irrigação — conjuntos motobomba</h3>
-    <div class="tblwrap"><table id="t_rf_irrig"></table></div></div>
+
+  <details class="bloco" id="bl_rf_oper" open>
+    <summary><span class="bl-tit">Frota operacional</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Frota operacional e apoio configurável (máquinas, implementos)</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_rf_oper" placeholder="Buscar especialidade ou item...">
+        <div class="tblwrap"><table id="t_rf_oper"></table></div>
+        <div class="hint" style="margin-top:9px">Quantidade dimensionada pelo Plano Operacional e pela aba Apoio;
+        "frota adicional" indica quantidade prevista além da exigida pelo plano (ver Manutenção de Frota).</div></div>
+    </div>
+  </details>
+
+  <details class="bloco" id="bl_rf_extra">
+    <summary><span class="bl-tit">Apoio, pessoal e irrigação</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Frota de apoio (utilização fixa)</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_rf_apoio" placeholder="Buscar veículo ou máquina...">
+        <div class="tblwrap"><table id="t_rf_apoio"></table></div></div>
+      <div class="panel"><h3>Transporte de pessoal</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_rf_tpess" placeholder="Buscar rota...">
+        <div class="tblwrap"><table id="t_rf_tpess"></table></div></div>
+      <div class="panel"><h3>Irrigação — conjuntos motobomba</h3>
+        <div class="tblwrap"><table id="t_rf_irrig"></table></div></div>
+    </div>
+  </details>
 </section>
 
 <!-- ===== RESUMO DE PESSOAS ===== -->
@@ -817,26 +951,44 @@
   <h2>Resumo de Pessoas</h2>
   <p class="lead">Efetivo dimensionado pelo plano, por departamento e por função, com a mobilização e o custo
   de mão de obra mês a mês. Departamento = etapa das atividades, mais as equipes de manutenção e a estrutura
-  agrícola indireta.</p>
+  agrícola indireta. Três páginas — use o menu ao lado para trocar.</p>
   <div class="grid g4" id="k_pes" style="margin-bottom:16px"></div>
-  <div class="panel"><h3>Pessoas por departamento</h3>
-    <input type="search" class="tbl-busca" data-alvo="#t_pes_dept" placeholder="Buscar departamento...">
-    <div class="tblwrap"><table id="t_pes_dept"></table></div>
-    <div class="hint" style="margin-top:9px" id="pes_conc"></div></div>
-  <div class="panel"><h3>Pessoas por função</h3>
-    <input type="search" class="tbl-busca" data-alvo="#t_pes_fun" placeholder="Buscar função...">
-    <div class="tblwrap"><table id="t_pes_fun"></table></div></div>
-  <div class="panel"><h3>Função × departamento (efetivo)</h3><div class="tblwrap"><table id="t_pes_matriz"></table></div></div>
-  <div class="panel"><h3>Fluxo mensal — pessoas mobilizadas</h3><div class="tblwrap"><table id="t_pes_mes_qtd"></table></div>
-    <div class="hint" style="margin-top:9px">Uma equipe de atividade conta nos meses em que a atividade tem quantidade
-    programada no Plano Operacional. Apoio, manutenção e estrutura contam em todos os meses.</div></div>
-  <div class="panel"><h3>Fluxo mensal — custo de mão de obra</h3><div class="tblwrap"><table id="t_pes_mes_custo"></table></div>
-    <div id="ch_pes" style="margin-top:14px"></div>
-    <div class="hint" style="margin-top:9px">O custo das atividades segue a quantidade programada em cada mês; apoio,
-    manutenção e estrutura têm custo mensal constante.</div></div>
-  <div class="panel"><h3>Detalhe por origem</h3>
-    <input type="search" class="tbl-busca" data-alvo="#t_pes_det" placeholder="Buscar função ou origem...">
-    <div class="tblwrap"><table id="t_pes_det"></table></div></div>
+
+  <details class="bloco" id="bl_pes_depto" open>
+    <summary><span class="bl-tit">Por departamento e função</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Pessoas por departamento</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_pes_dept" placeholder="Buscar departamento...">
+        <div class="tblwrap"><table id="t_pes_dept"></table></div>
+        <div class="hint" style="margin-top:9px" id="pes_conc"></div></div>
+      <div class="panel"><h3>Pessoas por função</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_pes_fun" placeholder="Buscar função...">
+        <div class="tblwrap"><table id="t_pes_fun"></table></div></div>
+      <div class="panel"><h3>Função × departamento (efetivo)</h3><div class="tblwrap"><table id="t_pes_matriz"></table></div></div>
+    </div>
+  </details>
+
+  <details class="bloco" id="bl_pes_fluxo">
+    <summary><span class="bl-tit">Fluxo mensal</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Fluxo mensal — pessoas mobilizadas</h3><div class="tblwrap"><table id="t_pes_mes_qtd"></table></div>
+        <div class="hint" style="margin-top:9px">Uma equipe de atividade conta nos meses em que a atividade tem quantidade
+        programada no Plano Operacional. Apoio, manutenção e estrutura contam em todos os meses.</div></div>
+      <div class="panel"><h3>Fluxo mensal — custo de mão de obra</h3><div class="tblwrap"><table id="t_pes_mes_custo"></table></div>
+        <div id="ch_pes" style="margin-top:14px"></div>
+        <div class="hint" style="margin-top:9px">O custo das atividades segue a quantidade programada em cada mês; apoio,
+        manutenção e estrutura têm custo mensal constante.</div></div>
+    </div>
+  </details>
+
+  <details class="bloco" id="bl_pes_origem">
+    <summary><span class="bl-tit">Detalhe por origem</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Detalhe por origem</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_pes_det" placeholder="Buscar função ou origem...">
+        <div class="tblwrap"><table id="t_pes_det"></table></div></div>
+    </div>
+  </details>
 </section>
 
 <!-- ===== PAINEL ===== -->
@@ -866,65 +1018,91 @@
 <section id="acomp">
   <h2>Acompanhamento do Plano</h2>
   <p class="lead">As metas que cada gerência leva da reunião de planejamento e o quanto delas já foi
-  cumprido. A meta é a mesma que o modal da atividade mostra — não há dois números para a mesma coisa.</p>
+  cumprido. A meta é a mesma que o modal da atividade mostra — não há dois números para a mesma coisa.
+  Cinco páginas — use o menu ao lado para trocar.</p>
   <div class="grid g5" id="k_acomp" style="margin-bottom:16px"></div>
 
-  <div class="panel"><h3>Onde perguntar</h3>
-    <div class="row" style="margin-bottom:12px">
-      <div style="min-width:200px"><label>Medir até o mês</label><select id="sel_acomp_mes"></select></div>
+  <details class="bloco" id="bl_acomp_geral" open>
+    <summary><span class="bl-tit">Visão geral</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Onde perguntar</h3>
+        <div class="row" style="margin-bottom:12px">
+          <div style="min-width:200px"><label>Medir até o mês</label><select id="sel_acomp_mes"></select></div>
+        </div>
+        <input type="search" class="tbl-busca" data-alvo="#t_acomp_exc" placeholder="Buscar atividade ou gerência...">
+        <div class="tblwrap"><table id="t_acomp_exc"></table></div>
+        <div class="hint" style="margin-top:9px">Em ordem de atraso em dinheiro, não de percentual: 10% de atraso
+        em 2.400 ha pesa mais que 50% em 20 ha. Atividade em dia não aparece aqui.</div></div>
+
+      <div class="panel"><h3>Resumo por gerência</h3>
+        <div class="tblwrap"><table id="t_acomp_ger"></table></div></div>
+
+      <div class="panel"><h3>Critério por mês: o que cada gerência tem de entregar</h3>
+        <div class="row" style="margin-bottom:10px">
+          <div style="min-width:220px"><label for="sel_crit_ger">Gerência</label>
+            <select id="sel_crit_ger">
+              <option value="">Todas</option>
+              <option value="agricola">Gerência Agrícola</option>
+              <option value="logistica">Gerência de Logística</option>
+            </select></div>
+          <div style="min-width:200px"><label for="sel_crit_cabe">Mostrar</label>
+            <select id="sel_crit_cabe">
+              <option value="">Todos os meses</option>
+              <option value="apertado">Só os que não cabem</option>
+            </select></div>
+        </div>
+        <input type="search" class="tbl-busca" data-alvo="#t_crit_mes" placeholder="Buscar atividade, gerência ou mês...">
+        <div class="tblwrap"><table id="t_crit_mes"></table></div>
+        <div class="hint" style="margin-top:9px">Uma linha por atividade e mês, na ordem do calendário — é assim
+        que a reunião mensal anda. As quatro colunas de <b>necessário</b> são alternativas, não se somam: cada uma
+        mostra o que aquele critério teria de ser sozinho, com os outros três parados na premissa do mês. O critério
+        de cada mês se ajusta no botão <b>mês</b> do Dimensionamento.</div></div>
     </div>
-    <input type="search" class="tbl-busca" data-alvo="#t_acomp_exc" placeholder="Buscar atividade ou gerência...">
-    <div class="tblwrap"><table id="t_acomp_exc"></table></div>
-    <div class="hint" style="margin-top:9px">Em ordem de atraso em dinheiro, não de percentual: 10% de atraso
-    em 2.400 ha pesa mais que 50% em 20 ha. Atividade em dia não aparece aqui.</div></div>
+  </details>
 
-  <div class="panel"><h3>Resumo por gerência</h3>
-    <div class="tblwrap"><table id="t_acomp_ger"></table></div></div>
-
-  <div class="panel"><h3>Critério por mês: o que cada gerência tem de entregar</h3>
-    <div class="row" style="margin-bottom:10px">
-      <div style="min-width:220px"><label for="sel_crit_ger">Gerência</label>
-        <select id="sel_crit_ger">
-          <option value="">Todas</option>
-          <option value="agricola">Gerência Agrícola</option>
-          <option value="logistica">Gerência de Logística</option>
-        </select></div>
-      <div style="min-width:200px"><label for="sel_crit_cabe">Mostrar</label>
-        <select id="sel_crit_cabe">
-          <option value="">Todos os meses</option>
-          <option value="apertado">Só os que não cabem</option>
-        </select></div>
+  <details class="bloco" id="bl_acomp_agricola">
+    <summary><span class="bl-tit">Metas — Gerência Agrícola</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Metas — Gerência Agrícola</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_meta_agricola" placeholder="Buscar atividade...">
+        <div class="tblwrap"><table id="t_meta_agricola"></table></div>
+        <div class="hint" style="margin-top:9px">Meta por dia de cada equipamento e da frota inteira, na janela
+        de execução da atividade. Hora produtiva é máquina operando, não jornada.</div></div>
     </div>
-    <input type="search" class="tbl-busca" data-alvo="#t_crit_mes" placeholder="Buscar atividade, gerência ou mês...">
-    <div class="tblwrap"><table id="t_crit_mes"></table></div>
-    <div class="hint" style="margin-top:9px">Uma linha por atividade e mês, na ordem do calendário — é assim
-    que a reunião mensal anda. As quatro colunas de <b>necessário</b> são alternativas, não se somam: cada uma
-    mostra o que aquele critério teria de ser sozinho, com os outros três parados na premissa do mês. O critério
-    de cada mês se ajusta no botão <b>mês</b> do Dimensionamento.</div></div>
+  </details>
 
-  <div class="panel"><h3>Metas — Gerência Agrícola</h3>
-    <input type="search" class="tbl-busca" data-alvo="#t_meta_agricola" placeholder="Buscar atividade...">
-    <div class="tblwrap"><table id="t_meta_agricola"></table></div>
-    <div class="hint" style="margin-top:9px">Meta por dia de cada equipamento e da frota inteira, na janela
-    de execução da atividade. Hora produtiva é máquina operando, não jornada.</div></div>
+  <details class="bloco" id="bl_acomp_logistica">
+    <summary><span class="bl-tit">Metas — Gerência de Logística</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Metas — Gerência de Logística</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_meta_logistica" placeholder="Buscar atividade...">
+        <div class="tblwrap"><table id="t_meta_logistica"></table></div>
+        <div class="hint" style="margin-top:9px">Transporte e transbordo espelham a tonelada da colheita:
+        o volume não é lançado aqui, vem do Plano Operacional.</div></div>
+    </div>
+  </details>
 
-  <div class="panel"><h3>Metas — Gerência de Logística</h3>
-    <input type="search" class="tbl-busca" data-alvo="#t_meta_logistica" placeholder="Buscar atividade...">
-    <div class="tblwrap"><table id="t_meta_logistica"></table></div>
-    <div class="hint" style="margin-top:9px">Transporte e transbordo espelham a tonelada da colheita:
-    o volume não é lançado aqui, vem do Plano Operacional.</div></div>
+  <details class="bloco" id="bl_acomp_manut">
+    <summary><span class="bl-tit">Metas — Gerência de Manutenção</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Metas — Gerência de Manutenção</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_meta_manut" placeholder="Buscar máquina ou implemento...">
+        <div class="tblwrap"><table id="t_meta_manut"></table></div>
+        <div class="hint" style="margin-top:9px">Horas que cada equipamento precisa entregar no plano e o CRM
+        que elas carregam. A frota que vai rodar e o provisionamento de reforma estão em Manutenção de Frota.</div></div>
+    </div>
+  </details>
 
-  <div class="panel"><h3>Metas — Gerência de Manutenção</h3>
-    <input type="search" class="tbl-busca" data-alvo="#t_meta_manut" placeholder="Buscar máquina ou implemento...">
-    <div class="tblwrap"><table id="t_meta_manut"></table></div>
-    <div class="hint" style="margin-top:9px">Horas que cada equipamento precisa entregar no plano e o CRM
-    que elas carregam. A frota que vai rodar e o provisionamento de reforma estão em Manutenção de Frota.</div></div>
-
-  <div class="panel"><h3>Execução: plano x realizado, atividade por atividade</h3>
-    <input type="search" class="tbl-busca" data-alvo="#t_acomp" placeholder="Buscar atividade...">
-    <div class="tblwrap"><table id="t_acomp"></table></div>
-    <div class="hint" style="margin-top:9px">Lance o realizado de cada mês; o campo em branco mostra o plano
-    como referência. Mês sem lançamento fica fora da conta de aderência — não conta como zero executado.</div></div>
+  <details class="bloco" id="bl_acomp_exec">
+    <summary><span class="bl-tit">Execução</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Execução: plano x realizado, atividade por atividade</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_acomp" placeholder="Buscar atividade...">
+        <div class="tblwrap"><table id="t_acomp"></table></div>
+        <div class="hint" style="margin-top:9px">Lance o realizado de cada mês; o campo em branco mostra o plano
+        como referência. Mês sem lançamento fica fora da conta de aderência — não conta como zero executado.</div></div>
+    </div>
+  </details>
 </section>
 
 <section id="valida">
@@ -937,38 +1115,58 @@
 <!-- ===== USUÁRIOS ===== -->
 <section id="usuarios">
   <h2>Usuários</h2>
-  <p class="lead">Quem acessa o sistema e o que cada perfil pode editar. Todo usuário vê todas as abas; o perfil define em quais ele altera dados. Desativar tira o acesso na hora, sem apagar o histórico do usuário.</p>
-  <div class="panel"><h3>Novo usuário</h3>
-    <div class="row">
-      <div style="min-width:160px"><label>Login</label><input id="us_login" autocomplete="off"></div>
-      <div style="min-width:200px"><label>Nome</label><input id="us_nome" autocomplete="off"></div>
-      <div style="width:150px"><label>Senha inicial</label><input id="us_senha" type="password" autocomplete="new-password"></div>
-      <div style="width:180px"><label>Perfil</label><select id="us_papel"><option value="usuario">Usuário</option><option value="admin">Administrador</option></select></div>
-      <div style="align-self:flex-end"><button class="btn p" id="btn_us_add">Criar usuário</button></div>
+  <p class="lead">Quem acessa o sistema e o que cada perfil pode editar. Todo usuário vê todas as abas; o perfil
+  define em quais ele altera dados. Desativar tira o acesso na hora, sem apagar o histórico do usuário. Três
+  páginas — use o menu ao lado para trocar.</p>
+
+  <details class="bloco" id="bl_us_usuarios" open>
+    <summary><span class="bl-tit">Usuários</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Novo usuário</h3>
+        <div class="row">
+          <div style="min-width:160px"><label>Login</label><input id="us_login" autocomplete="off"></div>
+          <div style="min-width:200px"><label>Nome</label><input id="us_nome" autocomplete="off"></div>
+          <div style="width:150px"><label>Senha inicial</label><input id="us_senha" type="password" autocomplete="new-password"></div>
+          <div style="width:180px"><label>Perfil</label><select id="us_papel"><option value="usuario">Usuário</option><option value="admin">Administrador</option></select></div>
+          <div style="align-self:flex-end"><button class="btn p" id="btn_us_add">Criar usuário</button></div>
+        </div>
+        <div class="hint" id="us_erro" style="margin-top:9px;color:var(--bad)"></div>
+      </div>
+      <div class="panel"><h3>Usuários cadastrados</h3>
+        <div class="tblwrap"><table id="t_usuarios"></table></div></div>
     </div>
-    <div class="hint" id="us_erro" style="margin-top:9px;color:var(--bad)"></div>
-  </div>
-  <div class="panel"><h3>Usuários cadastrados</h3>
-    <div class="tblwrap"><table id="t_usuarios"></table></div></div>
-  <div class="panel"><h3>Perfis e permissões</h3>
-    <p class="hint" style="margin:0 0 12px">Marque as abas que cada perfil pode <b>editar</b>. O que ficar desmarcado
-      continua visível para ele, só que sem edição. <b>Edita tudo</b> vale também para abas criadas no futuro.
-      A alteração vale na hora — inclusive para quem já está com o sistema aberto, na próxima gravação.
-      O Administrador edita tudo e é o único que gerencia usuários e perfis.</p>
-    <div class="row" style="margin-bottom:12px">
-      <div style="min-width:220px"><label>Novo perfil</label><input id="pf_nome" placeholder="Ex.: Agrícola, Logística" autocomplete="off"></div>
-      <div style="align-self:flex-end"><button class="btn p" id="btn_pf_add">Criar perfil</button></div>
+  </details>
+
+  <details class="bloco" id="bl_us_perfis">
+    <summary><span class="bl-tit">Perfis e permissões</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Perfis e permissões</h3>
+        <p class="hint" style="margin:0 0 12px">Marque as abas que cada perfil pode <b>editar</b>. O que ficar desmarcado
+          continua visível para ele, só que sem edição. <b>Edita tudo</b> vale também para abas criadas no futuro.
+          A alteração vale na hora — inclusive para quem já está com o sistema aberto, na próxima gravação.
+          O Administrador edita tudo e é o único que gerencia usuários e perfis.</p>
+        <div class="row" style="margin-bottom:12px">
+          <div style="min-width:220px"><label>Novo perfil</label><input id="pf_nome" placeholder="Ex.: Agrícola, Logística" autocomplete="off"></div>
+          <div style="align-self:flex-end"><button class="btn p" id="btn_pf_add">Criar perfil</button></div>
+        </div>
+        <div class="hint" id="pf_erro" style="margin:-4px 0 10px;color:var(--bad)"></div>
+        <div class="tblwrap"><table id="t_perfis" class="matriz-perfis"></table></div></div>
     </div>
-    <div class="hint" id="pf_erro" style="margin:-4px 0 10px;color:var(--bad)"></div>
-    <div class="tblwrap"><table id="t_perfis" class="matriz-perfis"></table></div></div>
-  <div class="panel"><h3>Minha senha</h3>
-    <div class="row">
-      <div style="width:180px"><label>Senha atual</label><input id="us_senha_atual" type="password" autocomplete="current-password"></div>
-      <div style="width:180px"><label>Nova senha</label><input id="us_senha_nova" type="password" autocomplete="new-password"></div>
-      <div style="align-self:flex-end"><button class="btn" id="btn_us_trocar_senha">Trocar minha senha</button></div>
+  </details>
+
+  <details class="bloco" id="bl_us_senha">
+    <summary><span class="bl-tit">Minha senha</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Minha senha</h3>
+        <div class="row">
+          <div style="width:180px"><label>Senha atual</label><input id="us_senha_atual" type="password" autocomplete="current-password"></div>
+          <div style="width:180px"><label>Nova senha</label><input id="us_senha_nova" type="password" autocomplete="new-password"></div>
+          <div style="align-self:flex-end"><button class="btn" id="btn_us_trocar_senha">Trocar minha senha</button></div>
+        </div>
+        <div class="hint" id="us_senha_msg" style="margin-top:9px"></div>
+      </div>
     </div>
-    <div class="hint" id="us_senha_msg" style="margin-top:9px"></div>
-  </div>
+  </details>
 </section>
 
 </main>

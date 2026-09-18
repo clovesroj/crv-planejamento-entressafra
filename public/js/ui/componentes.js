@@ -1,5 +1,5 @@
 import { MESES, clsMes } from '../nucleo/calendario.js';
-import { $, brl, fmt } from '../nucleo/formato.js';
+import { $, brl, esc, fmt } from '../nucleo/formato.js';
 import { USUARIO } from '../nucleo/sessao.js';
 
 // chave opcional: a chave do rastro. Com ela o card vira botão e abre a
@@ -66,6 +66,52 @@ function filtrarPorNome(tabelaId, termo){
    a própria tabela depois de repintá-la. */
 function reaplicarBuscas(){
   document.querySelectorAll('.tbl-busca').forEach(inp=>filtrarPorNome(inp.dataset.alvo, inp.value));
+}
+
+/* ---------- COMBOBOX DE BUSCA (select nativo com muita opção vira pesquisável)
+   O valor escolhido mora num <input type="hidden">, com o mesmo id que o
+   <select> tinha antes — quem lê `$(id).value` no clique de um botão não muda
+   nada. `itens()` é chamado a cada tecla, não uma vez só: assim a lista
+   sempre reflete o estado atual (ex.: cadastro de insumos crescendo), sem
+   precisar recriar o combobox a cada render(). Liga uma vez, no arranque.
+   `rotulo` é o texto da lista e o que fica na caixa depois de escolher;
+   `valorDe` (opcional, default = rotulo) é o que vai pro campo escondido —
+   separado porque a lista pode mostrar "Ureia — N 45%" e o valor ser só "Ureia". */
+function ligarBuscaSelect(buscaId, listaId, valorId, itens, rotulo, valorDe){
+  const busca = $(buscaId), lista = $(listaId), valor = $(valorId);
+  if(!busca || !lista || !valor) return null;
+  valorDe = valorDe || rotulo;
+  let foco = -1;
+  const opcoes = termo => {
+    const t = (termo||"").trim().toLowerCase();
+    return itens().filter(i => !t || rotulo(i).toLowerCase().includes(t));
+  };
+  function pintar(){
+    const op = opcoes(busca.value);
+    lista.innerHTML = op.length
+      ? op.map((i,ix)=>`<div class="lista-select-item${ix===foco?" foco":""}" data-ix="${ix}">${esc(rotulo(i))}</div>`).join("")
+      : `<div class="lista-select-vazia">Nada encontrado</div>`;
+    lista.hidden = false;
+    busca.setAttribute("aria-expanded","true");
+  }
+  function fechar(){ lista.hidden = true; foco = -1; busca.setAttribute("aria-expanded","false"); }
+  function escolher(i){ valor.value = valorDe(i); busca.value = rotulo(i); fechar(); }
+  busca.addEventListener("input", ()=>{ foco = -1; valor.value = ""; pintar(); });
+  busca.addEventListener("focus", pintar);
+  busca.addEventListener("blur", ()=>setTimeout(fechar,150)); // da tempo do mousedown na lista rodar antes
+  busca.addEventListener("keydown", e=>{
+    const op = opcoes(busca.value);
+    if(e.key==="ArrowDown"){ e.preventDefault(); foco = Math.min(foco+1, op.length-1); pintar(); }
+    else if(e.key==="ArrowUp"){ e.preventDefault(); foco = Math.max(foco-1, 0); pintar(); }
+    else if(e.key==="Enter"){ if(op[foco]){ e.preventDefault(); escolher(op[foco]); } }
+    else if(e.key==="Escape"){ fechar(); }
+  });
+  lista.addEventListener("mousedown", e=>{   // mousedown, nao click: roda antes do blur fechar a lista
+    const item = e.target.closest(".lista-select-item");
+    if(!item) return;
+    escolher(opcoes(busca.value)[+item.dataset.ix]);
+  });
+  return { limpar(){ busca.value = ""; valor.value = ""; fechar(); } };
 }
 
 /* ---------- REORDENAR COLUNA NO ARRASTO ----------
@@ -171,5 +217,5 @@ function barrasH(el,dados){
 }
 
 
-export { barras, barrasH, filtrarPorNome, habilitarReordenacao, kpi, maxSel,
+export { barras, barrasH, filtrarPorNome, habilitarReordenacao, kpi, ligarBuscaSelect, maxSel,
          reaplicarBuscas, somaSel, tdMeses, th, thMeses };
