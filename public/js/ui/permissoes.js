@@ -33,6 +33,7 @@ const VISUAIS = [
   '#sel_ins_fam', '#btn_ins_recolher', '[data-fam]',
   '#btn_export', '#btn_theme',
   '#sel_anp_semana', '#busca_anp_mun', '#sel_anp_mun', '#sel_anp_prod',
+  '#busca_clima_cidade',
 ].join(',');
 
 const CONTROLES = 'input, select, textarea, button';
