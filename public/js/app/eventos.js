@@ -174,6 +174,11 @@ document.addEventListener("change",e=>{
     const r = setClasseGrupo(t.dataset.grpclasse, t.value);
     if(!r.ok){ alert(r.erro); render(); return; }
     salvar(true); render(); return; }
+  // unidade da dose de uma linha da composicao: so muda em que unidade a
+  // pessoa lancou o numero, o motor converte pra unidade do cadastro na hora
+  // de custear (calculo/insumos.js, doseBase) -- o custo/ha nao muda sozinho
+  if(t.dataset.tud!==undefined){
+    const c=destravar(TRAT_SEL); c[+t.dataset.tud].un=t.value; salvar(); render(); return; }
   // codigo do tratamento: leva composicao, nome, etapas e as atividades que o usam
   if(t.dataset.trc!==undefined || t.id==="in_trat_cod"){
     const de = t.dataset.trc!==undefined ? t.dataset.trc : TRAT_SEL;

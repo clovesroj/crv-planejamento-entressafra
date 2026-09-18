@@ -1,7 +1,8 @@
-import { composicao, etapasNoPlano, familiaDe, insumosPorFamilia, precoInsumo, todasFamilias, tratCodigos, tratEtapas, tratListaTodos } from '../calculo/insumos.js';
+import { composicao, doseBase, etapasNoPlano, familiaDe, insumosPorFamilia, precoInsumo, todasFamilias, tratCodigos, tratEtapas, tratListaTodos } from '../calculo/insumos.js';
 import { TRAT_ETAPAS } from '../dados/insumos.js';
 import { INSUMO, INS_FICHA, P, TRATC, TRAT_NOME, TRAT_SEL, insLista } from '../nucleo/estado.js';
 import { $, brl, esc, fmt, num, urlWeb } from '../nucleo/formato.js';
+import { unidadesDaFamilia } from '../nucleo/unidades.js';
 import { kpi, ligarBuscaSelect, th } from './componentes.js';
 import { setTRAT_SEL } from '../nucleo/estado.js';
 
@@ -167,19 +168,27 @@ function pintarInsumos(R){
   $("#c_etapa_sel").innerHTML = TRAT_SEL ? celulaEtapas(TRAT_SEL) : "";
 
   const comp = composicao(TRAT_SEL);
-  const custoHa = comp.reduce((s,l)=>s+num(l.dose)*precoInsumo(l.prod),0);
+  const custoHa = comp.reduce((s,l)=>s+doseBase(l)*precoInsumo(l.prod),0);
   $("#c_trat").value = brl(custoHa,2) + "/ha";
 
-  $("#t_comp").innerHTML = th([["Produto"],["Princípio ativo"],["Dose/ha",1],["Un."],
+  $("#t_comp").innerHTML = th([["Produto"],["Princípio ativo"],["Dose",1],["Un."],
     ["Preço corrigido",1],["Custo/ha",1],["% do tratamento",1],[""]])+"<tbody>"+
     (comp.length? comp.map((l,i)=>{
-      const pr = precoInsumo(l.prod), c = num(l.dose)*pr;
+      const pr = precoInsumo(l.prod), c = doseBase(l)*pr;
       const pp = custoHa>0 ? c/custoHa*100 : 0;
       const reg = insLista().find(x=>x.prod===l.prod);
+      const regUn = reg && reg.un;
+      // unidades da mesma familia da que o insumo e comprado -- dosar em kg/ha
+      // um produto comprado em ton, por exemplo, sem mudar o custo por hectare
+      const opcoesUn = unidadesDaFamilia(regUn);
+      const unAtual = opcoesUn.includes(l.un) ? l.un : (regUn || l.un || "");
       return `<tr><td>${esc(l.prod)}</td>
         <td class="calc">${esc((reg&&reg.pa)||"—")}</td>
         <td class="num"><input data-td="${i}" value="${l.dose}" inputmode="decimal"></td>
-        <td class="calc">${esc(l.un||(reg&&reg.un)||"—")}</td>
+        <td>${opcoesUn.length>1
+          ? `<select data-tud="${i}" title="Unidade em que a dose desta linha foi lançada">${opcoesUn.map(u=>
+              `<option value="${u}"${u===unAtual?" selected":""}>${u}/ha</option>`).join("")}</select>`
+          : `<span class="calc">${esc(unAtual || "—")}${unAtual?"/ha":""}</span>`}</td>
         <td class="num calc">${pr>0?brl(pr,2):'<span class="badge b-warn">sem preço</span>'}</td>
         <td class="num tot">${brl(c,2)}</td>
         <td class="num calc">${fmt(pp,1)}%</td>
