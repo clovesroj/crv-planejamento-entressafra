@@ -19,8 +19,14 @@
    novo entrar em INSUMOS: e por ela que o documento ja salvo sabe que tem
    produto novo para receber (io/persistencia.js mescla na leitura).
      1  cadastro original, 57 produtos
-     2  classificacao tecnica da planilha CRV, 159 produtos */
-export const INSUMOS_V = 2;
+     2  classificacao tecnica da planilha CRV, 159 produtos
+     3  10 produtos da planilha PLAN.HERB SAFRA 26-27 sem correspondencia no
+        cadastro (Areio, Atrazina, Diuron, Glifosato, Plateau, Speed forth,
+        Sulfentrazona, Sulfentrazone, Unimark, Provence) — entrada minima,
+        sem cod/un/pa; preco vem do Valor Unit. da planilha, dose e a
+        propria linha de composicao (sem un no cadastro, fatorParaBase()
+        nao converte, dose bate direto com o preco por lt/kg da planilha) */
+export const INSUMOS_V = 3;
 
 /* Familias de insumo, para a quebra do cadastro.
    O campo `classe` da planilha e texto livre e tem 33 valores distintos para 161
@@ -234,7 +240,17 @@ export const INSUMOS = [
   {"prod": "VERSAT", "pa": "Mistura funcional para tecnologia de aplicação - conferir ficha", "cod": "2799868", "un": "lt", "conc": "Composição/concentração conforme FISPQ ou ficha técnica", "classe": "Adjuvante", "categ": "Adjuvante", "form": "Líquido solúvel/concentrado", "modo": "Físico-químico na calda e/ou superfície foliar", "mec": "Modificação de pH, tensão superficial, espalhamento, retenção, penetração ou espectro de gotas", "grupo": "Não se aplica - auxiliar de aplicação", "fab": "Renovagro", "tox": "Não se aplica como classificação de agrotóxico; consultar FISPQ/GHS", "culturas": "Sem alvo/cultura própria; uso acompanha os produtos e culturas autorizados no rótulo.", "estadio": "Não possui alvo biológico próprio; acompanha o estádio e a recomendação do produto aplicado em mistura.", "status": "Classificação confirmada; composição a validar", "base": "Cadastro interno + validação complementar", "vol": 0, "est": 0, "preco": 0},
   {"prod": "HEXAPAX SUPER 75", "pa": "Hexazinona 750 g/kg", "cod": "2831041", "un": "kg", "conc": "750 g/kg", "classe": "Herbicida", "categ": "Herbicida químico", "form": "WG - grânulos dispersíveis em água", "modo": "Sistêmico/residual, pré e/ou pós-emergente conforme bula", "mec": "Inibição do fotossistema II", "grupo": "Triazinona", "fab": "Rainbow Defensivos Agrícolas", "tox": "Categoria 4 - Produto Pouco Tóxico", "culturas": "Cana-de-açúcar", "estadio": "Pré-emergência até pós-emergência inicial; daninhas jovens e em crescimento ativo quando aplicado em pós.", "status": "Confirmado", "base": "Agrofit/MAPA, bula ou fabricante", "vol": 0, "est": 0, "preco": 0},
   {"prod": "MAGMA 500 SC", "pa": "Flumioxazina 500 g/L", "cod": "2852238", "un": "lt", "conc": "500 g/L", "classe": "Herbicida", "categ": "Herbicida químico", "form": "SC - suspensão concentrada", "modo": "Contato/residual, pré e pós inicial conforme bula", "mec": "Inibição da PPO e ruptura de membranas celulares", "grupo": "N-fenilftalimida", "fab": "Maxunitech do Brasil", "tox": "Categoria 5 - Produto Improvável de Causar Dano Agudo", "culturas": "Algodão, Batata, Café, Cana-de-açúcar, Cebola, Citros, Eucalipto, Feijão, Pinus, Soja", "estadio": "Pré-emergência e/ou pós-emergência inicial das plantas daninhas, conforme cultura, espécie e bula.", "status": "Confirmado", "base": "Agrofit/MAPA, bula ou fabricante", "vol": 0, "est": 0, "preco": 0},
-  {"prod": "ZAPP SG", "pa": "Glifosato - sal de amônio 792,5 g/kg", "cod": "2854922", "un": "kg", "conc": "792,5 g/kg", "classe": "Herbicida", "categ": "Herbicida químico", "form": "SG - granulado solúvel", "modo": "Sistêmico, não seletivo e pós-emergente", "mec": "Inibição da EPSPS e da síntese de aminoácidos aromáticos", "grupo": "Glicina substituída", "fab": "Fuhua Brasil - registrante indicado no Agrofit", "tox": "Categoria 5 - Produto Improvável de Causar Dano Agudo", "culturas": "Algodão, Algodão OGM, Ameixa, Arroz, Banana, Cacau, Café, Cana-de-açúcar, Citros, Eucalipto, Maçã, Milho, Milho OGM, Nectarina, Pastagens, Pera, Pessego, Pinus, Soja, Soja OGM, Trigo, Uva", "estadio": "Plantas daninhas em crescimento ativo; preferencialmente jovens. Estádio e porte exatos variam por espécie e dose da bula.", "status": "Confirmado", "base": "Agrofit/MAPA, bula ou fabricante", "vol": 0, "est": 0, "preco": 0}
+  {"prod": "ZAPP SG", "pa": "Glifosato - sal de amônio 792,5 g/kg", "cod": "2854922", "un": "kg", "conc": "792,5 g/kg", "classe": "Herbicida", "categ": "Herbicida químico", "form": "SG - granulado solúvel", "modo": "Sistêmico, não seletivo e pós-emergente", "mec": "Inibição da EPSPS e da síntese de aminoácidos aromáticos", "grupo": "Glicina substituída", "fab": "Fuhua Brasil - registrante indicado no Agrofit", "tox": "Categoria 5 - Produto Improvável de Causar Dano Agudo", "culturas": "Algodão, Algodão OGM, Ameixa, Arroz, Banana, Cacau, Café, Cana-de-açúcar, Citros, Eucalipto, Maçã, Milho, Milho OGM, Nectarina, Pastagens, Pera, Pessego, Pinus, Soja, Soja OGM, Trigo, Uva", "estadio": "Plantas daninhas em crescimento ativo; preferencialmente jovens. Estádio e porte exatos variam por espécie e dose da bula.", "status": "Confirmado", "base": "Agrofit/MAPA, bula ou fabricante", "vol": 0, "est": 0, "preco": 0},
+  {"prod": "Areio", "preco": 0},
+  {"prod": "Atrazina", "preco": 0},
+  {"prod": "Diuron", "preco": 21.83},
+  {"prod": "Glifosato", "preco": 25.54},
+  {"prod": "Plateau", "preco": 596.19},
+  {"prod": "Speed forth", "preco": 53},
+  {"prod": "Sulfentrazona", "preco": 85.99},
+  {"prod": "Sulfentrazone", "preco": 105.4},
+  {"prod": "Unimark", "preco": 76.18},
+  {"prod": "Provence", "preco": 359.52}
 ];
 
 export const TRAT_DET = [
