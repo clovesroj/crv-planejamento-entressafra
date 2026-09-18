@@ -34,6 +34,21 @@ O método importa tanto quanto o resultado, e é o que torna esta base confiáve
 Se você for refatorar algo aqui, use o mesmo padrão: capture o contrato antes,
 mova sem reescrever, prove a equivalência depois.
 
+### Como a base evoluiu depois disso
+
+De 15 a 17/09 a base foi da 2.0.0 à 2.22.1, com quatro pessoas publicando
+direto no `main` — **Caio Souza** (estrutura, login, perfis e permissões,
+revisões de continuidade), **tkaique9-cloud** (dimensionamento, critério por
+mês, filtro de período, cadastro de insumos por família), **clovesroj**
+(arrendamento, classificação técnica dos insumos) e **aureniorg3**
+(Configurações, AGROFIT). O [CHANGELOG](CHANGELOG.md) tem cada versão; o que
+entrou só pelo git no dia 17 está consolidado lá, por assunto, com o commit.
+
+As mensagens de commit do time carregam a conferência, e vale manter o hábito:
+o caso que motivou, a conta refeita à mão, se mexe em custo ("plano vazio segue
+X" quando não mexe) e o que foi testado ("as 21 folhas geram sem erro"). É dali
+que se reconstrói o porquê de uma regra.
+
 ## Invariantes — não quebre estes
 
 **1. O grafo de dependências é acíclico e sobe numa direção só.**
@@ -70,10 +85,21 @@ existente. Campo novo entra em `nucleo/estado.js`, em `estado()` e em `aplicar()
 — nessa ordem, e sem renomear os que já existem.
 
 **6. Cache: `.js` e `.css` revalidam a cada carga.**
-Está assim de propósito em `server/estatico.js`. Como o app carrega ~50 módulos
+Está assim de propósito em `server/estatico.js`. Como o app carrega ~90 módulos
 por URL fixa, cache longo faria o navegador juntar HTML novo com módulo velho no
 primeiro acesso depois de um deploy. Se o custo incomodar, a saída é versionar a
 URL dos módulos num build — **não** aumentar o `max-age`.
+
+**7. Dado e visão não se misturam.**
+`nucleo/estado.js` guarda os dois. **Dado** é o plano: entra em `estado()`, é
+gravado e passa pelo filtro de permissões. **Visão** é o que a pessoa está olhando
+— período (`PERIODO_SEL`, `MESES_SEL`), filtros (`CRIT_GER`, grupo de insumo),
+modal aberto (`INS_FICHA`, `AGROFIT_BUSCA`), item selecionado: não entra em
+`estado()` e não chama `salvar()`. Preferência de uma pessoa que precisa
+sobreviver ao recarregar (ordem de coluna, menu recolhido) vai para o
+`localStorage` com o login na chave, nunca para o documento compartilhado.
+Controle de visão novo entra em `VISUAIS` (`ui/permissoes.js`), senão fica
+travado para quem só visualiza.
 
 ## Contrato de regressão
 
@@ -106,6 +132,13 @@ const h = s => { let x=5381; for(let i=0;i<s.length;i++) x=((x*33)^s.charCodeAt(
 >
 > A linha da fixture de produção não foi reconferida: exige a fixture, que não
 > está no repositório.
+>
+> **Depois disso houve mais mudanças intencionais de cálculo** (CHANGELOG da
+> 2.18.0 em diante: arrendamento por pagamento, eficiência operacional,
+> transporte herdando a janela da colheita). Os commits de 17/09 citam
+> plano vazio = **39.270.751,842344** como referência. Antes de usar qualquer
+> número desta seção, meça no HEAD e compare antes/depois da sua mudança — é
+> a comparação que prova, não o número absoluto.
 
 **Dois invariantes que vale a pena checar:**
 
@@ -155,13 +188,22 @@ h(canon(R)) + ':' + canon(R).length;
 | Preço, dose, máquina, conta contábil | `public/js/dados/<assunto>.js` |
 | Valor padrão de uma premissa | `public/js/dados/padroes.js` |
 | Fórmula de custo de uma atividade | `public/js/calculo/atividade.js` |
+| Janela de datas, dias do mês, critério por mês, meta diária | `public/js/calculo/atividade.js` (`janelaDe()`, `diasDoMes()`, `criterioMensal()`, `metaDe()`) — a mesma conta serve modal, rastro, motor e relatórios; não duplique |
+| Hora efetiva (jornada × disponibilidade × utilização × eficiência) | `public/js/calculo/atividade.js` (`eficPadrao()` e o uso de `P.disp`, `util`, `efic`) |
 | Rateio entre etapas, consolidação | `public/js/calculo/index.js` |
+| Gerência (agrícola × logística) de uma atividade | `public/js/calculo/acompanhamento.js` — a lista é a da agrícola; o resto é logística |
+| Família de insumo deduzida da classe | `public/js/dados/insumos.js` (`FAMILIAS_INSUMO`; a ordem é o desempate) |
 | Layout ou colunas de uma aba | `public/js/ui/<aba>.js` |
+| Tabela mensal nova | `clsMes(i)` no `<th>` e no `<td>` de cada mês, e `somaSel()`/`maxSel()` no total — senão o filtro de período desalinha a tabela e o total não fecha |
+| Busca e coluna arrastável | só marcação (`<input class="tbl-busca" data-alvo="#tabela">`); `ui/componentes.js` aplica no fim de `render()` |
+| Relatório ou seção de relatório | `public/js/io/secoes.js` — leia as funções do cálculo, não recalcule |
 | Campo novo que precisa ser salvo | `nucleo/estado.js` → `io/persistencia.js` (`estado()` e `aplicar()`) → aba dona em `server/permissoes.js` |
+| Campo de texto novo no cadastro de insumos | também na lista de campos de texto do editor de linha (`app/eventos.js`, hoje `["un","pa","conc","cod","classe","fam"]`) — fora dela, o valor é convertido em número e grava `NaN` |
 | Quais dados cada aba edita (permissões) | `server/permissoes.js` (`AREAS`) |
 | Migração de formato do documento (ex.: 9 → 12 meses) | `io/persistencia.js` (`migrarJanela`) **e** `server/janela.js` — as duas, com a mesma regra |
 | Controle que só muda a visualização | `public/js/ui/permissoes.js` (`VISUAIS`) |
 | Rota da API | `server/api.js` |
+| API externa (ex.: AGROFIT) | `server/<nome>.js`, com prazo (`AbortSignal.timeout`) e credencial por variável de ambiente (`server/env.js` lê o `.env` local) |
 | Hash de senha, sessão, guardas de rota | `server/auth.js` |
 | Esquema do banco (`plano`, `usuarios`, `sessoes`, `perfis`) | `server/store/schema.sql` |
 
@@ -215,6 +257,17 @@ estes são os pontos que não podem quebrar:
   servidor completa a migração de 9 para 12 meses (`server/janela.js`) na
   gravação de quem não grava PLANO, DIESEL_MES e ARREND juntos — foi o bug
   corrigido na 2.22.1.
+- **A permissão é por chave do documento, não por campo.** Quem edita a
+  Irrigação grava `PLANO` inteiro no servidor; a tela é que só deixa mexer no
+  que a Irrigação mostra. Se um dia isso precisar ser mais fino, o caminho é
+  dividir a chave em `AREAS` como já se faz com os campos de `P`.
+- **Ao perguntar "este perfil grava a chave X?", olhe todas as abas donas.**
+  `podeEditar("plano")` sozinho erra para quem edita Irrigação, que também grava
+  `PLANO` — era o aviso falso de "vínculo não será salvo" corrigido na 2.22.1.
+  Use `areasDePermissao()` (`nucleo/sessao.js`) e procure a chave.
+- **Abas sem permissão própria** seguem a de outra: Cadastro de Insumos, Grupos
+  de Insumos e a rota da AGROFIT seguem `insumos` (`areaDe()` em
+  `ui/permissoes.js` e a guarda em `server/api.js`).
 - **Perfil inexistente cai em somente visualização**, nunca em acesso total.
   `admin` não mora na tabela `perfis` e edita tudo sempre. `usuario` nasce com
   `["*"]` para ninguém perder acesso no deploy.
@@ -227,16 +280,66 @@ servidor real no navegador, com um perfil restrito forçando edição em 143 tip
 de controle — no banco só mudaram dados das abas permitidas — e o motor de
 cálculo idêntico.
 
+## Armadilhas já conhecidas
+
+Cada item abaixo já custou um bug. Vale ler antes de mexer na área.
+
+- **Janela de datas do Plano** (`janelaDe()`): vale a data da própria atividade;
+  sem ela, transporte e transbordo herdam a da colheita; sem nenhuma, os meses
+  com volume; sem volume, o ano inteiro. Janela inutilizável — só uma data, data
+  inválida, fim antes do início, ou totalmente fora de Abr/26–Mar/27 — é
+  **ignorada** e cai nos meses com volume. A aba Validação acusa as três
+  situações: janela ignorada, janela que passa do ano agrícola e volume fora da
+  janela. `mesesEntre()` recorta a janela no horizonte, e `diasDoMes()` recorta o
+  mês pela janela (mês parcial).
+- **Critério por mês manda na frota alvo da atividade.** Com algum mês lançado, a
+  frota da atividade fica suspensa (tarja *frota do mês manda*). Frota fixada só
+  vale em atividade de frente única.
+- **Tabela reordenada na tela carrega o índice original.** O cadastro de insumos
+  sai por família, mas cada linha leva `data-in` com a posição em `insLista()`.
+  Usar a posição exibida faz editar um produto e gravar em outro.
+- **`[hidden]` perde para `display` próprio.** Elemento com classe que define
+  `display` (`.chip`, `.tela-login`) precisa de `[hidden]{display:none}`
+  explícito — foi o chip "Somente visualização" aparecendo para o administrador.
+- **Texto do usuário que vai para HTML:** `esc()` de `nucleo/formato.js`. URL
+  externa em `href`: `urlWeb()` (só http/https — `esc()` não barra
+  `javascript:`). Código de tratamento: só o formato de `codigoTratValido()`
+  (`calculo/insumos.js`), porque ele vai cru para muitos lugares.
+- **Migração que toca várias chaves precisa chegar inteira ao banco** — ver
+  Perfis e permissões. Mudou `migrarJanela()`, mude `server/janela.js`.
+- **`render()` roda a cada tecla.** O arrasto só mexe no DOM quando há ordem
+  salva, e abrir ou fechar modal redesenha só o modal. A busca reaplica as 45
+  caixas a cada `render()`. Não pendure mais trabalho pesado no fim dele.
+
+## Como provar que uma mudança não quebrou nada
+
+Não há suíte de testes (ver dívidas). O que o time usa, e o que foi usado nas
+revisões:
+
+1. **Motor:** hash de `calcularCompleto()` antes e depois, com o mesmo documento
+   (ver Contrato de regressão). Mudança que não pretende alterar número tem de
+   dar o mesmo hash; a que pretende deve dizer, no commit, quanto e por quê.
+2. **Telas:** hash do `innerHTML` de cada `section[id]` depois de `render()`.
+3. **Relatórios:** gerar os 21, nos dois níveis, sem erro.
+4. **Validação:** nenhum "!" novo que não seja o esperado.
+5. **Permissões,** se mexeu em dado salvo ou em controle: entrar com um perfil
+   restrito, acionar os controles de todas as abas e conferir no banco que só
+   mudaram as chaves das abas liberadas. Chave nova sem aba dona aparece na
+   Validação em *"Todo dado editável tem aba de permissão"*.
+6. **Documento antigo:** abrir um plano gravado antes da mudança (a fixture de
+   15/09 ainda está em 9 meses) e salvar com um perfil restrito — é onde as
+   migrações quebram.
+
 ## Dívidas conhecidas
 
 Não são descuido — foram levantadas, documentadas e deixadas para depois de
 propósito. Em ordem de gravidade:
 
-1. **Escape de HTML inconsistente.** Campos de texto livre (fazenda, insumo,
-   rota) vão para `innerHTML` sem escapar na maioria das telas; só algumas
-   (`arrendamentos.js`, `usuarios.js`, ...) definem um `esc` local. Menos grave
-   agora que só usuário autenticado grava, mas continua sendo XSS armazenado
-   em potencial entre usuários do mesmo sistema.
+1. **Escape de HTML incompleto.** `esc()` agora é um só (`nucleo/formato.js`) e
+   14 módulos o usam, mas 17 telas de `ui/` ainda montam HTML sem ele — algumas
+   só com números e nomes do cadastro, outras com texto livre (fornecedor,
+   fazenda, detalhe da Validação). Menos grave porque só usuário autenticado
+   grava, mas continua sendo XSS armazenado em potencial entre usuários.
 2. **O merge não é campo a campo como o README dá a entender.** O `||` do `jsonb`
    mescla apenas o primeiro nível, e o cliente envia o objeto inteiro. Duas
    pessoas editando atividades diferentes ao mesmo tempo: a última grava por cima.
@@ -251,15 +354,25 @@ propósito. Em ordem de gravidade:
    cookie cobre o vetor clássico de CSRF, e a mensagem de erro do login não
    distingue usuário inexistente de senha errada — mitigação proporcional ao
    resto da postura de segurança atual, não blindagem completa.
+7. **Regra de migração em dois lugares.** A migração de 9 para 12 meses existe no
+   navegador (`migrarJanela()`) e no servidor (`server/janela.js`), porque o
+   servidor precisa completá-la para perfis restritos. Sem build, não há como
+   compartilhar o código entre os dois; o comentário de cada lado aponta o outro.
+8. **Todo mundo publica no `main`, e o `main` vai para produção.** Não há
+   revisão obrigatória antes do deploy: um erro chega aos usuários no mesmo
+   push. Trabalhar num branch e conferir com os passos acima reduz isso.
 
 ## Ambiente de desenvolvimento
 
 O app precisa de servidor: por `file://` o navegador trata a página como origem
 opaca e recusa módulos ES. `npm install && npm start` sobe em
-`http://localhost:10000`.
+`http://localhost:10000`. Sem `DATABASE_URL`, grava em `.data/plano.json`.
+Credenciais de API externa (hoje só a AGROFIT) vão num `.env` na raiz, que o
+git ignora; ver *Variáveis de ambiente* no [README](README.md).
 
 ---
 
-*Reestruturação de setembro de 2026 por Caio Souza. Se você é um assistente e
-vai propor mudanças aqui, respeite os invariantes acima e prove suas alterações
-contra o contrato de regressão — foi assim que esta base chegou até você.*
+*Reestruturação de setembro de 2026, perfis e permissões e revisões de
+continuidade por Caio Souza. Se você é um assistente e vai propor mudanças aqui,
+respeite os invariantes acima e prove suas alterações contra o contrato de
+regressão — foi assim que esta base chegou até você.*
