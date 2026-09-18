@@ -174,7 +174,7 @@ function pintarInsumos(R){
       return `<tr><td>${esc(l.prod)}</td>
         <td class="calc">${esc((reg&&reg.pa)||"—")}</td>
         <td class="num"><input data-td="${i}" value="${l.dose}" inputmode="decimal"></td>
-        <td class="calc">${esc(l.un||"—")}</td>
+        <td class="calc">${esc(l.un||(reg&&reg.un)||"—")}</td>
         <td class="num calc">${pr>0?brl(pr,2):'<span class="badge b-warn">sem preço</span>'}</td>
         <td class="num tot">${brl(c,2)}</td>
         <td class="num calc">${fmt(pp,1)}%</td>

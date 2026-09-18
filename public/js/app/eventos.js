@@ -444,8 +444,11 @@ $("#btn_add_prod").onclick=()=>{
   const ja=c.find(l=>l.prod===prod);
   if(ja){ ja.dose=num(ja.dose)+dose; }
   else{
-    const base=CFG.trat_det.find(t=>t.prod===prod);
-    c.push({prod,dose,un:base?base.un:""});
+    // a unidade e a do cadastro do produto, nao da composicao-base: um produto
+    // que nunca esteve em nenhum tratamento base nao tem linha em CFG.trat_det,
+    // e a unidade ficava em branco mesmo estando cadastrada no insumo
+    const reg=insLista().find(i=>i.prod===prod);
+    c.push({prod,dose,un:reg?reg.un:""});
   }
   salvar(); render();
 };
