@@ -62,5 +62,15 @@ export const ATIVIDADES = [
   {"cod":"AD2","etapa":"TRATOS CULTURAIS","nome":"Adubação de cobertura","un":"ha/mês","rend":2,"maq":"Trator 4x4 150 CV","imp":"Distribuidor de cobertura","ops":1,"turnos":2,"util":0.85,"modoOn":true,"cultura":"Soca"},
   {"cod":"A29","etapa":"APOIO E CONSERVAÇÃO","nome":"Reflorestamento","un":"ha/mês","rend":0.3,"maq":"Trator 4x4 100 CV","imp":"Perfuratriz / carroça","ops":1,"turnos":1,"util":0.4},
   {"cod":"AP1","etapa":"APOIO E CONSERVAÇÃO","nome":"Apoio operacional","un":"ha/mês","rend":2.5,"maq":"Veículo leve de apoio","imp":"----","ops":1,"turnos":2,"util":0.7},
-  {"cod":"AP2","etapa":"APOIO E CONSERVAÇÃO","nome":"Auxiliares agrícolas","un":"ha/mês","rend":1.2,"maq":"Equipe manual","imp":"Ferramental manual","ops":1,"turnos":1,"util":0.8}
+  {"cod":"AP2","etapa":"APOIO E CONSERVAÇÃO","nome":"Auxiliares agrícolas","un":"ha/mês","rend":1.2,"maq":"Equipe manual","imp":"Ferramental manual","ops":1,"turnos":1,"util":0.8},
+  /* A40-A43: atividades novas da importação da planilha PLAN.HERB SAFRA 26-27
+     (Herbicida Safra 2026 + ENTRE SAFRA 2026) sem equivalente no cadastro
+     anterior. rend/maq/imp/turnos/util são ESTIMATIVA a partir da atividade
+     mais parecida (indicada em cada uma) — a planilha de origem não informa
+     rendimento operacional, só dose e área. Conferir com o time antes de
+     tratar como definitivo. */
+  {"cod":"A40","etapa":"TRATOS CULTURAIS","nome":"Bordaduras cana planta (reforço)","un":"ha/mês","rend":1.2,"maq":"Quadriciclo","imp":"Pulverizador costal pressurizado","ops":1,"turnos":1,"util":0.6,"modoOn":true,"cultura":"Planta"},
+  {"cod":"A41","etapa":"TRATOS CULTURAIS","nome":"Catação canto de árvores","un":"ha/mês","rend":0.8,"maq":"Equipe manual","imp":"Pulverizador costal","ops":0,"turnos":1,"util":0.8,"modoOn":true,"cultura":"Soca"},
+  {"cod":"A42","etapa":"TRATOS CULTURAIS","nome":"Catação folha larga (drone)","un":"ha/mês","rend":1,"maq":"Aeronave / Drone (terceiro)","imp":"----","ops":0,"turnos":1,"util":1,"modoOn":true,"cultura":"Soca"},
+  {"cod":"A43","etapa":"TRATOS CULTURAIS","nome":"Aplicação pós-emergência pontual (drone)","un":"ha/mês","rend":1,"maq":"Aeronave / Drone (terceiro)","imp":"----","ops":0,"turnos":1,"util":1,"modoOn":true,"cultura":"Soca"}
 ];
