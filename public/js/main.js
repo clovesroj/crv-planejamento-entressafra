@@ -18,6 +18,7 @@ import './io/relatorio.js';      // botao Relatorio + clique que fecha o menu
 import './ui/logo.js';           // aplica o logo e gera a versao branca
 import './io/persistencia.js';   // listeners de visibilitychange / pagehide / blur
 import './ui/navegacao.js';      // menu lateral, abas, botao de tema
+import './ui/anp.js';            // referencia de mercado de combustivel (aba Combustivel)
 import './ui/interacao.js';      // glow interativo dos cards (kpi/hero)
 import './ui/usuarios.js';       // aba Usuarios (so-admin) e seu proprio listener
 import './ui/permissoes.js';     // trava de edicao por perfil (barreira em fase de captura)

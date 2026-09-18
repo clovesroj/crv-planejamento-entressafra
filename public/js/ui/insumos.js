@@ -1,6 +1,6 @@
 import { composicao, etapasNoPlano, familiaDe, insumosPorFamilia, precoInsumo, todasFamilias, tratCodigos, tratEtapas, tratListaTodos } from '../calculo/insumos.js';
 import { TRAT_ETAPAS } from '../dados/insumos.js';
-import { INSUMO, INS_FICHA, P, TRATC, TRAT_NOME, TRAT_SEL, insLista } from '../nucleo/estado.js';
+import { INSUMO, INS_EDIT, INS_FICHA, P, TRATC, TRAT_NOME, TRAT_SEL, insLista } from '../nucleo/estado.js';
 import { $, brl, esc, fmt, num, urlWeb } from '../nucleo/formato.js';
 import { kpi, ligarBuscaSelect, th } from './componentes.js';
 import { setTRAT_SEL } from '../nucleo/estado.js';
@@ -60,6 +60,10 @@ function buscaExigeRedesenho(alvo, valor){
 // vez só (os elementos são fixos no HTML, só o conteúdo da lista muda a cada tecla).
 const buscaProd = ligarBuscaSelect("#busca_prod", "#lista_prod", "#sel_prod", insLista,
   i => i.prod + (i.pa ? " — " + i.pa : ""), i => i.prod);
+// "Tratamento" e persistente (mostra qual esta selecionado, nao some depois de
+// um clique) -- por isso usa definir(), sincronizado a cada render, em vez de limpar().
+const buscaTrat = ligarBuscaSelect("#busca_trat", "#lista_trat", "#sel_trat", tratCodigos,
+  c => c + (TRAT_NOME[c] ? " — " + TRAT_NOME[c] : "") + (TRATC[c] ? " (ajustado)" : ""), c => c);
 
 function pintarInsumos(R){
   const TL = tratListaTodos();
@@ -88,18 +92,18 @@ function pintarInsumos(R){
   // técnica fica na ficha, que abre por linha
   // colgroup fixa a largura de cada coluna: com table-layout:fixed, recolher um
   // grupo deixa de mexer na largura das outras (ver componentes.css)
-  const COLS = [210,210,100,84,128,168,168,104,96,100,116,104,132,92,140,84,104];
+  const COLS = [210,210,100,84,128,168,168,104,96,100,116,104,132,92,140,84,84,104];
   $("#t_ins").innerHTML =
     `<colgroup>${COLS.map(w=>`<col style="width:${w}px">`).join("")}</colgroup>` +
     th([["Nome comercial"],["Princípio ativo"],["Código"],["Un."],
     ["Concentração"],["Classe agronômica"],["Grupo"],["Volume dem.",1],["Estoque",1],["Preço base",1],
-    ["Preço corrigido",1],["Necessidade",1],["Custo de aquisição",1],["Usado em"],["Bula"],[""],[""]])+"<tbody>"+
+    ["Preço corrigido",1],["Necessidade",1],["Custo de aquisição",1],["Usado em"],["Bula"],[""],[""],[""]])+"<tbody>"+
     // quebra por família e, dentro dela, ordem alfabética de princípio ativo.
     // O `ix` que vai na linha é a posição original em insLista() — é por ele que
     // a edição acha o produto, então reordenar a tela não pode reordenar o índice.
     todasFams.filter(fam => !FAM_SEL || fam.id === FAM_SEL).map(fam=>
       `<tr class="stage" data-fam="${fam.id}" role="button" tabindex="0"
-           title="Clique para ${dobrada(fam.id)?"abrir":"recolher"} este grupo"><td colspan="17">
+           title="Clique para ${dobrada(fam.id)?"abrir":"recolher"} este grupo"><td colspan="18">
         <span style="display:inline-block;width:14px">${dobrada(fam.id)?"▸":"▾"}</span>${fam.nome}
         <span style="font-weight:400;opacity:.75"> · ${fam.itens.length} produto${
           fam.itens.length>1?"s":""}${dobrada(fam.id)?" · recolhido":""}</span></td></tr>` +
@@ -112,22 +116,35 @@ function pintarInsumos(R){
       const nec   = Math.max(0,vol-est);
       const usos  = tratCodigos().filter(c=>composicao(c).some(l=>l.prod===i.prod)).length;
       const ficha = FICHA.filter(([k])=>i[k]);
-      return `<tr>
-        <td><input data-in="${ix}" data-f="prod" value="${esc(i.prod)}" style="text-align:left"></td>
-        <td><input data-in="${ix}" data-f="pa" value="${esc(i.pa)}" style="text-align:left" placeholder="a preencher"></td>
-        <td><input data-in="${ix}" data-f="cod" value="${esc(i.cod)}" placeholder="—"></td>
-        <td><select data-in="${ix}" data-f="un">${UNIDADES.map(u=>
-          `<option value="${u}" ${(i.un||"")===u?"selected":""}>${u||"—"}</option>`).join("")}</select></td>
-        <td><input data-in="${ix}" data-f="conc" value="${esc(i.conc)}" placeholder="ex.: 480 g/L"></td>
-        <td><input data-in="${ix}" data-f="classe" value="${esc(i.classe)}" style="text-align:left" placeholder="—"></td>
-        <td><select data-in="${ix}" data-f="fam"
+      // enquanto o produto esta aberto no modal de edicao, a linha vira texto
+      // (sem os mesmos data-in/data-ie/data-ip do modal) -- dois inputs com o
+      // mesmo dataset ao mesmo tempo confundiam o foco ao digitar em qualquer um
+      const editando = INS_EDIT === i.prod;
+      return `<tr${editando?' style="opacity:.6"':''}>
+        <td>${editando?`<span class="calc">${esc(i.prod)}</span>`
+          :`<input data-in="${ix}" data-f="prod" value="${esc(i.prod)}" style="text-align:left">`}</td>
+        <td>${editando?`<span class="calc">${esc(i.pa)||"—"}</span>`
+          :`<input data-in="${ix}" data-f="pa" value="${esc(i.pa)}" style="text-align:left" placeholder="a preencher">`}</td>
+        <td>${editando?`<span class="calc">${esc(i.cod)||"—"}</span>`
+          :`<input data-in="${ix}" data-f="cod" value="${esc(i.cod)}" placeholder="—">`}</td>
+        <td>${editando?`<span class="calc">${esc(i.un)||"—"}</span>`
+          :`<select data-in="${ix}" data-f="un">${UNIDADES.map(u=>
+          `<option value="${u}" ${(i.un||"")===u?"selected":""}>${u||"—"}</option>`).join("")}</select>`}</td>
+        <td>${editando?`<span class="calc">${esc(i.conc)||"—"}</span>`
+          :`<input data-in="${ix}" data-f="conc" value="${esc(i.conc)}" placeholder="ex.: 480 g/L">`}</td>
+        <td>${editando?`<span class="calc">${esc(i.classe)||"—"}</span>`
+          :`<input data-in="${ix}" data-f="classe" value="${esc(i.classe)}" style="text-align:left" placeholder="—">`}</td>
+        <td>${editando?`<span class="calc">${i.fam?esc(todasFamilias().find(f=>f.id===i.fam)?.nome||i.fam):"auto · "+esc(familiaDe(i.classe).nome)}</span>`
+          :`<select data-in="${ix}" data-f="fam"
               title="Em branco, o grupo sai da classe agronômica. Escolhendo aqui, a escolha manda e o produto muda de bloco.">
           <option value=""${i.fam?"":" selected"}>auto · ${familiaDe(i.classe).nome}</option>
           ${todasFamilias().map(f=>`<option value="${f.id}"${i.fam===f.id?" selected":""}>${f.nome}</option>`).join("")}
-        </select></td>
+        </select>`}</td>
         <td class="num calc">${fmt(vol,1)}</td>
-        <td class="num"><input data-ie="${esc(i.prod)}" value="${est}" inputmode="decimal"></td>
-        <td class="num"><input data-ip="${esc(i.prod)}" value="${preco}" inputmode="decimal"></td>
+        <td class="num">${editando?`<span class="calc">${est}</span>`
+          :`<input data-ie="${esc(i.prod)}" value="${est}" inputmode="decimal">`}</td>
+        <td class="num">${editando?`<span class="calc">${preco}</span>`
+          :`<input data-ip="${esc(i.prod)}" value="${preco}" inputmode="decimal">`}</td>
         <td class="num calc">${brl(corr,2)}</td><td class="num calc">${fmt(nec,1)}</td>
         <td class="num ${preco>0?"tot":"calc"}">${preco>0?brl(nec*corr):'<span class="badge b-warn">sem preço</span>'}</td>
         <td class="num calc">${usos?usos+" trat.":"—"}</td>
@@ -137,6 +154,7 @@ function pintarInsumos(R){
           : `<button class="btn" data-agrobusca="${ix}" title="Buscar a bula na Agrofit pelo nome e fabricante">Buscar</button>`}</td>
         <td>${ficha.length?`<button class="btn" data-infx="${esc(i.prod)}"
           title="Classificação técnica do produto">Ficha</button>`:'<span class="calc">—</span>'}</td>
+        <td><button class="btn" data-inedit="${esc(i.prod)}" title="Editar em uma tela maior">Editar</button></td>
         <td><button class="btn d" data-inrm="${ix}">Remover</button></td></tr>`;
     }).join(""))).join("")+"</tbody>";
 
@@ -159,8 +177,7 @@ function pintarInsumos(R){
   // --- 2. composição do tratamento selecionado ---
   const codigos = tratCodigos();
   if(!TRAT_SEL || !codigos.includes(TRAT_SEL)) setTRAT_SEL(codigos[0]);
-  $("#sel_trat").innerHTML = codigos.map(c=>
-    `<option value="${c}" ${c===TRAT_SEL?"selected":""}>${c}${TRAT_NOME[c]?" — "+esc(TRAT_NOME[c]):""}${TRATC[c]?" (ajustado)":""}</option>`).join("");
+  buscaTrat && buscaTrat.definir(TRAT_SEL);
   $("#in_trat_nome").value = TRAT_NOME[TRAT_SEL] || "";
   $("#in_trat_cod").value = TRAT_SEL || "";
   buscaProd && buscaProd.limpar();
@@ -171,7 +188,7 @@ function pintarInsumos(R){
   $("#c_trat").value = brl(custoHa,2) + "/ha";
 
   $("#t_comp").innerHTML = th([["Produto"],["Princípio ativo"],["Dose/ha",1],["Un."],
-    ["Preço corrigido",1],["Custo/ha",1],["% do tratamento",1],[""]])+"<tbody>"+
+    ["Preço corrigido",1],["Custo/ha",1],["% do tratamento",1],[""],[""]])+"<tbody>"+
     (comp.length? comp.map((l,i)=>{
       const pr = precoInsumo(l.prod), c = num(l.dose)*pr;
       const pp = custoHa>0 ? c/custoHa*100 : 0;
@@ -183,10 +200,11 @@ function pintarInsumos(R){
         <td class="num calc">${pr>0?brl(pr,2):'<span class="badge b-warn">sem preço</span>'}</td>
         <td class="num tot">${brl(c,2)}</td>
         <td class="num calc">${fmt(pp,1)}%</td>
+        <td><button class="btn" data-inedit="${esc(l.prod)}" title="Editar o cadastro deste produto">Editar</button></td>
         <td><button class="btn d" data-tr="${i}">Remover</button></td></tr>`;}).join("")
-      : `<tr><td colspan="8" class="calc">Tratamento sem produtos. Use o campo abaixo para adicionar.</td></tr>`)+
+      : `<tr><td colspan="9" class="calc">Tratamento sem produtos. Use o campo abaixo para adicionar.</td></tr>`)+
     `<tr><td class="tot" colspan="4">CUSTO/HA DO TRATAMENTO</td><td></td>
-     <td class="num tot">${brl(custoHa,2)}</td><td class="num tot">${custoHa>0?"100,0%":"—"}</td><td></td></tr></tbody>`;
+     <td class="num tot">${brl(custoHa,2)}</td><td class="num tot">${custoHa>0?"100,0%":"—"}</td><td></td><td></td></tr></tbody>`;
 
   // --- 3. cadastro dos tratamentos: código, nome e etapa de uso ---
   $("#t_trat").innerHTML = th([["Cod_Trat"],["Nome"],["Etapas em que é usado"],["Produtos",1],
@@ -276,5 +294,56 @@ function pintarFichaIns(){
   fundo.hidden = false;
 }
 
-export { pintarInsumos, pintarFichaIns, alternarFam, aplicarFamIns, buscaExigeRedesenho,
+/* ---------- EDITAR PRODUTO, EM MODAL ----------
+   Pediram uma tela maior pra editar um produto em vez de mexer nos campos
+   espremidos da tabela de 17 colunas — os inputs são os mesmos da linha
+   (mesmo data-in/data-ie/data-ip: quem lê o valor no clique de "salvar" nem
+   sabe que virou modal), só que numa grade com espaço de sobra. Uma edição
+   por vez, igual a ficha técnica: a linha da tabela trava enquanto o modal
+   dela estiver aberto, pra não ter dois campos com o mesmo dataset ao mesmo
+   tempo — dois campos iguais confundiriam qual deles restaura o foco depois
+   de cada tecla (ver leve() em app/ciclo.js). */
+function pintarEditIns(){
+  const cont = $("#insedit"), fundo = $("#insedit_fundo");
+  if(!cont) return;
+  const ix = INS_EDIT != null ? insLista().findIndex(x=>x.prod === INS_EDIT) : -1;
+  const i = ix >= 0 ? insLista()[ix] : null;
+  if(!i){ cont.hidden = true; fundo.hidden = true; return; }
+  const ov = INSUMO[i.prod] || {};
+  const preco = ov.preco != null ? num(ov.preco) : num(i.preco);
+  const est   = ov.est   != null ? num(ov.est)   : num(i.est);
+  const campo = (rot, html) => `<div class="fx-item"><b>${rot}</b>${html}</div>`;
+
+  cont.innerHTML = `
+    <div class="ra-modal fx-modal pop-in">
+    <div class="ra-topo">
+      <div class="ra-nav"><div></div>
+        <button class="ghost-btn" id="inedit_fechar" title="Fechar" aria-label="Fechar">✕</button></div>
+      <div class="ra-tit">${esc(i.prod)}</div>
+      <div class="ra-subtit">As alterações salvam sozinhas, assim como na tabela.</div>
+    </div>
+    <div class="ra-corpo">
+      <div class="fx-grade">
+        ${campo("Nome comercial", `<input data-in="${ix}" data-f="prod" value="${esc(i.prod)}" style="text-align:left">`)}
+        ${campo("Princípio ativo", `<input data-in="${ix}" data-f="pa" value="${esc(i.pa)}" style="text-align:left" placeholder="a preencher">`)}
+        ${campo("Código do material", `<input data-in="${ix}" data-f="cod" value="${esc(i.cod)}" placeholder="—">`)}
+        ${campo("Unidade", `<select data-in="${ix}" data-f="un">${UNIDADES.map(u=>
+          `<option value="${u}" ${(i.un||"")===u?"selected":""}>${u||"—"}</option>`).join("")}</select>`)}
+        ${campo("Concentração", `<input data-in="${ix}" data-f="conc" value="${esc(i.conc)}" placeholder="ex.: 480 g/L">`)}
+        ${campo("Classe agronômica", `<input data-in="${ix}" data-f="classe" value="${esc(i.classe)}" style="text-align:left" placeholder="—">`)}
+        ${campo("Grupo", `<select data-in="${ix}" data-f="fam"
+              title="Em branco, o grupo sai da classe agronômica. Escolhendo aqui, a escolha manda e o produto muda de bloco.">
+          <option value=""${i.fam?"":" selected"}>auto · ${familiaDe(i.classe).nome}</option>
+          ${todasFamilias().map(f=>`<option value="${f.id}"${i.fam===f.id?" selected":""}>${f.nome}</option>`).join("")}
+        </select>`)}
+        ${campo("Estoque", `<input data-ie="${esc(i.prod)}" value="${est}" inputmode="decimal">`)}
+        ${campo("Preço base", `<input data-ip="${esc(i.prod)}" value="${preco}" inputmode="decimal">`)}
+      </div>
+    </div>
+    </div>`;
+  cont.hidden = false;
+  fundo.hidden = false;
+}
+
+export { pintarInsumos, pintarFichaIns, pintarEditIns, alternarFam, aplicarFamIns, buscaExigeRedesenho,
   recolherTodas, todasRecolhidas };

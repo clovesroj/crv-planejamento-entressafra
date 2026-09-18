@@ -28,10 +28,11 @@ import { USUARIO, podeEditar, areasDePermissao } from '../nucleo/sessao.js';
 const VISUAIS = [
   '[data-rastro]', '[data-ra-periodo]', '#ra_voltar', '#ra_fechar',
   '[data-abrefrota]', '[data-infx]', '[data-rendmes]', '#rm_fechar',
-  '#sel_fun', '#sel_cat', '#sel_orig', '#sel_dest', '#sel_trat', '#sel_acomp_mes',
+  '#sel_fun', '#busca_fun', '#sel_cat', '#sel_orig', '#sel_dest', '#sel_trat', '#busca_trat', '#sel_acomp_mes',
   '#sel_crit_ger', '#sel_crit_cabe', '.tbl-busca',
   '#sel_ins_fam', '#btn_ins_recolher', '[data-fam]',
   '#btn_export', '#btn_theme',
+  '#sel_anp_semana', '#busca_anp_mun', '#sel_anp_mun', '#sel_anp_prod',
 ].join(',');
 
 const CONTROLES = 'input, select, textarea, button';
@@ -43,10 +44,13 @@ const CONTROLES = 'input, select, textarea, button';
 function areaDe(el) {
   if (!el || !el.closest) return null;
   if (el.closest('#rendm')) return 'dimens';
-  // Cadastro de Insumos, Grupos de Insumos (Configurações) e o modal de busca
-  // na Agrofit gravam chaves da área 'insumos' no servidor — as telas usam a
-  // mesma permissão, sem um toggle à parte no catálogo.
-  if (el.closest('#insbase') || el.closest('#config') || el.closest('#agrofit_modal')) return 'insumos';
+  // Cadastro de Insumos, Grupos de Insumos (Configurações), o modal de busca
+  // na Agrofit e o de editar produto gravam chaves da área 'insumos' no
+  // servidor — as telas usam a mesma permissão, sem um toggle à parte no
+  // catálogo. Os dois modais ficam fora de qualquer <section> (são <aside>
+  // globais, ver index.html), então sem esta linha os campos de dentro nunca
+  // seriam travados, não importa o perfil.
+  if (el.closest('#insbase') || el.closest('#config') || el.closest('#agrofit_modal') || el.closest('#insedit')) return 'insumos';
   const sec = el.closest('section[id]');
   if (!sec) return null;
   return areasDePermissao().some(a => a.id === sec.id) ? sec.id : null;

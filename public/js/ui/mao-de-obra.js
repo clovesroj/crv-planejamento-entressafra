@@ -3,10 +3,15 @@ import { CFG } from '../dados/cfg.js';
 import { NM } from '../nucleo/calendario.js';
 import { BEN, ENC, FUN_SEL, GRAT } from '../nucleo/estado.js';
 import { $, brl, fmt, num, pct } from '../nucleo/formato.js';
-import { kpi, th } from './componentes.js';
+import { kpi, ligarBuscaSelect, th } from './componentes.js';
 import { setFUN_SEL } from '../nucleo/estado.js';
 
 /* ---------- MÃO DE OBRA ---------- */
+// "Cargo" (gratificação) e persistente -- mostra o cargo selecionado, nao some
+// depois de um clique -- por isso usa definir(), sincronizado a cada render.
+const buscaFun = ligarBuscaSelect("#busca_fun", "#lista_fun", "#sel_fun", () => CFG.funcoes,
+  f => f.cod + " · " + f.nome + (GRAT[f.cod] ? " (com gratificação)" : ""), f => f.cod);
+
 function pintarMDO(R){
   const M=R.MP;
   $("#c_escala").value = M.fatorEscala.toFixed(2);
@@ -62,8 +67,7 @@ function pintarMDO(R){
 
   // --- gratificação do cargo selecionado ---
   if(!FUN_SEL || !CFG.funcoes.some(f=>f.cod===FUN_SEL)) setFUN_SEL(CFG.funcoes[0].cod);
-  $("#sel_fun").innerHTML = CFG.funcoes.map(f=>
-    `<option value="${f.cod}" ${f.cod===FUN_SEL?"selected":""}>${f.cod} · ${f.nome}${GRAT[f.cod]?" (com gratificação)":""}</option>`).join("");
+  buscaFun && buscaFun.definir(FUN_SEL);
   const g = GRAT[FUN_SEL] || {tipo:"R$", valor:0};
   $("#sel_grat_tipo").value = g.tipo;
   $("#in_grat").value = g.valor;

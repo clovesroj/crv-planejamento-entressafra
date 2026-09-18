@@ -7,12 +7,12 @@ import { buscarAgrofit, bulaDoProduto } from '../io/agrofit.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
 import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE } from '../nucleo/estado.js';
-import { AGROFIT_BUSCA, FROTA_ABERTO, FROTA_UN, INS_FICHA, MAQ, setAGROFIT_BUSCA, setFROTA_DEST, setFROTA_ORIG, setINS_FICHA } from '../nucleo/estado.js';
+import { AGROFIT_BUSCA, FROTA_ABERTO, FROTA_UN, INS_EDIT, INS_FICHA, MAQ, setAGROFIT_BUSCA, setFROTA_DEST, setFROTA_ORIG, setINS_EDIT, setINS_FICHA } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { filtrarPorNome } from '../ui/componentes.js';
 import { alternarFam, aplicarFamIns, buscaExigeRedesenho, recolherTodas, todasRecolhidas } from '../ui/insumos.js';
 import { lerPremissas } from '../ui/premissas.js';
-import { leve, render, renderAgrofit, renderFichaIns, renderRastro, renderRendMensal } from './ciclo.js';
+import { leve, render, renderAgrofit, renderEditIns, renderFichaIns, renderRastro, renderRendMensal } from './ciclo.js';
 import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarRastro, voltarRastro } from '../ui/rastro.js';
 import { abrirRendMensal, aberto as rendMensalAberto, fecharRendMensal } from '../ui/rendmensal.js';
 import { setAPOIO, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setINSX_V, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
@@ -120,6 +120,7 @@ document.addEventListener("input",e=>{
         if(!TRATC[c] && composicao(c).some(l=>l.prod===antigo)) destravar(c); });
       Object.keys(TRATC).forEach(c=>TRATC[c].forEach(l=>{ if(l.prod===antigo) l.prod=novo; }));
       if(INSUMO[antigo]){ INSUMO[novo]=INSUMO[antigo]; delete INSUMO[antigo]; }
+      if(INS_EDIT===antigo) setINS_EDIT(novo);   // renomeado com o modal aberto: continua apontando pro mesmo produto
       i.prod=novo;
     } else if(["un","pa","conc","cod","classe","fam"].includes(f)){ i[f]=t.value; }
     else i[f]=num(t.value);
@@ -337,6 +338,12 @@ document.addEventListener("click",e=>{
   const fx = e.target.closest && e.target.closest("[data-infx]");
   if(fx){ setINS_FICHA(fx.dataset.infx === INS_FICHA ? null : fx.dataset.infx);
     renderFichaIns(); return; }
+  // editar produto em modal — mesmo criterio da ficha: um por vez, fecha com o X
+  if((e.target.closest && e.target.closest("#inedit_fechar")) || e.target.id==="insedit_fundo"){
+    setINS_EDIT(null); renderEditIns(); return; }
+  const ined = e.target.closest && e.target.closest("[data-inedit]");
+  if(ined){ setINS_EDIT(ined.dataset.inedit === INS_EDIT ? null : ined.dataset.inedit);
+    renderEditIns(); return; }
   // busca de bula na Agrofit, em modal. Visao, nao dado: abrir, fechar ou
   // trocar de candidato nao passa por salvar() -- so "Vincular" grava no insumo.
   if((e.target.closest && e.target.closest("#agro_fechar")) || e.target.id==="agrofit_fundo"){

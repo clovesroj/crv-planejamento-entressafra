@@ -1,6 +1,7 @@
 import { calcularCompleto } from '../app/ciclo.js';
 import { LOGO } from '../dados/logo.js';
 import { $, esc } from '../nucleo/formato.js';
+import { ligarBuscaSelect } from '../ui/componentes.js';
 import { RELATORIOS, montarSecoes } from './secoes.js';
 import { baixar } from './arquivo.js';
 
@@ -157,8 +158,11 @@ document.addEventListener("keydown", e=>{
 });
 
 /* ---------- controles ---------- */
-const selRel = $("#sel_report_rel");
-if(selRel) selRel.innerHTML = RELATORIOS.map(r=>`<option value="${r.id}">${r.nome}</option>`).join("");
+// 21 relatorios num <select> nativo tambem era lista sem busca pra rolar --
+// mesmo combobox pesquisavel do resto do app (ver ui/componentes.js).
+const buscaRel = ligarBuscaSelect("#busca_report_rel", "#lista_report_rel", "#sel_report_rel",
+  () => RELATORIOS, r => r.nome, r => r.id);
+if(buscaRel) buscaRel.definir(RELATORIOS[0].id);   // mesmo padrao do <select> nativo: 1ª opção
 
 /* ---------- atalho no menu lateral ----------
    Mesmo idioma visual da sub-navegacao do Dimensionamento (pasta que abre pros
@@ -181,7 +185,7 @@ if(navRel){
   [...sub.querySelectorAll("button")].forEach((item,i)=>{
     item.onclick = e=>{
       e.stopPropagation();   // nao deixa isto contar como "clique fora" e fechar o popup que acabou de abrir
-      if(selRel) selRel.value = RELATORIOS[i].id;
+      if(buscaRel) buscaRel.definir(RELATORIOS[i].id);
       abrirReportPop();
       document.body.classList.remove("menu-open");
     };

@@ -233,7 +233,11 @@
         por herança do cargo equivalente do cadastro anterior — é valor de partida, a confirmar com a folha.</div></div>
       <div class="panel"><h3>Gratificação por cargo</h3>
         <div class="row">
-          <div style="min-width:320px"><label for="sel_fun">Cargo</label><select id="sel_fun"></select></div>
+          <div style="min-width:320px;position:relative"><label for="busca_fun">Cargo</label>
+            <input type="text" id="busca_fun" autocomplete="off" placeholder="Buscar cargo..."
+                   role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="lista_fun">
+            <input type="hidden" id="sel_fun">
+            <div class="lista-select" id="lista_fun" role="listbox" hidden></div></div>
           <div style="width:150px"><label for="sel_grat_tipo">Gratificação</label><select id="sel_grat_tipo">
             <option value="R$">Valor fixo (R$)</option><option value="%">Percentual (%)</option></select></div>
           <div style="width:130px"><label for="in_grat">Valor da gratificação</label>
@@ -393,7 +397,11 @@
   <div class="tblwrap"><table id="t_apoio_eq"></table></div>
   <div class="row" style="margin-top:12px">
     <div style="min-width:220px"><label>Novo equipamento</label><input id="in_ap_nome" placeholder="Ex.: Trator de esteira"></div>
-    <div style="min-width:200px"><label>Máquina base</label><select id="sel_ap_maq"></select></div>
+    <div style="min-width:200px;position:relative"><label for="busca_ap_maq">Máquina base</label>
+      <input type="text" id="busca_ap_maq" autocomplete="off" placeholder="Buscar máquina..."
+             role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="lista_ap_maq">
+      <input type="hidden" id="sel_ap_maq">
+      <div class="lista-select" id="lista_ap_maq" role="listbox" hidden></div></div>
     <div style="width:100px"><label>Quantidade</label><input type="number" id="in_ap_qtd" value="1" step="1"></div>
     <div style="width:110px"><label>Horas/mês</label><input type="number" id="in_ap_h" value="120" step="10"></div>
     <div style="align-self:flex-end"><button class="btn p" id="btn_ap_add">Adicionar</button></div>
@@ -513,7 +521,11 @@
 
   <div class="panel"><h3>1. Composição dos tratamentos</h3>
     <div class="row" style="margin-bottom:12px">
-      <div style="min-width:180px"><label>Tratamento</label><select id="sel_trat"></select></div>
+      <div style="min-width:220px;position:relative"><label for="busca_trat">Tratamento</label>
+        <input type="text" id="busca_trat" autocomplete="off" placeholder="Buscar tratamento..."
+               role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="lista_trat">
+        <input type="hidden" id="sel_trat">
+        <div class="lista-select" id="lista_trat" role="listbox" hidden></div></div>
       <div style="width:130px"><label>Código</label><input id="in_trat_cod" title="Alterar o código do tratamento"></div>
       <div style="min-width:220px"><label>Nome do tratamento</label><input id="in_trat_nome" placeholder="Ex.: Herbicida pré-emergente"></div>
       <div style="min-width:150px"><label>Custo/ha do tratamento</label><input id="c_trat" disabled></div>
@@ -877,7 +889,7 @@
   <h2>Combustível — Diesel</h2>
   <p class="lead">Consumo de diesel dimensionado pela frota do plano (horas de cada conjunto × consumo em L/h),
   volume necessário mês a mês e preço projetado por mês. O custo alimenta Custos, Plano de Contas (200-110) e Painel.
-  Duas páginas — use o menu ao lado para trocar.</p>
+  Três páginas — use o menu ao lado para trocar.</p>
   <div class="grid g4" id="k_comb" style="margin-bottom:16px"></div>
 
   <details class="bloco" id="bl_comb_preco" open>
@@ -908,6 +920,39 @@
       <div class="panel"><h3>Consumo por equipamento</h3>
         <input type="search" class="tbl-busca" data-alvo="#t_comb_maq" placeholder="Buscar equipamento...">
         <div class="tblwrap"><table id="t_comb_maq"></table></div></div>
+    </div>
+  </details>
+
+  <details class="bloco" id="bl_comb_anp">
+    <summary><span class="bl-tit">Referência de mercado (ANP)</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Consultar preço por município</h3>
+        <div class="row" style="margin-bottom:12px">
+          <div style="min-width:170px"><label for="sel_anp_semana">Semana pesquisada</label>
+            <select id="sel_anp_semana"></select></div>
+          <div style="min-width:260px;position:relative"><label for="busca_anp_mun">Município</label>
+            <input type="text" id="busca_anp_mun" autocomplete="off" placeholder="Buscar município..."
+                   role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="lista_anp_mun">
+            <input type="hidden" id="sel_anp_mun">
+            <div class="lista-select" id="lista_anp_mun" role="listbox" hidden></div></div>
+          <div style="width:220px"><label for="sel_anp_prod">Combustível</label>
+            <select id="sel_anp_prod">
+              <option value="OLEO DIESEL S10">Óleo Diesel S10</option>
+              <option value="OLEO DIESEL">Óleo Diesel S500</option>
+              <option value="GASOLINA COMUM">Gasolina Comum</option>
+              <option value="GASOLINA ADITIVADA">Gasolina Aditivada</option>
+              <option value="ETANOL HIDRATADO">Etanol Hidratado</option>
+              <option value="GNV">GNV</option>
+              <option value="GLP">GLP (botijão 13 kg)</option>
+            </select></div>
+        </div>
+        <div id="anp_resultado"></div>
+        <div id="anp_postos" hidden></div>
+        <div class="hint" style="margin-top:9px">Clique em qualquer cartão acima para ver os postos pesquisados,
+        com bandeira, endereço e preço individual. Pesquisa semanal da ANP em ~385 municípios — Capinópolis-MG não
+        entra na amostra; a cidade pesquisada mais perto é Ituiutaba. Preço de mercado, não o que a fazenda
+        necessariamente paga — é referência para conferir a premissa, não um valor que o app usa em algum cálculo.</div>
+      </div>
     </div>
   </details>
 </section>
@@ -1198,6 +1243,8 @@
 <aside id="rendm" aria-label="Rendimento por mês" hidden></aside>
 <div id="fichains_fundo" hidden></div>
 <aside id="fichains" aria-label="Ficha técnica do insumo" hidden></aside>
+<div id="insedit_fundo" hidden></div>
+<aside id="insedit" aria-label="Editar insumo" hidden></aside>
 
 <div id="agrofit_fundo" hidden></div>
 <aside id="agrofit_modal" aria-label="Buscar bula na Agrofit" hidden></aside>
@@ -1213,8 +1260,13 @@
       </div>
     </div>
     <div class="ra-corpo">
-      <label for="sel_report_rel">Relatório</label>
-      <select id="sel_report_rel"></select>
+      <label for="busca_report_rel">Relatório</label>
+      <div style="position:relative">
+        <input type="text" id="busca_report_rel" autocomplete="off" placeholder="Buscar relatório..."
+               role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="lista_report_rel">
+        <input type="hidden" id="sel_report_rel">
+        <div class="lista-select" id="lista_report_rel" role="listbox" hidden></div>
+      </div>
       <label for="sel_report_nivel">Nível do relatório</label>
       <select id="sel_report_nivel"><option value="resumido">Resumido</option><option value="detalhado">Detalhado</option></select>
       <div class="row" style="margin-top:10px"><button class="btn" id="btn_report_preview">Pré-visualizar</button></div>

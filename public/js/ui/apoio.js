@@ -1,9 +1,14 @@
 import { CFG } from '../dados/cfg.js';
 import { $, brl, esc, fmt } from '../nucleo/formato.js';
-import { kpi, th } from './componentes.js';
+import { kpi, ligarBuscaSelect, th } from './componentes.js';
 import { optFuncao } from './plano.js';
 
 /* ---------- APOIO ---------- */
+// "Máquina base" do novo equipamento e transitorio (escolhe, clica Adicionar,
+// limpa) -- mesmo padrao do "Adicionar produto" de Insumos.
+const buscaMaq = ligarBuscaSelect("#busca_ap_maq", "#lista_ap_maq", "#sel_ap_maq",
+  () => Object.keys(CFG.maquinas).sort(), m => m);
+
 function pintarApoio(R){
   const A=R.AE;
   $("#k_apoio").innerHTML =
@@ -12,8 +17,7 @@ function pintarApoio(R){
     kpi("Efetivo","g",fmt(A.efetivo)+" pessoas","","pessoas:total") +
     kpi("Custo total","a",brl(A.total),"","frota:apoio");
 
-  $("#sel_ap_maq").innerHTML = Object.keys(CFG.maquinas).sort()
-    .map(m=>`<option value="${m}">${m}</option>`).join("");
+  buscaMaq && buscaMaq.limpar();
 
   $("#t_apoio_eq").innerHTML = th([["Equipamento"],["Máquina base"],["Qtd",1],["Horas/mês",1],
     ["Função"],["Horas totais",1],["Diesel",1],["Manutenção",1],["MDO",1],["Total",1],[""]])+"<tbody>"+

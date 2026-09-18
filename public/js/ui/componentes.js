@@ -95,7 +95,12 @@ function ligarBuscaSelect(buscaId, listaId, valorId, itens, rotulo, valorDe){
     busca.setAttribute("aria-expanded","true");
   }
   function fechar(){ lista.hidden = true; foco = -1; busca.setAttribute("aria-expanded","false"); }
-  function escolher(i){ valor.value = valorDe(i); busca.value = rotulo(i); fechar(); }
+  // dispara "change" no campo escondido: quem escutava o <select> antigo (ex.: trocar de
+  // tratamento redesenha a tela) continua funcionando sem saber que virou combobox
+  function escolher(i){
+    valor.value = valorDe(i); busca.value = rotulo(i); fechar();
+    valor.dispatchEvent(new Event("change", {bubbles:true}));
+  }
   busca.addEventListener("input", ()=>{ foco = -1; valor.value = ""; pintar(); });
   busca.addEventListener("focus", pintar);
   busca.addEventListener("blur", ()=>setTimeout(fechar,150)); // da tempo do mousedown na lista rodar antes
@@ -111,7 +116,16 @@ function ligarBuscaSelect(buscaId, listaId, valorId, itens, rotulo, valorDe){
     if(!item) return;
     escolher(opcoes(busca.value)[+item.dataset.ix]);
   });
-  return { limpar(){ busca.value = ""; valor.value = ""; fechar(); } };
+  return {
+    limpar(){ busca.value = ""; valor.value = ""; fechar(); },
+    // sincroniza a caixa com um valor que mudou por fora (ex.: repintar depois
+    // do proprio "change" trocar o estado) -- sem disparar "change" de novo
+    definir(v){
+      valor.value = v;
+      const item = itens().find(i=>valorDe(i)===v);
+      busca.value = item ? rotulo(item) : "";
+    },
+  };
 }
 
 /* ---------- REORDENAR COLUNA NO ARRASTO ----------
