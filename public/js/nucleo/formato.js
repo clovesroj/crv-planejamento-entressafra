@@ -11,6 +11,9 @@ const pct = n => fmt(n*100,1)+"%";
    cortado; um < virava marcação. Era copiado em cinco telas, uma delas sem tratar
    a aspa; agora é um só. */
 const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
+// Link externo (bula da Agrofit) só se for http(s). esc() segura a aspa, mas um
+// "javascript:" gravado no documento passaria inteiro para o href.
+const urlWeb = u => { const s = String(u==null?"":u).trim(); return /^https?:\/\//i.test(s) ? s : ""; };
 
 
-export { $, brl, esc, fmt, num, pct };
+export { $, brl, esc, fmt, num, pct, urlWeb };

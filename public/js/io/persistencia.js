@@ -189,6 +189,10 @@ function aplicar(d){
    NOME do mês, não pelo índice. Abr/27, Mai/27 e Jun/27 não existem na janela
    nova: o valor vai para o mesmo mês do ano anterior (Abr/26, Mai/26, Jun/26),
    que é o mês equivalente dentro do novo ano agrícola — assim nada se perde.
+   O formato antigo só se reconhece pelo PLANO, então PLANO, DIESEL_MES e ARREND
+   precisam ser gravados juntos. Perfil que não grava todos os três teria o
+   documento salvo metade em cada formato; o servidor completa a migração nesse
+   caso com a mesma regra (server/janela.js). Mudou aqui, mude lá.
    --------------------------------------------------------------------------- */
 const MESES_9 = ["Out/26","Nov/26","Dez/26","Jan/27","Fev/27","Mar/27","Abr/27","Mai/27","Jun/27"];
 function idxMes(rotulo){

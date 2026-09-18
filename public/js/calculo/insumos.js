@@ -201,9 +201,15 @@ function marcarEtapa(cod, etapa, ligada){
 function usosTrat(cod){
   return CFG.atividades.filter(a=>{ const p=PLANO[a.cod]; return p && p.trat===cod; }).map(a=>a.cod);
 }
+/* O código vira texto de tela, valor de <option>, atributo data-* e rótulo de
+   relatório em quase cem lugares, quase todos sem escape. Os da base são letras,
+   números, espaço e hífen; aceita-se também . _ / + ( ) % , — nada que feche
+   aspa ou abra marcação. Até o código ser editável isso não importava. */
+const COD_TRAT_OK = /^[\p{L}\p{N} ._\/+()%,-]{1,60}$/u;
+function codigoTratValido(cod){ return COD_TRAT_OK.test(String(cod||"").trim()); }
 function criarTrat(cod){
   const c = String(cod||"").trim();
-  if(!c || tratCodigos().includes(c)) return false;
+  if(!codigoTratValido(c) || tratCodigos().includes(c)) return false;
   delete TRAT_DEL[c];
   TRATC[c] = [];          // existe como código, ainda sem produtos
   return true;
@@ -217,7 +223,7 @@ function removerTrat(cod){
 // renomear leva composição, nome, etapas e as atividades que já apontavam para o código
 function renomearTrat(de, para){
   const novo = String(para||"").trim();
-  if(!novo || novo===de) return false;
+  if(!novo || novo===de || !codigoTratValido(novo)) return false;
   if(tratCodigos().includes(novo)) return false;
   TRATC[novo] = composicao(de).map(l=>({...l}));
   delete TRATC[de]; delete TRAT_DEL[novo];
@@ -271,7 +277,7 @@ function volumeDemandado(L){
 }
 
 
-export { _tratCache, _tratKey, composicao, criarGrupoInsumo, criarTrat, destravar, etapaTrat, etapasNoPlano, familiaDe,
+export { _tratCache, _tratKey, codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, etapaTrat, etapasNoPlano, familiaDe,
   familiaDoInsumo, insumosPorFamilia, mesclarBaseInsumos,
   marcarEtapa, precoInsumo, removerGrupoInsumo, removerTrat, renomearGrupoInsumo, renomearTrat, todasFamilias, tratCodigos, tratCusto, tratEtapas,
   tratLista, tratListaTodos, tratTabela, usosTrat, volumeDemandado };

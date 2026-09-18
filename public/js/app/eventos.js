@@ -1,6 +1,6 @@
 import { ETAPAS_ORD, PAG_LIVRE, mesesPag } from '../calculo/arrendamento.js';
 import { AG_SEM_FROTA, FROTA_AG, FROTA_ESP, SEP_MOD, crmDe, espDe } from '../calculo/crm.js';
-import { composicao, criarGrupoInsumo, criarTrat, destravar, marcarEtapa, mesclarBaseInsumos, removerGrupoInsumo, removerTrat,
+import { codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, marcarEtapa, mesclarBaseInsumos, removerGrupoInsumo, removerTrat,
   renomearGrupoInsumo, renomearTrat, tratCodigos, usosTrat } from '../calculo/insumos.js';
 import { CFG } from '../dados/cfg.js';
 import { buscarAgrofit, bulaDoProduto } from '../io/agrofit.js';
@@ -16,16 +16,21 @@ import { leve, render, renderAgrofit, renderFichaIns, renderRastro, renderRendMe
 import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarRastro, voltarRastro } from '../ui/rastro.js';
 import { abrirRendMensal, aberto as rendMensalAberto, fecharRendMensal } from '../ui/rendmensal.js';
 import { setAPOIO, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setINSX_V, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
-import { USUARIO, podeEditar } from '../nucleo/sessao.js';
+import { USUARIO, areasDePermissao, podeEditar } from '../nucleo/sessao.js';
 
 /* Renomear ou remover um tratamento mexe tambem nas atividades que o usam, e
    isso e dado do Plano Operacional. Quem nao edita aquela aba tem essa parte
-   descartada na gravacao (server/permissoes.js) — melhor avisar na hora. */
+   descartada na gravacao (server/permissoes.js) — melhor avisar na hora.
+   O vinculo mora em PLANO, que tem duas abas donas (Plano Operacional e
+   Irrigacao): quem edita qualquer uma delas grava o vinculo, e nao e avisado. */
 function avisoPlano(usos, acao){
   if(!USUARIO || podeEditar("plano")) return;
+  if(areasDePermissao().some(a=>(a.chaves||[]).includes("PLANO") && podeEditar(a.id))) return;
   alert(`O tratamento foi ${acao}, mas seu perfil não edita o Plano Operacional: `+
         `o vínculo das atividades ${usos.join(", ")} não será salvo.`);
 }
+const MSG_COD_TRAT = "Código de tratamento aceita letras, números, espaço e . _ / + ( ) % , - "+
+                     "(até 60 caracteres).";
 
 /* ---------- entrada ---------- */
 document.addEventListener("input",e=>{
@@ -171,6 +176,7 @@ document.addEventListener("change",e=>{
     const para = t.value.trim();
     if(!para){ alert("Informe o novo código do tratamento."); render(); return; }
     if(para===de){ render(); return; }
+    if(!codigoTratValido(para)){ alert(MSG_COD_TRAT); render(); return; }
     if(tratCodigos().includes(para)){
       alert(`Já existe um tratamento com o código "${para}".`); render(); return; }
     const usos = usosTrat(de);
@@ -421,6 +427,7 @@ $("#btn_grp_add").onclick=()=>{
 $("#btn_trat_add").onclick=()=>{
   const cod = $("#in_trat_novo").value.trim();
   if(!cod){ alert("Informe o código do novo tratamento."); return; }
+  if(!codigoTratValido(cod)){ alert(MSG_COD_TRAT); return; }
   if(!criarTrat(cod)){ alert(`Já existe um tratamento com o código "${cod}".`); return; }
   setTRAT_SEL(cod); $("#in_trat_novo").value="";
   salvar(true); render();

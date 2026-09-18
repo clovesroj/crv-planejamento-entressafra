@@ -1,5 +1,67 @@
 # Histórico de mudanças
 
+## 2.22.1 — 2026-09-17 · Revisão de continuidade dos commits do dia
+
+Revisão conduzida por **Caio Souza** sobre os commits de 17/09 (perfis, janela
+de 12 meses, datas no Plano, cadastro de tratamentos, AGROFIT). Nenhum número
+muda para dado válido: com a fixture de produção, o motor de cálculo e as 24
+telas saem idênticos ao HEAD anterior — só a aba Validação muda, porque ganhou
+checagens.
+
+### Migração de 9 para 12 meses gravada pela metade com perfil restrito
+
+O navegador migra PLANO, DIESEL_MES e ARREND juntos ao abrir, mas só reconhece
+o formato antigo pelo PLANO. Com perfis, as três chaves deixaram de chegar
+juntas ao banco:
+
+- quem edita a Irrigação gravava PLANO já em 12 meses e tinha arrendamento e
+  diesel descartados. Na abertura seguinte a migração não rodava mais, e o
+  pagamento do arrendamento em Out/26 (índice antigo 0) passava a ser lido
+  como Abr/26;
+- quem edita só Arrendamento gravava o contrato migrado com o PLANO ainda em 9
+  meses, e o arrendamento era migrado de novo a cada abertura.
+
+Agora o servidor completa a migração das chaves que o perfil não grava, com a
+mesma regra do navegador (`server/janela.js`), na primeira gravação que chega
+no formato novo. Conferido com três perfis: o banco fica inteiro em 12 meses e
+igual ao que o navegador tinha.
+
+### Janela de datas do Plano Operacional
+
+- **Janela fora do ano agrícola** (ano digitado errado, por exemplo 2025) era
+  aceita: a frota e o efetivo eram dimensionados para um período sem nenhum
+  mês do orçamento. Agora vale o mesmo que uma janela invertida: a atividade
+  usa os meses com volume.
+- **Janela que passa do ano agrícola** (começa antes de Abr/26 ou termina
+  depois de Mar/27) marcava todos os meses como fora da janela no Plano.
+  Agora marca os meses de dentro. Os números não mudam.
+- **Validação** ganhou três checagens: janela de datas utilizável (só uma data,
+  data inválida, fim antes do início, fora do ano), janela dentro do ano
+  agrícola, e volume programado dentro da janela de datas. Antes a janela
+  descartada não aparecia em lugar nenhum.
+
+### Código de tratamento
+
+O código ficou editável nesta versão e vai cru para a tela em quase cem
+lugares (select do Plano, rastro, relatórios). Um código com `<` ou aspas virava
+marcação. Agora aceita só letras, números, espaço e `. _ / + ( ) % , -` (até 60
+caracteres), com aviso próprio ao criar e ao renomear. Todos os códigos da base
+já estão nesse formato.
+
+O aviso "o vínculo das atividades não será salvo", ao renomear ou remover um
+tratamento, aparecia também para quem edita a Irrigação, que grava esse
+vínculo (PLANO tem duas abas donas). Agora só aparece quando o vínculo é de
+fato descartado.
+
+### AGROFIT
+
+- Chamadas à Embrapa com prazo de 15 s, inclusive na leitura da resposta. Antes
+  uma API lenta segurava a requisição e o "Buscando..." indefinidamente.
+- Resposta que não é JSON (página de erro do gateway) e autenticação sem token
+  viram erro legível (424) em vez de "falha interna".
+- O link da bula só vira link se for `http(s)`: `esc()` segura a aspa, mas não
+  impedia um `javascript:` gravado no documento.
+
 ## 2.22.0 — 2026-09-17 · Valor do arrendamento é o de cada pagamento
 
 **Reverte a opção "Valor informado" da 2.20.0** e corrige a conta direto, sem

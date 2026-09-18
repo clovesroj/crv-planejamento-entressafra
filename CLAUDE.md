@@ -159,6 +159,7 @@ h(canon(R)) + ':' + canon(R).length;
 | Layout ou colunas de uma aba | `public/js/ui/<aba>.js` |
 | Campo novo que precisa ser salvo | `nucleo/estado.js` → `io/persistencia.js` (`estado()` e `aplicar()`) → aba dona em `server/permissoes.js` |
 | Quais dados cada aba edita (permissões) | `server/permissoes.js` (`AREAS`) |
+| Migração de formato do documento (ex.: 9 → 12 meses) | `io/persistencia.js` (`migrarJanela`) **e** `server/janela.js` — as duas, com a mesma regra |
 | Controle que só muda a visualização | `public/js/ui/permissoes.js` (`VISUAIS`) |
 | Rota da API | `server/api.js` |
 | Hash de senha, sessão, guardas de rota | `server/auth.js` |
@@ -208,6 +209,12 @@ estes são os pontos que não podem quebrar:
   canônica — o jsonb reordena chaves) e a tela só avisa do que o usuário mudou
   desde a primeira pintura (`marcarBaseGravacao()`); sem isso, todo perfil
   restrito veria um aviso falso de "sem permissão" a cada gravação.
+- **Migração que mexe em várias chaves precisa chegar inteira ao banco.** O
+  perfil grava só parte das chaves; se a migração for detectada por uma chave
+  e aplicada em outras, o documento fica metade em cada formato. Por isso o
+  servidor completa a migração de 9 para 12 meses (`server/janela.js`) na
+  gravação de quem não grava PLANO, DIESEL_MES e ARREND juntos — foi o bug
+  corrigido na 2.22.1.
 - **Perfil inexistente cai em somente visualização**, nunca em acesso total.
   `admin` não mora na tabela `perfis` e edita tudo sempre. `usuario` nasce com
   `["*"]` para ninguém perder acesso no deploy.

@@ -58,12 +58,16 @@ function janelaDe(cod, meses, codOrigem){
   const d = (DIM[cod] && DIM[cod].ini && DIM[cod].fim) ? DIM[cod]
           : (codOrigem && DIM[codOrigem]) ? DIM[codOrigem]
           : (DIM[cod] || {});
+  // Janela que nao toca o ano agricola (em geral, ano digitado errado) vale o
+  // mesmo que uma invertida: nenhum mes a recebe, e a frota era dimensionada
+  // para um periodo fora do orcamento. Cai no criterio de baixo, como a
+  // invertida, e a aba Validacao acusa as duas.
   if(d.ini && d.fim){
-    const i = new Date(d.ini), f = new Date(d.fim);
-    if(!isNaN(i) && !isNaN(f) && f >= i){
+    const i = new Date(d.ini), f = new Date(d.fim), idx = mesesEntre(d.ini, d.fim);
+    if(!isNaN(i) && !isNaN(f) && f >= i && idx.length){
       const dias = (f - i) / 86400000 + 1;          // fim inclusivo
       return {meses: Math.max(dias / DIAS_MES, 1 / DIAS_MES), dias, fonte: "datas",
-              ini: d.ini, fim: d.fim, idx: mesesEntre(d.ini, d.fim)};
+              ini: d.ini, fim: d.fim, idx};
     }
   }
   const comVol = meses.reduce((n, q) => n + (num(q) > 0 ? 1 : 0), 0);
