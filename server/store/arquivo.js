@@ -100,8 +100,11 @@ function storeArquivo() {
       return doc.lista.map(({ senha_hash, ...u }) => u);
     },
     async contarUsuarios() { return (await usuariosDoDisco()).lista.length; },
+    // Mesmo critério do store Postgres: login não diferencia maiúsculas de
+    // minúsculas (ver comentário lá).
     async usuarioPorLogin(login) {
-      return (await usuariosDoDisco()).lista.find(u => u.login === login) || null;
+      const alvo = String(login || '').toLowerCase();
+      return (await usuariosDoDisco()).lista.find(u => u.login.toLowerCase() === alvo) || null;
     },
     async usuarioPorId(id) {
       return (await usuariosDoDisco()).lista.find(u => u.id === id) || null;
