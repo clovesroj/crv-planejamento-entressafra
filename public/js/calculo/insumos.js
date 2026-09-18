@@ -1,6 +1,6 @@
 import { CFG } from '../dados/cfg.js';
 import { FAMILIAS_INSUMO, TRAT_ETAPAS } from '../dados/insumos.js';
-import { INSUMO, P, PLANO, TRATC, TRAT_DEL, TRAT_ETAPA, TRAT_NOME, insLista, gruposInsLista } from '../nucleo/estado.js';
+import { FAM_NOME, INSUMO, P, PLANO, TRATC, TRAT_DEL, TRAT_ETAPA, TRAT_NOME, insLista, gruposInsLista } from '../nucleo/estado.js';
 import { num } from '../nucleo/formato.js';
 
 /* ================== INSUMOS E TRATAMENTOS ================== */
@@ -15,20 +15,25 @@ import { num } from '../nucleo/formato.js';
    livre vindo da planilha, e vai haver produto cujo texto nao diz a familia que
    a usina usa. Vazio volta a deduzir, que e o padrao -- assim o produto novo
    entra no bloco certo sem ninguem ter de escolher. */
+// aplica o nome que o usuário deu a um grupo FIXO do cadastro, se ele renomeou
+function comNomeFixo(f){ return FAM_NOME[f.id] ? {...f, nome:FAM_NOME[f.id]} : f; }
+
 function familiaDoInsumo(i){
   const esc = (i && i.fam || "").trim();
   if(esc){
-    const f = FAMILIAS_INSUMO.find(x => x.id === esc) || gruposInsLista().find(x => x.id === esc);
-    if(f) return f;
+    const f = FAMILIAS_INSUMO.find(x => x.id === esc);
+    if(f) return comNomeFixo(f);
+    const g = gruposInsLista().find(x => x.id === esc);
+    if(g) return g;
   }
   return familiaDe(i && i.classe);
 }
 
 function familiaDe(classe){
   const c = (classe || "").toLowerCase();
-  if(!c) return FAMILIAS_INSUMO[FAMILIAS_INSUMO.length - 1];
-  return FAMILIAS_INSUMO.find(f => f.termos.some(t => c.includes(t)))
-      || FAMILIAS_INSUMO[FAMILIAS_INSUMO.length - 1];
+  const f = !c ? FAMILIAS_INSUMO[FAMILIAS_INSUMO.length - 1]
+    : FAMILIAS_INSUMO.find(f => f.termos.some(t => c.includes(t))) || FAMILIAS_INSUMO[FAMILIAS_INSUMO.length - 1];
+  return comNomeFixo(f);
 }
 
 /* Todos os grupos que um insumo pode receber: os fixos do cadastro (com
@@ -36,8 +41,8 @@ function familiaDe(classe){
    aba Configurações, encaixados antes de "outros" -- um grupo novo é sempre
    uma escolha manual, nunca o destino automático de uma classe. */
 function todasFamilias(){
-  const base = FAMILIAS_INSUMO.slice(0, -1);
-  const outros = FAMILIAS_INSUMO[FAMILIAS_INSUMO.length - 1];
+  const base = FAMILIAS_INSUMO.slice(0, -1).map(comNomeFixo);
+  const outros = comNomeFixo(FAMILIAS_INSUMO[FAMILIAS_INSUMO.length - 1]);
   return [...base, ...gruposInsLista(), outros];
 }
 
@@ -46,10 +51,22 @@ function idDeGrupo(nome){
   return String(nome || "").normalize("NFD").replace(/[̀-ͯ]/g, "")
     .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
 }
+/* "Cada Palavra Maiúscula", exceto preposição/conjunção curta no meio da
+   frase (regra usual de título em português) -- assim "fertilizantes
+   foliares" e "FERTILIZANTES FOLIARES" viram o mesmo "Fertilizantes
+   Foliares", não importa como a pessoa digitou. */
+const PREPOSICOES_GRUPO = new Set(["e","de","da","do","das","dos","a","o","as","os","em","com","para","ou"]);
+function tituloGrupo(nome){
+  return String(nome || "").trim().split(/\s+/).map((p,i)=>{
+    const baixo = p.toLowerCase();
+    if(i>0 && PREPOSICOES_GRUPO.has(baixo)) return baixo;
+    return baixo.charAt(0).toUpperCase()+baixo.slice(1);
+  }).join(" ");
+}
 /** Cria um grupo de insumo novo. Falha se o nome estiver vazio ou já existir
     entre os grupos fixos ou os já criados. */
 function criarGrupoInsumo(nome){
-  const n = String(nome || "").trim();
+  const n = tituloGrupo(nome);
   if(!n) return {ok:false, erro:"informe um nome para o grupo"};
   const id = idDeGrupo(n);
   if(!id) return {ok:false, erro:"o nome precisa ter letras ou números"};
@@ -59,16 +76,19 @@ function criarGrupoInsumo(nome){
   gruposInsLista().push({id, nome:n});
   return {ok:true};
 }
-/** Renomeia um grupo criado pelo usuário. O identificador não muda — é por ele
-    que cada insumo aponta para o grupo (campo `fam`), então renomear não
-    desvincula ninguém. Os fixos do cadastro não são renomeáveis por aqui: o
-    nome deles é o que os termos de classificação automática documentam. */
+/** Renomeia qualquer grupo — fixo do cadastro ou criado pelo usuário. O
+    identificador não muda — é por ele que cada insumo aponta para o grupo
+    (campo `fam`) e que a classificação automática por classe agronômica
+    funciona, então renomear não desvincula ninguém nem muda o que cai em
+    cada bloco. Grupo fixo guarda o nome novo em FAM_NOME; grupo criado
+    guarda no próprio registro, como sempre. */
 function renomearGrupoInsumo(id, novoNome){
-  if(FAMILIAS_INSUMO.some(f=>f.id===id)){
-    return {ok:false, erro:"este grupo é fixo do cadastro e não pode ser renomeado"};
-  }
-  const n = String(novoNome || "").trim();
+  const n = tituloGrupo(novoNome);
   if(!n) return {ok:false, erro:"informe um nome para o grupo"};
+  if(FAMILIAS_INSUMO.some(f=>f.id===id)){
+    FAM_NOME[id] = n;
+    return {ok:true};
+  }
   const g = gruposInsLista().find(f=>f.id===id);
   if(!g) return {ok:false, erro:"grupo não encontrado"};
   g.nome = n;
