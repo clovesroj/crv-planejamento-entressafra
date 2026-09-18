@@ -1,12 +1,12 @@
 import { ETAPAS_ORD, PAG_LIVRE, mesesPag } from '../calculo/arrendamento.js';
 import { AG_SEM_FROTA, FROTA_AG, FROTA_ESP, SEP_MOD, crmDe, espDe } from '../calculo/crm.js';
 import { codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, marcarEtapa, mesclarBaseInsumos, removerGrupoInsumo, removerTrat,
-  renomearGrupoInsumo, renomearTrat, tratCodigos, usosTrat } from '../calculo/insumos.js';
+  renomearGrupoInsumo, renomearTrat, setClasseGrupo, todasFamilias, tratCodigos, usosTrat } from '../calculo/insumos.js';
 import { CFG } from '../dados/cfg.js';
 import { buscarAgrofit, bulaDoProduto } from '../io/agrofit.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
-import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, fornLista, gruposInsLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE } from '../nucleo/estado.js';
+import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE } from '../nucleo/estado.js';
 import { AGROFIT_BUSCA, FROTA_ABERTO, FROTA_UN, INS_FICHA, MAQ, setAGROFIT_BUSCA, setFROTA_DEST, setFROTA_ORIG, setINS_FICHA } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { filtrarPorNome } from '../ui/componentes.js';
@@ -170,6 +170,10 @@ document.addEventListener("input",e=>{
 });
 document.addEventListener("change",e=>{
   const t=e.target;
+  if(t.dataset.grpclasse!==undefined){
+    const r = setClasseGrupo(t.dataset.grpclasse, t.value);
+    if(!r.ok){ alert(r.erro); render(); return; }
+    salvar(true); render(); return; }
   // codigo do tratamento: leva composicao, nome, etapas e as atividades que o usam
   if(t.dataset.trc!==undefined || t.id==="in_trat_cod"){
     const de = t.dataset.trc!==undefined ? t.dataset.trc : TRAT_SEL;
@@ -409,7 +413,7 @@ document.addEventListener("click",e=>{
     if(!r.ok){ alert(r.erro); return; }
     salvar(true); render(); return; }
   if(t.dataset.grpren!==undefined){
-    const id = t.dataset.grpren, g = gruposInsLista().find(x=>x.id===id);
+    const id = t.dataset.grpren, g = todasFamilias().find(x=>x.id===id);
     const nome = prompt("Novo nome do grupo:", g ? g.nome : "");
     if(!nome || (g && nome.trim()===g.nome)) return;
     const r = renomearGrupoInsumo(id, nome);

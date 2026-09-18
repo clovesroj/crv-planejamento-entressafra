@@ -35,25 +35,32 @@ export const INSUMOS_V = 2;
    e condicionador porque Fertilizante nao casa com "condicionador".
 
    Micronutriente nao aparece na base de hoje, mas fica cadastrado: e classe que
-   existe no campo, e quem digitar ali ja cai no bloco certo em vez de "Outros". */
+   existe no campo, e quem digitar ali ja cai no bloco certo em vez de "Outros".
+
+   `classeGrupo` e a natureza do grupo (Quimico, Mineral, Biologico...) — nome
+   com "Grupo" no fim para nao confundir com o `classe` de cada insumo, que e a
+   classe agronomica ("Herbicida", "Fungicida"...). Palpite inicial, nao
+   levantamento: quem cadastra confere e ajusta pela aba Grupos de Insumos.
+   Vazio ("") e "ainda nao classificado", nao um valor da lista. */
+export const CLASSES_GRUPO = ["Químico", "Mineral", "Biológico", "Orgânico", "Outros"];
 export const FAMILIAS_INSUMO = [
-  {id:"herbicida",   nome:"Herbicidas",                     termos:["herbicida"]},
-  {id:"inseticida",  nome:"Inseticidas",                    termos:["inseticida","formicida","cupinicida","acaricida"]},
-  {id:"fungicida",   nome:"Fungicidas e nematicidas",       termos:["fungicida","nematicida"]},
-  {id:"regulador",   nome:"Reguladores de crescimento",     termos:["regulador","maturador"]},
-  {id:"biologico",   nome:"Biológicos e inoculantes",       termos:["inoculante","agente biológico","biológico"]},
-  {id:"micro",       nome:"Micronutrientes",                termos:["micronutriente","microelemento"]},
+  {id:"herbicida",   nome:"Herbicidas",                     classeGrupo:"Químico",  termos:["herbicida"]},
+  {id:"inseticida",  nome:"Inseticidas",                    classeGrupo:"Químico",  termos:["inseticida","formicida","cupinicida","acaricida"]},
+  {id:"fungicida",   nome:"Fungicidas e Nematicidas",       classeGrupo:"Químico",  termos:["fungicida","nematicida"]},
+  {id:"regulador",   nome:"Reguladores de Crescimento",     classeGrupo:"Químico",  termos:["regulador","maturador"]},
+  {id:"biologico",   nome:"Biológicos e Inoculantes",       classeGrupo:"Biológico",termos:["inoculante","agente biológico","biológico"]},
+  {id:"micro",       nome:"Micronutrientes",                classeGrupo:"Mineral",  termos:["micronutriente","microelemento"]},
   /* Foliar antes de bioestimulante, e os dois antes de fertilizante: sem isso o
      termo generico "fertilizante" engoliria "Fertilizante foliar" e
      "Fertilizante/bioestimulante" antes de eles chegarem ao grupo proprio.
      Produto que e foliar E bioestimulante fica em foliar, porque e a forma de
      aplicacao que decide como ele entra no orcamento. */
-  {id:"foliar",      nome:"Fertilizantes foliares",         termos:["fertilizante foliar","adubo foliar","foliar"]},
-  {id:"bioestim",    nome:"Bioestimulantes",                termos:["bioestimulante","bioativador","estimulante"]},
-  {id:"fertilizante",nome:"Fertilizantes",                  termos:["fertilizante","adubo","nutri"]},
-  {id:"corretivo",   nome:"Corretivos e condicionadores",   termos:["corretivo","condicionador","calc","gesso"]},
-  {id:"adjuvante",   nome:"Adjuvantes e veículos",          termos:["adjuvante","espalhante","antideriva","diluente","veículo","óleo mineral","óleo vegetal"]},
-  {id:"outros",      nome:"Outros e a classificar",         termos:[]},
+  {id:"foliar",      nome:"Fertilizantes Foliares",         classeGrupo:"Mineral",  termos:["fertilizante foliar","adubo foliar","foliar"]},
+  {id:"bioestim",    nome:"Bioestimulantes",                classeGrupo:"Biológico",termos:["bioestimulante","bioativador","estimulante"]},
+  {id:"fertilizante",nome:"Fertilizantes",                  classeGrupo:"Mineral",  termos:["fertilizante","adubo","nutri"]},
+  {id:"corretivo",   nome:"Corretivos e Condicionadores",   classeGrupo:"Mineral",  termos:["corretivo","condicionador","calc","gesso"]},
+  {id:"adjuvante",   nome:"Adjuvantes e Veículos",          classeGrupo:"",         termos:["adjuvante","espalhante","antideriva","diluente","veículo","óleo mineral","óleo vegetal"]},
+  {id:"outros",      nome:"Outros e a Classificar",         classeGrupo:"",         termos:[]},
 ];
 
 /* Etapas em que um tratamento pode ser usado. O plano diz em que etapa cada
