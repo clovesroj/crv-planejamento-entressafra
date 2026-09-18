@@ -57,6 +57,7 @@ let FORN = null;         // [{forn,prop,origem,mod,area,tch,tonContr,tonEst,atr,
 let FORN_PAR = {};       // parâmetros de matéria-prima (preço do ATR, ATR próprio, frete/km, área própria)
 let GRUPOS_INS = null;   // [{id,nome}] grupos de insumo criados pelo usuário, além dos fixos do cadastro
 let FAM_NOME = {};       // id do grupo FIXO do cadastro -> nome renomeado pelo usuário (grupo criado já guarda o nome nele mesmo)
+let FAM_CLASSE = {};     // id do grupo FIXO do cadastro -> classe (Químico, Mineral...) ajustada pelo usuário
 let ADM = null;          // [{grupo,desc,valor,crit,cc}] custos administrativos
 let ADM_RAT = {};        // etapa -> % do rateio administrativo por percentual
 let QUADRO = {};         // fcod -> {ativo, ferias, demis} quadro de pessoal informado
@@ -77,7 +78,7 @@ let AGROFIT_BUSCA = null;
 export {
   P, PLANO, DIM, INSUMO, ESPOR, TRATC, NIV, GRAT, APOIO, TERC_TAR, CRM, MATX,
   INSX, INSX_V, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, CRIT_GER, CRIT_CABE, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, INS_FICHA, APOIO_FIXO, TRAT_NOME, TRAT_ETAPA, TRAT_DEL, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
-  TPESS, QUADRO, ADM, ADM_RAT, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL, GRUPOS_INS, FAM_NOME, AGROFIT_BUSCA,
+  TPESS, QUADRO, ADM, ADM_RAT, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL, GRUPOS_INS, FAM_NOME, FAM_CLASSE, AGROFIT_BUSCA,
 };
 
 export const setP          = v => { P = v; };
@@ -122,6 +123,7 @@ export const setTPESS      = v => { TPESS = v; };
 export const setQUADRO     = v => { QUADRO = v; };
 export const setGRUPOS_INS = v => { GRUPOS_INS = v; };
 export const setFAM_NOME   = v => { FAM_NOME = v; };
+export const setFAM_CLASSE = v => { FAM_CLASSE = v; };
 export const setADM        = v => { ADM = v; };
 export const setADM_RAT    = v => { ADM_RAT = v; };
 export const setENC        = v => { ENC = v; };

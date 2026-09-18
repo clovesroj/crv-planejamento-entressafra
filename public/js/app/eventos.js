@@ -1,7 +1,7 @@
 import { ETAPAS_ORD, PAG_LIVRE, mesesPag } from '../calculo/arrendamento.js';
 import { AG_SEM_FROTA, FROTA_AG, FROTA_ESP, SEP_MOD, crmDe, espDe } from '../calculo/crm.js';
 import { codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, marcarEtapa, mesclarBaseInsumos, removerGrupoInsumo, removerTrat,
-  renomearGrupoInsumo, renomearTrat, todasFamilias, tratCodigos, usosTrat } from '../calculo/insumos.js';
+  renomearGrupoInsumo, renomearTrat, setClasseGrupo, todasFamilias, tratCodigos, usosTrat } from '../calculo/insumos.js';
 import { CFG } from '../dados/cfg.js';
 import { buscarAgrofit, bulaDoProduto } from '../io/agrofit.js';
 import { salvar } from '../io/persistencia.js';
@@ -170,6 +170,10 @@ document.addEventListener("input",e=>{
 });
 document.addEventListener("change",e=>{
   const t=e.target;
+  if(t.dataset.grpclasse!==undefined){
+    const r = setClasseGrupo(t.dataset.grpclasse, t.value);
+    if(!r.ok){ alert(r.erro); render(); return; }
+    salvar(true); render(); return; }
   // codigo do tratamento: leva composicao, nome, etapas e as atividades que o usam
   if(t.dataset.trc!==undefined || t.id==="in_trat_cod"){
     const de = t.dataset.trc!==undefined ? t.dataset.trc : TRAT_SEL;

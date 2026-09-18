@@ -1,6 +1,6 @@
 import { CFG } from '../dados/cfg.js';
-import { FAMILIAS_INSUMO, TRAT_ETAPAS } from '../dados/insumos.js';
-import { FAM_NOME, INSUMO, P, PLANO, TRATC, TRAT_DEL, TRAT_ETAPA, TRAT_NOME, insLista, gruposInsLista } from '../nucleo/estado.js';
+import { CLASSES_GRUPO, FAMILIAS_INSUMO, TRAT_ETAPAS } from '../dados/insumos.js';
+import { FAM_CLASSE, FAM_NOME, INSUMO, P, PLANO, TRATC, TRAT_DEL, TRAT_ETAPA, TRAT_NOME, insLista, gruposInsLista } from '../nucleo/estado.js';
 import { num } from '../nucleo/formato.js';
 
 /* ================== INSUMOS E TRATAMENTOS ================== */
@@ -15,8 +15,12 @@ import { num } from '../nucleo/formato.js';
    livre vindo da planilha, e vai haver produto cujo texto nao diz a familia que
    a usina usa. Vazio volta a deduzir, que e o padrao -- assim o produto novo
    entra no bloco certo sem ninguem ter de escolher. */
-// aplica o nome que o usuário deu a um grupo FIXO do cadastro, se ele renomeou
-function comNomeFixo(f){ return FAM_NOME[f.id] ? {...f, nome:FAM_NOME[f.id]} : f; }
+// aplica nome e classe que o usuário ajustou num grupo FIXO do cadastro
+function comNomeFixo(f){
+  const nome = FAM_NOME[f.id] || f.nome;
+  const classeGrupo = FAM_CLASSE[f.id] != null ? FAM_CLASSE[f.id] : f.classeGrupo;
+  return (nome===f.nome && classeGrupo===f.classeGrupo) ? f : {...f, nome, classeGrupo};
+}
 
 function familiaDoInsumo(i){
   const esc = (i && i.fam || "").trim();
@@ -73,7 +77,7 @@ function criarGrupoInsumo(nome){
   if(FAMILIAS_INSUMO.some(f=>f.id===id) || gruposInsLista().some(f=>f.id===id)){
     return {ok:false, erro:"já existe um grupo com este nome"};
   }
-  gruposInsLista().push({id, nome:n});
+  gruposInsLista().push({id, nome:n, classeGrupo:""});
   return {ok:true};
 }
 /** Renomeia qualquer grupo — fixo do cadastro ou criado pelo usuário. O
@@ -92,6 +96,21 @@ function renomearGrupoInsumo(id, novoNome){
   const g = gruposInsLista().find(f=>f.id===id);
   if(!g) return {ok:false, erro:"grupo não encontrado"};
   g.nome = n;
+  return {ok:true};
+}
+/** Ajusta a classe (natureza) de um grupo — Químico, Mineral, Biológico...
+    "" limpa e volta para "ainda não classificado". Mesma regra do nome: fixo
+    guarda em FAM_CLASSE, criado guarda no próprio registro. */
+function setClasseGrupo(id, classeGrupo){
+  const c = String(classeGrupo || "").trim();
+  if(c && !CLASSES_GRUPO.includes(c)) return {ok:false, erro:"classe inválida"};
+  if(FAMILIAS_INSUMO.some(f=>f.id===id)){
+    FAM_CLASSE[id] = c;
+    return {ok:true};
+  }
+  const g = gruposInsLista().find(f=>f.id===id);
+  if(!g) return {ok:false, erro:"grupo não encontrado"};
+  g.classeGrupo = c;
   return {ok:true};
 }
 /** Remove um grupo criado pelo usuário. Os fixos do cadastro não saem daqui —
@@ -299,5 +318,5 @@ function volumeDemandado(L){
 
 export { _tratCache, _tratKey, codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, etapaTrat, etapasNoPlano, familiaDe,
   familiaDoInsumo, insumosPorFamilia, mesclarBaseInsumos,
-  marcarEtapa, precoInsumo, removerGrupoInsumo, removerTrat, renomearGrupoInsumo, renomearTrat, todasFamilias, tratCodigos, tratCusto, tratEtapas,
+  marcarEtapa, precoInsumo, removerGrupoInsumo, removerTrat, renomearGrupoInsumo, renomearTrat, setClasseGrupo, todasFamilias, tratCodigos, tratCusto, tratEtapas,
   tratLista, tratListaTodos, tratTabela, usosTrat, volumeDemandado };

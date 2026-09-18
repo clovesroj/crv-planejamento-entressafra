@@ -1,5 +1,5 @@
 import { insumosPorFamilia, todasFamilias } from '../calculo/insumos.js';
-import { FAMILIAS_INSUMO } from '../dados/insumos.js';
+import { CLASSES_GRUPO, FAMILIAS_INSUMO } from '../dados/insumos.js';
 import { $, esc } from '../nucleo/formato.js';
 import { th } from './componentes.js';
 
@@ -8,8 +8,11 @@ import { th } from './componentes.js';
    não muda, então renomear não desvincula produto nem mexe na classificação
    automática por classe agronômica. Só os criados pelo usuário podem ser
    removidos, e só quando nenhum insumo estiver usando o grupo: os fixos do
-   cadastro removidos deixariam produto sem para onde ir. Mesma permissão da
-   aba Insumos (ver ui/permissoes.js). */
+   cadastro removidos deixariam produto sem para onde ir. Classe (Químico,
+   Mineral, Biológico...) é a natureza do grupo, separada da classe agronômica
+   de cada insumo — igual ao nome, vale pra fixo e criado, e é palpite inicial
+   a conferir, não levantamento. Mesma permissão da aba Insumos (ver
+   ui/permissoes.js). */
 function pintarConfig(){
   const porGrupo = {};
   insumosPorFamilia().forEach(f => { porGrupo[f.id] = f.itens.length; });
@@ -20,6 +23,10 @@ function pintarConfig(){
     return `<tr>
       <td>${esc(f.nome)}</td>
       <td class="calc">${fixo ? "Fixo do cadastro" : "Criado por você"}</td>
+      <td><select data-grpclasse="${esc(f.id)}">
+        <option value=""${f.classeGrupo?"":" selected"}>— sem classe —</option>
+        ${CLASSES_GRUPO.map(c=>`<option value="${esc(c)}"${f.classeGrupo===c?" selected":""}>${esc(c)}</option>`).join("")}
+      </select></td>
       <td class="num calc">${qtd}</td>
       <td>
         <button class="btn" data-grpren="${esc(f.id)}">Renomear</button>
@@ -27,7 +34,7 @@ function pintarConfig(){
     </tr>`;
   }).join("");
 
-  $("#t_grupos").innerHTML = th([["Grupo"],["Origem"],["Produtos",1],[""]])+
+  $("#t_grupos").innerHTML = th([["Grupo"],["Origem"],["Classe"],["Produtos",1],[""]])+
     "<tbody>"+linhas+"</tbody>";
 }
 

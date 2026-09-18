@@ -1,7 +1,7 @@
 import { CFG } from '../dados/cfg.js';
-import { APOIO, APOIO_FIXO, ARREND, ARR_PAR, ARR_RAT, BEN, CRM, DIESEL_MES, DIM, EDITADO, ENC, ESPOR, FAM_NOME, FORN, FORN_PAR, FROTA, CRM_ESP, MAQ, FROTA_UN, REAL, GRAT, GRUPOS_INS, INSUMO, INSX, INSX_V, MATX, NIV, P, PLANO, QUADRO, ADM, ADM_RAT, TERC_TAR, TPESS, TRATC, TRAT_DEL, TRAT_ETAPA, TRAT_NOME } from '../nucleo/estado.js';
+import { APOIO, APOIO_FIXO, ARREND, ARR_PAR, ARR_RAT, BEN, CRM, DIESEL_MES, DIM, EDITADO, ENC, ESPOR, FAM_NOME, FAM_CLASSE, FORN, FORN_PAR, FROTA, CRM_ESP, MAQ, FROTA_UN, REAL, GRAT, GRUPOS_INS, INSUMO, INSX, INSX_V, MATX, NIV, P, PLANO, QUADRO, ADM, ADM_RAT, TERC_TAR, TPESS, TRATC, TRAT_DEL, TRAT_ETAPA, TRAT_NOME } from '../nucleo/estado.js';
 import { setAPOIO, setAPOIO_FIXO, setARREND, setARR_PAR, setARR_RAT, setBEN, setCRM,
-         setDIESEL_MES, setDIM, setEDITADO, setFAM_NOME, setFORN, setFORN_PAR, setENC, setESPOR, setFROTA, setCRM_ESP, setMAQ, setFROTA_UN, setREAL, setGRAT, setGRUPOS_INS, setINSUMO,
+         setDIESEL_MES, setDIM, setEDITADO, setFAM_NOME, setFAM_CLASSE, setFORN, setFORN_PAR, setENC, setESPOR, setFROTA, setCRM_ESP, setMAQ, setFROTA_UN, setREAL, setGRAT, setGRUPOS_INS, setINSUMO,
          setINSX, setMATX, setNIV, setP, setPLANO, setQUADRO, setADM, setADM_RAT, setTERC_TAR, setTPESS, setTRATC,
          setTRAT_DEL, setTRAT_ETAPA, setTRAT_NOME, setINSX_V } from '../nucleo/estado.js';
 import { mesclarBaseInsumos } from '../calculo/insumos.js';
@@ -16,7 +16,7 @@ let REMOTO = null, saveTimer = null;
 /* ---------- persistência ---------- */
 function estado(){
   const s = {P,PLANO,DIM,INSUMO,ESPOR,TRATC,TRAT_NOME,TRAT_ETAPA,TRAT_DEL,DIESEL_MES,ARREND,ARR_PAR,ARR_RAT,FORN,FORN_PAR,ENC,BEN,NIV,GRAT,APOIO,APOIO_FIXO,
-             TERC_TAR,CRM,CRM_ESP,MAQ,FROTA_UN,REAL,MATX,INSX,INSX_V,FROTA,TPESS,QUADRO,ADM,ADM_RAT,GRUPOS_INS,FAM_NOME,FUN:CFG.funcoes.map(f=>f.sal),v:10};
+             TERC_TAR,CRM,CRM_ESP,MAQ,FROTA_UN,REAL,MATX,INSX,INSX_V,FROTA,TPESS,QUADRO,ADM,ADM_RAT,GRUPOS_INS,FAM_NOME,FAM_CLASSE,FUN:CFG.funcoes.map(f=>f.sal),v:10};
   // Campos que esta sessão nunca tocou ficam nulos ou vazios em memória. Enviá-los
   // apagava no servidor o que outra sessão já tinha preenchido — por isso são omitidos.
   Object.keys(s).forEach(k=>{
@@ -175,6 +175,7 @@ function aplicar(d){
   } else if(!d.INSX) setINSX_V(CFG.insumos_v);
   if(d.GRUPOS_INS) setGRUPOS_INS(d.GRUPOS_INS);
   if(d.FAM_NOME) setFAM_NOME(d.FAM_NOME);
+  if(d.FAM_CLASSE) setFAM_CLASSE(d.FAM_CLASSE);
   if(d.FROTA) setFROTA(d.FROTA);
   if(d.TPESS) setTPESS(d.TPESS);
   if(d.QUADRO) setQUADRO(d.QUADRO);
