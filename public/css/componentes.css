@@ -9,6 +9,13 @@ input:disabled,select:disabled{background:var(--sunk);color:var(--grey);border-s
 input.bad{border-color:var(--bad);background:var(--bad-bg)}
 .hint{font-size:11.5px;color:var(--grey);margin-top:4px;line-height:1.45}
 
+/* ---------- combobox de busca (select nativo com muita opção vira pesquisável) ---------- */
+.lista-select{position:absolute;z-index:20;top:calc(100% + 4px);left:0;right:0;max-height:260px;overflow:auto;
+  background:var(--card);border:1px solid var(--line-strong);border-radius:var(--r-sm);box-shadow:var(--pop-shadow)}
+.lista-select-item{padding:8px 11px;font-size:13.5px;cursor:pointer}
+.lista-select-item:hover,.lista-select-item.foco{background:var(--sunk)}
+.lista-select-vazia{padding:8px 11px;font-size:13px;color:var(--grey)}
+
 /* ---------- indicadores ---------- */
 /* inherits:true é obrigatório aqui — ::before/::after leem estas variáveis
    como se fossem filhos do elemento onde o JS escreve o valor */
