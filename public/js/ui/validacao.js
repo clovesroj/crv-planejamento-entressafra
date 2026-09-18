@@ -3,7 +3,8 @@ import { CFG } from '../dados/cfg.js';
 import { SEP_MOD, crmDe, crmEspDe } from '../calculo/crm.js';
 import { composicao, etapaTrat, tratCodigos, tratEtapas } from '../calculo/insumos.js';
 import { TRAT_ETAPAS } from '../dados/insumos.js';
-import { INSUMO, P, insLista } from '../nucleo/estado.js';
+import { DIM, INSUMO, P, insLista } from '../nucleo/estado.js';
+import { MESES, NM, diasNoMesEntre, mesesEntre } from '../nucleo/calendario.js';
 import { $, brl, fmt, num } from '../nucleo/formato.js';
 import { th } from './componentes.js';
 import { contasValores } from './contas.js';
@@ -15,6 +16,35 @@ function validar(R){
   const v=[]; const add=(ok,t,d)=>v.push({ok,t,d});
   const semVol=R.L.filter(r=>r.total===0).length;
   add(semVol===0,"Atividades sem volume programado",semVol+" de "+R.L.length);
+  // Janela de datas do Plano Operacional. Data que o cálculo não consegue usar
+  // não dá erro: a atividade volta, em silêncio, para os meses com volume
+  // (calculo/atividade.js, janelaDe). É aqui que o descarte aparece.
+  const jIgnorada = [], jPassa = [], volFora = [];
+  const horizonte = MESES[0]+" a "+MESES[NM-1];
+  R.L.forEach(r=>{
+    const cod = r.a.cod, d = DIM[cod] || {};
+    const de = new Date(d.ini+"T00:00:00"), ate = new Date(d.fim+"T00:00:00"), idx = mesesEntre(d.ini, d.fim);
+    if(!d.ini !== !d.fim) jIgnorada.push(cod+" (só "+(d.ini?"o início":"o fim")+")");
+    else if(d.ini && (isNaN(de) || isNaN(ate))) jIgnorada.push(cod+" (data inválida)");
+    else if(d.ini && ate < de) jIgnorada.push(cod+" (fim antes do início)");
+    else if(d.ini && !idx.length) jIgnorada.push(cod+" (fora de "+horizonte+")");
+    else if(d.ini){
+      // parte da janela fora do horizonte: os dias contam na capacidade (frota
+      // dimensionada para a janela inteira), mas nenhum volume cai neles
+      const dentro = idx.reduce((s,i)=>s+diasNoMesEntre(i, d.ini, d.fim), 0);
+      if(Math.round((ate - de)/86400000) + 1 > dentro) jPassa.push(cod);
+    }
+    if(r.janela && r.janela.fonte==="datas"){
+      const fora = r.meses.map((q,i)=>num(q)>0 && !r.janela.idx.includes(i) ? MESES[i] : "").filter(Boolean);
+      if(fora.length) volFora.push(cod+" ("+fora.join(", ")+")");
+    }
+  });
+  add(jIgnorada.length===0,"Janela de datas utilizável no Plano Operacional",
+      jIgnorada.length ? "ignorada, vale o mês com volume: "+jIgnorada.slice(0,4).join(" · ")+(jIgnorada.length>4?"…":"") : "");
+  add(jPassa.length===0,"Janela de datas dentro do ano agrícola ("+horizonte+")",
+      jPassa.length ? "dias fora do ano contam na capacidade e não recebem volume: "+jPassa.slice(0,6).join(", ")+(jPassa.length>6?"…":"") : "");
+  add(volFora.length===0,"Volume programado dentro da janela de datas",
+      volFora.slice(0,3).join(" · ")+(volFora.length>3?"…":""));
   const ratSoma = ETAPAS_ORD.reduce((s,e)=>s+arrRat(e),0);
   add(Math.abs(ratSoma-100)<=0.01,"Rateio do arrendamento por etapa somando 100%",
       Math.abs(ratSoma-100)<=0.01 ? "" : "soma "+fmt(ratSoma,1)+"% — valores normalizados no cálculo");

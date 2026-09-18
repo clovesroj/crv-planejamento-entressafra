@@ -1,6 +1,6 @@
 import { bulaDoProduto } from '../io/agrofit.js';
 import { AGROFIT_BUSCA, insLista } from '../nucleo/estado.js';
-import { $, esc } from '../nucleo/formato.js';
+import { $, esc, urlWeb } from '../nucleo/formato.js';
 
 /* ---------- BUSCA DE BULA NA AGROFIT, EM MODAL ----------
    Mesma estrutura do modal de ficha técnica (ui/insumos.js): um card por vez,
@@ -21,8 +21,8 @@ function candidato(p, ix){
     <div style="margin-top:8px;font-size:12.5px;color:var(--ink)">${ativos || "—"}</div>
     <div class="hint" style="margin-top:4px">${esc(p.formulacao||"—")}${
       p.classificacao_toxicologica ? " · "+esc(p.classificacao_toxicologica) : ""}</div>
-    ${bula ? `<div class="hint" style="margin-top:4px">Bula de ${esc(bula.data_inclusao||"—")} — <a href="${
-      esc(bula.url)}" target="_blank" rel="noopener">ver PDF</a></div>`
+    ${bula ? `<div class="hint" style="margin-top:4px">Bula de ${esc(bula.data_inclusao||"—")}${urlWeb(bula.url)
+      ? ` — <a href="${esc(urlWeb(bula.url))}" target="_blank" rel="noopener">ver PDF</a>` : ""}</div>`
       : '<div class="hint" style="margin-top:4px;color:var(--warn)">sem bula cadastrada</div>'}
   </div>`;
 }

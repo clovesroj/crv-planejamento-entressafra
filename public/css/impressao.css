@@ -7,7 +7,12 @@
      seja outro. */
   @page{size:A4;margin:14mm 12mm}
   .sidebar,.scrim,header,main,footer{display:none!important}
-  .app{display:block}
+  /* .app tem min-height:100vh (layout.css) pra preencher a tela no uso normal.
+     #print_report é irmão de .app no HTML, vem DEPOIS dela — com os filhos
+     escondidos acima mas o min-height intacto, .app virava uma caixa vazia de
+     uma página inteira de altura, e o relatório inteiro (título, logo, tudo)
+     era empurrado pra começar na página 2, deixando a 1ª em branco. */
+  .app{display:block;min-height:0}
   #print_report{display:block!important}
   #print_report .rel-logo{height:42px;width:auto;display:block;margin:0 0 10px}
   #print_report h1{font-size:18px;margin:0 0 4px}

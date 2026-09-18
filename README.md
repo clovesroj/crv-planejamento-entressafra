@@ -13,64 +13,122 @@ direto. Veja [Arquitetura](#arquitetura).
 > de regressão para conferir qualquer alteração futura, estão no
 > [CLAUDE.md](CLAUDE.md) — leia antes de mexer.
 
+## Para quem está chegando
+
+Três documentos, cada um com um papel:
+
+| Leia | Para saber |
+|---|---|
+| Este README | o que o sistema faz, como está organizado, como rodar e publicar |
+| [CLAUDE.md](CLAUDE.md) | as regras que não podem quebrar, as armadilhas já conhecidas e como provar que uma mudança não alterou nada — **leia antes de mexer** (vale para pessoas e para assistentes de IA) |
+| [CHANGELOG.md](CHANGELOG.md) | o que mudou em cada versão e por quê, com o commit e o autor |
+
+O modelo mental cabe em uma linha: **o que o usuário edita mora em
+`nucleo/estado.js` → `calcular()` transforma isso em números → cada aba pinta os
+números → `salvar()` grava o documento → o servidor filtra pelo perfil antes de
+gravar.** Nenhuma tela calcula custo, e nenhum cálculo toca na tela.
+
+O time publica direto no `main`, e todo push no `main` vai para produção (o
+Render faz o deploy sozinho). Trabalhe num branch e só leve ao `main` o que foi
+conferido.
+
 ## Módulos
 
-| Aba | Conteúdo |
-|---|---|
-| Premissas | Parâmetros agronômicos, operacionais e econômicos |
-| Mão de Obra | Encargos, benefícios, funções, níveis salariais e escalas |
-| Plano Operacional | Área/tonelada por atividade e mês, tratamentos vinculados |
-| Dimensionamento | Horas, rendimento, frota e efetivo por atividade |
-| Transporte | Transbordo e transporte de cana por raio, ciclo e capacidade |
-| Apoio | Equipamentos de apoio por quantidade e horas |
-| Combustível | Volume de diesel mês a mês, preço projetado por mês, consumo por etapa e equipamento |
-| Manutenção de Frota | CRM por especialidade, modelo e equipamento; destino de cada frota na safra |
-| Reforma de Frota | Provisionamento da reforma, orçado por equipamento e conjunto |
-| Transporte de Pessoal | Rotas, diárias de ônibus e quilometragem |
-| Irrigação | Dimensionamento hidráulico e energia por modalidade |
-| Insumos | Cadastro, composição de tratamentos e volume demandado |
-| Arrendamentos | Fazendas e grupos arrendados, forma de pagamento, custo mensal e rateio por etapa (referência PECEGE/USP) |
-| Custos | Custo por etapa, por natureza e mensal |
-| Plano de Contas | Custo projetado por conta contábil |
-| Resumo de Frota | Necessidade do plano confrontada com a frota cadastrada |
-| Resumo de Pessoas | Efetivo por departamento e função, mobilização e custo de mão de obra mês a mês |
-| Painel | Indicadores, custo de colheita R$/t, grandes contas por mês |
-| Validação | Checagens automáticas de consistência |
+O menu lateral agrupa as abas assim:
 
-Relatórios resumido ou detalhado em **PDF** e **Excel** pelo botão *Relatório* no cabeçalho,
-e exportação em CSV pela aba Plano Operacional.
+| Grupo | Aba | Conteúdo |
+|---|---|---|
+| Visão geral | Capa | Custo total, custo por hectare, hectares operados, efetivo e situação da validação |
+| | Painel | Indicadores, custo de colheita R$/t, grandes contas por mês |
+| | Acompanhamento do Plano | Realizado × planejado mês a mês, metas por gerência e **critério por mês** (o que cada mês exige de frota, rendimento, disponibilidade e utilização) |
+| | Validação | Checagens automáticas de consistência — inclusive dado sem aba de permissão e janela de datas descartada |
+| Planejamento | Premissas | Parâmetros agronômicos, operacionais e econômicos, incluindo disponibilidade mecânica e eficiência operacional |
+| | Plano Operacional | Área/tonelada por atividade e mês, janela de datas de execução, tratamentos vinculados |
+| | Dimensionamento | Horas, rendimento, frota e efetivo por atividade; frota como entrada (o rendimento passa a ser o calculado) e critério mês a mês no modal da atividade |
+| Pessoas | Mão de Obra | Encargos, benefícios, funções, níveis salariais e escalas |
+| | Resumo de Pessoas | Efetivo por departamento e função, mobilização e custo de mão de obra mês a mês |
+| Agricultura | Insumos | Composição dos tratamentos (código, nome, etapas, produtos e doses) e materiais de manutenção |
+| | Irrigação | Dimensionamento hidráulico e energia por modalidade |
+| | Fornecedores de Cana | Contratos, estimativa de entrega, ATR e preço |
+| Frota e logística | Transporte | Transbordo e transporte de cana por raio, ciclo e capacidade |
+| | Combustível | Volume de diesel mês a mês, preço projetado por mês, consumo por etapa e equipamento |
+| | Apoio | Equipamentos de apoio por quantidade e horas |
+| | Transporte de Pessoal | Rotas, diárias de ônibus e quilometragem |
+| Manutenção de frota | Manutenção de Frota | CRM por especialidade, modelo e equipamento; destino de cada frota na safra |
+| | Reforma de Frota | Provisionamento da reforma, orçado por equipamento e conjunto |
+| | Resumo de Frota | Necessidade do plano confrontada com a frota cadastrada |
+| Custos | Arrendamentos | Contratos, forma e meses de pagamento (valor por pagamento), custo mensal e rateio por etapa (referência PECEGE/USP) |
+| | Custos Administrativos | Estrutura, pessoal administrativo e rateio |
+| | Custos | Custo por etapa, por natureza e mensal |
+| | Plano de Contas | Custo projetado por conta contábil |
+| Configurações | Cadastro de Insumos | Os produtos, em blocos por família e ordem de princípio ativo; ficha técnica e link da bula pela API AGROFIT (Embrapa) |
+| | Grupos de Insumos | Grupos personalizados, além das famílias padrão |
+| Administração | Usuários | Usuários, perfis e a matriz de quais abas cada perfil edita (só o administrador vê) |
+
+**Relatórios:** 21 relatórios (orçamento anual, por fazenda, por etapa, fluxo de
+caixa, metas por gerência, critério operacional por mês e outros), em nível
+resumido ou detalhado, pelo atalho **Relatório** no menu lateral. O painel
+mostra uma **pré-visualização** na tela e gera **PDF** (folha A4), **Excel** (uma
+aba por seção) ou **CSV**.
+
+### Recursos de todas as telas
+
+- **Filtro de período** na barra superior — Ano todo, Safra, Entressafra ou meses
+  escolhidos a dedo. Vale para toda tabela mensal do app, e os totais passam a
+  ser do período à mostra.
+- **Busca por nome** acima das tabelas, filtrando as linhas enquanto se digita.
+- **Coluna arrastável**: o cabeçalho pode ser arrastado para trocar colunas de
+  lugar. A ordem fica guardada no navegador, por usuário — não muda a tela de
+  mais ninguém.
+- **KPIs e rastro clicáveis**: cada número de destaque abre de onde ele veio.
+
+Filtro, busca, ordem de coluna, grupos recolhidos e modais abertos são
+**visão**, não dado: não entram no plano salvo e funcionam para qualquer perfil,
+inclusive quem só visualiza.
 
 ## Arquitetura
 
 ```
 public/                 FRONT — servido ao navegador
-  index.html            só marcação: as 19 abas e a moldura
+  index.html            só marcação: as 26 abas, os modais e a moldura
   css/                  tokens → layout → componentes → responsivo → impressão
                         (a ordem dos <link> importa: é a cascata)
-  js/
+  js/                   ~90 módulos ES, sem build
     dados/              CADASTRO — o que se edita para mudar uma regra de negócio
       cfg.js            monta o CFG a partir dos arquivos ao lado
-      atividades.js     44 atividades · maquinas.js · insumos.js · crm.js · ...
+      atividades.js     44 atividades · maquinas.js · insumos.js (produtos,
+                        tratamentos, FAMILIAS_INSUMO) · crm.js · frota-base.js · ...
     nucleo/             base sem dependências
-      estado.js         o que o usuário edita, com setters (ver nota abaixo)
-      formato.js        $, fmt, brl, num, pct
-      calendario.js     MESES, safra × entressafra
+      estado.js         o que o usuário edita (dado) e o que ele está vendo
+                        (visão), com setters — ver nota abaixo
+      formato.js        $, fmt, brl, num, pct, esc (escape de HTML), urlWeb
+      calendario.js     MESES (Abr/26–Mar/27), safra × entressafra, clsMes(),
+                        dias do mês e janela de datas
+      sessao.js         usuário logado e podeEditar(aba) — fora do plano salvo
     calculo/            MOTOR — sem DOM, sem I/O
       index.js          calcular(): orquestra e faz os rateios
-      atividade.js      linha(): horas, frota, diesel, mão de obra por atividade
-      crm.js · mao-de-obra.js · arrendamento.js · irrigacao.js · ...
-    ui/                 uma função pintar* por aba, só leem o resultado do cálculo
-    io/                 persistencia.js · relatorio.js · secoes.js · arquivo.js
+      atividade.js      linha(): horas, frota, diesel, mão de obra por atividade;
+                        janelaDe(), criterioMensal(), metaDe()
+      acompanhamento.js realizado × planejado, criterioPorMes()
+      crm.js · mao-de-obra.js · arrendamento.js · insumos.js · irrigacao.js · ...
+    ui/                 uma função pintar* por aba, só leem o resultado do cálculo;
+                        componentes.js tem busca, coluna arrastável e somaSel()
+    io/                 persistencia.js (estado/aplicar/migração) · relatorio.js ·
+                        secoes.js (os 21 relatórios) · agrofit.js · arquivo.js
     app/                ciclo.js (render/leve) · eventos.js · acoes.js
     main.js             arranque
 
 server/                 BACK
   index.js              monta o HTTP, roteia, trata SIGTERM
+  env.js                carrega .env local sem sobrescrever o ambiente
   config.js             porta, caminhos, limites
   http.js               erro com status, resposta JSON, leitura de corpo
   auth.js               hash de senha, cookie de sessão, guardas de rota
   permissoes.js         catálogo aba → dados; filtra cada gravação pelo perfil
-  api.js                /api/health, /api/plano, /api/auth/*, /api/usuarios, /api/perfis
+  janela.js             completa a migração 9 → 12 meses nas gravações filtradas
+  agrofit.js            cliente da API AGROFIT (Embrapa), OAuth2 e prazo de 15 s
+  api.js                /api/health, /api/plano, /api/auth/*, /api/usuarios,
+                        /api/perfis, /api/agrofit/produtos-formulados
   estatico.js           arquivos de public/
   store/                BANCO
     index.js            escolhe o destino por DATABASE_URL
@@ -97,6 +155,14 @@ setP({ ...PADRAO });       // trocar o objeto inteiro: pelo setter
 Quem importa `P` enxerga a troca — são bindings vivos. Esquecer o setter dá
 `TypeError: Assignment to constant variable`.
 
+`estado.js` guarda dois tipos de coisa, e a diferença importa:
+
+- **dado** — o plano (`P`, `PLANO`, `DIM`, `INSX`, `ARREND`...). Entra em
+  `estado()`, é gravado no servidor e passa pelo filtro de permissões;
+- **visão** — o que a pessoa está olhando agora (`PERIODO_SEL`, `MESES_SEL`,
+  `CRIT_GER`, `INS_FICHA`, `AGROFIT_BUSCA`, aba e item selecionados). Não entra em
+  `estado()`, não passa por `salvar()` e não é compartilhada.
+
 ### Onde mexer para cada tipo de mudança
 
 | Mudança | Arquivo |
@@ -106,12 +172,19 @@ Quem importa `P` enxerga a troca — são bindings vivos. Esquecer o setter dá
 | Fórmula de custo de uma atividade | `public/js/calculo/atividade.js` |
 | Rateio entre etapas, consolidação | `public/js/calculo/index.js` |
 | Layout ou colunas de uma aba | `public/js/ui/<aba>.js` |
+| Critério por mês, meta diária, janela de datas | `public/js/calculo/atividade.js` (`criterioMensal()`, `metaDe()`, `janelaDe()`) |
+| Família (bloco) de um insumo pela classe | `public/js/dados/insumos.js` (`FAMILIAS_INSUMO` — a ordem é o desempate) |
+| Relatório novo ou seção de relatório | `public/js/io/secoes.js` (`RELATORIOS` e as seções) |
+| Tabela mensal nova | a aba em `ui/`, com `clsMes(i)` no cabeçalho e na célula e `somaSel()` no total, para o filtro de período funcionar |
+| Busca ou coluna arrastável numa tabela | só marcação: `<input class="tbl-busca" data-alvo="#tabela">`; o resto é automático (`ui/componentes.js`) |
 | Campo novo que precisa ser salvo | `nucleo/estado.js` + `io/persistencia.js` (`estado()` e `aplicar()`) + a aba dona dele em `server/permissoes.js` |
+| Migração de formato do documento | `io/persistencia.js` **e** o espelho no servidor (hoje `server/janela.js`) — ver CLAUDE.md |
 | Quais dados cada aba edita (permissões) | `server/permissoes.js` (`AREAS`) |
 | Controle novo que só muda a visualização (filtro, abrir detalhe) | `public/js/ui/permissoes.js` (`VISUAIS`) |
 | Rota da API | `server/api.js` |
+| Integração com API externa (ex.: AGROFIT) | `server/<nome>.js`, credencial por variável de ambiente, nunca no código |
 | Hash de senha, sessão, guardas de rota | `server/auth.js` |
-| Esquema do banco (`plano`, `usuarios`, `sessoes`) | `server/store/schema.sql` |
+| Esquema do banco (`plano`, `usuarios`, `sessoes`, `perfis`) | `server/store/schema.sql` |
 
 ## Base de frota
 
@@ -247,9 +320,15 @@ no meio de uma gravação não perde o que foi digitado. Quando o servidor cai, 
 passa a dizer *Servidor fora — salvo neste navegador*, porque nesse momento os outros
 usuários ainda não estão vendo a alteração.
 
-As gravações usam merge por campo: uma sessão nunca apaga dados preenchidos por outra.
-No Postgres o merge acontece dentro do próprio `UPDATE` (operador `||` de `jsonb`), e não
-em ler-alterar-gravar, então duas pessoas salvando ao mesmo tempo não se sobrescrevem.
+As gravações usam merge por **chave do documento** (`PLANO`, `DIM`, `ARREND`...): no
+Postgres o merge acontece dentro do próprio `UPDATE` (operador `||` de `jsonb`), e não
+em ler-alterar-gravar. Duas pessoas salvando ao mesmo tempo em assuntos diferentes não se
+sobrescrevem; no **mesmo** assunto (duas atividades do Plano, por exemplo), vale a última
+gravação, porque o navegador manda a chave inteira. Está anotado como dívida no
+[CLAUDE.md](CLAUDE.md#dívidas-conhecidas).
+
+Antes de gravar, o servidor descarta o que o perfil do usuário não pode editar (ver
+[Perfis e permissões](#perfis-e-permissões)).
 
 ## Hospedagem no Render
 
@@ -266,7 +345,20 @@ Para criar os serviços manualmente, em vez do blueprint:
 3. No web service, adicione a variável `DATABASE_URL` com a *Internal Database URL* do
    Postgres criado no passo 1 (a interna exige que os dois estejam na mesma região).
 
-O servidor cria a tabela `plano` sozinho no primeiro acesso, com o DDL de [`server/store/schema.sql`](server/store/schema.sql).
+O servidor cria as tabelas (`plano`, `usuarios`, `sessoes`, `perfis`) sozinho no primeiro
+acesso, com o DDL de [`server/store/schema.sql`](server/store/schema.sql).
+
+### Variáveis de ambiente
+
+| Variável | Obrigatória | De onde vem |
+|---|---|---|
+| `DATABASE_URL` | sim, em produção | injetada pelo blueprint (`render.yaml`) |
+| `NODE_VERSION` | — | `render.yaml` (22) |
+| `DATABASE_SSL` | não | só para forçar TLS — ver [Quando o TLS do banco falha](#quando-o-tls-do-banco-falha) |
+| `AGROFIT_CLIENT_ID`, `AGROFIT_CLIENT_SECRET` | não | credenciais da AgroAPI da Embrapa. **Não estão no `render.yaml`**: crie à mão em *Environment* no painel do Render. Sem elas, o botão *Buscar* da bula responde "AGROFIT não configurado" e o resto do sistema funciona normalmente |
+
+Localmente, as mesmas variáveis podem ir num arquivo `.env` na raiz (ignorado pelo git);
+`server/env.js` o carrega sem sobrescrever o que já veio do ambiente.
 
 ### O que muda no deploy com a separação em pastas
 
@@ -292,8 +384,8 @@ O `render.yaml` não mudou: `buildCommand: npm install`, `startCommand: npm star
 - O web service **hiberna após 15 minutos** sem acesso; o primeiro acesso seguinte leva
   cerca de 50 segundos para responder.
 - O **Postgres gratuito expira em 30 dias**. Antes disso é preciso migrar para o plano
-  pago ou criar outro banco — expirado, os dados são apagados. Para exportar, use o botão
-  *Relatório › Excel* ou `pg_dump` na *External Database URL*.
+  pago ou criar outro banco — expirado, os dados são apagados. Para exportar, use
+  *Relatório › Excel* no menu lateral ou `pg_dump` na *External Database URL*.
 
 ### Verificar um deploy
 
@@ -312,7 +404,9 @@ npm install && npm start
 ```
 
 Abre em `http://localhost:10000`. Sem `DATABASE_URL`, grava em `.data/plano.json` — bom
-para testar, mas sem o compartilhamento real. Para usar um Postgres:
+para testar, mas sem o compartilhamento real. No primeiro acesso, crie o administrador
+(ver [Acesso](#acesso)). Para testar a busca de bula, ponha as credenciais da AGROFIT num
+`.env` (ver [Variáveis de ambiente](#variáveis-de-ambiente)). Para usar um Postgres:
 
 > **Precisa de um servidor.** Abrir `public/index.html` com duplo clique não
 > funciona mais: por `file://` o navegador trata a página como origem opaca e
@@ -347,6 +441,13 @@ funcionando.
   Perfis e permissões**, numa matriz aba × perfil. Perfil novo nasce só com
   visualização; o administrador marca as abas que ele edita. *Edita tudo* vale
   também para abas criadas no futuro.
+
+Algumas abas não têm permissão própria e seguem a de outra: *Cadastro de
+Insumos*, *Grupos de Insumos* e a busca de bula na AGROFIT seguem a de
+**Insumos**. Um mesmo dado pode ter duas abas donas: a área irrigada mora no
+Plano, então quem edita **Irrigação** também grava o Plano. A tela só deixa mexer
+no que a Irrigação mostra, mas o servidor controla por assunto do documento, não
+por campo — ver [CLAUDE.md](CLAUDE.md#perfis-e-permissões).
 
 Trocar as permissões de um perfil vale na hora, inclusive para quem já está com
 o sistema aberto: o servidor confere o perfil a cada gravação. Não dá para

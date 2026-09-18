@@ -1,7 +1,7 @@
 import { composicao, etapasNoPlano, familiaDe, insumosPorFamilia, precoInsumo, todasFamilias, tratCodigos, tratEtapas, tratListaTodos } from '../calculo/insumos.js';
 import { TRAT_ETAPAS } from '../dados/insumos.js';
 import { INSUMO, INS_FICHA, P, TRATC, TRAT_NOME, TRAT_SEL, insLista } from '../nucleo/estado.js';
-import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
+import { $, brl, esc, fmt, num, urlWeb } from '../nucleo/formato.js';
 import { kpi, th } from './componentes.js';
 import { setTRAT_SEL } from '../nucleo/estado.js';
 
@@ -125,8 +125,8 @@ function pintarInsumos(R){
         <td class="num calc">${brl(corr,2)}</td><td class="num calc">${fmt(nec,1)}</td>
         <td class="num ${preco>0?"tot":"calc"}">${preco>0?brl(nec*corr):'<span class="badge b-warn">sem preço</span>'}</td>
         <td class="num calc">${usos?usos+" trat.":"—"}</td>
-        <td>${i.bula_url
-          ? `<a href="${esc(i.bula_url)}" target="_blank" rel="noopener">Ver bula</a>
+        <td>${urlWeb(i.bula_url)
+          ? `<a href="${esc(urlWeb(i.bula_url))}" target="_blank" rel="noopener">Ver bula</a>
              <button class="btn" data-agrobusca="${ix}" title="Buscar de novo na Agrofit">↻</button>`
           : `<button class="btn" data-agrobusca="${ix}" title="Buscar a bula na Agrofit pelo nome e fabricante">Buscar</button>`}</td>
         <td>${ficha.length?`<button class="btn" data-infx="${esc(i.prod)}"

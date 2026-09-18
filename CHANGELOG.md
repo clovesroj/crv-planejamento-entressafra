@@ -1,5 +1,215 @@
 # Histórico de mudanças
 
+## 2.22.1 — 2026-09-17 · Revisão de continuidade dos commits do dia
+
+Revisão conduzida por **Caio Souza** sobre os commits de 17/09 (perfis, janela
+de 12 meses, datas no Plano, cadastro de tratamentos, AGROFIT). Nenhum número
+muda para dado válido: com a fixture de produção, o motor de cálculo e as 24
+telas saem idênticos ao HEAD anterior — só a aba Validação muda, porque ganhou
+checagens.
+
+### Migração de 9 para 12 meses gravada pela metade com perfil restrito
+
+O navegador migra PLANO, DIESEL_MES e ARREND juntos ao abrir, mas só reconhece
+o formato antigo pelo PLANO. Com perfis, as três chaves deixaram de chegar
+juntas ao banco:
+
+- quem edita a Irrigação gravava PLANO já em 12 meses e tinha arrendamento e
+  diesel descartados. Na abertura seguinte a migração não rodava mais, e o
+  pagamento do arrendamento em Out/26 (índice antigo 0) passava a ser lido
+  como Abr/26;
+- quem edita só Arrendamento gravava o contrato migrado com o PLANO ainda em 9
+  meses, e o arrendamento era migrado de novo a cada abertura.
+
+Agora o servidor completa a migração das chaves que o perfil não grava, com a
+mesma regra do navegador (`server/janela.js`), na primeira gravação que chega
+no formato novo. Conferido com três perfis: o banco fica inteiro em 12 meses e
+igual ao que o navegador tinha.
+
+### Janela de datas do Plano Operacional
+
+- **Janela fora do ano agrícola** (ano digitado errado, por exemplo 2025) era
+  aceita: a frota e o efetivo eram dimensionados para um período sem nenhum
+  mês do orçamento. Agora vale o mesmo que uma janela invertida: a atividade
+  usa os meses com volume.
+- **Janela que passa do ano agrícola** (começa antes de Abr/26 ou termina
+  depois de Mar/27) marcava todos os meses como fora da janela no Plano.
+  Agora marca os meses de dentro. Os números não mudam.
+- **Validação** ganhou três checagens: janela de datas utilizável (só uma data,
+  data inválida, fim antes do início, fora do ano), janela dentro do ano
+  agrícola, e volume programado dentro da janela de datas. Antes a janela
+  descartada não aparecia em lugar nenhum.
+
+### Código de tratamento
+
+O código ficou editável nesta versão e vai cru para a tela em quase cem
+lugares (select do Plano, rastro, relatórios). Um código com `<` ou aspas virava
+marcação. Agora aceita só letras, números, espaço e `. _ / + ( ) % , -` (até 60
+caracteres), com aviso próprio ao criar e ao renomear. Todos os códigos da base
+já estão nesse formato.
+
+O aviso "o vínculo das atividades não será salvo", ao renomear ou remover um
+tratamento, aparecia também para quem edita a Irrigação, que grava esse
+vínculo (PLANO tem duas abas donas). Agora só aparece quando o vínculo é de
+fato descartado.
+
+### AGROFIT
+
+- Chamadas à Embrapa com prazo de 15 s, inclusive na leitura da resposta. Antes
+  uma API lenta segurava a requisição e o "Buscando..." indefinidamente.
+- Resposta que não é JSON (página de erro do gateway) e autenticação sem token
+  viram erro legível (424) em vez de "falha interna".
+- O link da bula só vira link se for `http(s)`: `esc()` segura a aspa, mas não
+  impedia um `javascript:` gravado no documento.
+
+## 17/09 — mudanças registradas só no git (consolidadas na 2.22.1)
+
+No dia 17/09 quatro pessoas publicaram direto no `main`, e 28 commits entraram
+sem entrada neste arquivo — o registro ficou só na mensagem do commit. Estão
+reunidos aqui por assunto, para quem chegar não precisar ler o `git log`. O
+detalhe de cada um (a conta conferida, o caso que motivou) continua na
+mensagem: `git show <hash>`.
+
+Autores: **tkaique9-cloud**, **Caio Souza** (os commits aparecem também como
+CAIO ROBERTO DE SOUZA, o e-mail corporativo), **aureniorg3** e **clovesroj**
+(este com entradas próprias, da 2.18.0 à 2.22.0).
+
+Só um item muda custo em plano que já existia: o transporte herdando a janela
+da colheita (`59bd87b`). Os demais são leitura, tela ou valem só para quem usar
+o recurso novo.
+
+### Filtro de período na barra superior — tkaique9-cloud
+
+- **Um seletor só para o app inteiro** (`3c4989d`): Ano todo, Safra,
+  Entressafra e Meses valem em toda tabela mensal — Plano, Arrendamentos,
+  Combustível, Fornecedores, Pessoas, Dimensionamento, Painel, Custos e
+  Acompanhamento. O "Mostrar meses" próprio do Plano deixou de existir.
+- **Meses a dedo** (`4991e2a`): o botão Meses abre os doze para marcar; os
+  atalhos Safra e Entressafra servem de ponto de partida. Seleção vazia não
+  filtra (zerar a lista levaria a uma tela de zeros sem explicação).
+- **O total segue o filtro**: `somaSel()` e `maxSel()` refecham a soma sobre os
+  meses à mostra, e o cabeçalho passa a dizer "Total do período". No
+  Acompanhamento, a aderência passa a ser a do período escolhido.
+- **Como funciona:** toda coluna de mês leva `clsMes(i)` (classe do período e
+  índice `m0`..`m11`, em `nucleo/calendario.js`), e `render()` escreve uma
+  regra CSS única que esconde os meses de fora. Tabela mensal nova precisa usar
+  `clsMes(i)` no cabeçalho **e** na célula, ou desalinha com o filtro.
+- Fica de fora, de propósito, o modal de rendimento mensal: filtrar ali
+  esconderia campo de entrada.
+
+### Dimensionamento e critério por mês — tkaique9-cloud
+
+- **Frota como entrada** (`f6383b7`): a coluna Frota do Dimensionamento virou
+  campo. Em branco, a frota sai do rendimento, como antes. Preenchida, a conta se
+  inverte e o rendimento vira número calculado (tarja *da frota*): "com estas
+  máquinas, que rendimento cada uma tem de entregar". Só em atividade de frente
+  única.
+- **Critério por mês** (`f6383b7`, `5941db4`): o modal de rendimento mensal virou
+  um cartão por mês — o que entregar (produção por dia e por equipamento), com o
+  que contar (frota, rendimento, disponibilidade, utilização) e o que isso
+  obriga (rendimento, disponibilidade ou utilização necessária; são
+  alternativas, não se somam). Mês que não cabe fica marcado. Campo em branco
+  herda da atividade.
+  - Critério lançado em algum mês **manda na frota alvo da atividade**, que fica
+    suspensa com a tarja *frota do mês manda*.
+  - A conta é uma só, `criterioMensal()` em `calculo/atividade.js`, e é ela que
+    modal, rastro, motor e relatórios leem.
+- **Eficiência operacional** (`67b1fe1`): a hora efetiva passa a ser jornada ×
+  disponibilidade × utilização × **eficiência**. Premissa `P.efic` (padrão
+  100%, então nada muda para quem não usa) e campo por mês. Disponibilidade é da
+  manutenção (quebra); eficiência é da operação (chuva, manobra, espera).
+- **Meta diária em duas leituras** (`78dfc3a`, `301e8a4`): por dia **efetivo**
+  (÷ dias de operação do mês — é a meta) e por dia **corrido** (÷ dias reais do
+  calendário, `diasCorridos()` — é o termômetro). As duas aparecem sempre juntas,
+  com o divisor ao lado.
+- **Mês parcial** (`2b04682`): `diasDoMes()` recorta o mês pela janela de datas
+  da atividade — dezembro que termina no dia 15 vale 15 dias. O mês cortado sai
+  marcado *mês parcial*. Volume lançado fora da janela usa o mês cheio. Frota
+  fixada por mês também respeita a janela (só toca custo de quem usa frota por
+  mês).
+- **Transporte e transbordo herdam a janela da colheita** (`59bd87b`) quando não
+  têm data própria. **Muda custo**: no cenário conferido, +0,167% — era a frota
+  de transporte subdimensionada. Data digitada no transporte continua mandando.
+
+### Acompanhamento e relatórios — tkaique9-cloud
+
+- **Critério por mês na reunião** (`a6e26a0`): painel novo no Acompanhamento do
+  Plano, uma linha por atividade e mês, com filtros por gerência e *só o que não
+  cabe*, e um KPI com quantos meses estão fora do critério.
+- **Relatório novo, "Critério Operacional por Mês"** — são 21 relatórios agora.
+  As Metas por gerência e o Acompanhamento ganharam as seções `criterioMes` e
+  `criterioApertado`. Tudo sai de `criterioPorMes()`, que chama
+  `criterioMensal()`: a folha impressa não recalcula meta.
+- **Gerências** (`98a8afb`): a lista passou a ser a da agrícola — só tratos
+  culturais, irrigação incluída (29 atividades). Todo o resto, inclusive etapa
+  nova, é logística (18). Só rótulo no acompanhamento; não mexe em custo.
+
+### Cadastro de insumos — tkaique9-cloud, aureniorg3, Caio Souza
+
+- **Quebra por família** (`ad8f68d`): o cadastro sai em blocos deduzidos da
+  classe agronômica por palavra-chave (`FAMILIAS_INSUMO` em `dados/insumos.js` —
+  vale o primeiro termo que casa, então a ordem do catálogo é a regra de
+  desempate), e dentro do bloco em ordem de princípio ativo.
+  - A linha carrega `data-in` com a **posição original** em `insLista()`. Reordenar
+    a exibição não pode trocar o índice, senão editar um produto altera outro.
+- **Coluna Grupo** (`01aa116`): campo `fam` põe o produto no bloco escolhido sem
+  reescrever a classe técnica. Em branco, vale a dedução.
+- **Filtrar e recolher grupo** (`9a32467`, `e5c7924`, `28f57e1`): seletor com a
+  contagem de cada grupo, faixa que dobra no clique, "Recolher todos". É visão,
+  não dado. As larguras vêm de um `colgroup` com `table-layout:fixed`, para
+  dobrar não mexer na tabela.
+- **Ficha técnica em modal** (`13cab17`): `INS_ABERTO` deu lugar a `INS_FICHA`
+  (um produto por vez).
+- **Dois grupos novos** (`8fea47b`): Fertilizantes foliares e Bioestimulantes,
+  antes de "fertilizante" na ordem; 11 produtos mudaram de bloco.
+- **Busca por nome** nas tabelas de cadastro, tratamentos e materiais
+  (`0eb0b5f`, Caio Souza).
+- **Configurações** (`6e784ed`, aureniorg3): grupo novo no menu com duas abas.
+  *Cadastro de Insumos* saiu da aba Insumos, que ficou com tratamentos e
+  materiais. *Grupos de Insumos* cria, renomeia e exclui grupo personalizado
+  (`GRUPOS_INS`); só exclui grupo sem insumo usando. As duas usam a permissão da
+  aba Insumos.
+- **Bula pela AGROFIT** (`87e3801`, aureniorg3): o botão *Buscar* consulta a API
+  da Embrapa pelo nome comercial, e quem cadastra confirma o candidato antes de
+  gravar o link (`bula_url`, `agrofit_registro`, `agrofit_titular` no insumo).
+  - A autenticação OAuth2 fica no servidor (`server/agrofit.js`).
+  - As credenciais `AGROFIT_CLIENT_ID` e `AGROFIT_CLIENT_SECRET` vêm do `.env`
+    local (`server/env.js`) ou do painel do Render. **Não estão no
+    `render.yaml`:** precisam ser criadas à mão em *Environment*. Sem elas, o
+    botão responde "AGROFIT não configurado" e o resto funciona.
+  - A rota `/api/agrofit/produtos-formulados` exige a permissão de Insumos.
+
+### Interface — Caio Souza
+
+- **Busca por nome em toda tabela** (`95b41ca`, `3c13d97`): qualquer
+  `<input class="tbl-busca" data-alvo="#tabela">` funciona sozinho — um handler
+  delegado em `app/eventos.js`, uma entrada `.tbl-busca` em `VISUAIS`. Está em 45
+  das 72 tabelas; ficaram de fora as grades de mês e as tabelas pequenas de
+  comparação.
+- **Coluna arrastável** nas mesmas 45 tabelas (`3c13d97`). A ordem fica no
+  `localStorage` **por usuário** (login na chave), nunca no documento
+  compartilhado. `#t_plano` tranca as duas primeiras colunas (congeladas na
+  rolagem). Arrastar troca só as duas colunas (`8642287`), e o `colgroup` vai
+  junto (`9b8e9df`).
+- Busca e arrasto são aplicados no fim de `render()` (`reaplicarBuscas()`,
+  `habilitarReordenacao()` em `ui/componentes.js`): tela nova não precisa de
+  código próprio para ter os dois.
+- **Menu lateral** (`21b179d`, `2d4bb42`): abre e fecha animado. *Relatório*
+  virou atalho no menu, com os 21 relatórios. O botão da barra superior saiu, e o
+  painel de gerar virou modal com **pré-visualização** na tela
+  (`montarHtmlRelatorio()`, o mesmo HTML do PDF).
+- **Chip "Somente visualização" aparecendo para o administrador** (`88bbd12`):
+  `.chip{display:inline-flex}` vencia o atributo `hidden`. Elemento com `display`
+  próprio precisa de regra `[hidden]{display:none}` explícita.
+
+### Relatório em PDF — Caio Souza
+
+- Folha A4 fixa, texto que quebra linha em vez de cortar coluna, e cabeçalho que
+  se repete em cada página (`10d2c00`).
+- `table-layout` voltou a `auto` (`f6081d5`): com largura igual para 24
+  colunas, a linha ficava maior que a página e gerava página em branco.
+- Página em branco no início do relatório impresso removida (`75b1951`).
+
 ## 2.22.0 — 2026-09-17 · Valor do arrendamento é o de cada pagamento
 
 **Reverte a opção "Valor informado" da 2.20.0** e corrige a conta direto, sem

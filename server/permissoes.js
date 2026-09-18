@@ -24,6 +24,8 @@
  * Validação acusa o esquecimento.
  */
 
+const janela = require('./janela');
+
 const TUDO = '*';   // em editaveis: edita todas as abas, inclusive as criadas no futuro
 
 const AREAS = [
@@ -126,10 +128,16 @@ function filtrarGravacao(corpo, atual, perm, substituir) {
   const minhas = AREAS.filter(a => perm.editaveis.includes(a.id));
   const chaves = new Set(minhas.flatMap(a => a.chaves || []));
   const campos = new Set(minhas.flatMap(a => a.campos || []));
-  const base = atual || {};
+  // Banco ainda em 9 meses e o navegador já mandando 12: a migração tem de
+  // entrar inteira, inclusive nas chaves que este perfil não grava — senão o
+  // documento fica metade em cada formato (ver server/janela.js). Comparar com
+  // o banco já migrado também evita acusar a migração como edição proibida.
+  const migrando = janela.de9Meses(atual) && !janela.de9Meses(corpo);
+  const base = migrando ? janela.migrar(atual) : (atual || {});
   const baseP = base.P || {};
   const ignorados = [];
   const doc = substituir ? { ...base } : {};
+  if (migrando) janela.CHAVES.forEach(k => { if (k in base) doc[k] = base[k]; });
 
   if (substituir) chaves.forEach(k => { if (!(k in corpo)) delete doc[k]; });
 

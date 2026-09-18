@@ -31,11 +31,12 @@ function indiceDaData(iso){
   return MESES.findIndex(r => (MES_NUM[r.slice(0,3)]||0) === m && +r.slice(-2) === a);
 }
 /* Indices dos meses cobertos por uma janela de datas. Vazio quando a janela nao
-   toca o horizonte do orcamento. */
+   toca o horizonte do orcamento. Janela que comeca antes ou termina depois do
+   horizonte e recortada nele: pedir "so os meses de dentro" nao pode devolver
+   nenhum so porque uma das pontas caiu fora (o Plano marcava todos os meses
+   como fora da janela). Invertida ou com data invalida: vazio. */
 function mesesEntre(ini, fim){
-  const a = indiceDaData(ini), b = indiceDaData(fim);
-  if(a < 0 || b < 0 || b < a) return [];
-  return MESES.map((_,i)=>i).filter(i => i >= a && i <= b);
+  return MESES.map((_,i)=>i).filter(i => diasNoMesEntre(i, ini, fim) > 0);
 }
 
 /* Dias de calendario do mes i que caem dentro da janela [ini, fim]. Zero quando
