@@ -165,13 +165,17 @@ $("#card_diesel")?.addEventListener("keydown", e=>{
 });
 
 /* Clima e diesel não dependem do plano (R): carregam uma vez, no primeiro
-   render() pós-login, não a cada tecla digitada em qualquer aba. */
+   render() pós-login, não a cada tecla digitada em qualquer aba — e depois se
+   atualizam sozinhos por um temporizador (a cadência é a mesma dos dois: o
+   cache do io/clima.js já é 10 min, e a ANP só publica uma vez por semana). */
+const INTERVALO_ATUALIZACAO = 30 * 60 * 1000;
 let heroIniciado = false;
 function iniciarHeroCapa(){
   if(heroIniciado) return;
   heroIniciado = true;
   carregarClima(cidadeSalva());
   carregarDiesel();
+  setInterval(()=>{ carregarClima(cidadeSalva()); carregarDiesel(); }, INTERVALO_ATUALIZACAO);
 }
 
 export { pintarCapa };
