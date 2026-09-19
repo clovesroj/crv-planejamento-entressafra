@@ -223,41 +223,6 @@ footer{display:flex;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;co
   color:#fff;text-wrap:balance}
 .hero p{margin:0;color:#B7C7B3;font-size:13.5px}
 
-/* ---------- clima e diesel (cartões da Capa) ----------
-   Vidro fosco sobre o mesmo gradiente do .hero, acima — continuação visual
-   do banner, não dado do plano: ver capa.js pra o motivo de não entrarem no
-   ciclo pintar()/render() do resto do app. */
-.hero-cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
-.card-clima,.card-diesel{position:relative;overflow:hidden;border-radius:var(--r);padding:18px 20px;color:#EEF3EA;
-  background:linear-gradient(135deg,#16261B 0%,#1B3320 100%);border:1px solid rgba(214,180,110,.22);
-  animation:capaCardIn .45s ease-out both}
-.card-diesel{cursor:pointer;display:flex;align-items:center}
-.card-diesel:hover{border-color:rgba(214,180,110,.45)}
-.card-diesel:focus-visible{outline:none;box-shadow:0 0 0 2px var(--straw)}
-@keyframes capaCardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-.clima-busca-wrap{position:relative;margin-bottom:12px}
-.clima-busca-wrap .busca-cidade{height:32px;font-size:12.5px;background:rgba(255,255,255,.08);
-  border-color:rgba(255,255,255,.18);color:#EEF3EA}
-.clima-busca-wrap .busca-cidade::placeholder{color:#B7C7B3}
-.clima-busca-wrap .busca-cidade:focus{border-color:var(--straw)}
-.clima-cidade{font-size:12.5px;color:#B7C7B3;text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px}
-.clima-principal{display:flex;align-items:center;gap:10px}
-.clima-temp{font-family:var(--f-display);font-size:40px;font-weight:600;line-height:1}
-.diesel-preco{font-size:32px}
-.clima-icone{font-size:32px;margin-left:auto;filter:drop-shadow(0 2px 4px rgba(0,0,0,.35))}
-.clima-hl{font-size:12.5px;color:#B7C7B3;margin-top:2px}
-.clima-desc{font-size:13px;color:#D6E0D2;margin-top:1px}
-.clima-metricas{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
-.clima-linha{background:rgba(255,255,255,.06);border-radius:var(--r-sm);padding:9px 10px}
-.clima-linha-topo{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;color:#B7C7B3}
-.clima-linha-topo b{font-size:13px;color:#fff;font-weight:700}
-.mini-linha{width:100%;height:22px;margin-top:5px;overflow:visible}
-.mini-linha polyline{fill:none;stroke:#D6B46E;stroke-width:1.6;vector-effect:non-scaling-stroke}
-.mini-linha circle{fill:#D6B46E}
-.clima-linha-horas{display:flex;justify-content:space-between;font-size:9px;color:#8A9A86;margin-top:2px}
-.hero-cards .hint{color:#B7C7B3;font-size:12.5px}
-@media (max-width:760px){.hero-cards{grid-template-columns:1fr}}
-
 /* ---------- login ---------- */
 /* mesmo gradiente do .hero — é a mesma identidade, tela de entrada */
 .tela-login{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;
