@@ -48,6 +48,7 @@ let CRIT_GER = "";       // filtro de gerência do critério por mês (visão, n
 let CRIT_CABE = "";      // "" todos os meses | "apertado" só os que não cabem
 let APOIO_FIXO = {};     // nome do item -> qtd ajustada (frota de apoio de utilização fixa)
 let TRAT_NOME = {};      // cod do tratamento -> nome descritivo editável
+let TRAT_OBS = {};       // cod do tratamento -> observação livre (recomendação, instrução de uso)
 let TRAT_ETAPA = {};     // cod do tratamento -> etapas em que é usado (preparo, plantio, planta, soca...)
 let TRAT_DEL = {};       // cod do tratamento -> true quando foi removido do cadastro base
 let DIESEL_MES = {};     // índice do mês -> preço projetado do diesel (R$/L); vazio = preço base
@@ -78,7 +79,7 @@ let AGROFIT_BUSCA = null;
 
 export {
   P, PLANO, DIM, INSUMO, ESPOR, TRATC, NIV, GRAT, APOIO, TERC_TAR, CRM, MATX,
-  INSX, INSX_V, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, CRIT_GER, CRIT_CABE, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, INS_FICHA, APOIO_FIXO, TRAT_NOME, TRAT_ETAPA, TRAT_DEL, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
+  INSX, INSX_V, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, CRIT_GER, CRIT_CABE, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, INS_FICHA, APOIO_FIXO, TRAT_NOME, TRAT_OBS, TRAT_ETAPA, TRAT_DEL, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
   TPESS, QUADRO, ADM, ADM_RAT, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL, GRUPOS_INS, FAM_NOME, FAM_CLASSE, AGROFIT_BUSCA, INS_EDIT,
 };
 
@@ -113,6 +114,7 @@ export const setFROTA_UN   = v => { FROTA_UN = v; };
 export const setFROTA_DEST = v => { FROTA_DEST = v; };
 export const setAPOIO_FIXO = v => { APOIO_FIXO = v; };
 export const setTRAT_NOME  = v => { TRAT_NOME = v; };
+export const setTRAT_OBS   = v => { TRAT_OBS = v; };
 export const setTRAT_ETAPA = v => { TRAT_ETAPA = v; };
 export const setTRAT_DEL   = v => { TRAT_DEL = v; };
 export const setDIESEL_MES = v => { DIESEL_MES = v; };

@@ -1,6 +1,6 @@
 import { composicao, doseBase, etapasNoPlano, familiaDe, insumosPorFamilia, precoInsumo, todasFamilias, tratCodigos, tratEtapas, tratListaTodos } from '../calculo/insumos.js';
 import { TRAT_ETAPAS } from '../dados/insumos.js';
-import { INSUMO, INS_EDIT, INS_FICHA, P, TRATC, TRAT_NOME, TRAT_SEL, insLista } from '../nucleo/estado.js';
+import { INSUMO, INS_EDIT, INS_FICHA, P, TRATC, TRAT_NOME, TRAT_OBS, TRAT_SEL, insLista } from '../nucleo/estado.js';
 import { $, brl, esc, fmt, num, urlWeb } from '../nucleo/formato.js';
 import { unidadesDaFamilia } from '../nucleo/unidades.js';
 import { kpi, ligarBuscaSelect, th } from './componentes.js';
@@ -180,6 +180,7 @@ function pintarInsumos(R){
   if(!TRAT_SEL || !codigos.includes(TRAT_SEL)) setTRAT_SEL(codigos[0]);
   buscaTrat && buscaTrat.definir(TRAT_SEL);
   $("#in_trat_nome").value = TRAT_NOME[TRAT_SEL] || "";
+  $("#in_trat_obs").value = TRAT_OBS[TRAT_SEL] || "";
   $("#in_trat_cod").value = TRAT_SEL || "";
   buscaProd && buscaProd.limpar();
   $("#c_etapa_sel").innerHTML = TRAT_SEL ? celulaEtapas(TRAT_SEL) : "";
@@ -215,7 +216,7 @@ function pintarInsumos(R){
      <td class="num tot">${brl(custoHa,2)}</td><td class="num tot">${custoHa>0?"100,0%":"—"}</td><td></td></tr></tbody>`;
 
   // --- 3. cadastro dos tratamentos: código, nome e etapa de uso ---
-  $("#t_trat").innerHTML = th([["Cod_Trat"],["Nome"],["Etapas em que é usado"],["Produtos",1],
+  $("#t_trat").innerHTML = th([["Cod_Trat"],["Nome"],["Observação"],["Etapas em que é usado"],["Produtos",1],
     ["Custo/ha",1],["Composição"],["Atividades que usam"],["Custo no plano",1],[""]])+"<tbody>"+
     TL.map(t=>{
       const usos = R.L.filter(r=>r.trat===t.cod);
@@ -224,6 +225,8 @@ function pintarInsumos(R){
                  title="Alterar o código do tratamento"></td>
         <td><input data-trn="${esc(t.cod)}" value="${esc(TRAT_NOME[t.cod]||"")}"
             style="text-align:left;min-width:180px" placeholder="Ex.: Herbicida pré-emergente"></td>
+        <td><input data-tro="${esc(t.cod)}" value="${esc(TRAT_OBS[t.cod]||"")}"
+            style="text-align:left;min-width:200px" placeholder="Recomendação ou instrução de uso"></td>
         <td style="min-width:176px">${celulaEtapas(t.cod)}</td>
         <td class="num calc">${composicao(t.cod).length}</td>
         <td class="num ${t.custo_ha>0?"tot":"calc"}">${t.custo_ha>0?brl(t.custo_ha,2):"—"}</td>

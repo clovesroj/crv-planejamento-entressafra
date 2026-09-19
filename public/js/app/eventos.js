@@ -6,7 +6,7 @@ import { CFG } from '../dados/cfg.js';
 import { buscarAgrofit, bulaDoProduto } from '../io/agrofit.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
-import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE } from '../nucleo/estado.js';
+import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_OBS, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE } from '../nucleo/estado.js';
 import { AGROFIT_BUSCA, FROTA_ABERTO, FROTA_UN, INS_EDIT, INS_FICHA, MAQ, setAGROFIT_BUSCA, setFROTA_DEST, setFROTA_ORIG, setINS_EDIT, setINS_FICHA } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { filtrarPorNome } from '../ui/componentes.js';
@@ -137,8 +137,11 @@ document.addEventListener("input",e=>{
   if(t.dataset.ex!==undefined){ ESPOR[+t.dataset.ex][t.dataset.f]=t.dataset.f==="valor"?num(t.value):t.value; salvar(); leve(); return; }
   if(t.dataset.td!==undefined){ const c=destravar(TRAT_SEL); c[+t.dataset.td].dose=num(t.value); salvar(); leve(); return; }
   if(t.id==="in_trat_nome"){ TRAT_NOME[TRAT_SEL]=t.value; salvar(); leve(); return; }
+  if(t.id==="in_trat_obs"){ TRAT_OBS[TRAT_SEL]=t.value; salvar(); leve(); return; }
   // nome do tratamento editado na propria linha do cadastro
   if(t.dataset.trn!==undefined){ TRAT_NOME[t.dataset.trn]=t.value; salvar(); leve(); return; }
+  // observacao do tratamento (recomendacao, instrucao de uso)
+  if(t.dataset.tro!==undefined){ TRAT_OBS[t.dataset.tro]=t.value; salvar(); leve(); return; }
   // campo vazio volta ao preço base; null (e não delete) para a limpeza chegar ao servidor no merge
   if(t.dataset.dm!==undefined){ const v=t.value.trim(); DIESEL_MES[t.dataset.dm] = v==="" ? null : num(v);
     salvar(); leve(); return; }
