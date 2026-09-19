@@ -16,7 +16,7 @@ import { lerPremissas } from '../ui/premissas.js';
 import { leve, render, renderAgrofit, renderEditIns, renderFichaIns, renderRastro, renderRendMensal } from './ciclo.js';
 import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarRastro, voltarRastro } from '../ui/rastro.js';
 import { abrirRendMensal, aberto as rendMensalAberto, fecharRendMensal } from '../ui/rendmensal.js';
-import { setAPOIO, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setINSX_V, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
+import { setAPOIO, setATIV_TRAT_SEL, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setINSX_V, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
 import { USUARIO, areasDePermissao, podeEditar } from '../nucleo/sessao.js';
 
 /* Renomear ou remover um tratamento mexe tambem nas atividades que o usam, e
@@ -212,6 +212,11 @@ document.addEventListener("change",e=>{
   if(t.dataset.t!==undefined){
     const c=t.dataset.t; PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""};
     PLANO[c].trat=t.value; salvar(); render(); return; }
+  if(t.id==="sel_trat_ativ"){
+    const c=t.value;
+    setATIV_TRAT_SEL(c);
+    if(c){ PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""}; PLANO[c].trat=TRAT_SEL; salvar(); }
+    render(); return; }
   if(t.dataset.ex!==undefined){ ESPOR[+t.dataset.ex][t.dataset.f]=t.value; salvar(); render(); return; }
   if(t.id==="p_fonte"){ lerPremissas(); salvar(); render(); return; }
   if(t.dataset.arr!==undefined && t.tagName==="SELECT"){ const l=arrLista()[+t.dataset.arr];

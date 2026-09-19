@@ -76,13 +76,14 @@ let EDITADO = false;     // true assim que o usuário mexe em algo — trava o c
 let FUN_SEL = null;
 let CAT_SEL = null;
 let TRAT_SEL = null;
+let ATIV_TRAT_SEL = null;  // cod da atividade cujo período/meses aparece na aba Insumos
 // busca de bula na AGROFIT (Embrapa), aberta no modal: {ix, carregando, erro, resultados} ou null
 let AGROFIT_BUSCA = null;
 
 export {
   P, PLANO, DIM, INSUMO, ESPOR, TRATC, NIV, GRAT, APOIO, TERC_TAR, CRM, MATX,
   INSX, INSX_V, ATVX, ATVX_V, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, CRIT_GER, CRIT_CABE, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, INS_FICHA, APOIO_FIXO, TRAT_NOME, TRAT_OBS, TRAT_ETAPA, TRAT_DEL, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
-  TPESS, QUADRO, ADM, ADM_RAT, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL, GRUPOS_INS, FAM_NOME, FAM_CLASSE, AGROFIT_BUSCA, INS_EDIT,
+  TPESS, QUADRO, ADM, ADM_RAT, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL, ATIV_TRAT_SEL, GRUPOS_INS, FAM_NOME, FAM_CLASSE, AGROFIT_BUSCA, INS_EDIT,
 };
 
 export const setP          = v => { P = v; };
@@ -140,6 +141,7 @@ export const setEDITADO    = v => { EDITADO = v; };
 export const setFUN_SEL    = v => { FUN_SEL = v; };
 export const setCAT_SEL    = v => { CAT_SEL = v; };
 export const setTRAT_SEL   = v => { TRAT_SEL = v; };
+export const setATIV_TRAT_SEL = v => { ATIV_TRAT_SEL = v; };
 export const setAGROFIT_BUSCA = v => { AGROFIT_BUSCA = v; };
 
 /* ---------------------------------------------------------------------------

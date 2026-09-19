@@ -547,7 +547,16 @@
     </div>
   </div>
 
-  <div class="panel"><h3>2. Cadastro dos tratamentos</h3>
+  <div class="panel"><h3>2. Atividade e período de lançamento</h3>
+    <div class="row" style="margin-bottom:12px">
+      <div style="min-width:260px"><label for="sel_trat_ativ">Atividade que usa este tratamento</label>
+        <select id="sel_trat_ativ"><option value="">— escolher atividade —</option></select></div>
+    </div>
+    <div class="tblwrap"><table id="t_trat_periodo"></table></div>
+    <div class="hint" style="margin-top:9px" id="trat_periodo_hint"></div>
+  </div>
+
+  <div class="panel"><h3>3. Cadastro dos tratamentos</h3>
     <div class="row" style="margin-bottom:12px">
       <div style="min-width:180px"><label>Novo tratamento</label><input id="in_trat_novo" placeholder="Ex.: 5 SU"></div>
       <div style="align-self:flex-end"><button class="btn p" id="btn_trat_add">Adicionar tratamento</button></div>
