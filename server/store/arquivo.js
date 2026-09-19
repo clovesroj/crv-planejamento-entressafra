@@ -123,6 +123,14 @@ function storeArquivo() {
       doc.sessoes = doc.sessoes.filter(s => s.usuario_id !== id);
       await escritaAtomica(arqUsu, dir, doc);
     }),
+    // Diferente de definirAtivo(false): apaga o cadastro de vez, não só corta
+    // o acesso — inclusive as sessões, que o Postgres cascateia sozinho.
+    apagarUsuario: id => enfileirarUsu(async () => {
+      const doc = await usuariosDoDisco();
+      doc.lista = doc.lista.filter(u => u.id !== id);
+      doc.sessoes = doc.sessoes.filter(s => s.usuario_id !== id);
+      await escritaAtomica(arqUsu, dir, doc);
+    }),
     marcarAcesso: id => enfileirarUsu(async () => {
       const doc = await usuariosDoDisco();
       const u = doc.lista.find(x => x.id === id);

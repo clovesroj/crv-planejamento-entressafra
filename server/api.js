@@ -8,7 +8,7 @@
  *   POST   /api/plano          idem, para navigator.sendBeacon ao fechar a aba
  *   PUT    /api/plano          substitui o documento — so em "restaurar padroes"
  *   POST   /api/auth/login | logout | bootstrap    GET /api/auth/me    PATCH /api/auth/senha
- *   GET|POST|PATCH        /api/usuarios   (admin)
+ *   GET|POST|PATCH|DELETE /api/usuarios   (admin)
  *   GET|POST|PATCH|DELETE /api/perfis     (admin) — o que cada perfil pode editar
  *   GET    /api/agrofit/produtos-formulados   candidatos na Embrapa para linkar a bula de um insumo
  *   GET    /api/anp/semanas          semanas disponíveis na ANP (data + url), em cache
@@ -146,6 +146,19 @@ async function api(req, res, rota) {
       if (papel != null) await store.definirPapel(id, papel);
       if (novaSenha) { validarSenha(novaSenha); await store.redefinirSenha(id, auth.hashSenha(novaSenha)); }
       return json(res, 200, { usuario: usuarioPublico(await store.usuarioPorId(id)) });
+    }
+    if (req.method === 'DELETE') {
+      const { id } = await lerCorpo(req);
+      const alvo = id && await store.usuarioPorId(id);
+      if (!alvo) throw erroHTTP(404, 'usuário não encontrado');
+      if (mesmoId(alvo.id, sessao.id)) throw erroHTTP(409, 'não dá para apagar o próprio usuário logado');
+      // mesma regra do "tirar admin" em PATCH: sem administrador ativo, ninguém
+      // mais gerencia usuários nem perfis
+      if (alvo.papel === 'admin' && alvo.ativo && await store.contarAdminsAtivos() <= 1) {
+        throw erroHTTP(409, 'é o único administrador ativo — promova outro usuário antes');
+      }
+      await store.apagarUsuario(id);
+      return json(res, 200, { ok: true });
     }
     throw erroHTTP(405, 'método não permitido');
   }

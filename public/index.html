@@ -1183,7 +1183,10 @@
         <div class="row">
           <div style="min-width:160px"><label>Login</label><input id="us_login" autocomplete="off"></div>
           <div style="min-width:200px"><label>Nome</label><input id="us_nome" autocomplete="off"></div>
-          <div style="width:150px"><label>Senha inicial</label><input id="us_senha" type="password" autocomplete="new-password"></div>
+          <div style="width:150px"><label>Senha inicial</label><div class="campo-senha">
+            <input id="us_senha" type="password" autocomplete="new-password">
+            <button type="button" class="olho-senha" data-alvo="us_senha" tabindex="-1" aria-label="Mostrar senha">👁</button>
+          </div></div>
           <div style="width:180px"><label>Perfil</label><select id="us_papel"><option value="usuario">Usuário</option><option value="admin">Administrador</option></select></div>
           <div style="align-self:flex-end"><button class="btn p" id="btn_us_add">Criar usuário</button></div>
         </div>
@@ -1216,8 +1219,14 @@
     <div class="bloco-corpo">
       <div class="panel"><h3>Minha senha</h3>
         <div class="row">
-          <div style="width:180px"><label>Senha atual</label><input id="us_senha_atual" type="password" autocomplete="current-password"></div>
-          <div style="width:180px"><label>Nova senha</label><input id="us_senha_nova" type="password" autocomplete="new-password"></div>
+          <div style="width:180px"><label>Senha atual</label><div class="campo-senha">
+            <input id="us_senha_atual" type="password" autocomplete="current-password">
+            <button type="button" class="olho-senha" data-alvo="us_senha_atual" tabindex="-1" aria-label="Mostrar senha">👁</button>
+          </div></div>
+          <div style="width:180px"><label>Nova senha</label><div class="campo-senha">
+            <input id="us_senha_nova" type="password" autocomplete="new-password">
+            <button type="button" class="olho-senha" data-alvo="us_senha_nova" tabindex="-1" aria-label="Mostrar senha">👁</button>
+          </div></div>
           <div style="align-self:flex-end"><button class="btn" id="btn_us_trocar_senha">Trocar minha senha</button></div>
         </div>
         <div class="hint" id="us_senha_msg" style="margin-top:9px"></div>
@@ -1242,7 +1251,10 @@
       <label for="login_usuario">Usuário</label>
       <input id="login_usuario" autocomplete="username" autofocus>
       <label for="login_senha">Senha</label>
-      <input id="login_senha" type="password" autocomplete="current-password">
+      <div class="campo-senha">
+        <input id="login_senha" type="password" autocomplete="current-password">
+        <button type="button" class="olho-senha" data-alvo="login_senha" tabindex="-1" aria-label="Mostrar senha">👁</button>
+      </div>
       <button class="btn p" type="submit" id="btn_login">Entrar</button>
       <div class="login-erro" id="login_erro" hidden></div>
     </form>

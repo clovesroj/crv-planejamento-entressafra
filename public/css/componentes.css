@@ -9,6 +9,14 @@ input:disabled,select:disabled{background:var(--sunk);color:var(--grey);border-s
 input.bad{border-color:var(--bad);background:var(--bad-bg)}
 .hint{font-size:11.5px;color:var(--grey);margin-top:4px;line-height:1.45}
 
+/* ---------- mostrar/ocultar senha ---------- */
+.campo-senha{position:relative}
+.campo-senha input{padding-right:34px}
+.olho-senha{position:absolute;right:2px;top:50%;transform:translateY(-50%);width:30px;height:28px;
+  border:0;background:transparent;cursor:pointer;font-size:15px;line-height:1;display:grid;place-items:center;
+  border-radius:var(--r-sm)}
+.olho-senha:hover{background:var(--sunk)}
+
 /* ---------- combobox de busca (select nativo com muita opção vira pesquisável) ---------- */
 .lista-select{position:absolute;z-index:20;top:calc(100% + 4px);left:0;right:0;max-height:260px;overflow:auto;
   background:var(--card);border:1px solid var(--line-strong);border-radius:var(--r-sm);box-shadow:var(--pop-shadow)}

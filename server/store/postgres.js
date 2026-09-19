@@ -123,6 +123,12 @@ function storePostgres(url) {
       await pool.query('UPDATE usuarios SET senha_hash = $2 WHERE id = $1', [id, senha_hash]);
       await pool.query('DELETE FROM sessoes WHERE usuario_id = $1', [id]); // força novo login
     },
+    // Diferente de definirAtivo(false): apaga o cadastro de vez, não só corta o
+    // acesso. As sessões saem juntas por ON DELETE CASCADE (schema.sql).
+    async apagarUsuario(id) {
+      await garantirTabela();
+      await pool.query('DELETE FROM usuarios WHERE id = $1', [id]);
+    },
     async marcarAcesso(id) {
       await pool.query('UPDATE usuarios SET ultimo_acesso = now() WHERE id = $1', [id]);
     },

@@ -21,6 +21,7 @@ const trocarSenha = (senhaAtual, novaSenha) => chamar('/api/auth/senha', 'PATCH'
 const listarUsuarios = () => chamar('/api/usuarios', 'GET').then(d => d.usuarios);
 const criarUsuario   = u => chamar('/api/usuarios', 'POST', u).then(d => d.usuario);
 const atualizarUsuario = (id, campos) => chamar('/api/usuarios', 'PATCH', { id, ...campos }).then(d => d.usuario);
+const excluirUsuario   = id => chamar('/api/usuarios', 'DELETE', { id });
 
 // perfis: o que cada um pode editar (só admin) — GET devolve {perfis, areas, admins}
 const listarPerfis    = () => chamar('/api/perfis', 'GET');
@@ -28,5 +29,5 @@ const criarPerfil     = (nome, editaveis) => chamar('/api/perfis', 'POST', { nom
 const atualizarPerfil = (id, campos) => chamar('/api/perfis', 'PATCH', { id, ...campos }).then(d => d.perfil);
 const excluirPerfil   = id => chamar('/api/perfis', 'DELETE', { id });
 
-export { quemSou, login, logout, trocarSenha, listarUsuarios, criarUsuario, atualizarUsuario,
+export { quemSou, login, logout, trocarSenha, listarUsuarios, criarUsuario, atualizarUsuario, excluirUsuario,
          listarPerfis, criarPerfil, atualizarPerfil, excluirPerfil };
