@@ -1,8 +1,8 @@
 /**
  * Cadastro de atividades do plano operacional.
  *
- * 44 atividades. Cada linha e uma operacao agricola ou de transporte.
- * 
+ * 48 atividades. Cada linha e uma operacao agricola ou de transporte.
+ *
  * cod    codigo unico (A01..., TR1... para transporte)
  * etapa  PREPARO DE SOLO | PLANTIO | TRATOS CULTURAIS | COLHEITA | APOIO E CONSERVACAO
  * un     unidade de lancamento: "ha/mes" ou "ton/mes"
@@ -14,6 +14,14 @@
  * modoOn true libera o mix de modos de aplicacao (Manual/Trator/Uniport/Drone/Terceiro)
  * cultura "Soca" ou "Planta" — usado no rateio de TRATOS CULTURAIS
  */
+
+/* Versao do cadastro base de atividades. SOBE em uma unidade sempre que
+   atividade nova entrar em ATIVIDADES: e por ela que o documento ja salvo
+   sabe que tem atividade nova para receber (calculo/atividade.js mescla na
+   leitura, mesmo mecanismo de INSUMOS_V/mesclarBaseInsumos).
+     1  cadastro base, 48 atividades (44 originais + A40-A43 da importacao
+        de herbicida) — ponto de partida da aba Cadastro de Atividades */
+export const ATIVIDADES_V = 1;
 
 export const ATIVIDADES = [
   {"cod":"A01","etapa":"COLHEITA","nome":"Colheita safra 2026","un":"ton/mês","rend":45,"maq":"Colhedora CH570 / John Deere","imp":"Transbordo 2 eixos","ops":1,"turnos":3,"util":1},

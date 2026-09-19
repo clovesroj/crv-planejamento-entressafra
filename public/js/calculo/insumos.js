@@ -1,6 +1,6 @@
 import { CFG } from '../dados/cfg.js';
 import { CLASSES_GRUPO, FAMILIAS_INSUMO, TRAT_ETAPAS } from '../dados/insumos.js';
-import { FAM_CLASSE, FAM_NOME, INSUMO, P, PLANO, TRATC, TRAT_DEL, TRAT_ETAPA, TRAT_NOME, insLista, gruposInsLista } from '../nucleo/estado.js';
+import { FAM_CLASSE, FAM_NOME, INSUMO, P, PLANO, TRATC, TRAT_DEL, TRAT_ETAPA, TRAT_NOME, insLista, gruposInsLista, atividadesLista } from '../nucleo/estado.js';
 import { num } from '../nucleo/formato.js';
 import { fatorParaBase } from '../nucleo/unidades.js';
 
@@ -225,7 +225,7 @@ function etapaTrat(a){
 // etapas em que o plano de fato usa o tratamento
 function etapasNoPlano(cod){
   const s = new Set();
-  CFG.atividades.forEach(a=>{ const p=PLANO[a.cod];
+  atividadesLista().forEach(a=>{ const p=PLANO[a.cod];
     if(p && p.trat===cod) s.add(etapaTrat(a)); });
   return [...s];
 }
@@ -239,7 +239,7 @@ function marcarEtapa(cod, etapa, ligada){
 /* ---------- cadastro de tratamentos: incluir, remover, renomear ---------- */
 // atividades do plano que usam o tratamento
 function usosTrat(cod){
-  return CFG.atividades.filter(a=>{ const p=PLANO[a.cod]; return p && p.trat===cod; }).map(a=>a.cod);
+  return atividadesLista().filter(a=>{ const p=PLANO[a.cod]; return p && p.trat===cod; }).map(a=>a.cod);
 }
 /* O código vira texto de tela, valor de <option>, atributo data-* e rótulo de
    relatório em quase cem lugares, quase todos sem escape. Os da base são letras,

@@ -28,6 +28,8 @@ let CRM = {};            // item -> {pecas,terc,consumo,lubrif} ajustados
 let MATX = null;         // materiais de manutenção (lista editável)
 let INSX = null;         // cadastro de insumos (lista editável: incluir/alterar/remover)
 let INSX_V = 0;          // versão do cadastro base que este documento já recebeu
+let ATVX = null;         // cadastro de atividades (lista editável: incluir/alterar/remover)
+let ATVX_V = 0;          // versão do cadastro base de atividades que este documento já recebeu
 let FROTA = {};          // item -> {qtd, hmes} frota prevista para manutenção
 let MAQ = {};            // item -> {d,h,u} ajustados: diesel L/h, horas/mês, utilização
 let CRM_ESP = {};        // especialidade -> taxa padrão herdada pelos modelos dela
@@ -79,7 +81,7 @@ let AGROFIT_BUSCA = null;
 
 export {
   P, PLANO, DIM, INSUMO, ESPOR, TRATC, NIV, GRAT, APOIO, TERC_TAR, CRM, MATX,
-  INSX, INSX_V, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, CRIT_GER, CRIT_CABE, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, INS_FICHA, APOIO_FIXO, TRAT_NOME, TRAT_OBS, TRAT_ETAPA, TRAT_DEL, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
+  INSX, INSX_V, ATVX, ATVX_V, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, CRIT_GER, CRIT_CABE, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, INS_FICHA, APOIO_FIXO, TRAT_NOME, TRAT_OBS, TRAT_ETAPA, TRAT_DEL, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
   TPESS, QUADRO, ADM, ADM_RAT, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL, GRUPOS_INS, FAM_NOME, FAM_CLASSE, AGROFIT_BUSCA, INS_EDIT,
 };
 
@@ -97,6 +99,8 @@ export const setCRM        = v => { CRM = v; };
 export const setMATX       = v => { MATX = v; };
 export const setINSX       = v => { INSX = v; };
 export const setINSX_V     = v => { INSX_V = +v || 0; };
+export const setATVX       = v => { ATVX = v; };
+export const setATVX_V     = v => { ATVX_V = +v || 0; };
 export const setFROTA      = v => { FROTA = v; };
 export const setCRM_ESP    = v => { CRM_ESP = v; };
 export const setMAQ        = v => { MAQ = v; };
@@ -145,6 +149,8 @@ export const setAGROFIT_BUSCA = v => { AGROFIT_BUSCA = v; };
    --------------------------------------------------------------------------- */
 
 export function insLista(){ if(!INSX) INSX = CFG.insumos.map(i=>({...i})); return INSX; }
+
+export function atividadesLista(){ if(!ATVX) ATVX = CFG.atividades.map(a=>({...a})); return ATVX; }
 
 export function apoioLista(){ if(!APOIO) APOIO = CFG.apoio_eq.map(a=>({...a})); return APOIO; }
 

@@ -41,6 +41,7 @@
       <button data-s="premissas">Premissas</button>
       <button data-s="plano">Plano Operacional</button>
       <button data-s="dimens">Dimensionamento</button>
+      <button data-s="cadativ">Cadastro de Atividades</button>
     </div>
     <div class="navgroup" data-g="Pessoas">
       <div class="gl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 19c.8-3.4 3.2-5 6-5s5.2 1.6 6 5"/><path d="M16 5.2a3 3 0 0 1 0 5.6M18 14.4c1.6.7 2.6 2.2 3 4.6"/></svg>Pessoas</div>
@@ -603,6 +604,24 @@
     produto que falta entra, campo técnico vazio se completa, e nome, preço e estoque que você ajustou ficam como
     estão — produto seu que não existe na base também fica. Isso já acontece sozinho na primeira abertura depois de
     a base crescer; o botão serve para refazer quando quiser.</div></div>
+</section>
+
+<section id="cadativ">
+  <h2>Cadastro de Atividades</h2>
+  <p class="lead">Atividades que aparecem no Plano Operacional e no Dimensionamento. As do cadastro do sistema
+  não podem ser removidas aqui — crie uma atividade nova para uma operação que a usina faz e o cadastro não tem.</p>
+
+  <div class="panel"><h3>Atividades cadastradas</h3>
+    <div class="tblwrap"><table id="t_ativ"></table></div>
+    <div class="row" style="margin-top:12px">
+      <div style="min-width:200px"><label for="in_ativ_novo">Código da atividade nova</label>
+        <input id="in_ativ_novo" placeholder="Ex.: A50"></div>
+      <div style="align-self:flex-end"><button class="btn p" id="btn_ativ_add">Adicionar atividade</button></div>
+    </div>
+    <div class="hint" style="margin-top:9px">Rendimento é a produtividade operacional na unidade escolhida por
+    hora (ha/h ou ton/h) — o Dimensionamento pode ajustá-lo por safra, sem mudar o valor base daqui. Só é possível
+    remover uma atividade criada aqui (as do cadastro do sistema, não); remover avisa se ainda houver área,
+    tonelada ou tratamento lançado no Plano Operacional, e desfaz esse lançamento junto.</div></div>
 </section>
 
 <section id="config">

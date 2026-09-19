@@ -37,6 +37,8 @@ const AREAS = [
   { id: 'plano', nome: 'Plano Operacional', grupo: 'Planejamento', chaves: ['PLANO', 'DIM'] },
   { id: 'dimens', nome: 'Dimensionamento', grupo: 'Planejamento',
     chaves: ['DIM', 'APOIO_FIXO', 'QUADRO', 'FROTA_UN'] },
+  { id: 'cadativ', nome: 'Cadastro de Atividades', grupo: 'Planejamento',
+    chaves: ['ATVX', 'ATVX_V'] },
 
   // NIV (níveis salariais) não tem mais controle na tela; segue aqui porque
   // documentos antigos ainda o trazem e ele é dado de mão de obra.

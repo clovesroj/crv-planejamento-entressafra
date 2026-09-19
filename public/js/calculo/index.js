@@ -1,6 +1,6 @@
 import { CFG } from '../dados/cfg.js';
 import { MESES, NM, PERIODOS, periodoMes } from '../nucleo/calendario.js';
-import { ESPOR, P } from '../nucleo/estado.js';
+import { ESPOR, P, atividadesLista } from '../nucleo/estado.js';
 import { num } from '../nucleo/formato.js';
 import { apoioCalc, frotaApoio } from './apoio.js';
 import { admCalc, admRateio } from './administrativo.js';
@@ -20,7 +20,7 @@ import { transporte } from './transporte.js';
 function calcular(){
   P.capTransb = P.volTransb*P.densCarga;   // capacidade por viagem = volume útil x densidade de carga
   const MP = mdoParams();
-  const L = CFG.atividades.map(a=>linha(a, MP));
+  const L = atividadesLista().map(a=>linha(a, MP));
 
   let dieselT=0, manutT=0, mdoT=0, insumoT=0, horasT=0, haOp=0, frotaT=0, tercAtivT=0;
   const crmComp = {pecas:0,terc:0,consumo:0,lubrif:0};

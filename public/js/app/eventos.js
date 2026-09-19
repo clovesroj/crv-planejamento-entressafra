@@ -2,11 +2,12 @@ import { ETAPAS_ORD, PAG_LIVRE, mesesPag } from '../calculo/arrendamento.js';
 import { AG_SEM_FROTA, FROTA_AG, FROTA_ESP, SEP_MOD, crmDe, espDe } from '../calculo/crm.js';
 import { codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, marcarEtapa, mesclarBaseInsumos, removerGrupoInsumo, removerTrat,
   renomearGrupoInsumo, renomearTrat, setClasseGrupo, todasFamilias, tratCodigos, usosTrat } from '../calculo/insumos.js';
+import { codigoAtividadeValido, criarAtividade, removerAtividade } from '../calculo/atividade.js';
 import { CFG } from '../dados/cfg.js';
 import { buscarAgrofit, bulaDoProduto } from '../io/agrofit.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
-import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_OBS, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE } from '../nucleo/estado.js';
+import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_OBS, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, atividadesLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE } from '../nucleo/estado.js';
 import { AGROFIT_BUSCA, FROTA_ABERTO, FROTA_UN, INS_EDIT, INS_FICHA, MAQ, setAGROFIT_BUSCA, setFROTA_DEST, setFROTA_ORIG, setINS_EDIT, setINS_FICHA } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { filtrarPorNome } from '../ui/componentes.js';
@@ -128,6 +129,11 @@ document.addEventListener("input",e=>{
   if(t.dataset.mt!==undefined){ const l=matLista()[+t.dataset.mt];
     l[t.dataset.f] = ["preco","qtd"].includes(t.dataset.f) ? num(t.value) : t.value;
     salvar(); leve(); return; }
+  if(t.dataset.at!==undefined && t.tagName==="INPUT"){ const a=atividadesLista()[+t.dataset.at], f=t.dataset.f;
+    a[f] = ["nome","maq","imp"].includes(f) ? t.value : num(t.value);
+    salvar(); leve(); return; }
+  if(t.dataset.atu!==undefined){ atividadesLista()[+t.dataset.atu].util = num(t.value)/100;
+    salvar(); leve(); return; }
   if(t.dataset.mx!==undefined){ const c=t.dataset.mx;
     PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""};
     PLANO[c].mix=PLANO[c].mix||{}; PLANO[c].mix[t.dataset.mo]=num(t.value);
@@ -174,6 +180,8 @@ document.addEventListener("input",e=>{
 });
 document.addEventListener("change",e=>{
   const t=e.target;
+  if(t.dataset.at!==undefined && t.tagName==="SELECT"){ atividadesLista()[+t.dataset.at][t.dataset.f]=t.value;
+    salvar(); render(); return; }
   if(t.dataset.grpclasse!==undefined){
     const r = setClasseGrupo(t.dataset.grpclasse, t.value);
     if(!r.ok){ alert(r.erro); render(); return; }
@@ -427,6 +435,12 @@ document.addEventListener("click",e=>{
     const r = removerGrupoInsumo(t.dataset.grprm);
     if(!r.ok){ alert(r.erro); return; }
     salvar(true); render(); return; }
+  if(t.dataset.atrm!==undefined){
+    const cod = t.dataset.atrm, p = PLANO[cod];
+    const emUso = p && (p.trat || (p.m||[]).some(v=>num(v)>0));
+    if(emUso && !confirm(`"${cod}" tem área/tonelada ou tratamento lançado no Plano Operacional. Remover assim mesmo?`)) return;
+    if(!removerAtividade(cod)){ alert("Essa atividade não pode ser removida aqui."); return; }
+    salvar(true); render(); return; }
   if(t.dataset.grpren!==undefined){
     const id = t.dataset.grpren, g = todasFamilias().find(x=>x.id===id);
     const nome = prompt("Novo nome do grupo:", g ? g.nome : "");
@@ -440,6 +454,15 @@ $("#btn_grp_add").onclick=()=>{
   const r = criarGrupoInsumo($("#in_grp_novo").value);
   if(!r.ok){ alert(r.erro); return; }
   $("#in_grp_novo").value="";
+  salvar(true); render();
+};
+
+$("#btn_ativ_add").onclick=()=>{
+  const cod = $("#in_ativ_novo").value.trim();
+  if(!cod){ alert("Informe o código da nova atividade."); return; }
+  if(!codigoAtividadeValido(cod)){ alert("Código inválido: use letras, números, espaço, ponto, hífen, barra, +, %, vírgula ou parênteses."); return; }
+  if(!criarAtividade(cod)){ alert(`Já existe uma atividade com o código "${cod}".`); return; }
+  $("#in_ativ_novo").value="";
   salvar(true); render();
 };
 
