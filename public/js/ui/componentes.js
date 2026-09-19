@@ -128,6 +128,24 @@ function ligarBuscaSelect(buscaId, listaId, valorId, itens, rotulo, valorDe){
   };
 }
 
+/* ---------- MOSTRAR/OCULTAR SENHA ----------
+   Um botão por campo (data-alvo aponta o id do <input>), delegado no
+   document: cobre a tela de login (antes de qualquer sessão existir) e o
+   cadastro de usuários (admin) com o mesmo listener, sem precisar religar
+   nada quando o card é repintado. Só troca o type do input — não existe
+   "ver a senha salva de alguém": a senha do servidor é um hash, irreversível;
+   isto só revela o que a própria pessoa está digitando agora. */
+document.addEventListener('click', e => {
+  const botao = e.target.closest('.olho-senha');
+  if (!botao) return;
+  const alvo = document.getElementById(botao.dataset.alvo);
+  if (!alvo) return;
+  const mostrando = alvo.type === 'text';
+  alvo.type = mostrando ? 'password' : 'text';
+  botao.textContent = mostrando ? '👁' : '🙈';
+  botao.setAttribute('aria-label', mostrando ? 'Mostrar senha' : 'Ocultar senha');
+});
+
 /* ---------- REORDENAR COLUNA NO ARRASTO ----------
    Preferência pessoal de leitura, não dado do plano: fica só no navegador,
    por usuário (login na chave), nunca no documento compartilhado — não é o

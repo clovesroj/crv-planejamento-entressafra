@@ -47,11 +47,11 @@ O menu lateral agrupa as abas assim:
 | | Dimensionamento | Horas, rendimento, frota e efetivo por atividade; frota como entrada (o rendimento passa a ser o calculado) e critério mês a mês no modal da atividade |
 | Pessoas | Mão de Obra | Encargos, benefícios, funções, níveis salariais e escalas |
 | | Resumo de Pessoas | Efetivo por departamento e função, mobilização e custo de mão de obra mês a mês |
-| Agricultura | Insumos | Composição dos tratamentos (código, nome, etapas, produtos e doses) e materiais de manutenção |
+| Agricultura | Insumos | Composição dos tratamentos (código, nome, etapas, produtos e doses), com editar e remover por linha, e materiais de manutenção |
 | | Irrigação | Dimensionamento hidráulico e energia por modalidade |
 | | Fornecedores de Cana | Contratos, estimativa de entrega, ATR e preço |
 | Frota e logística | Transporte | Transbordo e transporte de cana por raio, ciclo e capacidade |
-| | Combustível | Volume de diesel mês a mês, preço projetado por mês, consumo por etapa e equipamento |
+| | Combustível | Volume de diesel mês a mês, preço projetado por mês, consumo por etapa e equipamento; referência de mercado (ANP) por município e combustível, com histórico semanal e detalhe por posto pesquisado |
 | | Apoio | Equipamentos de apoio por quantidade e horas |
 | | Transporte de Pessoal | Rotas, diárias de ônibus e quilometragem |
 | Manutenção de frota | Manutenção de Frota | CRM por especialidade, modelo e equipamento; destino de cada frota na safra |
@@ -61,7 +61,7 @@ O menu lateral agrupa as abas assim:
 | | Custos Administrativos | Estrutura, pessoal administrativo e rateio |
 | | Custos | Custo por etapa, por natureza e mensal |
 | | Plano de Contas | Custo projetado por conta contábil |
-| Configurações | Cadastro de Insumos | Os produtos, em blocos por família e ordem de princípio ativo; ficha técnica e link da bula pela API AGROFIT (Embrapa) |
+| Configurações | Cadastro de Insumos | Os produtos, em blocos por família e ordem de princípio ativo; ficha técnica, editar em modal e link da bula pela API AGROFIT (Embrapa) |
 | | Grupos de Insumos | Grupos personalizados, além das famílias padrão |
 | Administração | Usuários | Usuários, perfis e a matriz de quais abas cada perfil edita (só o administrador vê) |
 
@@ -81,6 +81,14 @@ aba por seção) ou **CSV**.
   lugar. A ordem fica guardada no navegador, por usuário — não muda a tela de
   mais ninguém.
 - **KPIs e rastro clicáveis**: cada número de destaque abre de onde ele veio.
+- **Navegação em blocos**: aba com mais de um assunto (Mão de Obra, Manutenção
+  de Frota, Combustível, Arrendamentos, Custos, Plano de Contas, Fornecedores de
+  Cana, Resumo de Frota, Resumo de Pessoas, Acompanhamento do Plano, Usuários...)
+  abre o submenu lateral como página de fato: só um bloco fica visível por vez,
+  não é scroll disfarçado de navegação.
+- **Campo de busca em seletor com catálogo grande** (função, máquina base,
+  tratamento, relatório, município da referência de combustível): digita e
+  filtra a lista, em vez de rolar um `<select>` com centenas de opções.
 
 Filtro, busca, ordem de coluna, grupos recolhidos e modais abertos são
 **visão**, não dado: não entram no plano salvo e funcionam para qualquer perfil,
@@ -112,9 +120,11 @@ public/                 FRONT — servido ao navegador
       acompanhamento.js realizado × planejado, criterioPorMes()
       crm.js · mao-de-obra.js · arrendamento.js · insumos.js · irrigacao.js · ...
     ui/                 uma função pintar* por aba, só leem o resultado do cálculo;
-                        componentes.js tem busca, coluna arrastável e somaSel()
+                        componentes.js tem busca, combobox de busca, coluna
+                        arrastável e somaSel()
     io/                 persistencia.js (estado/aplicar/migração) · relatorio.js ·
-                        secoes.js (os 21 relatórios) · agrofit.js · arquivo.js
+                        secoes.js (os 21 relatórios) · agrofit.js · anp.js
+                        (referência de combustível) · arquivo.js
     app/                ciclo.js (render/leve) · eventos.js · acoes.js
     main.js             arranque
 
@@ -127,8 +137,11 @@ server/                 BACK
   permissoes.js         catálogo aba → dados; filtra cada gravação pelo perfil
   janela.js             completa a migração 9 → 12 meses nas gravações filtradas
   agrofit.js            cliente da API AGROFIT (Embrapa), OAuth2 e prazo de 15 s
-  api.js                /api/health, /api/plano, /api/auth/*, /api/usuarios,
-                        /api/perfis, /api/agrofit/produtos-formulados
+  anp.js                scraping da ANP (preço de combustível): descobre os
+                        links da semana e baixa sob demanda, cache 12h/7 dias
+  api.js                /api/health, /api/plano, /api/auth/*, /api/usuarios
+                        (inclusive excluir), /api/perfis, /api/anp/*,
+                        /api/agrofit/produtos-formulados
   estatico.js           arquivos de public/
   store/                BANCO
     index.js            escolhe o destino por DATABASE_URL
@@ -182,7 +195,7 @@ Quem importa `P` enxerga a troca — são bindings vivos. Esquecer o setter dá
 | Quais dados cada aba edita (permissões) | `server/permissoes.js` (`AREAS`) |
 | Controle novo que só muda a visualização (filtro, abrir detalhe) | `public/js/ui/permissoes.js` (`VISUAIS`) |
 | Rota da API | `server/api.js` |
-| Integração com API externa (ex.: AGROFIT) | `server/<nome>.js`, credencial por variável de ambiente, nunca no código |
+| Integração com API externa (ex.: AGROFIT, ANP) | `server/<nome>.js`, credencial por variável de ambiente quando houver, nunca no código |
 | Hash de senha, sessão, guardas de rota | `server/auth.js` |
 | Esquema do banco (`plano`, `usuarios`, `sessoes`, `perfis`) | `server/store/schema.sql` |
 
@@ -421,9 +434,12 @@ DATABASE_URL=postgres://usuario:senha@host:5432/banco npm start
 
 ## Acesso
 
-O sistema exige login. Sessão por cookie (`httpOnly`, `SameSite=Lax`, 30 dias),
-token opaco conferido contra a tabela `sessoes` a cada requisição — desativar
-um usuário ou fazer logout derruba o acesso na hora, não só no próximo login.
+O sistema exige login (usuário e senha, sem diferenciar maiúsculas de
+minúsculas no usuário) — os campos de senha, na tela de login e no cadastro de
+usuários, têm alternância mostrar/ocultar. Sessão por cookie (`httpOnly`,
+`SameSite=Lax`, 30 dias), token opaco conferido contra a tabela `sessoes` a
+cada requisição — desativar um usuário ou fazer logout derruba o acesso na
+hora, não só no próximo login.
 Detalhes de implementação (hash de senha, guardas de rota) estão no
 [CLAUDE.md](CLAUDE.md#autenticação).
 
@@ -453,6 +469,11 @@ Trocar as permissões de um perfil vale na hora, inclusive para quem já está c
 o sistema aberto: o servidor confere o perfil a cada gravação. Não dá para
 excluir perfil em uso, nem tirar o acesso do último administrador ativo, nem um
 administrador rebaixar ou desativar a si mesmo.
+
+Um usuário pode ser **desativado** (corta o acesso na hora, mantém o cadastro
+e o histórico) ou **excluído** (apaga o cadastro de vez — não dá para desfazer).
+As mesmas travas valem para os dois: ninguém desativa ou exclui o próprio
+usuário logado, nem o último administrador ativo.
 
 **A regra de verdade está no servidor**
 ([`server/permissoes.js`](server/permissoes.js)): em toda gravação do plano, o

@@ -7,7 +7,7 @@
  * fora do ciclo de render() do plano, e é recarregado ao abrir a aba.
  */
 import { $, esc } from '../nucleo/formato.js';
-import { listarUsuarios, criarUsuario, atualizarUsuario, trocarSenha,
+import { listarUsuarios, criarUsuario, atualizarUsuario, excluirUsuario, trocarSenha,
          listarPerfis, criarPerfil, atualizarPerfil, excluirPerfil } from '../io/autenticacao.js';
 import { th } from './componentes.js';
 import { USUARIO } from '../nucleo/sessao.js';
@@ -50,6 +50,8 @@ async function pintarUsuarios() {
           ${proprio ? 'disabled title="não dá para desativar o próprio usuário logado"' : ''}>
           ${u.ativo ? 'Desativar' : 'Ativar'}</button>
         <button class="btn" data-us-senha="${u.id}" data-login="${esc(u.login)}">Redefinir senha</button>
+        <button class="btn d" data-us-excluir="${u.id}" data-login="${esc(u.login)}"
+          ${proprio ? 'disabled title="não dá para apagar o próprio usuário logado"' : ''}>Excluir</button>
       </td></tr>`; }).join('')
       : '<tr><td colspan="6" class="calc">Nenhum usuário cadastrado.</td></tr>') + '</tbody>';
 
@@ -118,6 +120,14 @@ $('#t_usuarios').addEventListener('click', async e => {
     if (nova.length < 6) { alert('A senha precisa de pelo menos 6 caracteres.'); return; }
     try { await atualizarUsuario(id, { novaSenha: nova }); alert('Senha redefinida.'); }
     catch (err) { alert(err.message); }
+    return;
+  }
+  if (t.dataset.usExcluir !== undefined) {
+    const id = +t.dataset.usExcluir;
+    if (!confirm(`Apagar o usuário "${t.dataset.login}" de vez? Isto não pode ser desfeito — se for só cortar o acesso, use "Desativar".`)) return;
+    t.disabled = true;
+    try { await excluirUsuario(id); pintarUsuarios(); }
+    catch (err) { alert(err.message); t.disabled = false; }
     return;
   }
 });
