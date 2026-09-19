@@ -189,7 +189,7 @@ function pintarInsumos(R){
   $("#c_trat").value = brl(custoHa,2) + "/ha";
 
   $("#t_comp").innerHTML = th([["Produto"],["Princípio ativo"],["Dose",1],["Un."],
-    ["Preço corrigido",1],["Custo/ha",1],["% do tratamento",1],[""],[""]])+"<tbody>"+
+    ["Preço corrigido",1],["Custo/ha",1],["% do tratamento",1],[""]])+"<tbody>"+
     (comp.length? comp.map((l,i)=>{
       const pr = precoInsumo(l.prod), c = doseBase(l)*pr;
       const pp = custoHa>0 ? c/custoHa*100 : 0;
@@ -209,11 +209,10 @@ function pintarInsumos(R){
         <td class="num calc">${pr>0?brl(pr,2):'<span class="badge b-warn">sem preço</span>'}</td>
         <td class="num tot">${brl(c,2)}</td>
         <td class="num calc">${fmt(pp,1)}%</td>
-        <td><button class="btn" data-inedit="${esc(l.prod)}" title="Editar o cadastro deste produto">Editar</button></td>
         <td><button class="btn d" data-tr="${i}">Remover</button></td></tr>`;}).join("")
-      : `<tr><td colspan="9" class="calc">Tratamento sem produtos. Use o campo abaixo para adicionar.</td></tr>`)+
+      : `<tr><td colspan="8" class="calc">Tratamento sem produtos. Use o campo abaixo para adicionar.</td></tr>`)+
     `<tr><td class="tot" colspan="4">CUSTO/HA DO TRATAMENTO</td><td></td>
-     <td class="num tot">${brl(custoHa,2)}</td><td class="num tot">${custoHa>0?"100,0%":"—"}</td><td></td><td></td></tr></tbody>`;
+     <td class="num tot">${brl(custoHa,2)}</td><td class="num tot">${custoHa>0?"100,0%":"—"}</td><td></td></tr></tbody>`;
 
   // --- 3. cadastro dos tratamentos: código, nome e etapa de uso ---
   $("#t_trat").innerHTML = th([["Cod_Trat"],["Nome"],["Etapas em que é usado"],["Produtos",1],
