@@ -1,19 +1,11 @@
 import { CFG } from '../dados/cfg.js';
-import { custoPorOperacao } from '../calculo/custo-operacao.js';
+import { comps, custoPorOperacao } from '../calculo/custo-operacao.js';
 import { CAT_LBL, MESES, clsMes, perTag } from '../nucleo/calendario.js';
 import { ESPOR, P } from '../nucleo/estado.js';
 import { $, brl, fmt } from '../nucleo/formato.js';
 import { kpi, th } from './componentes.js';
 
 /* ---------- CUSTOS ---------- */
-function comps(R){
-  return [["Mão de obra direta",R.mdoDireta],["MDO equipamentos de apoio",R.mdoApoio],["MDO estrutura indireta",R.mdoIndirT],
-    ["Equipe de manutenção",R.mdoManut],["Combustível (diesel)",R.dieselT],
-    ["Manutenção e materiais",R.manutT],["Insumos agronômicos",R.insumoT],
-    ["Irrigação e fertirrigação",R.irrT],["Transporte de pessoal",R.tpessT],["Terceirização de aplicações",R.tercAtivT],["Terceirizações (contratos)",R.tercT],
-    ["Custos esporádicos",R.espT],["Arrendamento",R.arrT],
-    ["Administração",R.admT],["Depreciação",R.depT]];
-}
 /* natureza do custo -> chave do rastro, para a linha abrir a explicacao */
 const NAT_RASTRO = {"Combustível (diesel)":"diesel","Mão de obra direta":"mdo","Manutenção e materiais":"manut",
   "Insumos agronômicos":"insumo","Terceirização de aplicações":"terc","Arrendamento":"arrend",
@@ -24,27 +16,45 @@ const NAT_RASTRO = {"Combustível (diesel)":"diesel","Mão de obra direta":"mdo"
    que a operação carrega com os rateios (contábil). O cálculo mora em
    calculo/custo-operacao.js; aqui só se desenha. */
 const unit = (v, b) => b.q>0 ? brl(v/b.q,2)+"/"+b.un : "—";
+// base física com o que ela é: hectares plantados, operados ou toneladas
+const rotBase = b => fmt(b.q)+" "+(b.rot||b.un);
+/* As quatro operações, com a formação do canavial (plantio + tratos de cana
+   planta) logo depois da segunda parte dela. A formação é subtotal: não entra
+   de novo na soma. */
+function comFormacao(C, linhaOp, linhaForm){
+  const ultima = C.principais.map(l=>!!l.formacao).lastIndexOf(true);
+  return C.principais.map((l,k)=>linhaOp(l) + (k===ultima && C.formacao ? linhaForm(C.formacao) : "")).join("");
+}
 function pintarOperacional(R){
   const C = custoPorOperacao(R);
   const P4 = C.principais, OUT = C.outras;
   const somaP = f => C.soma(P4, f);
   const anoTodo = R.SEL.parcial ? " · ano todo" : "";
 
-  $("#k_oper").innerHTML = P4.map((l,k)=>kpi(l.nome, ["","t","g","a"][k%4], brl(l.oper.total),
-    unit(l.oper.total, l.base)+anoTodo)).join("");
+  const F = C.formacao;
+  $("#k_oper").innerHTML =
+    (F ? kpi("Formação do canavial","g",brl(F.oper.total), unit(F.oper.total, F.base)+" plantado"+anoTodo,"op:formacao:oper") : "") +
+    P4.map((l,k)=>kpi(l.nome, ["","t","g","a"][k%4], brl(l.oper.total),
+      unit(l.oper.total, l.base)+(l.formacao?" plantado":"")+anoTodo,"op:"+l.id+":oper")).join("");
 
   const COLS = [["diesel","Diesel"],["mdo","Mão de obra"],["manut","Manutenção (CRM)"],["insumo","Insumos"],
                 ["irrig","Irrigação"],["terc","Terceirização"]];
   const totOperPlano = C.totalOper || 1;
   const linhaOper = (l, cls) => `<tr${cls?` class="${cls}"`:""}><td>${l.nome}</td>
-      <td class="num calc">${fmt(l.base.q)} ${l.base.un}</td>
+      <td class="num calc"${l.base.haOper!=null?` title="${fmt(l.base.haOper)} ha operados nas atividades"`:""}>${rotBase(l.base)}</td>
       ${COLS.map(([k])=>`<td class="num calc">${l.oper[k]?brl(l.oper[k]):"—"}</td>`).join("")}
       <td class="num tot">${brl(l.oper.total)}</td>
       <td class="num tot">${unit(l.oper.total, l.base)}</td>
       <td class="num calc">${fmt(l.oper.total/totOperPlano*100,1)}%</td></tr>`;
   $("#t_oper").innerHTML = th([["Operação"],["Base física",1],...COLS.map(([,n])=>[n,1]),
     ["Custo operacional",1],["Custo unitário",1],["% do operacional",1]])+"<tbody>"+
-    (P4.length ? P4.map(l=>linhaOper(l)).join("")
+    (P4.length ? comFormacao(C, l=>linhaOper(l), f=>`<tr class="formacao"><td class="tot">= ${f.nome}
+        <span class="hint" style="display:block;margin:0">plantio + tratos de cana planta</span></td>
+      <td class="num tot">${rotBase(f.base)}</td>
+      ${COLS.map(([k])=>`<td class="num tot">${f.oper[k]?brl(f.oper[k]):"—"}</td>`).join("")}
+      <td class="num tot">${brl(f.oper.total)}</td>
+      <td class="num tot">${unit(f.oper.total, f.base)}</td>
+      <td class="num tot">${fmt(f.oper.total/totOperPlano*100,1)}%</td></tr>`)
       : `<tr><td colspan="${COLS.length+5}" class="calc">Sem custo: lance quantidades no Plano Operacional.</td></tr>`)+
     `<tr><td class="tot">SUBTOTAL DAS QUATRO OPERAÇÕES</td><td></td>
       ${COLS.map(([k])=>`<td class="num tot">${brl(somaP(l=>l.oper[k]))}</td>`).join("")}
@@ -63,8 +73,12 @@ function pintarContabil(R){
   const P4 = C.principais, OUT = C.outras;
   const anoTodo = R.SEL.parcial ? " · ano todo" : "";
 
-  $("#k_contabil").innerHTML = P4.map((l,k)=>kpi(l.nome, ["","t","g","a"][k%4], brl(l.contabil),
-    unit(l.contabil, l.base)+" · rateios "+(l.oper.total>0?"+"+fmt(l.rateio.total/l.oper.total*100,0)+"%":"—")+anoTodo)).join("");
+  const F = C.formacao;
+  const rotRat = l => " · rateios "+(l.oper.total>0?"+"+fmt(l.rateio.total/l.oper.total*100,0)+"%":"—");
+  $("#k_contabil").innerHTML =
+    (F ? kpi("Formação do canavial","g",brl(F.contabil), unit(F.contabil, F.base)+" plantado"+rotRat(F)+anoTodo,"op:formacao:contabil") : "") +
+    P4.map((l,k)=>kpi(l.nome, ["","t","g","a"][k%4], brl(l.contabil),
+      unit(l.contabil, l.base)+(l.formacao?" plantado":"")+rotRat(l)+anoTodo,"op:"+l.id+":contabil")).join("");
 
   const RAT = [["apoio","Diesel do apoio"],["arrend","Arrendamento"],["admin","Administrativo"],
                ["deprec","Depreciação"],["gerais","Demais custos gerais"]];
@@ -90,7 +104,17 @@ function pintarContabil(R){
   $("#t_contabil").innerHTML = th([["Operação"],["Custo operacional",1],...RAT.map(([,n])=>[n,1]),
     ["Total de rateios",1],["Custo contábil",1],["Custo unitário",1],["Rateio sobre o operacional",1],
     ["% do custo total",1],["Operacional × rateio"]])+"<tbody>"+
-    (P4.length ? P4.map(l=>linha(l)).join("")
+    (P4.length ? comFormacao(C, l=>linha(l), f=>{ const pOper = f.contabil>0 ? f.oper.total/f.contabil*100 : 0;
+      return `<tr class="formacao"><td class="tot">= ${f.nome}
+        <span class="hint" style="display:block;margin:0">plantio + tratos de cana planta · ${rotBase(f.base)}</span></td>
+      <td class="num tot">${brl(f.oper.total)}</td>
+      ${RAT.map(([k])=>`<td class="num tot">${f.rateio[k]?brl(f.rateio[k]):"—"}</td>`).join("")}
+      <td class="num tot">${brl(f.rateio.total)}</td>
+      <td class="num tot">${brl(f.contabil)}</td>
+      <td class="num tot">${unit(f.contabil, f.base)}</td>
+      <td class="num tot">${f.oper.total>0?"+"+fmt(f.rateio.total/f.oper.total*100,1)+"%":"—"}</td>
+      <td class="num tot">${fmt(f.contabil/tot*100,1)}%</td>
+      <td title="${fmt(pOper,0)}% operacional · ${fmt(100-pOper,0)}% rateios"><div class="bar"><i style="width:${Math.min(pOper,100)}%"></i></div></td></tr>`; })
       : `<tr><td colspan="${RAT.length+8}" class="calc">Sem custo: lance quantidades no Plano Operacional.</td></tr>`)+
     somaLinha(P4, "SUBTOTAL DAS QUATRO OPERAÇÕES")+
     (OUT.length ? `<tr class="stage"><td colspan="${RAT.length+8}">Outras etapas do plano</td></tr>`+
@@ -109,9 +133,9 @@ function pintarCustos(R){
   pintarContabil(R);
   $("#k_custo").innerHTML =
     kpi("Custo total","",brl(R.SEL.total), R.SEL.parcial?R.SEL.rotulo:"","total") +
-    kpi("Custo variável","t",brl(R.variavel*R.SEL.fracaoCusto), R.SEL.parcial?R.SEL.rotulo:"","total") +
-    kpi("Custo fixo","a",brl(R.fixoT*R.SEL.fracaoDoAno), R.SEL.parcial?R.SEL.meses.length+" meses":"","total") +
-    kpi("Custo por ha plantado","g",brl(R.SEL.total/ha), R.SEL.parcial?R.SEL.rotulo:"","total");
+    kpi("Custo variável","t",brl(R.variavel*R.SEL.fracaoCusto), R.SEL.parcial?R.SEL.rotulo:"","variavel") +
+    kpi("Custo fixo","a",brl(R.fixoT*R.SEL.fracaoDoAno), R.SEL.parcial?R.SEL.meses.length+" meses":"","fixo") +
+    kpi("Custo por ha plantado","g",brl(R.SEL.total/ha), R.SEL.parcial?R.SEL.rotulo:"","custoha");
 
   // safra (abril a novembro) × entressafra (dezembro a março)
   const PR = R.PER, perTot = PR.safra.total + PR.entressafra.total;
@@ -119,10 +143,10 @@ function pintarCustos(R){
   $("#k_per").innerHTML =
     ["safra","entressafra"].map(p=>{ const o=PR[p];
       return kpi("Custo na "+nomeP(p), p==="safra"?"g":"a", brl(o.total),
-        o.meses.join(" · ")+(perTot>0?" — "+fmt(o.total/perTot*100,1)+"% do total":""),"total"); }).join("") +
+        o.meses.join(" · ")+(perTot>0?" — "+fmt(o.total/perTot*100,1)+"% do total":""),"periodo:"+p); }).join("") +
     ["safra","entressafra"].map(p=>{ const o=PR[p];
       return kpi("Média mensal — "+nomeP(p), p==="safra"?"g":"a", o.meses.length?brl(o.total/o.meses.length):"—",
-        o.meses.length+(o.meses.length===1?" mês":" meses")+" no orçamento","total"); }).join("");
+        o.meses.length+(o.meses.length===1?" mês":" meses")+" no orçamento","periodo:"+p); }).join("");
 
   $("#t_per_cat").innerHTML = th([["Grande conta"],["Safra",1],["% safra",1],["Entressafra",1],["% entressafra",1],["Total",1]])+"<tbody>"+
     Object.keys(CAT_LBL).map(k=>{ const s=PR.safra.cat[k], e=PR.entressafra.cat[k], t=s+e;

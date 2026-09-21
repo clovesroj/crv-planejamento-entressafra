@@ -607,29 +607,34 @@ const irrigacao = R => sec("Irrigação","Irrigação e fertirrigação",
    As duas páginas da aba Custos. São do ano: no recorte por período saem com
    "ano todo" no título, como toda seção sem série mensal. */
 const unitOp = (v, b) => b.q>0 ? brl(v/b.q,2)+"/"+b.un : "—";
+// as quatro operações com a formação do canavial logo depois de tratos de cana planta
+const comFormacaoRel = (C, lin, linF) => { const ult = C.principais.map(l=>!!l.formacao).lastIndexOf(true);
+  return C.principais.flatMap((l,k)=> k===ult && C.formacao ? [lin(l), linF(C.formacao)] : [lin(l)]); };
 const custoOperacional = R => { const C = custoPorOperacao(R), L = C.principais.concat(C.outras);
-  const lin = l => [l.nome, fmt(l.base.q)+" "+l.base.un, brl(l.oper.diesel), brl(l.oper.mdo), brl(l.oper.manut),
+  const lin = l => [l.nome, fmt(l.base.q)+" "+(l.base.rot||l.base.un), brl(l.oper.diesel), brl(l.oper.mdo), brl(l.oper.manut),
     brl(l.oper.insumo), brl(l.oper.irrig), brl(l.oper.terc), brl(l.oper.total), unitOp(l.oper.total, l.base)];
+  const linF = f => ["= "+f.nome+" (plantio + tratos de cana planta)", ...lin(f).slice(1)];
   const tot = (lista, rot) => [rot, "", ...["diesel","mdo","manut","insumo","irrig","terc","total"]
     .map(k=>brl(C.soma(lista, l=>l.oper[k]))), ""];
   return sec("Custo operacional","Custo operacional — o que custa fazer cada operação",
     ["Operação","Base física","Diesel","Mão de obra","Manutenção (CRM)","Insumos","Irrigação","Terceirização",
      "Custo operacional","Custo unitário"],
-    C.principais.map(lin).concat([tot(C.principais, "SUBTOTAL DAS QUATRO OPERAÇÕES")],
+    comFormacaoRel(C, lin, linF).concat([tot(C.principais, "SUBTOTAL DAS QUATRO OPERAÇÕES")],
       C.outras.map(lin), [tot(L, "TOTAL OPERACIONAL DO PLANO")]));
 };
 const custoContabil = R => { const C = custoPorOperacao(R), L = C.principais.concat(C.outras);
   const RAT = ["apoio","arrend","admin","deprec","gerais"];
   const lin = l => [l.nome, brl(l.oper.total), ...RAT.map(k=>brl(l.rateio[k])), brl(l.rateio.total),
-    brl(l.contabil), unitOp(l.contabil, l.base),
+    brl(l.contabil), unitOp(l.contabil, l.base)+(l.base.rot==="ha plantados"?" plantado":""),
     l.oper.total>0 ? "+"+fmt(l.rateio.total/l.oper.total*100,1)+"%" : "—"];
+  const linF = f => ["= "+f.nome+" (plantio + tratos de cana planta)", ...lin(f).slice(1)];
   const tot = (lista, rot) => { const o = C.soma(lista, l=>l.oper.total), r = C.soma(lista, l=>l.rateio.total);
     return [rot, brl(o), ...RAT.map(k=>brl(C.soma(lista, l=>l.rateio[k]))), brl(r),
       brl(C.soma(lista, l=>l.contabil)), "", o>0 ? "+"+fmt(r/o*100,1)+"%" : "—"]; };
   return sec("Custo contábil","Custo total (contábil) — custo operacional mais todos os rateios",
     ["Operação","Custo operacional","Diesel do apoio","Arrendamento","Administrativo","Depreciação",
      "Demais custos gerais","Total de rateios","Custo contábil","Custo unitário","Rateio sobre o operacional"],
-    C.principais.map(lin).concat([tot(C.principais, "SUBTOTAL DAS QUATRO OPERAÇÕES")],
+    comFormacaoRel(C, lin, linF).concat([tot(C.principais, "SUBTOTAL DAS QUATRO OPERAÇÕES")],
       C.outras.map(lin), [tot(L, "CUSTO TOTAL DO PLANO")]));
 };
 

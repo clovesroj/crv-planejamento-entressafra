@@ -631,3 +631,6 @@ td.pmes.on span{color:var(--ink);font-weight:600}
 .ficha div{display:flex;flex-direction:column;gap:1px;font-size:12px;line-height:1.45}
 .ficha b{color:var(--grey);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.3px}
 .ficha span{color:var(--ink)}
+
+/* subtotal da formação do canavial nas páginas de custo operacional e contábil */
+tr.formacao td{background:var(--leaf-soft);border-top:1px solid var(--leaf);border-bottom:1px solid var(--leaf)}

@@ -1,5 +1,52 @@
 # Histórico de mudanças
 
+## 2.25.0 — 2026-09-21 · Formação do canavial e cartões que abrem o próprio detalhe
+
+### Formação do canavial
+
+**Plantio + tratos culturais de cana planta** agora aparecem somados como
+**Formação do canavial**, em linha de subtotal logo abaixo das duas
+operações, nas páginas *Custo operacional* e *Custo total (contábil)* da aba
+Custos. Também ganham cartão próprio nessas páginas e no Painel, e entram no
+relatório.
+
+Plantio, tratos de cana planta e a formação passam a ser divididos pela **área
+física do plantio** (premissa "Área de plantio"), não mais pela soma dos
+hectares das atividades. Dez operações no mesmo talhão são um hectare
+plantado, não dez. No plano de teste, tratos de cana planta ia de R$ 190/ha
+(sobre 43.901 ha operados) para R$ 3.476/ha plantado (sobre 2.400 ha). A base
+física mostra "ha plantados" e, ao passar o mouse, os hectares operados. Cana
+soca segue por hectare operado e colheita por tonelada.
+
+Os cartões "Tratos — cana planta" e "Tratos — cana soca" do Painel passam a
+usar a divisão que inclui a irrigação de cada cultura, a mesma da aba Custos.
+
+### Cartões que abriam o detalhamento errado
+
+No Painel, "Custo / ha plantado" abria o detalhamento do custo total. Agora
+abre a própria conta: custo total ÷ área de plantio, quanto cada etapa e cada
+grande conta pesam no hectare, e a formação do canavial. O mesmo valeu para a
+Capa e a aba Custos.
+
+A varredura de todos os cartões clicáveis achou o mesmo defeito em outros, e
+eles ganharam o próprio detalhamento:
+
+- **Custo na safra / na entressafra** (Painel e Custos): o custo do período,
+  mês a mês, por etapa e por grande conta.
+- **Custo de colheita** (só corte): a conta do cartão — direto do corte mais a
+  parte dele no indireto e no arrendamento — em vez da etapa inteira.
+- **Tratos — cana planta / soca** e **Formação do canavial**: a própria
+  operação, com custo operacional por natureza, cada rateio e as atividades,
+  em vez da etapa inteira de tratos.
+- **Custo variável / Custo fixo**: a composição de cada um.
+- Os cartões das páginas operacional e contábil abrem a operação com o mesmo
+  número do cartão.
+
+Dos 36 cartões clicáveis de Painel, Capa e Custos, 32 abrem com o mesmo número
+do cartão. Os outros 4 são médias ou índices — CRM por hora, arrendamento por
+hectare, média mensal da safra e da entressafra — e abrem o total de onde o
+índice sai.
+
 ## 2.24.0 — 2026-09-21 · Custo operacional x custo contábil
 
 A aba Custos ganhou duas páginas, que agora abrem a aba. Elas separam o que

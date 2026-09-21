@@ -18,12 +18,13 @@
    parte de tratos no rateio geral é dividida pelo custo direto de cada cultura,
    que é o critério com que o motor reparte esse rateio entre as etapas. Assim
    planta + soca fecha com tratos no centavo. */
+import { P } from '../nucleo/estado.js';
 import { num } from '../nucleo/formato.js';
 
 // as operações do painel, na ordem do ciclo da cana
 const OPERACOES = [
-  {id:"plantio",  nome:"Plantio",                        etapa:"PLANTIO"},
-  {id:"planta",   nome:"Tratos culturais — cana planta", etapa:"TRATOS CULTURAIS", cultura:"Planta"},
+  {id:"plantio",  nome:"Plantio",                        etapa:"PLANTIO", formacao:true},
+  {id:"planta",   nome:"Tratos culturais — cana planta", etapa:"TRATOS CULTURAIS", cultura:"Planta", formacao:true},
   {id:"soca",     nome:"Tratos culturais — cana soca",   etapa:"TRATOS CULTURAIS", cultura:"Soca"},
   {id:"colheita", nome:"Colheita",                       etapa:"COLHEITA"},
 ];
@@ -85,10 +86,15 @@ function custoPorOperacao(R){
     const gerais = d.indireto*fDireto - deprec;
     const contabil = diretoOp + arrend + admin + deprec + gerais;
 
-    // base física: hectares operados ou toneladas, como na tabela de custo por etapa
+    // base física. Plantio e tratos de cana planta formam o canavial: dividem
+    // pela área plantada (premissa), não pela soma das passadas das atividades —
+    // dez operações no mesmo talhão não são dez hectares. As demais seguem em
+    // hectares operados ou toneladas, como na tabela de custo por etapa.
     const ha  = ativs.filter(r=>r.ehHa).reduce((t,r)=>t+r.total, 0);
     const ton = ativs.filter(r=>!r.ehHa && r.a.tipo!=="transp").reduce((t,r)=>t+r.total, 0);
-    const base = ha>0 ? {q:ha, un:"ha"} : {q:ton, un:"t"};
+    const areaPlantio = num(P.plantio);
+    const base = op.formacao && areaPlantio>0 ? {q:areaPlantio, un:"ha", rot:"ha plantados", haOper:ha}
+               : ha>0 ? {q:ha, un:"ha", rot:"ha operados"} : {q:ton, un:"t", rot:"t"};
 
     return {...op, oper:o, rateio:{apoio, arrend, admin, deprec, gerais,
             total: apoio+arrend+admin+deprec+gerais}, contabil, base};
@@ -98,8 +104,22 @@ function custoPorOperacao(R){
   const outras = OUTRAS.map(linha).filter(Boolean);
   const todas = principais.concat(outras);
   const soma = (lista, f) => lista.reduce((t,l)=>t+f(l), 0);
+
+  /* Formação do canavial = plantio + tratos de cana planta: o que se gasta
+     para pôr o canavial de pé, por hectare plantado. É subtotal, não linha a
+     mais — as duas operações seguem na tabela e na soma do plano. */
+  const partes = principais.filter(l=>l.formacao);
+  const somaObj = campo => Object.fromEntries(Object.keys(partes[0]?partes[0][campo]:{})
+    .map(k=>[k, soma(partes, l=>l[campo][k])]));
+  const areaPlantio = num(P.plantio);
+  const formacao = partes.length ? {
+    id:"formacao", nome:"Formação do canavial", partes: partes.map(l=>l.nome),
+    oper: somaObj("oper"), rateio: somaObj("rateio"), contabil: soma(partes, l=>l.contabil),
+    base: {q:areaPlantio, un:"ha", rot:"ha plantados"},
+  } : null;
+
   return {
-    principais, outras,
+    principais, outras, formacao,
     // conferência: a soma de todas as operações tem de ser o custo do plano
     totalOper: soma(todas, l=>l.oper.total),
     totalContabil: soma(todas, l=>l.contabil),
@@ -108,4 +128,15 @@ function custoPorOperacao(R){
   };
 }
 
-export { OPERACOES, OUTRAS, custoPorOperacao };
+/* Natureza fina do custo total. Mora aqui para a aba Custos, o Painel, o
+   relatório e o rastro lerem a mesma lista: natureza nova entra num lugar só. */
+function comps(R){
+  return [["Mão de obra direta",R.mdoDireta],["MDO equipamentos de apoio",R.mdoApoio],["MDO estrutura indireta",R.mdoIndirT],
+    ["Equipe de manutenção",R.mdoManut],["Combustível (diesel)",R.dieselT],
+    ["Manutenção e materiais",R.manutT],["Insumos agronômicos",R.insumoT],
+    ["Irrigação e fertirrigação",R.irrT],["Transporte de pessoal",R.tpessT],["Terceirização de aplicações",R.tercAtivT],["Terceirizações (contratos)",R.tercT],
+    ["Custos esporádicos",R.espT],["Arrendamento",R.arrT],
+    ["Administração",R.admT],["Depreciação",R.depT]];
+}
+
+export { OPERACOES, OUTRAS, comps, culturaIrr, custoPorOperacao };

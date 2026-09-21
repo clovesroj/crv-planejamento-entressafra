@@ -857,14 +857,18 @@
     <summary><span class="bl-tit">Custo operacional</span></summary>
     <div class="bloco-corpo">
       <div class="panel"><h3>Custo operacional — o que custa fazer cada operação</h3>
-        <div class="grid g4" id="k_oper" style="margin-bottom:14px"></div>
+        <div class="grid g5" id="k_oper" style="margin-bottom:14px"></div>
         <div class="tblwrap"><table id="t_oper"></table></div>
         <div class="hint" style="margin-top:9px">Custo efetivo da operação: o que as atividades de cada operação consomem
         — diesel das máquinas da operação, operadores, manutenção (CRM) das máquinas, insumos e terceirização das
         aplicações — e, em tratos, a irrigação (energia, água e materiais), atribuída a cana planta ou soca pela
         modalidade. <b>Não entra</b> nenhum rateio: diesel dos equipamentos de apoio, arrendamento, administrativo,
-        depreciação e custos gerais estão na página <b>Custo total (contábil)</b>. Base física em hectares operados
-        (soma das passadas) ou toneladas, como na tabela de custo por etapa. <span id="oper_nota"></span></div></div>
+        depreciação e custos gerais estão na página <b>Custo total (contábil)</b>.
+        <b>Formação do canavial</b> = plantio + tratos culturais de cana planta. Plantio, tratos de cana planta e a
+        formação são divididos pela <b>área plantada</b> (premissa "Área de plantio"), não pela soma dos hectares das
+        atividades — várias operações no mesmo talhão não são vários hectares; passe o mouse na base física para ver
+        os hectares operados. Cana soca segue por hectare operado e colheita por tonelada.
+        <span id="oper_nota"></span></div></div>
     </div>
   </details>
 
@@ -872,7 +876,7 @@
     <summary><span class="bl-tit">Custo total (contábil)</span></summary>
     <div class="bloco-corpo">
       <div class="panel"><h3>Custo total — custo operacional mais todos os rateios</h3>
-        <div class="grid g4" id="k_contabil" style="margin-bottom:14px"></div>
+        <div class="grid g5" id="k_contabil" style="margin-bottom:14px"></div>
         <div class="tblwrap"><table id="t_contabil"></table></div>
         <div class="hint" style="margin-top:9px">Custo contábil = custo operacional + rateios. <b>Diesel do apoio</b>:
         equipamentos de apoio, rateados pelos litros de cada operação. <b>Arrendamento</b>: percentuais de referência
