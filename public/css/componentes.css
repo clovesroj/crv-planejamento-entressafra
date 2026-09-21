@@ -145,7 +145,11 @@ th.th-arrasta.sobre{box-shadow:inset 0 0 0 2px var(--leaf)}
 #t_plano td:nth-child(1),#t_plano td:nth-child(2){z-index:1;background:var(--card)}
 #t_plano tbody tr:hover td:nth-child(-n+2){background:var(--leaf-soft)}
 #t_plano th:nth-child(2),#t_plano td:nth-child(2){box-shadow:3px 0 6px -2px rgba(0,0,0,.14)}
-#t_plano tr.stage td{position:static;left:auto;background:var(--leaf-strong);box-shadow:none}
+#t_plano tr.stage td{position:static;left:auto;background:var(--leaf-strong);box-shadow:none;padding:0}
+/* rótulo da faixa de etapa: fica preso à borda esquerda visível mesmo com a
+   tabela rolada pra direita — só o texto gruda, o fundo verde continua cobrindo
+   a linha inteira (senão a rolagem "corta" o fundo antes do rótulo aparecer) */
+#t_plano tr.stage td>span{position:sticky;left:0;display:inline-block;padding:7px 12px}
 #plano .tblwrap{scrollbar-width:auto}
 
 /* coluna congelada — Cadastro de Atividades: mesmo motivo do Plano Operacional

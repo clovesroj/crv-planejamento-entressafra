@@ -51,7 +51,7 @@ function pintarPlano(R){
   let et="";
   R.L.forEach(r=>{
     const grupo = grupoPlano(r.a);
-    if(grupo!==et){et=grupo; h+=`<tr class="stage"><td colspan="${SEL.meses.length+10}">${et}</td></tr>`;}
+    if(grupo!==et){et=grupo; h+=`<tr class="stage"><td colspan="${SEL.meses.length+10}"><span>${et}</span></td></tr>`;}
     const opts=['<option value="">—</option>'].concat(TL.map(t=>
       `<option value="${t.cod}" ${t.cod===r.trat?"selected":""}>${t.cod}${TRAT_NOME[t.cod]?" — "+esc(TRAT_NOME[t.cod]):""} · ${brl(t.custo_ha,0)}/ha</option>`)).join("");
     const auto = r.a.tipo==="transp";
