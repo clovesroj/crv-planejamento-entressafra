@@ -1,5 +1,13 @@
 # Histórico de mudanças
 
+## 2.23.1 — 2026-09-21 · Método da irrigação localizada
+
+Na aba Irrigação, as modalidades **Irrigação localizada socaria** e **Irrigação
+localizada plantio** passam a ter o método **Aspersão localizada** — estava
+"Gotejamento superficial". Muda só o nome do método: eficiência, lâmina,
+turno, pressão e custos continuam os mesmos. As modalidades de fertirrigação
+localizada seguem como gotejamento subsuperficial.
+
 ## 2.23.0 — 2026-09-21 · Relatório por período: safra, entressafra ou os dois
 
 A janela de gerar relatório ganhou o campo **Período**: *Safra e entressafra
