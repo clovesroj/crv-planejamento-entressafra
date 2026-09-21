@@ -34,6 +34,61 @@ function irPara(b){
 // propria em io/relatorio.js, no mesmo idioma visual deste sub-menu
 document.querySelectorAll("nav button[data-s]").forEach(b=>{ b.onclick=()=>irPara(b); });
 
+/* ---------- busca e recolher agrupamento, no menu lateral ----------
+   Preferencia de tela (que grupo esta recolhido), nao dado do plano: fica no
+   localStorage, mesmo criterio do menu recolhido (crv_menu_recolhido, logo
+   abaixo) e da ordem de coluna arrastada (ui/componentes.js). */
+const CHAVE_NAV_FECHADOS = "crv_nav_fechados";
+function lerFechados(){
+  try{ return new Set(JSON.parse(localStorage.getItem(CHAVE_NAV_FECHADOS)) || []); }catch(e){ return new Set(); }
+}
+function salvarFechados(s){
+  try{ localStorage.setItem(CHAVE_NAV_FECHADOS, JSON.stringify([...s])); }catch(e){}
+}
+const NAV_FECHADOS = lerFechados();
+const NAV_GRUPOS = [...document.querySelectorAll(".navgroup")];
+const btnNavRec = $("#btn_nav_recolher");
+
+function atualizarNav(){
+  const termo = ($("#nav_busca")?.value || "").trim().toLowerCase();
+  const buscando = termo.length > 0;
+  NAV_GRUPOS.forEach(g=>{
+    const nome = (g.dataset.g || "").toLowerCase();
+    const grupoBate = nome.includes(termo);
+    const fechado = !buscando && NAV_FECHADOS.has(g.dataset.g);
+    let algumVisivel = false;
+    [...g.querySelectorAll(":scope > button")].forEach(b=>{
+      const bate = !buscando || grupoBate || b.textContent.trim().toLowerCase().includes(termo);
+      b.hidden = fechado || !bate;
+      if(bate) algumVisivel = true;
+    });
+    g.hidden = buscando && !algumVisivel;
+    g.classList.toggle("fechado", fechado);
+    const gl = g.querySelector(".gl");
+    if(gl) gl.setAttribute("aria-expanded", String(!fechado));
+  });
+  if(btnNavRec) btnNavRec.textContent = NAV_GRUPOS.every(g=>NAV_FECHADOS.has(g.dataset.g)) ? "Expandir tudo" : "Recolher tudo";
+}
+NAV_GRUPOS.forEach(g=>{
+  const gl = g.querySelector(".gl");
+  if(!gl) return;
+  gl.setAttribute("role","button"); gl.setAttribute("tabindex","0");
+  const alternar = ()=>{
+    const nome = g.dataset.g;
+    if(NAV_FECHADOS.has(nome)) NAV_FECHADOS.delete(nome); else NAV_FECHADOS.add(nome);
+    salvarFechados(NAV_FECHADOS); atualizarNav();
+  };
+  gl.addEventListener("click", alternar);
+  gl.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); alternar(); } });
+});
+if(btnNavRec) btnNavRec.addEventListener("click", ()=>{
+  const fechandoTudo = !NAV_GRUPOS.every(g=>NAV_FECHADOS.has(g.dataset.g));
+  NAV_GRUPOS.forEach(g=> fechandoTudo ? NAV_FECHADOS.add(g.dataset.g) : NAV_FECHADOS.delete(g.dataset.g));
+  salvarFechados(NAV_FECHADOS); atualizarNav();
+});
+$("#nav_busca")?.addEventListener("input", atualizarNav);
+atualizarNav();
+
 /* ---------- sub-navegação: blocos de uma aba viram páginas de verdade, tipo
    abas de um app — só a página escolhida existe na tela, as outras somem por
    completo (não é acordeão: um bloco fora da página ativa nem aparece

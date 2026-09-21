@@ -22,11 +22,32 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);fo
 .brand .bt{font-family:var(--f-display);font-weight:600;font-size:17px;line-height:1.05;color:#fff;letter-spacing:.2px}
 .brand .bs{font-size:11px;color:var(--side-mute);margin-top:2px}
 
+/* busca e recolher-tudo do menu: mesma altura de linha do resto da barra,
+   mas em cima de fundo escuro — os inputs globais (td input etc.) presumem
+   fundo claro, por isso esta caixa tem estilo proprio em vez de herdar. */
+.nav-busca{display:flex;gap:6px;padding:10px 14px 0}
+.nav-busca input{flex:1;min-width:0;height:32px;padding:0 10px;border-radius:6px;font-size:12.5px;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:#fff}
+.nav-busca input::placeholder{color:var(--side-mute)}
+.nav-busca input:focus{outline:none;background:rgba(255,255,255,.11);border-color:rgba(255,255,255,.25)}
+.nav-rec-btn{flex:none;height:32px;padding:0 10px;font-size:11px;font-weight:600;white-space:nowrap;
+  color:var(--side-mute);background:transparent;border:1px solid rgba(255,255,255,.12);border-radius:6px;cursor:pointer;
+  transition:color .15s,background-color .15s}
+.nav-rec-btn:hover{color:#fff;background:rgba(255,255,255,.07)}
+.nav-rec-btn:focus-visible{outline:2px solid #D6B46E;outline-offset:-2px}
+
 nav{display:flex;flex-direction:column;gap:16px;padding:16px 10px 22px}
 .navgroup{display:flex;flex-direction:column;gap:1px}
+.navgroup[hidden]{display:none}
 .navgroup .gl{display:flex;align-items:center;gap:8px;font-family:var(--f-display);font-size:12px;font-weight:600;
-  text-transform:uppercase;letter-spacing:1.2px;color:var(--side-mute);padding:2px 10px 6px}
+  text-transform:uppercase;letter-spacing:1.2px;color:var(--side-mute);padding:2px 10px 6px;cursor:pointer;user-select:none}
 .navgroup .gl svg{width:15px;height:15px;flex:none;color:#D6B46E}
+/* seta do agrupamento: gira ao recolher, mesma ideia do chevron da sub-navegação */
+.navgroup .gl::after{content:"";margin-left:auto;width:8px;height:8px;flex:none;
+  border-right:1.6px solid var(--side-mute);border-bottom:1.6px solid var(--side-mute);
+  transform:rotate(45deg);transition:transform .2s ease}
+.navgroup.fechado .gl::after{transform:rotate(-45deg)}
+nav button[hidden]{display:none}
 nav button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:0;border-radius:6px;
   padding:7px 10px 7px 33px;font:500 13.5px/1.3 var(--f-body);color:var(--side-ink);cursor:pointer;position:relative;
   overflow:hidden;isolation:isolate;transition:color .3s ease,transform .15s ease}
@@ -37,7 +58,10 @@ nav button::after{content:"";position:absolute;left:19px;top:50%;width:10px;heig
 nav button:hover,nav button:focus-visible{color:#fff}
 nav button:hover::after,nav button:focus-visible::after{transform:scale(34)}
 nav button.on{color:#fff;font-weight:600}
-nav button.on::after{background:var(--side-on);transform:scale(34);transition:none}
+/* cascata de tom: o preenchimento do item ativo vai do azul claro (canto onde
+   nasce, perto do losango) até o azul-base do menu — não é um bloco de cor só */
+nav button.on::after{background:linear-gradient(135deg,var(--side-on-light),var(--side-on));
+  transform:scale(34);transition:none}
 /* losango do item ativo: sempre presente, só ganha vida ao entrar/sair */
 nav button::before{content:"";position:absolute;left:15px;top:50%;width:7px;height:7px;margin-top:-3.5px;
   border-radius:1.5px;background:#D6B46E;transform:rotate(45deg) scale(0);opacity:0;

@@ -408,7 +408,17 @@ tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:under
 #tercdet_fundo[hidden]{display:none}
 #tercdet{position:fixed;inset:0;z-index:95;display:flex;align-items:center;justify-content:center;padding:24px}
 #tercdet[hidden]{display:none}
-.td-modal td input{width:80px}
+/* table-layout:fixed com largura em % — sem isto o <th> "Tarifa (R$/ha)" herda
+   o white-space:nowrap das tabelas grandes (feito pra rolar) e força a
+   janela a abrir larga demais, com barra de rolagem pra ver a 3ª coluna.
+   Aqui é o oposto: caixa pequena, cabe tudo de uma vez, cabeçalho quebra
+   linha se precisar. */
+/* a regra global table{min-width:640px} é pras tabelas grandes (rolam de
+   propósito); aqui é o oposto — 3 colunas, sem min-width força a caber */
+.td-modal table{width:100%;min-width:0;table-layout:fixed}
+.td-modal th,.td-modal td{white-space:normal}
+.td-modal th:first-child,.td-modal td:first-child{width:32%}
+.td-modal td input{width:100%;min-width:0}
 @media (max-width:640px){#tercdet{padding:0}.td-modal{width:100%;height:100%;max-height:100%;border-radius:0}}
 @media print{#tercdet,#tercdet_fundo{display:none!important}}
 
