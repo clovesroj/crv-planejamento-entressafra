@@ -25,7 +25,7 @@ import { pintarIrrig } from '../ui/irrigacao.js';
 import { pintarMDO } from '../ui/mao-de-obra.js';
 import { pintarPainel } from '../ui/painel.js';
 import { pintarPessoas } from '../ui/pessoas.js';
-import { pintarPlano } from '../ui/plano.js';
+import { pintarPlano, pintarTercDet } from '../ui/plano.js';
 import { pintarRastro } from '../ui/rastro.js';
 import { pintarRendMensal } from '../ui/rendmensal.js';
 import { pintarFichaIns, pintarEditIns } from '../ui/insumos.js';
@@ -136,7 +136,7 @@ function render(){
   esconderMeses(R.SEL.meses);
   pintarCapa(R); pintarMDO(R); pintarPlano(R); pintarDim(R); pintarTransp(R); pintarApoio(R); pintarCRM(R); pintarReforma(); pintarTPess(R);
   pintarIrrig(R); pintarInsumos(R); pintarFito(R); pintarArrend(R); pintarForn(R); pintarAdm(R); pintarCustos(R); pintarContas(R); pintarCombustivel(R); pintarResumoFrota(R); pintarPessoas(R);
-  pintarPainel(R); pintarValida(R); pintarAcomp(R); pintarRastro(R); pintarRendMensal(R); pintarConfig(); pintarAtividadesCad(); pintarFichaIns(); pintarEditIns(); pintarAgrofitModal();
+  pintarPainel(R); pintarValida(R); pintarAcomp(R); pintarRastro(R); pintarRendMensal(R); pintarConfig(); pintarAtividadesCad(); pintarFichaIns(); pintarEditIns(); pintarAgrofitModal(); pintarTercDet();
   // depois dos pintores: eles recriam a tabela do zero a cada render(), entao busca
   // e ordem de coluna (que vivem so no DOM) precisam ser reaplicadas por cima; a
   // trava de perfil roda por ultimo porque precisa valer sobre os controles novos
@@ -162,6 +162,9 @@ function renderEditIns(){ pintarInsumos(calcularCompleto()); pintarEditIns(); ap
 /* Mesmo criterio: abrir/fechar o modal de busca na Agrofit, ou trocar de
    candidato, nao muda nenhum numero do plano. */
 function renderAgrofit(){ pintarAgrofitModal(); aplicarPermissoes(); }
+/* Idem: abrir/fechar o detalhamento do terceiro por sub-modo nao muda nenhum
+   numero — so os campos digitados dentro dele passam por salvar()/leve(). */
+function renderTercDet(){ pintarTercDet(); aplicarPermissoes(); }
 
 // atualização leve: recalcula tudo mas preserva o foco de quem está digitando
 let leveTimer=null;
@@ -196,4 +199,4 @@ function leve(){
 }
 
 
-export { calcularCompleto, leve, leveTimer, render, renderAgrofit, renderEditIns, renderFichaIns, renderRastro, renderRendMensal };
+export { calcularCompleto, leve, leveTimer, render, renderAgrofit, renderEditIns, renderFichaIns, renderRastro, renderRendMensal, renderTercDet };

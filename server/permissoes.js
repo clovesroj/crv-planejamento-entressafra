@@ -67,7 +67,7 @@ const AREAS = [
   { id: 'arrend', nome: 'Arrendamentos', grupo: 'Custos', chaves: ['ARREND', 'ARR_PAR', 'ARR_RAT'] },
   { id: 'adm', nome: 'Custos Administrativos', grupo: 'Custos', chaves: ['ADM', 'ADM_RAT'] },
   { id: 'custos', nome: 'Custos', grupo: 'Custos', chaves: ['ESPOR'] },
-  { id: 'contas', nome: 'Plano de Contas', grupo: 'Custos', chaves: ['TERC_TAR'] },
+  { id: 'contas', nome: 'Plano de Contas', grupo: 'Custos', chaves: ['TERC_TAR', 'TERC_SUB'] },
 ];
 
 const IDS_AREA = new Set(AREAS.map(a => a.id));

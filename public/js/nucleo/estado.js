@@ -24,6 +24,8 @@ let NIV  = {};           // fcod -> [{sal,qtd} x5]  níveis salariais (I..V)
 let GRAT = {};           // fcod -> {tipo:'R$'|'%', valor}
 let APOIO = null;        // [{nome,maq,qtd,hmes,fcod,fniv}] equipamentos de apoio
 let TERC_TAR = {};       // cod da atividade -> tarifa de terceirização (R$/ha)
+let TERC_SUB = {};       // cod -> {subModo: {pct, tar}} detalhamento do terceiro por avião/drone/terrestre
+let TERC_DET = null;     // cod com o modal de detalhamento do terceiro aberto, ou null (visão, não dado)
 let CRM = {};            // item -> {pecas,terc,consumo,lubrif} ajustados
 let MATX = null;         // materiais de manutenção (lista editável)
 let INSX = null;         // cadastro de insumos (lista editável: incluir/alterar/remover)
@@ -81,7 +83,7 @@ let ATIV_TRAT_SEL = null;  // cod da atividade cujo período/meses aparece na ab
 let AGROFIT_BUSCA = null;
 
 export {
-  P, PLANO, DIM, INSUMO, ESPOR, TRATC, NIV, GRAT, APOIO, TERC_TAR, CRM, MATX,
+  P, PLANO, DIM, INSUMO, ESPOR, TRATC, NIV, GRAT, APOIO, TERC_TAR, TERC_SUB, TERC_DET, CRM, MATX,
   INSX, INSX_V, ATVX, ATVX_V, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, CRIT_GER, CRIT_CABE, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, INS_FICHA, APOIO_FIXO, TRAT_NOME, TRAT_OBS, TRAT_ETAPA, TRAT_DEL, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
   TPESS, QUADRO, ADM, ADM_RAT, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL, ATIV_TRAT_SEL, GRUPOS_INS, FAM_NOME, FAM_CLASSE, AGROFIT_BUSCA, INS_EDIT,
 };
@@ -96,6 +98,8 @@ export const setNIV        = v => { NIV = v; };
 export const setGRAT       = v => { GRAT = v; };
 export const setAPOIO      = v => { APOIO = v; };
 export const setTERC_TAR   = v => { TERC_TAR = v; };
+export const setTERC_SUB   = v => { TERC_SUB = v; };
+export const setTERC_DET   = v => { TERC_DET = v; };
 export const setCRM        = v => { CRM = v; };
 export const setMATX       = v => { MATX = v; };
 export const setINSX       = v => { INSX = v; };

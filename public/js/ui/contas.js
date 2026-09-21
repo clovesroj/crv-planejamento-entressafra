@@ -1,4 +1,4 @@
-import { tarifaTerc } from '../calculo/atividade.js';
+import { tarifaTerc, tarifaTercDe, temDetalheTerc } from '../calculo/atividade.js';
 import { benVal, encPct } from '../calculo/mao-de-obra.js';
 import { CFG } from '../dados/cfg.js';
 import { NM } from '../nucleo/calendario.js';
@@ -56,16 +56,22 @@ function pintarContas(R){
       <td class="num calc">${fmt(i.vol)}</td><td class="num tot">${brl(i.total)}</td></tr>`).join("")+
     `<tr><td class="tot" colspan="6">TOTAL</td><td class="num tot">${brl(R.TC.total)}</td></tr></tbody>`;
 
-  // tarifas de prestação de serviço por atividade com frente terceirizada
+  // tarifas de prestação de serviço por atividade com frente terceirizada.
+  // Atividade com detalhamento por sub-modo (avião/drone/terrestre — TERC_SUB)
+  // trava a tarifa única aqui: editar as duas ao mesmo tempo confundiria qual
+  // vale. O detalhe se ajusta no "›" ao lado do 3º, no Plano Operacional.
   const comTerc = R.L.filter(x=>x.partes.some(p=>p.terc));
   $("#t_tarifa").innerHTML = th([["Cod"],["Atividade"],["% terceirizado",1],["Área terceirizada",1],
     ["Tarifa (R$/ha)",1],["Custo",1]])+"<tbody>"+
     (comTerc.length? comTerc.map(x=>{
       const p = x.partes.find(z=>z.terc);
+      const detalhado = temDetalheTerc(x.a.cod);
       return `<tr><td>${x.a.cod}</td><td>${x.a.nome}</td>
         <td class="num calc">${fmt(p.pct*100,1)}%</td>
         <td class="num calc">${fmt(p.area)} ha</td>
-        <td class="num"><input data-tt="${x.a.cod}" value="${tarifaTerc(x.a.cod)}" inputmode="decimal"></td>
+        <td class="num">${detalhado
+          ? `<span class="calc" title="Detalhado por avião/drone/terrestre no Plano Operacional">${brl(tarifaTercDe(x.a.cod),2)}</span>`
+          : `<input data-tt="${x.a.cod}" value="${tarifaTerc(x.a.cod)}" inputmode="decimal">`}</td>
         <td class="num tot">${brl(p.cTerc)}</td></tr>`;}).join("")
       : `<tr><td colspan="6" class="calc">Nenhuma atividade com frente terceirizada. Marque o percentual na coluna "3º" do Plano Operacional.</td></tr>`)+
     `<tr><td class="tot" colspan="5">TOTAL DE APLICAÇÕES TERCEIRIZADAS</td>

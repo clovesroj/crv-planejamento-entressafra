@@ -27,7 +27,7 @@ import { USUARIO, podeEditar, areasDePermissao } from '../nucleo/sessao.js';
    salva mudou. */
 const VISUAIS = [
   '[data-rastro]', '[data-ra-periodo]', '#ra_voltar', '#ra_fechar',
-  '[data-abrefrota]', '[data-infx]', '[data-rendmes]', '#rm_fechar',
+  '[data-abrefrota]', '[data-infx]', '[data-rendmes]', '#rm_fechar', '[data-tercdet]', '#td_fechar',
   '#sel_fun', '#busca_fun', '#sel_cat', '#sel_orig', '#sel_dest', '#sel_trat', '#busca_trat', '#sel_acomp_mes',
   '#sel_crit_ger', '#sel_crit_cabe', '.tbl-busca',
   '#sel_ins_fam', '#btn_ins_recolher', '[data-fam]',
@@ -51,6 +51,10 @@ function areaDe(el) {
   // globais, ver index.html), então sem esta linha os campos de dentro nunca
   // seriam travados, não importa o perfil.
   if (el.closest('#insbase') || el.closest('#config') || el.closest('#agrofit_modal') || el.closest('#insedit')) return 'insumos';
+  // detalhamento do terceiro por sub-modo (aviao, drone...): grava TERC_SUB,
+  // mesma area de TERC_TAR (Plano de Contas) — o modal abre a partir do "3º"
+  // no Plano Operacional, mas fora de qualquer <section>, como os de cima.
+  if (el.closest('#tercdet')) return 'contas';
   const sec = el.closest('section[id]');
   if (!sec) return null;
   return areasDePermissao().some(a => a.id === sec.id) ? sec.id : null;
@@ -114,6 +118,8 @@ function aplicarPermissoes() {
   });
   const rm = document.getElementById('rendm');
   if (rm) { if (podeEditar('dimens')) destravar(rm); else travar(rm); }
+  const td = document.getElementById('tercdet');
+  if (td) { if (podeEditar('contas')) destravar(td); else travar(td); }
   const pode_ins = podeEditar('insumos');
   const agro = document.getElementById('agrofit_modal');
   if (agro) { if (pode_ins) destravar(agro); else travar(agro); }

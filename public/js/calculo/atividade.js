@@ -2,7 +2,7 @@ import { maqDe } from './crm.js';
 import { CFG } from '../dados/cfg.js';
 import { fatorEscala } from '../dados/escalas.js';
 import { MESES, NM, diasCorridos, diasNoMesEntre, mesesEntre } from '../nucleo/calendario.js';
-import { DIM, P, PLANO, REAL, TERC_TAR, atividadesLista } from '../nucleo/estado.js';
+import { DIM, P, PLANO, REAL, TERC_SUB, TERC_TAR, atividadesLista } from '../nucleo/estado.js';
 import { num, pct } from '../nucleo/formato.js';
 import { precoDiesel } from './diesel.js';
 import { tratCusto } from './insumos.js';
@@ -11,9 +11,29 @@ import { custoDaFuncao } from './mao-de-obra.js';
 
 
 /* ================== ATIVIDADE ================== */
-const MODOS_ORD = ["Manual","Trator","Uniport","Drone","Terceiro"];
+const MODOS_ORD = ["Manual","Trator","Uniport","Drone","Quadriciclo","Terceiro"];
 // tarifa de prestação de serviço por atividade (R$/ha) — sobrepõe o padrão
 function tarifaTerc(cod){ return TERC_TAR[cod]!=null ? num(TERC_TAR[cod]) : CFG.terc_tar_pad; }
+
+/* Tarifa efetiva do terceiro: se a atividade detalha por sub-modo (avião,
+   drone, terrestre — TERC_SUB, editado no modal aberto a partir do "3º" no
+   Plano Operacional), a tarifa vira a média dos sub-modos ponderada pelo %
+   que cada um leva do total terceirizado. Sem detalhamento (ou com os % todos
+   zerados), cai na tarifa única de sempre — nenhum documento existente muda. */
+function chavesSubTerc(cod){
+  const sub = TERC_SUB[cod];
+  return sub ? Object.keys(sub).filter(m=>num(sub[m] && sub[m].pct)>0) : [];
+}
+// a atividade tem algum sub-modo (avião, drone, terrestre) com % > 0? Usado
+// pela UI (Plano Operacional e Plano de Contas) pra saber se a tarifa única
+// está em uso ou se foi substituída pelo detalhamento.
+function temDetalheTerc(cod){ return chavesSubTerc(cod).length>0; }
+function tarifaTercDe(cod){
+  const sub = TERC_SUB[cod], chaves = chavesSubTerc(cod);
+  const soma = chaves.reduce((s,m)=>s+num(sub[m].pct),0);
+  if(soma<=0) return tarifaTerc(cod);
+  return chaves.reduce((s,m)=>s+(num(sub[m].pct)/soma)*num(sub[m].tar),0);
+}
 
 /* Modos que a atividade aceita. Sem a lista, vale o cardapio inteiro; com ela,
    a atividade so oferece o que faz sentido — aplicacao de calcario, por exemplo,
@@ -266,8 +286,10 @@ function linha(a, MP){
     const area = total*f.pct;
     if(f.terc){
       // prestador de serviço: não consome frota nem mão de obra própria.
-      // O custo é a tarifa contratada aplicada à área designada.
-      const cTerc = area * tarifaTerc(a.cod);
+      // O custo é a tarifa contratada aplicada à área designada — ou, quando a
+      // atividade detalha por sub-modo (avião, drone...), a média ponderada
+      // dessas tarifas. Sem detalhamento, vale a tarifa única de sempre.
+      const cTerc = area * tarifaTercDe(a.cod);
       return {...f, area, horas:0, capMes:0, frota:0, frotaR:0, litros:0,
               fcod:"—", fnome:"Prestador", cDiesel:0, cManut:0, cMDO:0, cTerc,
               efetivo:0, direto:cTerc};
@@ -386,9 +408,9 @@ function removerAtividade(cod){
   const i = lista.findIndex(a=>a.cod===cod);
   if(i<0) return false;
   lista.splice(i,1);
-  delete PLANO[cod]; delete DIM[cod]; delete TERC_TAR[cod]; delete REAL[cod];
+  delete PLANO[cod]; delete DIM[cod]; delete TERC_TAR[cod]; delete TERC_SUB[cod]; delete REAL[cod];
   return true;
 }
 
-export { MODOS_ORD, criterioMensal, diasDoMes, fatorDe, modosDe, linha, mixDe, tarifaTerc, metaDe,
+export { MODOS_ORD, criterioMensal, diasDoMes, fatorDe, modosDe, linha, mixDe, tarifaTerc, tarifaTercDe, temDetalheTerc, metaDe,
   temCriterioMensal, mesclarBaseAtividades, codigoAtividadeValido, criarAtividade, removerAtividade };
