@@ -2,6 +2,9 @@
 const PADRAO = {
   // agronômicas
   dens:15, tch:60, plantio:2400, arr_ha:8000,
+  // base física dos custos unitários (calculo/base-fisica.js). Zero é "não
+  // informado": a base cai na soma das atividades do plano até ser preenchida.
+  haTratosPlanta:0, haTratosSoca:0, haColheita:0, tonColheita:0,
   // operacionais
   hdia:16.8, disp:80, efic:100, dias:24,
   // turnos e escalas

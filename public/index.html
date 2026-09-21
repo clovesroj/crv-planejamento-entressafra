@@ -154,10 +154,27 @@
 <section id="premissas">
   <h2>Premissas</h2>
   <p class="lead">Parâmetros que alimentam todos os cálculos. Qualquer alteração recalcula o sistema inteiro.</p>
+  <div class="panel"><h3>Base física dos custos</h3>
+    <div class="grid g5">
+      <div><label>Área de plantio (ha)</label><input type="number" id="p_plantio" step="10"></div>
+      <div><label>Área de tratos culturais — cana planta (ha)</label><input type="number" id="p_haTratosPlanta" step="10">
+        <div class="hint" id="h_haTratosPlanta"></div></div>
+      <div><label>Área de tratos culturais — cana soca (ha)</label><input type="number" id="p_haTratosSoca" step="10">
+        <div class="hint" id="h_haTratosSoca"></div></div>
+      <div><label>Área de colheita (ha)</label><input type="number" id="p_haColheita" step="10">
+        <div class="hint" id="h_haColheita"></div></div>
+      <div><label>Volume estimado de colheita (t)</label><input type="number" id="p_tonColheita" step="1000">
+        <div class="hint" id="h_tonColheita"></div></div>
+    </div>
+    <div class="hint" style="margin-top:9px">Estas áreas e o volume são a base de todo custo por hectare e por tonelada
+    do sistema — Painel, Custos, Arrendamentos, Custos Administrativos e relatórios. Plantio e formação do canavial
+    dividem pela área de plantio; tratos de cana planta e de cana soca, pela área de cada cultura; colheita, pelo volume
+    colhido (e pela área colhida, quando informada). Em branco, a base cai na soma do que foi lançado nas atividades do
+    Plano Operacional — que conta cada passada no mesmo talhão como um hectare a mais — e a aba Validação avisa.
+    Preparo de solo e apoio e conservação seguem por hectare operado.</div></div>
   <div class="panel"><h3>Agronômicas</h3><div class="grid g4">
     <div><label>Densidade de muda (t/ha)</label><input type="number" id="p_dens" step="0.5"><div class="hint">Mercado: 12–18</div></div>
     <div><label>TCH da cana-muda (t/ha)</label><input type="number" id="p_tch" step="1"></div>
-    <div><label>Área de plantio (ha)</label><input type="number" id="p_plantio" step="10"></div>
     <div><label>Área arrendada (ha)</label><input id="c_arr_ha" disabled><div class="hint">Cadastrada na aba Arrendamentos</div></div>
     <div><label>Necessidade de muda (t)</label><input id="c_muda" disabled></div>
     <div><label>Área de viveiro (ha)</label><input id="c_viveiro" disabled></div>

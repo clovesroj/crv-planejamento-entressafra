@@ -18,8 +18,8 @@
    parte de tratos no rateio geral é dividida pelo custo direto de cada cultura,
    que é o critério com que o motor reparte esse rateio entre as etapas. Assim
    planta + soca fecha com tratos no centavo. */
-import { P } from '../nucleo/estado.js';
 import { num } from '../nucleo/formato.js';
+import { baseOperacao, comAlternativa } from './base-fisica.js';
 
 // as operações do painel, na ordem do ciclo da cana
 const OPERACOES = [
@@ -86,15 +86,17 @@ function custoPorOperacao(R){
     const gerais = d.indireto*fDireto - deprec;
     const contabil = diretoOp + arrend + admin + deprec + gerais;
 
-    // base física. Plantio e tratos de cana planta formam o canavial: dividem
-    // pela área plantada (premissa), não pela soma das passadas das atividades —
-    // dez operações no mesmo talhão não são dez hectares. As demais seguem em
-    // hectares operados ou toneladas, como na tabela de custo por etapa.
+    // base física: as premissas do bloco "Base física dos custos" (aba
+    // Premissas), via calculo/base-fisica.js. Sem premissa, a soma das
+    // atividades — dez passadas no mesmo talhão contam dez hectares, por isso a
+    // tela marca quando a base veio daí.
     const ha  = ativs.filter(r=>r.ehHa).reduce((t,r)=>t+r.total, 0);
     const ton = ativs.filter(r=>!r.ehHa && r.a.tipo!=="transp").reduce((t,r)=>t+r.total, 0);
-    const areaPlantio = num(P.plantio);
-    const base = op.formacao && areaPlantio>0 ? {q:areaPlantio, un:"ha", rot:"ha plantados", haOper:ha}
-               : ha>0 ? {q:ha, un:"ha", rot:"ha operados"} : {q:ton, un:"t", rot:"t"};
+    const estimado = ha>0 ? {q:ha, un:"ha", rot:"ha operados"} : {q:ton, un:"t", rot:"t"};
+    const idBase = {plantio:"plantio", planta:"planta", soca:"soca", colheita:"colheita"}[op.id];
+    let base = idBase ? baseOperacao(idBase, estimado) : {...estimado, fonte:"atividades"};
+    if(op.id==="colheita") base = comAlternativa(base);
+    base.haOper = ha;
 
     return {...op, oper:o, rateio:{apoio, arrend, admin, deprec, gerais,
             total: apoio+arrend+admin+deprec+gerais}, contabil, base};
@@ -111,11 +113,11 @@ function custoPorOperacao(R){
   const partes = principais.filter(l=>l.formacao);
   const somaObj = campo => Object.fromEntries(Object.keys(partes[0]?partes[0][campo]:{})
     .map(k=>[k, soma(partes, l=>l[campo][k])]));
-  const areaPlantio = num(P.plantio);
+  // a formação divide pela área de plantio: é o canavial que foi posto de pé
   const formacao = partes.length ? {
     id:"formacao", nome:"Formação do canavial", partes: partes.map(l=>l.nome),
     oper: somaObj("oper"), rateio: somaObj("rateio"), contabil: soma(partes, l=>l.contabil),
-    base: {q:areaPlantio, un:"ha", rot:"ha plantados"},
+    base: baseOperacao("plantio", {q:soma(partes, l=>l.base.haOper||0), un:"ha", rot:"ha operados"}),
   } : null;
 
   return {

@@ -8,6 +8,7 @@ import { ETAPAS_ORD, arrRat } from './arrendamento.js';
 import { criterioMensal, tarifaTerc } from './atividade.js';
 import { tratCusto } from './insumos.js';
 import { comps, custoPorOperacao } from './custo-operacao.js';
+import { baseEtapa, custoUnit, premissaBase, rotuloBase } from './base-fisica.js';
 import { reforma } from './reforma.js';
 
 // soma um array de NM meses respeitando o filtro de período (mesmo critério de R.PER)
@@ -131,8 +132,8 @@ function rastroOperacao(R, id, modo){
   const C = custoPorOperacao(R);
   const l = id==="formacao" ? C.formacao : C.principais.concat(C.outras).find(x=>x.id===id);
   if(!l) return rastroTotal(R);
-  const b = l.base, porUn = v => b.q>0 ? brl(v/b.q,2)+"/"+b.un : "—";
-  const rotBase = fmt(b.q)+" "+(b.rot||b.un);
+  const b = l.base, porUn = v => custoUnit(v, b);
+  const rotBase = rotuloBase(b);
   const o = l.oper, r = l.rateio;
   const OPER = [["diesel","Diesel das máquinas da operação"],["mdo","Mão de obra"],["manut","Manutenção (CRM)"],
                 ["insumo","Insumos"],["irrig","Irrigação (energia, água, materiais)"],["terc","Terceirização"]];
@@ -165,9 +166,8 @@ function rastroOperacao(R, id, modo){
       rot:x.a.cod+" · "+x.a.nome, val:brl(x.direto), ir:"ativ:"+x.a.cod,
       sub:fmt(x.total)+" "+x.a.un.split("/")[0]+" · "+fmt(x.horas)+" h"}))});
   }
-  const premBase = b.rot==="ha plantados"
-    ? [{rot:"Área de plantio", val:fmt(b.q)+" ha", sub:"premissa — base da formação do canavial"}]
-    : [{rot:"Base física", val:rotBase}];
+  const premBase = [{rot:"Base física", val:rotBase,
+    sub: b.fonte==="premissa" ? "premissa, bloco Base física dos custos" : "premissa em branco — soma das atividades"}];
   return {
     titulo: l.nome,
     subtitulo: id==="formacao" ? "plantio + tratos culturais de cana planta · por hectare plantado"
@@ -188,7 +188,9 @@ function rastroOperacao(R, id, modo){
 function rastroCorte(R){
   const colh = R.etapas["COLHEITA"];
   const corte = R.L.filter(r=>r.a.cod==="A01"||r.a.cod==="A02");
-  const dir = corte.reduce((s,r)=>s+r.direto,0), ton = corte.reduce((s,r)=>s+r.total,0);
+  const dir = corte.reduce((s,r)=>s+r.direto,0);
+  // pelo volume colhido informado em Premissas; sem ele, as toneladas do corte
+  const ton = premissaBase("colheita") || corte.reduce((s,r)=>s+r.total,0);
   const ind = R.indiretoPool*(dir/(R.diretoSum||1));
   const arr = colh && colh.direto>0 ? colh.arrend*(dir/colh.direto) : 0;
   const tot = dir+ind+arr;
@@ -202,12 +204,12 @@ function rastroCorte(R){
         {rot:"Custo direto do corte", val:brl(dir), sub:porT(dir)},
         {rot:"Parte do corte no custo indireto", val:brl(ind), sub:"pelo custo direto · "+porT(ind)},
         {rot:"Parte do corte no arrendamento da colheita", val:brl(arr), sub:"pelo custo direto · "+porT(arr)},
-        {rot:"Custo do corte", val:brl(tot), sub:porT(tot)+" · "+fmt(ton)+" t"},
+        {rot:"Custo do corte", val:brl(tot), sub:porT(tot)+" · "+fmt(ton)+(premissaBase("colheita")?" t colhidas (premissa)":" t cortadas nas atividades")},
       ]},
       {titulo:"Atividades", linhas: corte.map(r=>({rot:r.a.cod+" · "+r.a.nome, val:brl(r.direto),
         ir:"ativ:"+r.a.cod, sub:fmt(r.total)+" t · "+(r.total>0?brl(r.direto/r.total,2)+"/t":"—")}))},
       {titulo:"A etapa inteira", linhas:[{rot:"Colheita com transporte e transbordo",
-        val: colh && colh.ton>0 ? brl(colh.total/colh.ton,2)+"/t" : "—", ir:"etapa:COLHEITA",
+        val: colh ? custoUnit(colh.total, baseEtapa(R,"COLHEITA")) : "—", ir:"etapa:COLHEITA",
         sub: colh ? brl(colh.total) : ""}]},
     ],
     premissas: premissasGerais(),
@@ -278,7 +280,7 @@ function rastroEtapa(R, etapa){
   const d = R.etapas[etapa];
   if(!d) return null;
   const ativs = R.L.filter(r=>r.a.etapa===etapa && r.direto>0).sort((a,b)=>b.direto-a.direto);
-  const base = d.ha>0 ? {q:d.ha, un:"ha"} : {q:d.ton, un:"t"};
+  const base = baseEtapa(R, etapa);
   const admLinhas = (R.ADM.linhas||[]).filter((l,i)=>l.total>0 && (R.AD.porLinha[i]||{}).rateado>0);
   const somaPct = ETAPAS_ORD.reduce((s,e)=>s+arrRat(e),0);
 
@@ -306,8 +308,9 @@ function rastroEtapa(R, etapa){
     ]},
   ];
   if(base.q>0) blocos.push({titulo:"Custo unitário", linhas:[
-    {rot:`Base física`, val:fmt(base.q)+" "+base.un},
-    {rot:`Custo por ${base.un}`, val:brl(d.total/base.q,2)+"/"+base.un},
+    {rot:`Base física`, val:rotuloBase(base),
+     sub: base.fonte==="premissa" ? "premissa, bloco Base física dos custos" : "premissa em branco — soma das atividades"},
+    {rot:`Custo por ${base.un}`, val:custoUnit(d.total, base)},
   ]});
 
   return {titulo:etapa, subtitulo:"Centro de custo · etapa do plano", valor:brl(d.total), blocos,

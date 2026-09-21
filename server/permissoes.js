@@ -32,7 +32,7 @@ const AREAS = [
   { id: 'acomp', nome: 'Acompanhamento do Plano', grupo: 'Visão geral', chaves: ['REAL'] },
 
   { id: 'premissas', nome: 'Premissas', grupo: 'Planejamento',
-    campos: ['dens', 'tch', 'plantio', 'hdia', 'disp', 'efic', 'dias', 'diesel', 'imob', 'dep', 'ipreco',
+    campos: ['dens', 'tch', 'plantio', 'haTratosPlanta', 'haTratosSoca', 'haColheita', 'tonColheita', 'hdia', 'disp', 'efic', 'dias', 'diesel', 'imob', 'dep', 'ipreco',
              'hPorMec', 'eqPorAjud', 'colPorLider', 'tercAereaTar', 'tercSistTar', 'tercSistHa'] },
   { id: 'plano', nome: 'Plano Operacional', grupo: 'Planejamento', chaves: ['PLANO', 'DIM'] },
   { id: 'dimens', nome: 'Dimensionamento', grupo: 'Planejamento',

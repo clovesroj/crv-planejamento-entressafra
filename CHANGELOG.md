@@ -1,5 +1,49 @@
 # Histórico de mudanças
 
+## 2.26.0 — 2026-09-21 · Base física dos custos na aba Premissas
+
+A aba Premissas ganhou o bloco **Base física dos custos**, o primeiro da aba:
+
+- **Área de plantio (ha)** — já existia, mudou de lugar;
+- **Área de tratos culturais — cana planta (ha)**;
+- **Área de tratos culturais — cana soca (ha)**;
+- **Área de colheita (ha)**;
+- **Volume estimado de colheita (t)**.
+
+Esses números passam a ser a base de todo custo por hectare e por tonelada:
+Painel, aba Custos (custo por etapa, custo operacional, custo contábil),
+Arrendamentos, Custos Administrativos, relatórios e rastro. A regra mora num
+lugar só, `calculo/base-fisica.js`, e toda tela usa a mesma:
+
+| Operação | Divide por |
+|---|---|
+| Plantio e formação do canavial | área de plantio |
+| Tratos de cana planta | área de cana planta |
+| Tratos de cana soca | área de cana soca |
+| Tratos (etapa inteira) | área de cana planta + área de cana soca |
+| Colheita | volume colhido, e também a área colhida quando informada ("R$/t · R$/ha colhido") |
+| Preparo de solo, apoio e conservação | hectares operados (não têm premissa de área) |
+
+**Campo em branco não é zero, é "não informado".** A base cai no que o plano
+já sabe: tratos de cana planta usa a área de plantio, e cana soca e colheita
+usam a soma lançada nas atividades. A tela escreve "(soma das atividades)"
+quando a base veio daí. Embaixo de cada campo, uma dica diz o que está sendo
+usado. Com os campos em branco, os valores ficam exatamente como estavam na
+versão anterior.
+
+**Só o divisor muda.** Os custos totais continuam os mesmos; muda o custo
+unitário. No plano de teste, com 8.000 ha de soca informados, tratos de cana
+soca foi de R$ 180/ha operado para R$ 1.487/ha de soca.
+
+**Validação** ganhou dois avisos: premissa de base física em branco, e volume
+estimado de colheita a mais de 10% das toneladas lançadas na colheita do plano.
+
+As premissas novas entram na lista de campos da aba Premissas em
+`server/permissoes.js`: quem edita Premissas grava esses campos.
+
+O consumo de diesel por unidade (L/ha) da aba Combustível segue por hectare
+operado. É um índice técnico de consumo por passada, não um custo.
+
 ## 2.25.0 — 2026-09-21 · Formação do canavial e cartões que abrem o próprio detalhe
 
 ### Formação do canavial
