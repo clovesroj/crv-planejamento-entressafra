@@ -2,12 +2,18 @@ import { MODOS_ORD, modosDe } from '../calculo/atividade.js';
 import { tratListaTodos } from '../calculo/insumos.js';
 import { CFG } from '../dados/cfg.js';
 import { NM } from '../nucleo/calendario.js';
-import { TRAT_NOME } from '../nucleo/estado.js';
+import { DIM, TRAT_NOME } from '../nucleo/estado.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
 import { th } from './componentes.js';
 import { MESES, PERIODO_MESES, clsMes } from '../nucleo/calendario.js';
 
 /* ---------- PLANO ---------- */
+// A44-A53 (Broca e Cigarrinha) agrupam visualmente como "Manejo
+// Fitossanitário" nesta tabela, sem mudar a.etapa: etapa continua "Tratos
+// Culturais" pra tudo que usa etapa pra calcular (rateio de arrendamento,
+// administrativo, relatórios) — é só o cabeçalho de grupo que muda aqui.
+const COD_FITOSSANITARIO = new Set(["A44","A45","A46","A47","A48","A49","A50","A51","A52","A53"]);
+const grupoPlano = a => COD_FITOSSANITARIO.has(a.cod) ? "MANEJO FITOSSANITÁRIO" : a.etapa;
 // editor compacto do mix de modos: 4 percentuais numa célula só
 function mixEditor(r){
   const mx = r.mix || {};
@@ -44,16 +50,18 @@ function pintarPlano(R){
               ["Modo de execução"],["Equip."],["Tratamento"],["Insumo",1]])+"<tbody>";
   let et="";
   R.L.forEach(r=>{
-    if(r.a.etapa!==et){et=r.a.etapa; h+=`<tr class="stage"><td colspan="${SEL.meses.length+10}">${et}</td></tr>`;}
+    const grupo = grupoPlano(r.a);
+    if(grupo!==et){et=grupo; h+=`<tr class="stage"><td colspan="${SEL.meses.length+10}"><span>${et}</span></td></tr>`;}
     const opts=['<option value="">—</option>'].concat(TL.map(t=>
       `<option value="${t.cod}" ${t.cod===r.trat?"selected":""}>${t.cod}${TRAT_NOME[t.cod]?" — "+esc(TRAT_NOME[t.cod]):""} · ${brl(t.custo_ha,0)}/ha</option>`)).join("");
     const auto = r.a.tipo==="transp";
     // janela de datas: define em que meses a atividade pode ser lancada
     const jIdx = r.janela.fonte==="datas" ? r.janela.idx : null;
     const dentro = j => !jIdx || jIdx.includes(j);
+    const d = DIM[r.a.cod] || {};
     h+=`<tr><td>${r.a.cod}</td><td>${r.a.nome}${auto?' <span class="badge b-ok">auto</span>':''}</td>
-        <td><input type="date" data-dt="${r.a.cod}" data-f="ini" value="${r.janela.ini||""}" title="Início da execução"></td>
-        <td><input type="date" data-dt="${r.a.cod}" data-f="fim" value="${r.janela.fim||""}" title="Fim da execução"></td>
+        <td><input type="date" data-dt="${r.a.cod}" data-f="ini" value="${r.janela.ini||""}" max="${d.fim||""}" title="Início da execução"></td>
+        <td><input type="date" data-dt="${r.a.cod}" data-f="fim" value="${r.janela.fim||""}" min="${d.ini||""}" title="Fim da execução"></td>
         <td class="calc">${r.a.un}</td>`+
       r.meses.map((q,j)=> auto
         ? `<td class="num calc ${clsMes(j)}">${q?fmt(num(q)):""}</td>`

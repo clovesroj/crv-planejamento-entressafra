@@ -1,12 +1,13 @@
 import { ETAPAS_ORD, PAG_LIVRE, mesesPag } from '../calculo/arrendamento.js';
 import { AG_SEM_FROTA, FROTA_AG, FROTA_ESP, SEP_MOD, crmDe, espDe } from '../calculo/crm.js';
-import { codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, marcarEtapa, mesclarBaseInsumos, removerGrupoInsumo, removerTrat,
+import { codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, duplicarTrat, marcarEtapa, mesclarBaseInsumos, removerGrupoInsumo, removerTrat,
   renomearGrupoInsumo, renomearTrat, setClasseGrupo, todasFamilias, tratCodigos, usosTrat } from '../calculo/insumos.js';
+import { codigoAtividadeValido, criarAtividade, removerAtividade } from '../calculo/atividade.js';
 import { CFG } from '../dados/cfg.js';
 import { buscarAgrofit, bulaDoProduto } from '../io/agrofit.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
-import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE } from '../nucleo/estado.js';
+import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TPESS, TRATC, TRAT_NOME, TRAT_OBS, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, atividadesLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE } from '../nucleo/estado.js';
 import { AGROFIT_BUSCA, FROTA_ABERTO, FROTA_UN, INS_EDIT, INS_FICHA, MAQ, setAGROFIT_BUSCA, setFROTA_DEST, setFROTA_ORIG, setINS_EDIT, setINS_FICHA } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { filtrarPorNome } from '../ui/componentes.js';
@@ -15,7 +16,7 @@ import { lerPremissas } from '../ui/premissas.js';
 import { leve, render, renderAgrofit, renderEditIns, renderFichaIns, renderRastro, renderRendMensal } from './ciclo.js';
 import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarRastro, voltarRastro } from '../ui/rastro.js';
 import { abrirRendMensal, aberto as rendMensalAberto, fecharRendMensal } from '../ui/rendmensal.js';
-import { setAPOIO, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setINSX_V, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
+import { setAPOIO, setATIV_TRAT_SEL, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setINSX_V, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
 import { USUARIO, areasDePermissao, podeEditar } from '../nucleo/sessao.js';
 
 /* Renomear ou remover um tratamento mexe tambem nas atividades que o usam, e
@@ -128,6 +129,11 @@ document.addEventListener("input",e=>{
   if(t.dataset.mt!==undefined){ const l=matLista()[+t.dataset.mt];
     l[t.dataset.f] = ["preco","qtd"].includes(t.dataset.f) ? num(t.value) : t.value;
     salvar(); leve(); return; }
+  if(t.dataset.at!==undefined && t.tagName==="INPUT"){ const a=atividadesLista()[+t.dataset.at], f=t.dataset.f;
+    a[f] = ["nome","maq","imp"].includes(f) ? t.value : num(t.value);
+    salvar(); leve(); return; }
+  if(t.dataset.atu!==undefined){ atividadesLista()[+t.dataset.atu].util = num(t.value)/100;
+    salvar(); leve(); return; }
   if(t.dataset.mx!==undefined){ const c=t.dataset.mx;
     PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""};
     PLANO[c].mix=PLANO[c].mix||{}; PLANO[c].mix[t.dataset.mo]=num(t.value);
@@ -137,8 +143,11 @@ document.addEventListener("input",e=>{
   if(t.dataset.ex!==undefined){ ESPOR[+t.dataset.ex][t.dataset.f]=t.dataset.f==="valor"?num(t.value):t.value; salvar(); leve(); return; }
   if(t.dataset.td!==undefined){ const c=destravar(TRAT_SEL); c[+t.dataset.td].dose=num(t.value); salvar(); leve(); return; }
   if(t.id==="in_trat_nome"){ TRAT_NOME[TRAT_SEL]=t.value; salvar(); leve(); return; }
+  if(t.id==="in_trat_obs"){ TRAT_OBS[TRAT_SEL]=t.value; salvar(); leve(); return; }
   // nome do tratamento editado na propria linha do cadastro
   if(t.dataset.trn!==undefined){ TRAT_NOME[t.dataset.trn]=t.value; salvar(); leve(); return; }
+  // observacao do tratamento (recomendacao, instrucao de uso)
+  if(t.dataset.tro!==undefined){ TRAT_OBS[t.dataset.tro]=t.value; salvar(); leve(); return; }
   // campo vazio volta ao preço base; null (e não delete) para a limpeza chegar ao servidor no merge
   if(t.dataset.dm!==undefined){ const v=t.value.trim(); DIESEL_MES[t.dataset.dm] = v==="" ? null : num(v);
     salvar(); leve(); return; }
@@ -171,6 +180,8 @@ document.addEventListener("input",e=>{
 });
 document.addEventListener("change",e=>{
   const t=e.target;
+  if(t.dataset.at!==undefined && t.tagName==="SELECT"){ atividadesLista()[+t.dataset.at][t.dataset.f]=t.value;
+    salvar(); render(); return; }
   if(t.dataset.grpclasse!==undefined){
     const r = setClasseGrupo(t.dataset.grpclasse, t.value);
     if(!r.ok){ alert(r.erro); render(); return; }
@@ -201,6 +212,11 @@ document.addEventListener("change",e=>{
   if(t.dataset.t!==undefined){
     const c=t.dataset.t; PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""};
     PLANO[c].trat=t.value; salvar(); render(); return; }
+  if(t.id==="sel_trat_ativ"){
+    const c=t.value;
+    setATIV_TRAT_SEL(c);
+    if(c){ PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""}; PLANO[c].trat=TRAT_SEL; salvar(); }
+    render(); return; }
   if(t.dataset.ex!==undefined){ ESPOR[+t.dataset.ex][t.dataset.f]=t.value; salvar(); render(); return; }
   if(t.id==="p_fonte"){ lerPremissas(); salvar(); render(); return; }
   if(t.dataset.arr!==undefined && t.tagName==="SELECT"){ const l=arrLista()[+t.dataset.arr];
@@ -238,10 +254,23 @@ document.addEventListener("change",e=>{
   if(t.id==="sel_dest"){ setFROTA_DEST(t.value); render(); return; }
   if(t.dataset.undest!==undefined){ const c=t.dataset.undest;
     FROTA_UN[c]=FROTA_UN[c]||{}; FROTA_UN[c].st=t.value; salvar(); render(); return; }
-  if(t.dataset.dt!==undefined){ const c=t.dataset.dt;
+  if(t.dataset.dt!==undefined){ const c=t.dataset.dt, f=t.dataset.f, outroF=f==="ini"?"fim":"ini";
     DIM[c]=DIM[c]||{};
     // data em branco volta a janela para os meses com volume lançado
-    if(!t.value) delete DIM[c][t.dataset.f]; else DIM[c][t.dataset.f]=t.value;
+    if(!t.value) delete DIM[c][f]; else DIM[c][f]=t.value;
+    // fim nunca fica antes do início: trava o calendário nativo do par (min/
+    // max) pra não abrir em hoje e obrigar a rolar meses até uma janela
+    // distante (ex.: início lançado em dezembro), e realinha o outro lado se
+    // ficou invertido — mesma ideia já usada em entIni/entFim de fornecedores
+    const outro = t.closest("table")?.querySelector(`input[data-dt="${CSS.escape(c)}"][data-f="${outroF}"]`);
+    if(outro){
+      const invertido = t.value && outro.value && (f==="ini" ? outro.value < t.value : outro.value > t.value);
+      if(invertido){ outro.value = t.value; DIM[c][outroF] = t.value; }
+      // recalcula os dois limites juntos — senão o lado que so' recebeu o
+      // ajuste de "invertido" fica com um min/max desatualizado
+      const ini = f==="ini" ? t : outro, fim = f==="ini" ? outro : t;
+      fim.min = ini.value || ""; ini.max = fim.value || "";
+    }
     // leve() preserva o foco; render() reconstruia a tabela e derrubava a
     // digitacao no meio da data
     salvar(); leve(); return; }
@@ -404,6 +433,13 @@ document.addEventListener("click",e=>{
     if(!confirm(`Remover "${l.forn}" dos fornecedores?`)) return;
     fornLista().splice(+t.dataset.fnrm,1); salvar(); render(); return; }
   if(t.dataset.tr!==undefined){ const c=destravar(TRAT_SEL); c.splice(+t.dataset.tr,1); salvar(); render(); return; }
+  if(t.dataset.trdup!==undefined){ const de=t.dataset.trdup;
+    const novo = prompt(`Código do tratamento duplicado a partir de "${de}":`, `${de} (cópia)`);
+    if(!novo) return;
+    if(!codigoTratValido(novo.trim())){ alert(MSG_COD_TRAT); return; }
+    if(!duplicarTrat(de, novo.trim())){ alert(`Já existe um tratamento com o código "${novo.trim()}".`); return; }
+    setTRAT_SEL(novo.trim());
+    salvar(true); render(); return; }
   if(t.dataset.trrm!==undefined){ const cod=t.dataset.trrm, usos=usosTrat(cod);
     if(!confirm(usos.length
       ? `Remover o tratamento "${cod}"? As atividades ${usos.join(", ")} ficam sem tratamento.`
@@ -424,6 +460,12 @@ document.addEventListener("click",e=>{
     const r = removerGrupoInsumo(t.dataset.grprm);
     if(!r.ok){ alert(r.erro); return; }
     salvar(true); render(); return; }
+  if(t.dataset.atrm!==undefined){
+    const cod = t.dataset.atrm, p = PLANO[cod];
+    const emUso = p && (p.trat || (p.m||[]).some(v=>num(v)>0));
+    if(emUso && !confirm(`"${cod}" tem área/tonelada ou tratamento lançado no Plano Operacional. Remover assim mesmo?`)) return;
+    if(!removerAtividade(cod)){ alert("Essa atividade não pode ser removida aqui."); return; }
+    salvar(true); render(); return; }
   if(t.dataset.grpren!==undefined){
     const id = t.dataset.grpren, g = todasFamilias().find(x=>x.id===id);
     const nome = prompt("Novo nome do grupo:", g ? g.nome : "");
@@ -437,6 +479,15 @@ $("#btn_grp_add").onclick=()=>{
   const r = criarGrupoInsumo($("#in_grp_novo").value);
   if(!r.ok){ alert(r.erro); return; }
   $("#in_grp_novo").value="";
+  salvar(true); render();
+};
+
+$("#btn_ativ_add").onclick=()=>{
+  const cod = $("#in_ativ_novo").value.trim();
+  if(!cod){ alert("Informe o código da nova atividade."); return; }
+  if(!codigoAtividadeValido(cod)){ alert("Código inválido: use letras, números, espaço, ponto, hífen, barra, +, %, vírgula ou parênteses."); return; }
+  if(!criarAtividade(cod)){ alert(`Já existe uma atividade com o código "${cod}".`); return; }
+  $("#in_ativ_novo").value="";
   salvar(true); render();
 };
 

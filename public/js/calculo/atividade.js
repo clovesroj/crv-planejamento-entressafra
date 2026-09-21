@@ -2,7 +2,7 @@ import { maqDe } from './crm.js';
 import { CFG } from '../dados/cfg.js';
 import { fatorEscala } from '../dados/escalas.js';
 import { MESES, NM, diasCorridos, diasNoMesEntre, mesesEntre } from '../nucleo/calendario.js';
-import { DIM, P, PLANO, TERC_TAR } from '../nucleo/estado.js';
+import { DIM, P, PLANO, REAL, TERC_TAR, atividadesLista } from '../nucleo/estado.js';
 import { num, pct } from '../nucleo/formato.js';
 import { precoDiesel } from './diesel.js';
 import { tratCusto } from './insumos.js';
@@ -353,5 +353,42 @@ function linha(a, MP){
           dieselMes: fracMes.map((fr,i)=>fr*soma("litros")*precoDiesel(i))};
 }
 
+/* ---------- cadastro de atividades: incluir e remover ----------
+   Mesmo mecanismo do cadastro de insumos (mesclarBaseInsumos): atividade nova
+   do codigo base entra sozinha na leitura do documento; nome, rendimento etc.
+   que o usuario ja tiver ajustado numa atividade existente ficam como estao. */
+function mesclarBaseAtividades(){
+  const lista = atividadesLista();
+  const jaTem = new Set(lista.map(a=>a.cod));
+  let novas = 0;
+  CFG.atividades.forEach(base=>{
+    if(!jaTem.has(base.cod)){ lista.push({...base}); novas++; }
+  });
+  return {novas, total:lista.length};
+}
+// mesmo alfabeto de codigoTratValido (calculo/insumos.js): texto de tela, valor
+// de <option> e atributo data-*, sem nada que feche aspa ou abra marcacao
+const COD_ATIV_OK = /^[\p{L}\p{N} ._\/+()%,-]{1,20}$/u;
+function codigoAtividadeValido(cod){ return COD_ATIV_OK.test(String(cod||"").trim()); }
+function criarAtividade(cod){
+  const c = String(cod||"").trim();
+  const lista = atividadesLista();
+  if(!codigoAtividadeValido(c) || lista.some(a=>a.cod===c)) return false;
+  lista.push({cod:c, etapa:"TRATOS CULTURAIS", nome:"Nova atividade", un:"ha/mês",
+              rend:1, maq:"", imp:"", ops:1, turnos:1, util:0.8});
+  return true;
+}
+// atividade do cadastro base nao se remove aqui (outras telas e o proprio
+// motor pressupoem que ela existe) — so a que o usuario criou nesta aba
+function removerAtividade(cod){
+  if(CFG.atividades.some(a=>a.cod===cod)) return false;
+  const lista = atividadesLista();
+  const i = lista.findIndex(a=>a.cod===cod);
+  if(i<0) return false;
+  lista.splice(i,1);
+  delete PLANO[cod]; delete DIM[cod]; delete TERC_TAR[cod]; delete REAL[cod];
+  return true;
+}
+
 export { MODOS_ORD, criterioMensal, diasDoMes, fatorDe, modosDe, linha, mixDe, tarifaTerc, metaDe,
-  temCriterioMensal };
+  temCriterioMensal, mesclarBaseAtividades, codigoAtividadeValido, criarAtividade, removerAtividade };

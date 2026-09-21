@@ -8,6 +8,8 @@ import { $, brl, fmt } from '../nucleo/formato.js';
 import { pintarAdm } from '../ui/administrativo.js';
 import { pintarAgrofitModal } from '../ui/agrofit.js';
 import { pintarApoio } from '../ui/apoio.js';
+import { pintarAtividadesCad } from '../ui/atividades-cad.js';
+import { pintarFito } from '../ui/fitossanitario.js';
 import { pintarArrend } from '../ui/arrendamentos.js';
 import { pintarCapa } from '../ui/capa.js';
 import { pintarCombustivel } from '../ui/combustivel.js';
@@ -133,8 +135,8 @@ function render(){
     b.classList.toggle("on", b.dataset.periodo===PERIODO_SEL));
   esconderMeses(R.SEL.meses);
   pintarCapa(R); pintarMDO(R); pintarPlano(R); pintarDim(R); pintarTransp(R); pintarApoio(R); pintarCRM(R); pintarReforma(); pintarTPess(R);
-  pintarIrrig(R); pintarInsumos(R); pintarArrend(R); pintarForn(R); pintarAdm(R); pintarCustos(R); pintarContas(R); pintarCombustivel(R); pintarResumoFrota(R); pintarPessoas(R);
-  pintarPainel(R); pintarValida(R); pintarAcomp(R); pintarRastro(R); pintarRendMensal(R); pintarConfig(); pintarFichaIns(); pintarEditIns(); pintarAgrofitModal();
+  pintarIrrig(R); pintarInsumos(R); pintarFito(R); pintarArrend(R); pintarForn(R); pintarAdm(R); pintarCustos(R); pintarContas(R); pintarCombustivel(R); pintarResumoFrota(R); pintarPessoas(R);
+  pintarPainel(R); pintarValida(R); pintarAcomp(R); pintarRastro(R); pintarRendMensal(R); pintarConfig(); pintarAtividadesCad(); pintarFichaIns(); pintarEditIns(); pintarAgrofitModal();
   // depois dos pintores: eles recriam a tabela do zero a cada render(), entao busca
   // e ordem de coluna (que vivem so no DOM) precisam ser reaplicadas por cima; a
   // trava de perfil roda por ultimo porque precisa valer sobre os controles novos

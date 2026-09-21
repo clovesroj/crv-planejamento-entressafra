@@ -5,7 +5,7 @@ import { FORN_MODALIDADES } from '../dados/fornecedores.js';
 import { deptIdx } from '../calculo/pessoas.js';
 import { GERENCIAS, criterioPorMes, excecoes, execucao, metasDeFrota, metasPorAtividade, porGerencia } from '../calculo/acompanhamento.js';
 import { CFG } from '../dados/cfg.js';
-import { CAT_LBL, MESES, PERIODOS, periodoMes } from '../nucleo/calendario.js';
+import { CAT_LBL, MESES, NM, PERIODOS, periodoMes } from '../nucleo/calendario.js';
 import { composicao, etapasNoPlano, tratEtapas, tratListaTodos } from '../calculo/insumos.js';
 import { TRAT_ETAPAS } from '../dados/insumos.js';
 import { INSUMO, P, TRAT_NOME, insLista } from '../nucleo/estado.js';
@@ -20,6 +20,85 @@ import { validar } from '../ui/validacao.js';
    Uma seção sem dado devolve linhas vazias e a geração escreve "sem dados". */
 
 const sec = (aba, titulo, cab, linhas) => ({aba, titulo, cab, linhas});
+
+/* ---------- recorte por período ----------
+   O relatório sai para o ano todo, só a safra ou só a entressafra. O recorte
+   usa o critério do próprio motor (calculo/index.js), sem conta nova:
+     - série mensal (custo do mês, naturezas, etapas, diesel, pessoas,
+       arrendamento) soma só os meses do período;
+     - custo de atividade cai nos meses pela quantidade lançada, e o diesel pelo
+       litro e preço de cada mês — é como o motor espalha o custo;
+     - administrativo e depreciação são iguais todo mês; arrendamento segue os
+       meses de pagamento; irrigação segue a área operada.
+   Cadastro, contrato e dimensionamento não têm série mensal: saem do ano, e o
+   título da seção diz "ano todo" para ninguém ler um número do ano como sendo
+   do período. A seção que foi recortada devolve per:true. */
+const REL_PERIODOS = {
+  ambos:       "Safra e entressafra (ano todo)",
+  safra:       PERIODOS.safra,
+  entressafra: PERIODOS.entressafra,
+};
+function recorte(p){
+  const per = REL_PERIODOS[p] ? p : "ambos";
+  const meses = MESES.map((m,i)=>i).filter(i=> per==="ambos" || periodoMes(i)===per);
+  return {per, parcial: per!=="ambos", meses, nome: REL_PERIODOS[per], fracMeses: meses.length/NM};
+}
+let REC = recorte("ambos");
+// seção recortada no período
+const secP = (aba, titulo, cab, linhas) => ({...sec(aba, titulo, cab, linhas), per:true});
+// soma de uma série de 12 meses só nos meses do período
+const noPer = arr => REC.meses.reduce((s,i)=>s+(+((arr||[])[i])||0), 0);
+const soma  = arr => (arr||[]).reduce((s,v)=>s+(+v||0), 0);
+const totP  = R => REC.parcial ? noPer(R.meses) : R.total;
+const catP  = (R,k) => REC.parcial ? noPer(R.mesesCat[k]) : soma(R.mesesCat[k]);
+// fração do ano de uma série: arrendamento pelos pagamentos, irrigação pela área
+const fracDe = arr => { const t = soma(arr); return t>0 ? noPer(arr)/t : REC.fracMeses; };
+
+/* Atividade no período: volume dos meses do período; diesel e litros mês a
+   mês; o resto do custo direto, pela fração do volume — o critério do motor.
+   Frota, efetivo e rendimento são do dimensionamento e ficam como estão. */
+function ativP(r){
+  if(!REC.parcial) return r;
+  const tot = r.total||0;
+  const vol = noPer((r.meses||[]).map(num));
+  const f = tot>0 ? vol/tot : 0;
+  const cDiesel = noPer(r.dieselMes);
+  return {...r, total:vol, horas:r.horas*f, litros:noPer(r.litrosMes), cDiesel,
+    cMDO:r.cMDO*f, cManut:r.cManut*f, cInsumo:r.cInsumo*f, cTerc:r.cTerc*f,
+    direto:(r.direto-r.cDiesel)*f + cDiesel};
+}
+
+/* Etapa no período. O total vem pronto do motor (etapaMes). O direto é o das
+   atividades no período, mais a parte da etapa no diesel do apoio e, em tratos,
+   a irrigação; o arrendamento segue os meses de pagamento; o administrativo é
+   igual todo mês. O indireto é o que sobra — como no motor, onde ele é o resto
+   de cada mês repartido pela participação no custo direto. */
+function etapaP(R, e){
+  const d = R.etapas[e] || {};
+  if(!REC.parcial) return d;
+  const at = R.L.filter(r=>r.a.etapa===e).map(ativP);
+  const s = k => at.reduce((t,r)=>t+(r[k]||0), 0);
+  const dieselAtivAno = R.L.filter(r=>r.a.etapa===e).reduce((t,r)=>t+r.cDiesel, 0);
+  const apoioDiesel = ((d.diesel||0) - dieselAtivAno) * fracDe(R.CB.custoApoioMes);
+  const irrig = (d.irrig||0) * fracDe(R.haMes);
+  const diesel = s("cDiesel") + apoioDiesel;
+  const direto = s("direto") + apoioDiesel + irrig;
+  const arrend = (d.arrend||0) * fracDe(R.AR.mes);
+  const admin  = (d.admin||0) * REC.fracMeses;
+  const total  = noPer((R.etapaMes||{})[e]);
+  const ha  = at.filter(r=>r.ehHa).reduce((t,r)=>t+r.total, 0);
+  const ton = at.filter(r=>!r.ehHa && r.a.tipo!=="transp").reduce((t,r)=>t+r.total, 0);
+  return {...d, diesel, mdo:s("cMDO"), manut:s("cManut"), insumo:s("cInsumo"), irrig, terc:s("cTerc"),
+    direto, arrend, admin, indireto: total-direto-arrend-admin, total, ha, ton, horas:s("horas"),
+    litros:s("litros")};
+}
+const etapasP = R => Object.fromEntries(Object.keys(R.etapas).map(e=>[e, etapaP(R,e)]));
+/* Horas de máquina do período. O total do ano (R.horasT) soma as atividades e
+   os equipamentos de apoio — caminhão bombeiro, motoniveladora — que trabalham
+   as mesmas horas todo mês. Sem o apoio, safra + entressafra não fechava. */
+const horasP = R => REC.parcial
+  ? R.L.map(ativP).reduce((t,r)=>t+r.horas,0) + (R.AE.horas||0)*REC.fracMeses
+  : R.horasT;
 const totEtapas = R => Object.values(R.etapas).reduce((s,e)=>s+e.total,0)||1;
 const ativosDe = (R, etapa) => R.L.filter(r=>r.a.etapa===etapa && r.total>0);
 const linhaAtiv = r => [r.a.cod, r.a.nome, r.a.un.split("/")[0], fmt(r.total), fmt(r.horas),
@@ -29,25 +108,35 @@ const CAB_ATIV = ["Cod","Atividade","Un","Volume","Horas","Frota","Efetivo","Die
   "Manutenção","Insumos","Terceiros","Custo direto","R$/un"];
 
 /* ---------- 1. resumo executivo ---------- */
-const resumo = R => sec("Resumo Executivo","Resumo Executivo",["Indicador","Valor"],[
-  ["Safra","2026/2027"], ["Unidade","Capinópolis-MG"],
-  ["Meses do orçamento", MESES.length+" ("+MESES[0]+" a "+MESES[MESES.length-1]+")"],
-  ["Custo total projetado", brl(R.total)],
-  ["Custo variável", brl(R.variavel)], ["Custo fixo", brl(R.fixoT)],
-  ["Custo por ha plantado", brl(R.total/(P.plantio||1))],
-  ["Área de plantio", fmt(P.plantio)+" ha"],
-  ["Hectares operados", fmt(R.haOp)+" ha"],
-  ["Moagem própria + terceiros", fmt(R.FORN.tonTotal)+" t"],
-  ["Custo médio da tonelada", R.FORN.tonTotal>0?brl(R.FORN.rsTMedio,2)+"/t":"—"],
-  ["Horas de máquina", fmt(R.horasT)+" h"],
-  ["Frota operacional", fmt(R.frotaT)+" equipamentos"],
-  ["Diesel", fmt(R.CB.litrosT)+" L · "+brl(R.dieselT)],
-  ["Efetivo total", fmt(R.efetivoTotal)+" pessoas"],
-  ["Custo na safra (abr a nov)", brl(R.PER.safra.total)],
-  ["Custo na entressafra (dez a mar)", brl(R.PER.entressafra.total)],
-  ["Atividades programadas", R.L.filter(r=>r.total>0).length+" de "+R.L.length],
-  ["Pendências de validação", validar(R).filter(v=>!v.ok).length],
-]);
+const resumo = R => {
+  const tot = totP(R);
+  // fixo = administrativo + depreciação (iguais todo mês) + arrendamento (pelos pagamentos)
+  const fixo = catP(R,"fixo") + catP(R,"arrend");
+  const at = R.L.map(ativP).filter(r=>r.total>0);
+  const litros = noPer(R.CB.litrosOperMes) + noPer(R.CB.litrosApoioMes);
+  const diesel = noPer(R.CB.custoOperMes) + noPer(R.CB.custoApoioMes);
+  const ano = REC.parcial ? " (ano)" : "";
+  return secP("Resumo Executivo","Resumo Executivo",["Indicador","Valor"],[
+    ["Safra","2026/2027"], ["Unidade","Capinópolis-MG"],
+    ["Período do relatório", REC.nome],
+    ["Meses no período", REC.meses.length+" ("+MESES[REC.meses[0]]+" a "+MESES[REC.meses[REC.meses.length-1]]+")"],
+    ["Custo total projetado", brl(tot)],
+    ["Custo variável", brl(tot-fixo)], ["Custo fixo", brl(fixo)],
+    ["Custo por ha plantado", brl(tot/(P.plantio||1))],
+    ["Área de plantio", fmt(P.plantio)+" ha"],
+    ["Hectares operados", fmt(REC.parcial ? noPer(R.haMes) : R.haOp)+" ha"],
+    ["Moagem própria + terceiros"+ano, fmt(R.FORN.tonTotal)+" t"],
+    ["Custo médio da tonelada"+ano, R.FORN.tonTotal>0?brl(R.FORN.rsTMedio,2)+"/t":"—"],
+    ["Horas de máquina", fmt(horasP(R))+" h"],
+    ["Frota operacional (dimensionada no ano)", fmt(R.frotaT)+" equipamentos"],
+    ["Diesel", fmt(litros)+" L · "+brl(diesel)],
+    ["Efetivo total (dimensionado no ano)", fmt(R.efetivoTotal)+" pessoas"],
+    ["Custo na safra (abr a nov)", brl(R.PER.safra.total)],
+    ["Custo na entressafra (dez a mar)", brl(R.PER.entressafra.total)],
+    ["Atividades programadas", at.length+" de "+R.L.length],
+    ["Pendências de validação", validar(R).filter(v=>!v.ok).length],
+  ]);
+};
 
 /* ---------- 2. premissas ---------- */
 const premissas = R => sec("Premissas","Premissas do plano",["Premissa","Valor","Onde entra"],[
@@ -100,10 +189,10 @@ const producao = R => sec("Produção","Produção e moagem",
 
 /* ---------- 5, 6, 7. etapas ---------- */
 const porEtapa = (aba, titulo, etapa) => R => {
-  const d = R.etapas[etapa] || {};
-  const ativs = ativosDe(R, etapa);
+  const d = etapaP(R, etapa);
+  const ativs = R.L.filter(r=>r.a.etapa===etapa).map(ativP).filter(r=>r.total>0);
   const base = d.ha>0 ? [fmt(d.ha),"ha"] : [fmt(d.ton||0),"t"];
-  return sec(aba, titulo, CAB_ATIV,
+  return secP(aba, titulo, CAB_ATIV,
     ativs.map(linhaAtiv).concat([
       ["","","TOTAL DIRETO","","","","", brl(d.diesel||0), brl(d.mdo||0), brl(d.manut||0),
        brl((d.insumo||0)+(d.irrig||0)), brl(d.terc||0), brl(d.direto||0), ""],
@@ -166,25 +255,28 @@ const manutencao = R => sec("Manutenção","Manutenção de frota — CRM",
              ["","","Materiais de manutenção","","","", brl(R.MT.total)]]));
 
 /* ---------- 11. mão de obra ---------- */
+// pico mensal dentro do período
+const picoP = arr => Math.max(0, ...REC.meses.map(i=>+arr[i]||0));
 const maoDeObra = R => {
   const PS = R.PS;
-  return sec("Mão de Obra","Mão de obra — cargos, efetivo e quadro",
+  return secP("Mão de Obra","Mão de obra — cargos, efetivo e quadro",
     ["Cod","Cargo","Conta","Salário","Custo mensal","Custo/hora","Efetivo dimensionado","Pico mensal","Custo no período"],
     CFG.funcoes.map(f=>{ const c=R.MP.custoFuncao[f.cod]||{}, o=(PS&&PS.porFun[f.cod])||{};
+      const pico = o.qtdMes ? picoP(o.qtdMes) : 0, custo = o.custoMes ? noPer(o.custoMes) : 0;
       return [f.cod, f.nome, f.conta, brl(f.sal,2), brl(c.mensal||0,2), brl(c.hora||0,2),
-        o.qtd?fmt(o.qtd):"—", o.pico?fmt(o.pico):"—", o.custo?brl(o.custo):"—"];})
-    .concat([["","TOTAL","","","","", PS?fmt(PS.qtd):"—", PS?fmt(Math.max(...PS.qtdMes)):"—",
-      PS?brl(PS.custo):brl(R.mdoTotal)]]));
+        o.qtd?fmt(o.qtd):"—", pico?fmt(pico):"—", custo?brl(custo):"—"];})
+    .concat([["","TOTAL","","","","", PS?fmt(PS.qtd):"—", PS?fmt(picoP(PS.qtdMes)):"—",
+      PS?brl(noPer(PS.custoMes)):brl(R.mdoTotal*REC.fracMeses)]]));
 };
-const pessoasDept = R => sec("Pessoas por depto","Pessoas por departamento",
+const pessoasDept = R => secP("Pessoas por depto","Pessoas por departamento",
   ["Departamento","Efetivo","Pico mensal","Custo MDO"],
   R.PS ? Object.entries(R.PS.porDept).sort((a,b)=>deptIdx(a[0])-deptIdx(b[0]))
-    .map(([d,o])=>[d, fmt(o.qtd), fmt(o.pico), brl(o.custo)])
-    .concat([["TOTAL", fmt(R.PS.qtd), fmt(Math.max(...R.PS.qtdMes)), brl(R.PS.custo)]]) : []);
-const fluxoMdo = R => sec("Fluxo MDO","Fluxo mensal — pessoas e custo de mão de obra",
+    .map(([d,o])=>[d, fmt(o.qtd), fmt(picoP(o.qtdMes)), brl(noPer(o.custoMes))])
+    .concat([["TOTAL", fmt(R.PS.qtd), fmt(picoP(R.PS.qtdMes)), brl(noPer(R.PS.custoMes))]]) : []);
+const fluxoMdo = R => secP("Fluxo MDO","Fluxo mensal — pessoas e custo de mão de obra",
   ["Mês","Período","Pessoas","Custo MDO","Acumulado"],
-  R.PS ? (()=>{ let ac=0; return MESES.map((m,i)=>{ ac+=R.PS.custoMes[i];
-    return [m, periodoMes(i)==="safra"?"Safra":"Entressafra", fmt(R.PS.qtdMes[i]),
+  R.PS ? (()=>{ let ac=0; return REC.meses.map(i=>{ ac+=R.PS.custoMes[i];
+    return [MESES[i], periodoMes(i)==="safra"?"Safra":"Entressafra", fmt(R.PS.qtdMes[i]),
             brl(R.PS.custoMes[i]), brl(ac)]; }); })() : []);
 
 /* ---------- 12. insumos ---------- */
@@ -203,11 +295,11 @@ const insumos = R => sec("Insumos","Insumos — cadastro, classificação técni
   .concat([["TOTAL","","","","","","","","","","","","","","", brl(R.insumoT)]]));
 
 /* ---------- tratamentos ---------- */
-const tratamentos = R => sec("Tratamentos","Tratamentos — composição, etapa e uso no plano",
+const tratamentos = R => secP("Tratamentos","Tratamentos — composição, etapa e uso no plano",
   ["Cod_Trat","Nome","Etapas marcadas","Etapas em que o plano usa","Produtos","Composição",
    "Custo/ha","Atividades que usam","Área tratada","Custo no plano"],
   tratListaTodos().map(t=>{
-    const usos = R.L.filter(r=>r.trat===t.cod && r.total>0);
+    const usos = R.L.filter(r=>r.trat===t.cod).map(ativP).filter(r=>r.total>0);
     const area = usos.reduce((s,u)=>s+u.total,0);
     const marc = tratEtapas(t.cod).map(e=>TRAT_ETAPAS[e].nome).join(" · ");
     const plano = etapasNoPlano(t.cod).map(e=>TRAT_ETAPAS[e].nome).join(" · ");
@@ -218,22 +310,27 @@ const tratamentos = R => sec("Tratamentos","Tratamentos — composição, etapa 
       area>0?fmt(area)+" ha":"—", area>0?brl(area*t.custo_ha):"—"];}));
 
 /* ---------- 13. arrendamentos ---------- */
-const arrendamentos = R => sec("Arrendamentos","Arrendamentos — fazendas e rateio",
+const arrendamentos = R => {
+  // parcelas e valor que caem nos meses do período; custo anual é do contrato
+  const parcP = l => l.pmes.filter(i=>REC.meses.includes(i)).length;
+  const fArr = fracDe(R.AR.mes);
+  return secP("Arrendamentos","Arrendamentos — fazendas e rateio",
   ["Fazenda","Grupo","Área (ha)","Forma de pagamento","Periodicidade","Pagamentos por ano",
-   "Meses de pagamento","Parcelas na janela","Valor da parcela","R$/ha/ano","Custo anual",
-   "Custo no orçamento"],
+   "Meses de pagamento",REC.parcial?"Parcelas no período":"Parcelas na janela","Valor da parcela",
+   "R$/ha/ano","Custo anual do contrato",REC.parcial?"Custo no período":"Custo no orçamento"],
   R.AR.linhas.map(l=>[l.faz, l.grupo, fmt(l.area), (ARR_FORMAS[l.forma]||{nome:l.forma}).nome,
     l.pag, l.pagsAno, l.agenda,
-    l.nParc||"—", l.nParc?brl(l.parcela):"—",
-    brl(l.rsHaAno,2), brl(l.anual), brl(l.periodo)])
+    parcP(l)||"—", l.nParc?brl(l.parcela):"—",
+    brl(l.rsHaAno,2), brl(l.anual), brl(noPer(l.mes))])
   .concat([["TOTAL","", fmt(R.AR.area), "", "", "", "",
-    R.AR.linhas.reduce((s,l)=>s+l.nParc,0), "",
-    R.AR.area>0?brl(R.AR.anual/R.AR.area,2):"—", brl(R.AR.anual), brl(R.AR.total)]])
+    R.AR.linhas.reduce((t,l)=>t+parcP(l),0), "",
+    R.AR.area>0?brl(R.AR.anual/R.AR.area,2):"—", brl(R.AR.anual), brl(noPer(R.AR.mes))]])
   .concat(ETAPAS_ORD.filter(e=>R.etapas[e]&&R.etapas[e].arrend>0)
     .map(e=>["↳ rateio "+e, "", "", fmt(arrRat(e),1)+"% de referência", "", "", "", "", "", "", "",
-      brl(R.etapas[e].arrend)]))
-  .concat(MESES.map((m,i)=>["↳ pagamento em "+m, "", "", "", "", "", "",
+      brl(R.etapas[e].arrend*fArr)]))
+  .concat(REC.meses.map(i=>["↳ pagamento em "+MESES[i], "", "", "", "", "", "",
     R.AR.linhas.filter(l=>l.pmes.includes(i)).length||"—", "", "", "", brl(R.AR.mes[i])])));
+};
 
 /* ---------- 14. fornecedores ---------- */
 const fornecedores = R => sec("Fornecedores","Fornecedores de cana — contratos",
@@ -248,41 +345,53 @@ const fornecedores = R => sec("Fornecedores","Fornecedores de cana — contratos
     brl(R.FORN.aquisicao.custo), R.FORN.aquisicao.ton>0?brl(R.FORN.aquisicao.rsT,2):"—"]]));
 
 /* ---------- 15. administração ---------- */
-const administracao = R => sec("Administração","Custos administrativos e rateio",
+const administracao = R => secP("Administração","Custos administrativos e rateio",
   ["Grupo","Natureza do gasto","R$/mês","Critério de rateio","Centro de custo","Total no período","Rateio"],
   R.ADM.linhas.map((l,i)=>{ const st=R.AD.porLinha[i]||{};
     return [ADM_GRUPOS[l.grupo]||l.grupo, l.desc, brl(l.mensal), (ADM_CRITERIOS[l.crit]||{}).nome||l.crit, l.cc||"—",
-            brl(l.total), l.total<=0 ? "—" : (st.rateado>0?"rateado":(st.motivo||"sem rateio"))];})
-  .concat([["","TOTAL", brl(R.ADM.mensal), "", "", brl(R.ADM.total), ""]])
-  .concat(Object.keys(R.etapas).map(e=>["↳ rateio", e, "", "", "", brl(R.etapas[e].admin||0), ""]))
-  .concat(R.AD.semRateio>0 ? [["↳ sem base","volta para o rateio indireto","","","", brl(R.AD.semRateio),""]] : []));
+            brl(l.total*REC.fracMeses), l.total<=0 ? "—" : (st.rateado>0?"rateado":(st.motivo||"sem rateio"))];})
+  .concat([["","TOTAL", brl(R.ADM.mensal), "", "", brl(R.ADM.total*REC.fracMeses), ""]])
+  .concat(Object.keys(R.etapas).map(e=>["↳ rateio", e, "", "", "", brl((R.etapas[e].admin||0)*REC.fracMeses), ""]))
+  .concat(R.AD.semRateio>0 ? [["↳ sem base","volta para o rateio indireto","","","", brl(R.AD.semRateio*REC.fracMeses),""]] : []));
 
 /* ---------- 16. custos ---------- */
-const custoEtapa = R => sec("Custos","Custo por etapa",
+const custoEtapa = R => { const E = etapasP(R);
+  const totE = Object.values(E).reduce((t,d)=>t+(d.total||0),0)||1;
+  return secP("Custos","Custo por etapa",
   ["Etapa","Diesel","Mão de obra","Manutenção","Insumos","Terceirização","Arrendamento","Administrativo",
    "Indireto","Total","% do total","Base física","Custo unitário"],
-  Object.entries(R.etapas).sort((a,b)=>b[1].total-a[1].total).map(([e,d])=>{
+  Object.entries(E).sort((a,b)=>b[1].total-a[1].total).map(([e,d])=>{
     const base = d.ha>0?[fmt(d.ha),"ha"]:[fmt(d.ton||0),"t"];
     const q = d.ha>0?d.ha:d.ton;
     return [e, brl(d.diesel), brl(d.mdo), brl(d.manut), brl(d.insumo+(d.irrig||0)), brl(d.terc),
       brl(d.arrend||0), brl(d.admin||0), brl(d.indireto), brl(d.total),
-      fmt(d.total/totEtapas(R)*100,1)+"%", base[0]+" "+base[1], q>0?brl(d.total/q,2)+"/"+base[1]:"—"];}));
-const natureza = R => sec("Natureza","Composição por natureza",["Natureza","Total","%","R$/ha plantado"],
-  comps(R).filter(([,v])=>v>0).map(([n,v])=>[n, brl(v), fmt(R.total>0?v/R.total*100:0,1)+"%",
-    brl(v/(P.plantio||1),2)])
-  .concat([["TOTAL", brl(R.total), "100,0%", brl(R.total/(P.plantio||1),2)]]));
-const mensal = R => sec("Mensal","Custo mensal e grandes contas",
+      fmt(d.total/totE*100,1)+"%", base[0]+" "+base[1], q>0?brl(d.total/q,2)+"/"+base[1]:"—"];}));
+};
+/* A abertura fina por natureza (MDO direta, de apoio, indireta...) só existe
+   para o ano. No recorte, a composição sai pelas grandes contas, que têm série
+   mensal no motor — número exato do período em vez de uma proporção do ano. */
+const natureza = R => {
+  const tot = totP(R);
+  const itens = REC.parcial
+    ? Object.keys(CAT_LBL).map(k=>[CAT_LBL[k], catP(R,k)])
+    : comps(R);
+  return secP("Natureza", REC.parcial ? "Composição por grande conta" : "Composição por natureza",
+    ["Natureza","Total","%","R$/ha plantado"],
+    itens.filter(([,v])=>v>0).map(([n,v])=>[n, brl(v), fmt(tot>0?v/tot*100:0,1)+"%",
+      brl(v/(P.plantio||1),2)])
+    .concat([["TOTAL", brl(tot), "100,0%", brl(tot/(P.plantio||1),2)]]));
+};
+const mensal = R => secP("Mensal","Custo mensal e grandes contas",
   ["Mês","Período",...Object.values(CAT_LBL),"Total","Acumulado"],
-  (()=>{ let ac=0; return MESES.map((m,i)=>{ ac+=R.meses[i];
-    return [m, periodoMes(i)==="safra"?"Safra":"Entressafra",
+  (()=>{ let ac=0; return REC.meses.map(i=>{ ac+=R.meses[i];
+    return [MESES[i], periodoMes(i)==="safra"?"Safra":"Entressafra",
       ...Object.keys(CAT_LBL).map(k=>brl(R.mesesCat[k][i])), brl(R.meses[i]), brl(ac)];});})()
-  .concat([["TOTAL","", ...Object.keys(CAT_LBL).map(k=>brl(R.mesesCat[k].reduce((s,v)=>s+v,0))),
-    brl(R.total), ""]]));
-const periodos = R => sec("Períodos","Custos por período — safra e entressafra",
+  .concat([["TOTAL","", ...Object.keys(CAT_LBL).map(k=>brl(catP(R,k))), brl(totP(R)), ""]]));
+const periodos = R => ({...sec("Períodos","Custos por período — safra e entressafra",
   ["Grande conta","Safra (abr a nov)","Entressafra (dez a mar)","Total"],
   Object.keys(CAT_LBL).map(k=>[CAT_LBL[k], brl(R.PER.safra.cat[k]), brl(R.PER.entressafra.cat[k]),
     brl(R.PER.safra.cat[k]+R.PER.entressafra.cat[k])])
-  .concat([["TOTAL", brl(R.PER.safra.total), brl(R.PER.entressafra.total), brl(R.total)]]));
+  .concat([["TOTAL", brl(R.PER.safra.total), brl(R.PER.entressafra.total), brl(R.total)]])), rotulo:false});
 
 /* ---------- 17. plano de contas ---------- */
 const contas = R => { const CV = contasValores(R);
@@ -294,42 +403,54 @@ const contas = R => { const CV = contasValores(R);
 };
 
 /* ---------- 18. fluxo de caixa ---------- */
-const fluxo = R => sec("Fluxo de Caixa","Fluxo de caixa agrícola",
-  ["Mês","Período","Desembolso","% do total","Acumulado","% acumulado"],
-  (()=>{ let ac=0; return MESES.map((m,i)=>{ ac+=R.meses[i];
-    return [m, periodoMes(i)==="safra"?"Safra":"Entressafra", brl(R.meses[i]),
-      fmt(R.total>0?R.meses[i]/R.total*100:0,1)+"%", brl(ac),
-      fmt(R.total>0?ac/R.total*100:0,1)+"%"];});})()
-  .concat([["TOTAL","", brl(R.total), "100,0%", "", ""]])
-  .concat(Object.keys(PERIODOS).map(p=>["↳ "+PERIODOS[p], "", brl(R.PER[p].total),
-    fmt(R.total>0?R.PER[p].total/R.total*100:0,1)+"%", "", ""])));
+const fluxo = R => { const tot = totP(R);
+  return secP("Fluxo de Caixa","Fluxo de caixa agrícola",
+  ["Mês","Período","Desembolso",REC.parcial?"% do período":"% do total","Acumulado","% acumulado"],
+  (()=>{ let ac=0; return REC.meses.map(i=>{ ac+=R.meses[i];
+    return [MESES[i], periodoMes(i)==="safra"?"Safra":"Entressafra", brl(R.meses[i]),
+      fmt(tot>0?R.meses[i]/tot*100:0,1)+"%", brl(ac),
+      fmt(tot>0?ac/tot*100:0,1)+"%"];});})()
+  .concat([["TOTAL","", brl(tot), "100,0%", "", ""]])
+  .concat(Object.keys(PERIODOS).filter(p=>!REC.parcial || p===REC.per).map(p=>["↳ "+PERIODOS[p], "",
+    brl(R.PER[p].total), fmt(R.total>0?R.PER[p].total/R.total*100:0,1)+"% do ano", "", ""])));
+};
 
 /* ---------- 19. cenários ---------- */
 const cenarios = R => {
   const linhas = [];
-  const base = [["Diesel", R.dieselT], ["Mão de obra", R.mdoTotal], ["Insumos", R.insumoT],
-    ["Manutenção e materiais", R.manutT], ["Arrendamento", R.arrT], ["Administração", R.admT]];
+  const TOT = totP(R);
+  // no recorte, cada base é a do período: grandes contas mês a mês, e o
+  // administrativo igual todo mês
+  const base = REC.parcial
+    // a grande conta mensal é "insumos + irrigação"; o cenário de insumos é só
+    // insumo, como no ano — a irrigação sai pela área operada, que é como o motor a espalha
+    ? [["Diesel", catP(R,"diesel")], ["Mão de obra", catP(R,"mdo")],
+       ["Insumos", catP(R,"insumo") - (R.irrT||0)*fracDe(R.haMes)],
+       ["Manutenção e materiais", catP(R,"manut")], ["Arrendamento", catP(R,"arrend")],
+       ["Administração", R.admT*REC.fracMeses]]
+    : [["Diesel", R.dieselT], ["Mão de obra", R.mdoTotal], ["Insumos", R.insumoT],
+       ["Manutenção e materiais", R.manutT], ["Arrendamento", R.arrT], ["Administração", R.admT]];
   [5,10].forEach(v=>{
     base.forEach(([nome, valor])=>{
       const d = valor*v/100;
-      linhas.push([`${nome} +${v}%`, brl(valor), brl(d), brl(R.total+d),
-        fmt(R.total>0?d/R.total*100:0,2)+"%", brl((R.total+d)/(P.plantio||1),2)]);
+      linhas.push([`${nome} +${v}%`, brl(valor), brl(d), brl(TOT+d),
+        fmt(TOT>0?d/TOT*100:0,2)+"%", brl((TOT+d)/(P.plantio||1),2)]);
     });
   });
   base.forEach(([nome, valor])=>{
     const d = valor*0.10;
-    linhas.push([`${nome} −10%`, brl(valor), brl(-d), brl(R.total-d),
-      fmt(R.total>0?-d/R.total*100:0,2)+"%", brl((R.total-d)/(P.plantio||1),2)]);
+    linhas.push([`${nome} −10%`, brl(valor), brl(-d), brl(TOT-d),
+      fmt(TOT>0?-d/TOT*100:0,2)+"%", brl((TOT-d)/(P.plantio||1),2)]);
   });
-  return sec("Cenários","Cenários — sensibilidade do custo total",
+  return secP("Cenários","Cenários — sensibilidade do custo total",
     ["Cenário","Valor na base","Variação em R$","Custo total no cenário","Impacto no total","R$/ha plantado"],
-    [["Base (plano atual)", brl(R.total), "—", brl(R.total), "—", brl(R.total/(P.plantio||1),2)]]
+    [["Base (plano atual)", brl(TOT), "—", brl(TOT), "—", brl(TOT/(P.plantio||1),2)]]
       .concat(linhas));
 };
 
 /* ---------- 20. validação ---------- */
-const validacao = R => sec("Validação","Validação do plano",["Situação","Verificação","Detalhe"],
-  validar(R).map(v=>[v.ok?"OK":"PENDENTE", v.t, v.d||""]));
+const validacao = R => ({...sec("Validação","Validação do plano",["Situação","Verificação","Detalhe"],
+  validar(R).map(v=>[v.ok?"OK":"PENDENTE", v.t, v.d||""])), rotulo:false});
 
 /* ---------- cortes gerenciais ---------- */
 const porFazenda = R => {
@@ -355,22 +476,27 @@ const porFazenda = R => {
      "Produção ou compra","Custo total","R$/ha"], linhas);
 };
 
-const porCentroCusto = R => sec("Centro de Custo","Orçamento por centro de custo",
+const porCentroCusto = R => { const E = etapasP(R), V = Object.values(E);
+  const t = k => V.reduce((x,d)=>x+(d[k]||0),0);
+  const totE = t("total")||1;
+  return secP("Centro de Custo","Orçamento por centro de custo",
   ["Centro de custo (etapa)","Custo direto","Arrendamento","Administrativo","Indireto","Total",
    "% do total","Hectares","Toneladas","Horas"],
-  Object.entries(R.etapas).sort((a,b)=>b[1].total-a[1].total).map(([e,d])=>[e, brl(d.direto),
+  Object.entries(E).sort((a,b)=>b[1].total-a[1].total).map(([e,d])=>[e, brl(d.direto),
     brl(d.arrend||0), brl(d.admin||0), brl(d.indireto||0), brl(d.total),
-    fmt(d.total/totEtapas(R)*100,1)+"%", fmt(d.ha), fmt(d.ton), fmt(d.horas||0)])
-  .concat([["TOTAL", brl(R.diretoSum), brl(R.arrT), brl(R.admT), brl(R.indiretoPool),
-    brl(totEtapas(R)), "100,0%", fmt(R.haOp), "", fmt(R.horasT)]]));
+    fmt(d.total/totE*100,1)+"%", fmt(d.ha), fmt(d.ton), fmt(d.horas||0)])
+  .concat([["TOTAL", brl(t("direto")), brl(t("arrend")), brl(t("admin")), brl(t("indireto")),
+    brl(t("total")), "100,0%", fmt(REC.parcial ? t("ha") : R.haOp), "", fmt(horasP(R))]]));
+};
 
-const porAtividade = R => sec("Por Atividade","Orçamento por atividade", CAB_ATIV.concat(["Etapa","Função"]),
-  R.L.filter(r=>r.total>0).sort((a,b)=>b.direto-a.direto)
+const porAtividade = R => secP("Por Atividade","Orçamento por atividade", CAB_ATIV.concat(["Etapa","Função"]),
+  R.L.map(ativP).filter(r=>r.total>0).sort((a,b)=>b.direto-a.direto)
     .map(r=>linhaAtiv(r).concat([r.a.etapa, r.fcod+" · "+r.fnome])));
 
 const indicadores = R => {
   const ton = R.FORN.tonTotal, ha = P.plantio||1;
   const colh = R.etapas["COLHEITA"]||{};
+  if(REC.parcial) return indicadoresP(R);
   return sec("Indicadores","Indicadores de custo",["Indicador","Valor","Base"],[
     ["Custo total", brl(R.total), MESES.length+" meses"],
     ["Custo por hectare plantado", brl(R.total/ha,2)+"/ha", fmt(ha)+" ha"],
@@ -394,6 +520,36 @@ const indicadores = R => {
   ]);
 };
 
+/* Indicadores do período. Entra o que tem série mensal no motor; o que depende
+   de tonelada moída ou de matéria-prima é do ano e sai marcado como tal — o
+   motor não sabe quanto se mói em cada mês. */
+function indicadoresP(R){
+  const tot = totP(R), ha = P.plantio||1;
+  const fixo = catP(R,"fixo") + catP(R,"arrend");
+  const at = R.L.map(ativP).filter(r=>r.total>0);
+  const horas = horasP(R);
+  const haOp = noPer(R.haMes);
+  const litros = noPer(R.CB.litrosOperMes) + noPer(R.CB.litrosApoioMes);
+  const diesel = catP(R,"diesel"), manut = catP(R,"manut"), mdo = catP(R,"mdo"), arr = catP(R,"arrend");
+  const adm = R.admT*REC.fracMeses;
+  const ano = "do ano — sem série mensal";
+  return secP("Indicadores","Indicadores de custo",["Indicador","Valor","Base"],[
+    ["Custo total", brl(tot), REC.meses.length+" meses"],
+    ["Custo por hectare plantado", brl(tot/ha,2)+"/ha", fmt(ha)+" ha"],
+    ["Custo por hectare operado", haOp>0?brl(tot/haOp,2)+"/ha":"—", fmt(haOp)+" ha operados"],
+    ["Custo médio da matéria-prima", R.FORN.tonTotal>0?brl(R.FORN.rsTMedio,2)+"/t":"—", ano],
+    ["Custo por kg de ATR", R.FORN.atrTotal>0?brl(R.FORN.rsAtrMedio,4)+"/kg":"—", ano],
+    ["Diesel por hectare operado", haOp>0?fmt(litros/haOp,1)+" L/ha":"—", fmt(litros)+" L"],
+    ["Custo-hora médio de máquina", horas>0?brl((diesel+manut)/horas,2)+"/h":"—", fmt(horas)+" h"],
+    ["Mão de obra por hectare", brl(mdo/ha,2)+"/ha", brl(mdo)],
+    ["Custo variável", brl(tot-fixo), fmt(tot>0?(tot-fixo)/tot*100:0,1)+"% do período"],
+    ["Custo fixo", brl(fixo), fmt(tot>0?fixo/tot*100:0,1)+"% do período"],
+    ["Peso do arrendamento", fmt(tot>0?arr/tot*100:0,1)+"%", brl(arr)],
+    ["Peso da administração", fmt(tot>0?adm/tot*100:0,1)+"%", brl(adm)],
+    ["Participação no custo do ano", fmt(R.total>0?tot/R.total*100:0,1)+"%", brl(R.total)+" no ano"],
+  ]);
+}
+
 const logistica = R => sec("Logística","Orçamento de logística",
   ["Item","Volume","Horas","Frota","Custo","Observação"],
   R.TR.blocos.filter(b=>b.ton>0).map(b=>[b.nome||"—", fmt(b.ton)+" t", fmt(b.horas), b.frotaR,
@@ -404,24 +560,34 @@ const logistica = R => sec("Logística","Orçamento de logística",
     fmt(l.ton)+" t", "", "", brl(l.frete), fmt(l.dist)+" km a "+brl(l.freteT,2)+"/t"]))
   .concat([["TOTAL","","","", brl(R.TR.total+R.tpessT+R.FORN.linhas.reduce((s,l)=>s+l.frete,0)), ""]]));
 
-const planoOperacional = R => sec("Plano Operacional","Plano Operacional",
-  ["Cod","Etapa","Atividade","Un",...MESES,"Total","Tratamento"],
-  R.L.filter(r=>r.total>0).map(r=>[r.a.cod, r.a.etapa, r.a.nome, r.a.un,
-    ...r.meses.map(m=>fmt(num(m))), fmt(r.total), r.trat||"—"]));
+const planoOperacional = R => secP("Plano Operacional","Plano Operacional",
+  ["Cod","Etapa","Atividade","Un",...REC.meses.map(i=>MESES[i]),
+   REC.parcial?"Total do período":"Total","Tratamento"],
+  R.L.filter(r=>noPer((r.meses||[]).map(num))>0).map(r=>[r.a.cod, r.a.etapa, r.a.nome, r.a.un,
+    ...REC.meses.map(i=>fmt(num(r.meses[i]))), fmt(noPer(r.meses.map(num))), r.trat||"—"]));
 
-const dimensionamento = R => sec("Dimensionamento","Dimensionamento por atividade",
-  ["Cod","Atividade","Volume","Rendimento","Utilização","Horas","Frota","Turnos","Escala","Fator","Efetivo","Máquina","Implemento"],
-  R.L.filter(r=>r.total>0).map(r=>[r.a.cod, r.a.nome, fmt(r.total), fmt(r.rend,2), pct(r.util),
-    fmt(r.horas), r.frotaR, (r.partes[0]?r.partes[0].turnosEf:r.a.turnos)+"t", r.escala||"padrão",
+/* Frota e efetivo são o dimensionamento do plano — o pico, não uma parte do
+   ano. No recorte saem as atividades que operam no período, com o volume e as
+   horas do período, e a frota e o efetivo dimensionados. */
+const dimensionamento = R => secP("Dimensionamento","Dimensionamento por atividade",
+  ["Cod","Atividade",REC.parcial?"Volume no período":"Volume","Rendimento","Utilização",
+   REC.parcial?"Horas no período":"Horas",REC.parcial?"Frota (dimensionada)":"Frota","Turnos","Escala","Fator",
+   REC.parcial?"Efetivo (dimensionado)":"Efetivo","Máquina","Implemento"],
+  R.L.map(r=>[r, ativP(r)]).filter(([,p])=>p.total>0).map(([r,p])=>[r.a.cod, r.a.nome, fmt(p.total),
+    fmt(r.rend,2), pct(r.util), fmt(p.horas), r.frotaR,
+    (r.partes[0]?r.partes[0].turnosEf:r.a.turnos)+"t", r.escala||"padrão",
     fmt(r.fator,2), fmt(r.efetivo), r.maqEfetiva, r.impEfetivo]));
 
-const combustivel = R => sec("Combustível","Combustível — diesel projetado",
+const combustivel = R => {
+  const lit = noPer(R.CB.litrosOperMes) + noPer(R.CB.litrosApoioMes);
+  const cus = noPer(R.CB.custoOperMes) + noPer(R.CB.custoApoioMes);
+  return secP("Combustível","Combustível — diesel projetado",
   ["Mês","Período","Litros operação","Litros apoio","Litros total","Preço (R$/L)","Custo"],
-  MESES.map((m,i)=>[m, periodoMes(i)==="safra"?"Safra":"Entressafra", fmt(R.CB.litrosOperMes[i]),
+  REC.meses.map(i=>[MESES[i], periodoMes(i)==="safra"?"Safra":"Entressafra", fmt(R.CB.litrosOperMes[i]),
     fmt(R.CB.litrosApoioMes[i]), fmt(R.CB.litrosOperMes[i]+R.CB.litrosApoioMes[i]),
     brl(R.CB.preco[i],2), brl(R.CB.custoOperMes[i]+R.CB.custoApoioMes[i])])
-  .concat([["TOTAL","","","", fmt(R.CB.litrosT), R.CB.litrosT>0?brl(R.dieselT/R.CB.litrosT,2):"—",
-    brl(R.dieselT)]]));
+  .concat([["TOTAL","","","", fmt(lit), lit>0?brl(cus/lit,2):"—", brl(cus)]]));
+};
 
 const apoio = R => sec("Apoio","Equipamentos de apoio",
   ["Equipamento","Máquina","Qtd","Horas/mês","Horas totais","Litros","Diesel","MDO","Total"],
@@ -501,12 +667,16 @@ SECOES.porGerencia = R => sec("Por gerência", "Resumo por gerência",
 
 SECOES.acompanhamento = R => {
   const ex = execucao(R, null);
-  return sec("Acompanhamento", "Execução do plano — plano x realizado",
-    ["Cod","Atividade","Gerência","Unid.", ...MESES.map(m=>m+" plano"), ...MESES.map(m=>m+" real"),
+  // os meses do período; plano medido, realizado e aderência seguem sendo do
+  // acompanhamento até o mês corrente, como na aba
+  const naJanela = m => REC.meses.includes(m.i);
+  return secP("Acompanhamento", "Execução do plano — plano x realizado",
+    ["Cod","Atividade","Gerência","Unid.", ...REC.meses.map(i=>MESES[i]+" plano"),
+     ...REC.meses.map(i=>MESES[i]+" real"),
      "Plano medido","Realizado","Aderência","A fazer"],
     ex.linhas.map(l=>[l.cod, l.nome, GERENCIAS[l.gerencia]||l.gerencia, l.un,
-      ...l.meses.map(m=>fmt(m.plano)),
-      ...l.meses.map(m=>m.real!=null?fmt(m.real):"—"),
+      ...l.meses.filter(naJanela).map(m=>fmt(m.plano)),
+      ...l.meses.filter(naJanela).map(m=>m.real!=null?fmt(m.real):"—"),
       fmt(l.planoAte), l.lancados?fmt(l.realizado):"—",
       l.aderencia!=null?pct(l.aderencia):"—", fmt(l.saldo)]));
 };
@@ -521,9 +691,9 @@ SECOES.acompanhamento = R => {
    outros dois parados na premissa do mes. A coluna Situacao ja resolve a
    pergunta que o diretor faz primeiro -- este mes cabe ou nao. */
 function criterioDe(R, ger){
-  const lin = criterioPorMes(R, ger);
+  const lin = criterioPorMes(R, ger).filter(c=>REC.meses.includes(c.i));
   const nome = ger ? (GERENCIAS[ger]||ger) : "todas as gerências";
-  return sec(ger ? "Critério por mês" : "Critério por mês — geral",
+  return secP(ger ? "Critério por mês" : "Critério por mês — geral",
     "Critério por mês — " + nome,
     ["Mês","Janela do mês","Cod","Atividade","Etapa"].concat(ger ? [] : ["Gerência"]).concat(
     ["Produção","Unid.","Por dia efetivo","Dias de operação","Por dia corrido","Dias do mês",
@@ -545,8 +715,8 @@ SECOES.criterioMesLogistica = R => criterioDe(R, "logistica");
 
 /* So o que nao cabe, para abrir a reuniao pelo problema. */
 SECOES.criterioApertado = R => {
-  const lin = criterioPorMes(R, null).filter(c => !c.cabe);
-  return sec("Meses fora do critério", "Meses em que o volume não cabe no critério lançado",
+  const lin = criterioPorMes(R, null).filter(c => !c.cabe && REC.meses.includes(c.i));
+  return secP("Meses fora do critério", "Meses em que o volume não cabe no critério lançado",
     ["Mês","Cod","Atividade","Gerência","Produção","Unid.","Horas de máquina",
      "Horas/dia por equipamento","Horas efetivas/dia","Falta de hora por dia",
      "Rendimento necessário","Disponibilidade necessária","Utilização necessária","Eficiência necessária"],
@@ -585,11 +755,22 @@ const DETALHE = ["planoOperacional","dimensionamento","porAtividade","porCentroC
   "mensal","periodos","natureza","combustivel","apoio","irrigacao","pessoasDept","fluxoMdo",
   "logistica","indicadores","frotaBase","modelos","preparo","apoioEtapa","tratamentos"];
 
-function montarSecoes(R, relId, nivel){
+function montarSecoes(R, relId, nivel, periodo){
   const rel = RELATORIOS.find(r=>r.id===relId) || RELATORIOS[0];
   let ids = rel.secoes.slice();
   if(rel.id==="anual" && nivel==="detalhado") ids = ids.concat(DETALHE.filter(d=>!ids.includes(d)));
-  return ids.map(id=>SECOES[id]).filter(Boolean).map(f=>f(R)).filter(Boolean);
+  REC = recorte(periodo);
+  try{
+    const secoes = ids.map(id=>SECOES[id]).filter(Boolean).map(f=>f(R)).filter(Boolean);
+    // no recorte, o título diz de que período é cada tabela
+    if(REC.parcial) secoes.forEach(s=>{
+      if(s.rotulo===false) return;
+      s.titulo += s.per ? " — " + REC.nome : " — ano todo (sem série mensal)";
+    });
+    return secoes;
+  } finally { REC = recorte("ambos"); }
 }
+// nome do período para cabeçalho e nome de arquivo
+const nomePeriodo = p => REL_PERIODOS[p] || REL_PERIODOS.ambos;
 
-export { ABAS_COMPLETO, RELATORIOS, SECOES, montarSecoes };
+export { ABAS_COMPLETO, REL_PERIODOS, RELATORIOS, SECOES, montarSecoes, nomePeriodo };

@@ -1,10 +1,11 @@
-import { composicao, doseBase, etapasNoPlano, familiaDe, insumosPorFamilia, precoInsumo, todasFamilias, tratCodigos, tratEtapas, tratListaTodos } from '../calculo/insumos.js';
+import { composicao, doseBase, etapasNoPlano, familiaDe, insumosPorFamilia, precoInsumo, todasFamilias, tratCodigos, tratEtapas, tratListaTodos, usosTrat } from '../calculo/insumos.js';
 import { TRAT_ETAPAS } from '../dados/insumos.js';
-import { INSUMO, INS_EDIT, INS_FICHA, P, TRATC, TRAT_NOME, TRAT_SEL, insLista } from '../nucleo/estado.js';
+import { ATIV_TRAT_SEL, DIM, INSUMO, INS_EDIT, INS_FICHA, P, PLANO, TRATC, TRAT_NOME, TRAT_OBS, TRAT_SEL, atividadesLista, insLista } from '../nucleo/estado.js';
 import { $, brl, esc, fmt, num, urlWeb } from '../nucleo/formato.js';
 import { unidadesDaFamilia } from '../nucleo/unidades.js';
 import { kpi, ligarBuscaSelect, th } from './componentes.js';
 import { setTRAT_SEL } from '../nucleo/estado.js';
+import { MESES, NM, clsMes } from '../nucleo/calendario.js';
 
 /* ---------- INSUMOS ---------- */
 
@@ -180,6 +181,7 @@ function pintarInsumos(R){
   if(!TRAT_SEL || !codigos.includes(TRAT_SEL)) setTRAT_SEL(codigos[0]);
   buscaTrat && buscaTrat.definir(TRAT_SEL);
   $("#in_trat_nome").value = TRAT_NOME[TRAT_SEL] || "";
+  $("#in_trat_obs").value = TRAT_OBS[TRAT_SEL] || "";
   $("#in_trat_cod").value = TRAT_SEL || "";
   buscaProd && buscaProd.limpar();
   $("#c_etapa_sel").innerHTML = TRAT_SEL ? celulaEtapas(TRAT_SEL) : "";
@@ -189,7 +191,7 @@ function pintarInsumos(R){
   $("#c_trat").value = brl(custoHa,2) + "/ha";
 
   $("#t_comp").innerHTML = th([["Produto"],["Princípio ativo"],["Dose",1],["Un."],
-    ["Preço corrigido",1],["Custo/ha",1],["% do tratamento",1],[""],[""]])+"<tbody>"+
+    ["Preço corrigido",1],["Custo/ha",1],["% do tratamento",1],[""]])+"<tbody>"+
     (comp.length? comp.map((l,i)=>{
       const pr = precoInsumo(l.prod), c = doseBase(l)*pr;
       const pp = custoHa>0 ? c/custoHa*100 : 0;
@@ -209,14 +211,19 @@ function pintarInsumos(R){
         <td class="num calc">${pr>0?brl(pr,2):'<span class="badge b-warn">sem preço</span>'}</td>
         <td class="num tot">${brl(c,2)}</td>
         <td class="num calc">${fmt(pp,1)}%</td>
-        <td><button class="btn" data-inedit="${esc(l.prod)}" title="Editar o cadastro deste produto">Editar</button></td>
         <td><button class="btn d" data-tr="${i}">Remover</button></td></tr>`;}).join("")
-      : `<tr><td colspan="9" class="calc">Tratamento sem produtos. Use o campo abaixo para adicionar.</td></tr>`)+
+      : `<tr><td colspan="8" class="calc">Tratamento sem produtos. Use o campo abaixo para adicionar.</td></tr>`)+
     `<tr><td class="tot" colspan="4">CUSTO/HA DO TRATAMENTO</td><td></td>
-     <td class="num tot">${brl(custoHa,2)}</td><td class="num tot">${custoHa>0?"100,0%":"—"}</td><td></td><td></td></tr></tbody>`;
+     <td class="num tot">${brl(custoHa,2)}</td><td class="num tot">${custoHa>0?"100,0%":"—"}</td><td></td></tr></tbody>`;
+
+  // --- 2. atividade e período: liga o tratamento a uma atividade do Plano
+  // Operacional e lança a mesma janela de datas e os mesmos meses que a aba
+  // Plano Operacional usa — data-dt/data-c/data-m já existem lá (app/eventos.js);
+  // aqui é só outro lugar de onde os mesmos campos são editados. ---
+  pintarTratPeriodo();
 
   // --- 3. cadastro dos tratamentos: código, nome e etapa de uso ---
-  $("#t_trat").innerHTML = th([["Cod_Trat"],["Nome"],["Etapas em que é usado"],["Produtos",1],
+  $("#t_trat").innerHTML = th([["Cod_Trat"],["Nome"],["Observação"],["Etapas em que é usado"],["Produtos",1],
     ["Custo/ha",1],["Composição"],["Atividades que usam"],["Custo no plano",1],[""]])+"<tbody>"+
     TL.map(t=>{
       const usos = R.L.filter(r=>r.trat===t.cod);
@@ -225,13 +232,16 @@ function pintarInsumos(R){
                  title="Alterar o código do tratamento"></td>
         <td><input data-trn="${esc(t.cod)}" value="${esc(TRAT_NOME[t.cod]||"")}"
             style="text-align:left;min-width:180px" placeholder="Ex.: Herbicida pré-emergente"></td>
+        <td><input data-tro="${esc(t.cod)}" value="${esc(TRAT_OBS[t.cod]||"")}"
+            style="text-align:left;min-width:200px" placeholder="Recomendação ou instrução de uso"></td>
         <td style="min-width:176px">${celulaEtapas(t.cod)}</td>
         <td class="num calc">${composicao(t.cod).length}</td>
         <td class="num ${t.custo_ha>0?"tot":"calc"}">${t.custo_ha>0?brl(t.custo_ha,2):"—"}</td>
         <td>${TRATC[t.cod]?'<span class="badge b-warn">ajustado</span>':'<span class="badge b-ok">original</span>'}</td>
         <td class="calc">${usos.length?usos.map(u=>u.a.cod).join(", "):"—"}</td>
         <td class="num ${areaT?"tot":"calc"}">${areaT?brl(areaT*t.custo_ha):"—"}</td>
-        <td><button class="btn d" data-trrm="${esc(t.cod)}">Remover</button></td></tr>`;}).join("")+
+        <td><button class="btn" data-trdup="${esc(t.cod)}" title="Criar uma cópia deste tratamento para ajustar">Duplicar</button>
+            <button class="btn d" data-trrm="${esc(t.cod)}">Remover</button></td></tr>`;}).join("")+
     "</tbody>";
 
   // --- 4. materiais ---
@@ -245,6 +255,44 @@ function pintarInsumos(R){
       <td class="num tot">${brl(m.total)}</td>
       <td><button class="btn d" data-mtrm="${i}">Remover</button></td></tr>`).join("")+
     `<tr><td class="tot" colspan="5">TOTAL</td><td class="num tot">${brl(R.MT.total)}</td><td></td></tr></tbody>`;
+}
+
+/* Atividade e período do tratamento selecionado (aba Insumos, painel 2).
+   O select liga o tratamento a uma atividade — grava em PLANO[cod].trat, o
+   mesmo campo que o dropdown da aba Plano Operacional grava. A tabela de
+   datas e meses usa exatamente os atributos data-dt/data-c/data-m que
+   app/eventos.js já trata para o Plano Operacional: nenhum handler novo,
+   é a mesma atividade vista por outra tela. ATIV_TRAT_SEL é só visão (qual
+   atividade das já vinculadas está sendo mostrada) — não é gravado. */
+function pintarTratPeriodo(){
+  const lista = atividadesLista();
+  const vinculadas = usosTrat(TRAT_SEL);
+  const exibindo = vinculadas.includes(ATIV_TRAT_SEL) ? ATIV_TRAT_SEL : (vinculadas[0] || "");
+
+  $("#sel_trat_ativ").innerHTML = `<option value="">— escolher atividade —</option>` +
+    lista.map(a => `<option value="${esc(a.cod)}"${a.cod===exibindo?" selected":""}>${esc(a.cod)} — ${esc(a.nome)}${
+      vinculadas.includes(a.cod) ? " (vinculada)" : ""}</option>`).join("");
+
+  if(!exibindo){
+    $("#t_trat_periodo").innerHTML = "";
+    $("#trat_periodo_hint").textContent = vinculadas.length
+      ? "" : "Nenhuma atividade usa este tratamento ainda — escolha uma acima para vincular e lançar a área mês a mês.";
+    return;
+  }
+  const a = lista.find(x=>x.cod===exibindo) || {};
+  const p = PLANO[exibindo] || {m:Array(NM).fill(0), trat:""};
+  const d = DIM[exibindo] || {};
+  $("#t_trat_periodo").innerHTML = th([["Início"],["Fim"],["Un."],...MESES.map((m,j)=>[m,1,clsMes(j)])])+
+    `<tbody><tr>
+      <td><input type="date" data-dt="${esc(exibindo)}" data-f="ini" value="${d.ini||""}" max="${d.fim||""}" title="Início da execução"></td>
+      <td><input type="date" data-dt="${esc(exibindo)}" data-f="fim" value="${d.fim||""}" min="${d.ini||""}" title="Fim da execução"></td>
+      <td class="calc">${esc(a.un||"")}</td>` +
+    (p.m||Array(NM).fill(0)).map((q,j)=>
+      `<td class="num ${clsMes(j)}"><input data-c="${esc(exibindo)}" data-m="${j}" value="${q||""}" inputmode="decimal"></td>`).join("") +
+    `</tr></tbody>`;
+  $("#trat_periodo_hint").textContent = p.trat===TRAT_SEL
+    ? `Lançando para ${a.cod} — ${a.nome}. Início e fim distribuem a área pelos meses automaticamente; os meses continuam editáveis à mão.`
+    : `${a.cod} — ${a.nome} ainda usa outro tratamento (${p.trat || "nenhum"}). Escolher esta atividade acima substitui o vínculo.`;
 }
 
 /* Célula de marcação da etapa: uma caixa por etapa do plano. Sem marca, mostra

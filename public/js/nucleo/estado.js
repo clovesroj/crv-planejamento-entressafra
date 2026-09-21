@@ -28,6 +28,8 @@ let CRM = {};            // item -> {pecas,terc,consumo,lubrif} ajustados
 let MATX = null;         // materiais de manutenção (lista editável)
 let INSX = null;         // cadastro de insumos (lista editável: incluir/alterar/remover)
 let INSX_V = 0;          // versão do cadastro base que este documento já recebeu
+let ATVX = null;         // cadastro de atividades (lista editável: incluir/alterar/remover)
+let ATVX_V = 0;          // versão do cadastro base de atividades que este documento já recebeu
 let FROTA = {};          // item -> {qtd, hmes} frota prevista para manutenção
 let MAQ = {};            // item -> {d,h,u} ajustados: diesel L/h, horas/mês, utilização
 let CRM_ESP = {};        // especialidade -> taxa padrão herdada pelos modelos dela
@@ -48,6 +50,7 @@ let CRIT_GER = "";       // filtro de gerência do critério por mês (visão, n
 let CRIT_CABE = "";      // "" todos os meses | "apertado" só os que não cabem
 let APOIO_FIXO = {};     // nome do item -> qtd ajustada (frota de apoio de utilização fixa)
 let TRAT_NOME = {};      // cod do tratamento -> nome descritivo editável
+let TRAT_OBS = {};       // cod do tratamento -> observação livre (recomendação, instrução de uso)
 let TRAT_ETAPA = {};     // cod do tratamento -> etapas em que é usado (preparo, plantio, planta, soca...)
 let TRAT_DEL = {};       // cod do tratamento -> true quando foi removido do cadastro base
 let DIESEL_MES = {};     // índice do mês -> preço projetado do diesel (R$/L); vazio = preço base
@@ -73,13 +76,14 @@ let EDITADO = false;     // true assim que o usuário mexe em algo — trava o c
 let FUN_SEL = null;
 let CAT_SEL = null;
 let TRAT_SEL = null;
+let ATIV_TRAT_SEL = null;  // cod da atividade cujo período/meses aparece na aba Insumos
 // busca de bula na AGROFIT (Embrapa), aberta no modal: {ix, carregando, erro, resultados} ou null
 let AGROFIT_BUSCA = null;
 
 export {
   P, PLANO, DIM, INSUMO, ESPOR, TRATC, NIV, GRAT, APOIO, TERC_TAR, CRM, MATX,
-  INSX, INSX_V, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, CRIT_GER, CRIT_CABE, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, INS_FICHA, APOIO_FIXO, TRAT_NOME, TRAT_ETAPA, TRAT_DEL, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
-  TPESS, QUADRO, ADM, ADM_RAT, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL, GRUPOS_INS, FAM_NOME, FAM_CLASSE, AGROFIT_BUSCA, INS_EDIT,
+  INSX, INSX_V, ATVX, ATVX_V, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, CRIT_GER, CRIT_CABE, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, INS_FICHA, APOIO_FIXO, TRAT_NOME, TRAT_OBS, TRAT_ETAPA, TRAT_DEL, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
+  TPESS, QUADRO, ADM, ADM_RAT, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL, ATIV_TRAT_SEL, GRUPOS_INS, FAM_NOME, FAM_CLASSE, AGROFIT_BUSCA, INS_EDIT,
 };
 
 export const setP          = v => { P = v; };
@@ -96,6 +100,8 @@ export const setCRM        = v => { CRM = v; };
 export const setMATX       = v => { MATX = v; };
 export const setINSX       = v => { INSX = v; };
 export const setINSX_V     = v => { INSX_V = +v || 0; };
+export const setATVX       = v => { ATVX = v; };
+export const setATVX_V     = v => { ATVX_V = +v || 0; };
 export const setFROTA      = v => { FROTA = v; };
 export const setCRM_ESP    = v => { CRM_ESP = v; };
 export const setMAQ        = v => { MAQ = v; };
@@ -113,6 +119,7 @@ export const setFROTA_UN   = v => { FROTA_UN = v; };
 export const setFROTA_DEST = v => { FROTA_DEST = v; };
 export const setAPOIO_FIXO = v => { APOIO_FIXO = v; };
 export const setTRAT_NOME  = v => { TRAT_NOME = v; };
+export const setTRAT_OBS   = v => { TRAT_OBS = v; };
 export const setTRAT_ETAPA = v => { TRAT_ETAPA = v; };
 export const setTRAT_DEL   = v => { TRAT_DEL = v; };
 export const setDIESEL_MES = v => { DIESEL_MES = v; };
@@ -134,6 +141,7 @@ export const setEDITADO    = v => { EDITADO = v; };
 export const setFUN_SEL    = v => { FUN_SEL = v; };
 export const setCAT_SEL    = v => { CAT_SEL = v; };
 export const setTRAT_SEL   = v => { TRAT_SEL = v; };
+export const setATIV_TRAT_SEL = v => { ATIV_TRAT_SEL = v; };
 export const setAGROFIT_BUSCA = v => { AGROFIT_BUSCA = v; };
 
 /* ---------------------------------------------------------------------------
@@ -143,6 +151,8 @@ export const setAGROFIT_BUSCA = v => { AGROFIT_BUSCA = v; };
    --------------------------------------------------------------------------- */
 
 export function insLista(){ if(!INSX) INSX = CFG.insumos.map(i=>({...i})); return INSX; }
+
+export function atividadesLista(){ if(!ATVX) ATVX = CFG.atividades.map(a=>({...a})); return ATVX; }
 
 export function apoioLista(){ if(!APOIO) APOIO = CFG.apoio_eq.map(a=>({...a})); return APOIO; }
 

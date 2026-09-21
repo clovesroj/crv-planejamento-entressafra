@@ -26,7 +26,7 @@
  * CFG.funcoes[i].sal, que a persistencia regrava ao aplicar um plano salvo —
  * comportamento herdado do arquivo unico e mantido de proposito.
  */
-import { ATIVIDADES } from './atividades.js';
+import { ATIVIDADES, ATIVIDADES_V } from './atividades.js';
 import { MAQUINAS } from './maquinas.js';
 import { ENCARGOS, BENEFICIOS, FUNCOES, INDIRETOS, FUNCAO_POR_ATIVIDADE } from './mao-de-obra.js';
 import { CONTAS, CC_LIST } from './plano-contas.js';
@@ -42,6 +42,7 @@ import { TPESS_ROTAS } from './transporte-pessoal.js';
 
 export const CFG = {
   atividades:   ATIVIDADES,
+  atividades_v: ATIVIDADES_V,
   maquinas:     MAQUINAS,
   encargos:     ENCARGOS,
   beneficios:   BENEFICIOS,
