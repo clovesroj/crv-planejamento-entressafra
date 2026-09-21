@@ -8,7 +8,7 @@ import { buscarAgrofit, bulaDoProduto } from '../io/agrofit.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
 import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TERC_SUB, TERC_DET, setTERC_DET, TPESS, TRATC, TRAT_NOME, TRAT_OBS, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, atividadesLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE } from '../nucleo/estado.js';
-import { AGROFIT_BUSCA, FROTA_ABERTO, FROTA_UN, INS_EDIT, INS_FICHA, MAQ, setAGROFIT_BUSCA, setFROTA_DEST, setFROTA_ORIG, setINS_EDIT, setINS_FICHA } from '../nucleo/estado.js';
+import { AGROFIT_BUSCA, FITO_ABERTO, FROTA_ABERTO, FROTA_UN, INS_EDIT, INS_FICHA, MAQ, setAGROFIT_BUSCA, setFROTA_DEST, setFROTA_ORIG, setINS_EDIT, setINS_FICHA } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { filtrarPorNome } from '../ui/componentes.js';
 import { alternarFam, aplicarFamIns, buscaExigeRedesenho, recolherTodas, todasRecolhidas } from '../ui/insumos.js';
@@ -430,6 +430,12 @@ document.addEventListener("click",e=>{
   if(ab){ const k = ab.dataset.abrefrota;
     // abrir a lista de unidades e visao, nao dado: nao passa por salvar()
     if(FROTA_ABERTO[k]) delete FROTA_ABERTO[k]; else FROTA_ABERTO[k]=true;
+    render(); return; }
+  // estratificação por modo de execução, no Manejo Fitossanitário — mesmo
+  // criterio do abre-frota: visao, nao dado, nao passa por salvar()
+  const fa = e.target.closest && e.target.closest("[data-fitoabre]");
+  if(fa){ const k = fa.dataset.fitoabre;
+    if(FITO_ABERTO[k]) delete FITO_ABERTO[k]; else FITO_ABERTO[k]=true;
     render(); return; }
   const t=e.target;
   if(t.dataset.rm!==undefined){ ESPOR.splice(+t.dataset.rm,1); salvar(); render(); return; }

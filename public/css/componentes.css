@@ -102,6 +102,12 @@ td select{height:28px;padding:0 8px;font-size:12.5px;min-width:110px}
 .calc{color:var(--grey)}
 .tot{font-weight:700;color:var(--ink)}
 tr.sub td{background:var(--sunk);font-size:12px;padding:5px 12px}
+/* estratificação por modo de execução, no Manejo Fitossanitário — mesma
+   ideia da faixa de família do cadastro de insumos (linha clicável, seta
+   indica aberto/fechado), aplicada a uma linha comum em vez de tr.stage */
+.fito-linha[data-fitoabre]{cursor:pointer}
+.fito-linha[data-fitoabre]:hover td{background:var(--leaf-soft)}
+.fito-seta{width:18px;color:var(--leaf);font-weight:700;text-align:center}
 
 /* Cadastro de insumos: largura de coluna fixa.
    Sem isto o navegador dimensiona as colunas pelo conteudo VISIVEL, e recolher

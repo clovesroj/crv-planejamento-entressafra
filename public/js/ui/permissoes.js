@@ -27,7 +27,7 @@ import { USUARIO, podeEditar, areasDePermissao } from '../nucleo/sessao.js';
    salva mudou. */
 const VISUAIS = [
   '[data-rastro]', '[data-ra-periodo]', '#ra_voltar', '#ra_fechar',
-  '[data-abrefrota]', '[data-infx]', '[data-rendmes]', '#rm_fechar', '[data-tercdet]', '#td_fechar',
+  '[data-abrefrota]', '[data-fitoabre]', '[data-infx]', '[data-rendmes]', '#rm_fechar', '[data-tercdet]', '#td_fechar',
   '#sel_fun', '#busca_fun', '#sel_cat', '#sel_orig', '#sel_dest', '#sel_trat', '#busca_trat', '#sel_acomp_mes',
   '#sel_crit_ger', '#sel_crit_cabe', '.tbl-busca',
   '#sel_ins_fam', '#btn_ins_recolher', '[data-fam]',
