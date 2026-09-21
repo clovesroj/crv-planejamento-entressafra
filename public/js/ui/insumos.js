@@ -284,21 +284,26 @@ function pintarTratPeriodo(R){
   const a = lista.find(x=>x.cod===exibindo) || {};
   const p = PLANO[exibindo] || {m:Array(NM).fill(0), trat:""};
   const d = DIM[exibindo] || {};
-  const meses = p.m || Array(NM).fill(0);
-  const totalArea = meses.reduce((s,q)=>s+num(q),0);
   // mesmo editor de modo (M/T/U/D/Q/3º) do Plano Operacional, na mesma linha
   // calculada (R.L) — o "›" do 3º já abre o detalhamento por sub-modo (avião,
   // drone, terrestre) de lá, sem handler novo: é tudo delegado em app/eventos.js.
   const linha = R && R.L.find(x=>x.a.cod===exibindo);
+  // com tratamento extra, a área aqui em cima vira a SOMA dos tratamentos (ver
+  // linha() em calculo/atividade.js) — só leitura; edição desce pro bloco de
+  // tratamentos extras logo abaixo, onde cada um tem área própria.
+  const temExtras = !!(linha && linha.tratsDetalhe);
+  const meses = temExtras ? linha.meses : (p.m || Array(NM).fill(0));
+  const totalArea = temExtras ? linha.total : meses.reduce((s,q)=>s+num(q),0);
   $("#t_trat_periodo").innerHTML = th([["Início"],["Fim"],["Un."],...MESES.map((m,j)=>[m,1,clsMes(j)]),
       ["Total planejado",1],["Modo de execução"]])+
     `<tbody><tr>
       <td><input type="date" data-dt="${esc(exibindo)}" data-f="ini" value="${d.ini||""}" max="${d.fim||""}" title="Início da execução"></td>
       <td><input type="date" data-dt="${esc(exibindo)}" data-f="fim" value="${d.fim||""}" min="${d.ini||""}" title="Fim da execução"></td>
       <td class="calc">${esc(a.un||"")}</td>` +
-    meses.map((q,j)=>
-      `<td class="num ${clsMes(j)}"><input data-c="${esc(exibindo)}" data-m="${j}" value="${q||""}" inputmode="decimal"></td>`).join("") +
-    `<td class="num tot">${fmt(totalArea)}</td>
+    meses.map((q,j)=> temExtras
+      ? `<td class="num calc ${clsMes(j)}" title="Soma dos tratamentos — edite no bloco abaixo">${q?fmt(num(q)):""}</td>`
+      : `<td class="num ${clsMes(j)}"><input data-c="${esc(exibindo)}" data-m="${j}" value="${q||""}" inputmode="decimal"></td>`).join("") +
+    `<td class="num ${temExtras?"calc":""} tot">${fmt(totalArea)}</td>
      <td>${a.modoOn && linha ? mixEditor(linha) : '<span class="calc">—</span>'}</td>` +
     `</tr></tbody>`;
   $("#trat_periodo_hint").textContent = p.trat===TRAT_SEL

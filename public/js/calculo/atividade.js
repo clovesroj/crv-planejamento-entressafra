@@ -237,9 +237,21 @@ function criterioMensal(r){
 
 function linha(a, MP){
   const p = PLANO[a.cod] || {m:Array(NM).fill(0), trat:""};
-  const meses = a.tipo==="transp"
+  const baseMeses = a.tipo==="transp"
     ? ((PLANO[a.src]||{m:Array(NM).fill(0)}).m || Array(NM).fill(0))
     : (p.m || Array(NM).fill(0));
+  /* dois tratamentos na mesma atividade, cada um com área própria: a área
+     operacional (a que dimensiona frota e horas) passa a ser a SOMA das
+     áreas de cada tratamento, não mais um número lançado à parte no topo —
+     "são áreas exclusivas de cada um" foi o pedido. Sem tratamento extra,
+     nada muda: meses/total continuam vindo direto de PLANO[cod].m, como
+     sempre (zero regressão pra quem não usa isto). */
+  const extras = (Array.isArray(p.trats) ? p.trats : []).filter(e=>e && e.trat);
+  const mesesExtras = extras.map(e => Array.isArray(e.m) ? e.m.map(num) : Array(NM).fill(0));
+  const mesesPrim = Array.isArray(p.tratM) ? p.tratM.map(num) : baseMeses.map(num);
+  const meses = extras.length
+    ? baseMeses.map((_,i) => mesesPrim[i] + mesesExtras.reduce((s,arr)=>s+num(arr[i]||0),0))
+    : baseMeses;
   const total = meses.reduce((s,x)=>s+num(x),0);
   const d = DIM[a.cod] || {};
   /* Frota alvo: inverte o dimensionamento. A conta normal pergunta "com este
@@ -355,27 +367,20 @@ function linha(a, MP){
 
   const soma = k => partes.reduce((s,x)=>s+x[k],0);
   const t = tratCusto(p.trat);
-  /* dois tratamentos na mesma atividade: a área de cada um é exclusiva —
-     lançada à parte, sem abater da área do outro. p.tratM é a área própria
-     do principal (independente do total p.m, que continua só dimensionando
-     frota/horas, como sempre); sem p.tratM ainda lançado, o principal usa o
-     total inteiro, igual a antes de existir tratamento extra — zero
-     regressão pra quem não usa isto. */
-  const extras = (Array.isArray(p.trats) ? p.trats : []).filter(e=>e && e.trat);
+  // cInsumo por tratamento, reaproveitando as áreas já usadas lá em cima pra
+  // somar o total (mesmos números — não recalcula "o que sobra" de novo aqui)
   let cInsumo, tratsDetalhe = null;
   if(extras.length){
-    const mPrim = Array.isArray(p.tratM) ? p.tratM.map(num) : meses.map(num);
-    const areaPrim = mPrim.reduce((s,q)=>s+q,0);
+    const areaPrim = mesesPrim.reduce((s,q)=>s+q,0);
     const cPrim = (t && ehHa) ? areaPrim*t : 0;
-    const cExtras = extras.map(e=>{
+    const cExtras = extras.map((e,k)=>{
       const tE = tratCusto(e.trat);
-      const mE = Array.isArray(e.m) ? e.m.map(num) : Array(NM).fill(0);
-      const areaE = mE.reduce((s,q)=>s+q,0);
+      const areaE = mesesExtras[k].reduce((s,q)=>s+q,0);
       const custoE = (tE && ehHa) ? areaE*tE : 0;
-      return {trat:e.trat, area:areaE, custo:custoE, m:mE};
+      return {trat:e.trat, area:areaE, custo:custoE, m:mesesExtras[k]};
     });
     cInsumo = cPrim + cExtras.reduce((s,x)=>s+x.custo,0);
-    tratsDetalhe = [{trat:p.trat, area:areaPrim, custo:cPrim, principal:true, m:mPrim}, ...cExtras];
+    tratsDetalhe = [{trat:p.trat, area:areaPrim, custo:cPrim, principal:true, m:mesesPrim}, ...cExtras];
   }else{
     cInsumo = (t && ehHa) ? total*t : 0;
   }

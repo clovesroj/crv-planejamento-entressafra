@@ -132,8 +132,11 @@ function pintarPlano(R){
         <td><input type="date" data-dt="${r.a.cod}" data-f="ini" value="${r.janela.ini||""}" max="${d.fim||""}" title="Início da execução"></td>
         <td><input type="date" data-dt="${r.a.cod}" data-f="fim" value="${r.janela.fim||""}" min="${d.ini||""}" title="Fim da execução"></td>
         <td class="calc">${r.a.un}</td>`+
-      r.meses.map((q,j)=> auto
-        ? `<td class="num calc ${clsMes(j)}">${q?fmt(num(q)):""}</td>`
+      // com tratamento extra, a area aqui em cima vira a SOMA dos tratamentos
+      // (ver linha() em calculo/atividade.js) — so leitura, a edicao passa a
+      // ser nas sub-linhas (principal e extras), cada uma com area propria
+      r.meses.map((q,j)=> (auto || temExtras)
+        ? `<td class="num calc ${clsMes(j)}"${temExtras?' title="Soma dos tratamentos — edite nas linhas abaixo (seta ao lado do nome)"':""}>${q?fmt(num(q)):""}</td>`
         : `<td class="num ${clsMes(j)}${dentro(j)?"":" fora-janela"}"><input data-c="${r.a.cod}" data-m="${j}" value="${q||""}" inputmode="decimal"${
             dentro(j)?"":' title="Fora da janela de datas desta atividade — o valor continua contando no total"'}></td>`).join("")+
       `<td class="num tot" style="color:${totalNoFiltro(r, SEL)>0?'var(--green)':'var(--grey)'}"${
