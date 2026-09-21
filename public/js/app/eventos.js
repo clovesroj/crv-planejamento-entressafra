@@ -46,13 +46,22 @@ document.addEventListener("input",e=>{
   if(t.dataset.c!==undefined&&t.dataset.m!==undefined){
     const c=t.dataset.c; PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""};
     PLANO[c].m[+t.dataset.m]=num(t.value); salvar(); leve(); return; }
-  // area mes a mes de um tratamento EXTRA na mesma atividade (dois tratamentos
-  // dividindo a mesma area — ver calculo/atividade.js). O principal (data-c)
-  // continua sendo o total; aqui so a fatia de um tratamento extra.
+  // area mes a mes de um tratamento EXTRA na mesma atividade — area exclusiva
+  // dele, nao abate do principal nem de outro extra (ver calculo/atividade.js).
+  // O total (data-c/PLANO[c].m) continua so dimensionando frota/horas.
   if(t.dataset.cx!==undefined){ const c=t.dataset.cx, i=+t.dataset.tx, j=+t.dataset.m;
     PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""}; PLANO[c].trats=PLANO[c].trats||[];
     const e=PLANO[c].trats[i]; if(!e) return;
     e.m=Array.isArray(e.m)?e.m:Array(NM).fill(0); e.m[j]=num(t.value);
+    salvar(); leve(); return; }
+  // area mes a mes do tratamento PRINCIPAL, quando ha extra — tambem exclusiva
+  // (nao e mais "o que sobra do total"). Sem isto ainda editado, o motor usa o
+  // total inteiro (ver linha() em calculo/atividade.js); a primeira edicao
+  // parte de uma copia do total, pra nao pular pra zero nos outros meses.
+  if(t.dataset.cp!==undefined){ const c=t.dataset.cp, j=+t.dataset.m;
+    PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""};
+    PLANO[c].tratM = Array.isArray(PLANO[c].tratM) ? PLANO[c].tratM : (PLANO[c].m||Array(NM).fill(0)).slice();
+    PLANO[c].tratM[j]=num(t.value);
     salvar(); leve(); return; }
   if(t.dataset.r!==undefined){ DIM[t.dataset.r]=DIM[t.dataset.r]||{}; DIM[t.dataset.r].rend=num(t.value); salvar(); leve(); return; }
   // criterio por mes do modal de rendimento: rendimento, frota, disponibilidade e

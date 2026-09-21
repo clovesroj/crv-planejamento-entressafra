@@ -307,11 +307,11 @@ function pintarTratPeriodo(R){
   pintarTratExtras(exibindo, p, linha);
 }
 
-/* Dois tratamentos na mesma atividade: dividem a MESMA área (a de cima) em
-   vez de somar área nova — o principal fica com o que sobra depois do que
-   for lançado aqui. Mesma unidade de medida de sempre (mês a mês), só que
-   por tratamento extra em vez de pelo total. Ver calculo/atividade.js
-   (tratsDetalhe) para a conta de custo. */
+/* Dois tratamentos na mesma atividade: cada um com sua área PRÓPRIA, lançada
+   à parte — nenhum abate do outro (área exclusiva de cada tratamento). O
+   total lá em cima (PLANO[cod].m) continua só dimensionando frota e horas,
+   sem ligação com esta quebra por tratamento. Mesma unidade de sempre (mês a
+   mês). Ver calculo/atividade.js (tratsDetalhe) para a conta de custo. */
 function pintarTratExtras(cod, p, linha){
   const wrap = $("#trat_extras_wrap");
   if(!wrap) return;
@@ -319,18 +319,23 @@ function pintarTratExtras(cod, p, linha){
   wrap.hidden = false;
   const extras = Array.isArray(p.trats) ? p.trats : [];
   const rotulo = t => TRAT_NOME[t] ? `${esc(t)} — ${esc(TRAT_NOME[t])}` : esc(t);
-  // mesma conta do motor (calculo/atividade.js): sem extra ainda, o principal
-  // fica com a área cheia; com extra, o detalhe já vem calculado de lá — não
-  // reduz a mesma "resto por mês" duas vezes em dois lugares diferentes.
+  // mesma fonte do motor (calculo/atividade.js): sem extra ainda, o principal
+  // usa a área cheia (p.m); com extra, tratsDetalhe já traz a área própria de
+  // cada um (p.tratM do principal, ou p.m se ele ainda não foi editado à parte).
   const det = (linha && linha.tratsDetalhe) ||
     [{trat:p.trat, area:(p.m||[]).reduce((s,q)=>s+num(q),0), principal:true, m:(p.m||Array(NM).fill(0)).map(num)}];
 
   let h = th([["Tratamento"],...MESES.map((m,j)=>[m,1,clsMes(j)]),["Total",1],[""]]) + "<tbody>";
   det.forEach((d,i)=>{
     if(d.principal){
+      // só vira campo próprio quando já existe extra — com um tratamento só,
+      // a área do principal É o total, editado ali em cima; nada a duplicar.
+      const editavel = extras.length>0;
       h += `<tr><td class="calc">${rotulo(d.trat)} <span class="badge b-ok">principal</span></td>` +
-        d.m.map((q,j)=>`<td class="num calc ${clsMes(j)}">${q?fmt(q):"—"}</td>`).join("") +
-        `<td class="num calc tot">${fmt(d.area)}</td><td></td></tr>`;
+        d.m.map((q,j)=> editavel
+          ? `<td class="num ${clsMes(j)}"><input data-cp="${esc(cod)}" data-m="${j}" value="${q||""}" inputmode="decimal"></td>`
+          : `<td class="num calc ${clsMes(j)}">${q?fmt(q):"—"}</td>`).join("") +
+        `<td class="num ${editavel?"":"calc"} tot">${fmt(d.area)}</td><td></td></tr>`;
       return;
     }
     // indice do extra dentro de PLANO[cod].trats — det[0] é sempre o principal

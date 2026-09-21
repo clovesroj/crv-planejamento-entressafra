@@ -84,24 +84,24 @@ function totalNoFiltro(r, SEL){
   if(!SEL.parcial) return r.total;
   return SEL.meses.reduce((s,j)=>s+num(r.meses[j]),0);
 }
-/* Dois tratamentos na mesma atividade (área rateada, ver calculo/atividade.js
-   tratsDetalhe): a linha continua uma só, com o total; expande pro detalhe
-   por tratamento — mesmo critério do data-fitoabre no Manejo Fitossanitário,
-   só que aqui as células de mês do tratamento extra são editáveis (a área
-   principal já é editável na própria linha; expandir só ajusta a mistura). */
+/* Dois tratamentos na mesma atividade, cada um com área PRÓPRIA (exclusiva,
+   não abate uma da outra — ver calculo/atividade.js tratsDetalhe): a linha
+   continua uma só, com o total (que segue só dimensionando frota/horas);
+   expande pro detalhe por tratamento, mesmo critério do data-fitoabre no
+   Manejo Fitossanitário. Principal e extras editáveis ali, cada um no seu
+   campo — data-cp pro principal, data-cx pros extras. */
 function subLinhasTrat(r, SEL){
   if(!r.tratsDetalhe) return "";
   return r.tratsDetalhe.map((d,i)=>{
     const nome = TRAT_NOME[d.trat] ? `${esc(d.trat)} — ${esc(TRAT_NOME[d.trat])}` : esc(d.trat||"—");
     const totalFiltro = SEL.parcial ? SEL.meses.reduce((s,j)=>s+num(d.m[j]),0) : d.area;
-    const editavel = !d.principal;
     return `<tr class="sub">
       <td></td>
       <td class="calc">${nome}${d.principal?' <span class="badge b-ok">principal</span>':''}</td>
       <td></td><td></td><td></td>` +
-      d.m.map((q,j)=> editavel
-        ? `<td class="num ${clsMes(j)}"><input data-cx="${esc(r.a.cod)}" data-tx="${i-1}" data-m="${j}" value="${q||""}" inputmode="decimal"></td>`
-        : `<td class="num calc ${clsMes(j)}">${q?fmt(q):"—"}</td>`).join("") +
+      d.m.map((q,j)=> d.principal
+        ? `<td class="num ${clsMes(j)}"><input data-cp="${esc(r.a.cod)}" data-m="${j}" value="${q||""}" inputmode="decimal"></td>`
+        : `<td class="num ${clsMes(j)}"><input data-cx="${esc(r.a.cod)}" data-tx="${i-1}" data-m="${j}" value="${q||""}" inputmode="decimal"></td>`).join("") +
       `<td class="num calc tot">${fmt(totalFiltro)}</td>
        <td></td><td></td><td></td>
        <td class="num calc">${d.custo?brl(d.custo):"—"}</td></tr>`;

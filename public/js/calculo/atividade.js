@@ -355,25 +355,24 @@ function linha(a, MP){
 
   const soma = k => partes.reduce((s,x)=>s+x[k],0);
   const t = tratCusto(p.trat);
-  /* dois tratamentos na mesma atividade: p.trats cobre uma PARTE do mesmo
-     total (meses/total não mudam — é a mesma área de sempre, só a mistura de
-     produto que varia mês a mês). O principal (p.trat) fica com o que sobra
-     depois dos extras; nunca fica negativo. R$/ha não varia por mês, então
-     sem extras a conta bate exatamente com total*t de antes (zero regressão
-     pra quem não usa isto). */
+  /* dois tratamentos na mesma atividade: a área de cada um é exclusiva —
+     lançada à parte, sem abater da área do outro. p.tratM é a área própria
+     do principal (independente do total p.m, que continua só dimensionando
+     frota/horas, como sempre); sem p.tratM ainda lançado, o principal usa o
+     total inteiro, igual a antes de existir tratamento extra — zero
+     regressão pra quem não usa isto. */
   const extras = (Array.isArray(p.trats) ? p.trats : []).filter(e=>e && e.trat);
   let cInsumo, tratsDetalhe = null;
   if(extras.length){
-    const mExtras = extras.map(e => Array.isArray(e.m) ? e.m.map(num) : Array(NM).fill(0));
-    const extraAreaMes = i => mExtras.reduce((s,arr)=>s+num(arr[i]||0),0);
-    const mPrim = meses.map((q,i)=>Math.max(0,num(q)-extraAreaMes(i)));
+    const mPrim = Array.isArray(p.tratM) ? p.tratM.map(num) : meses.map(num);
     const areaPrim = mPrim.reduce((s,q)=>s+q,0);
-    const cPrim = (t && ehHa) ? mPrim.reduce((s,q)=>s+q*t,0) : 0;
-    const cExtras = extras.map((e,k)=>{
+    const cPrim = (t && ehHa) ? areaPrim*t : 0;
+    const cExtras = extras.map(e=>{
       const tE = tratCusto(e.trat);
-      const areaE = mExtras[k].reduce((s,q)=>s+q,0);
+      const mE = Array.isArray(e.m) ? e.m.map(num) : Array(NM).fill(0);
+      const areaE = mE.reduce((s,q)=>s+q,0);
       const custoE = (tE && ehHa) ? areaE*tE : 0;
-      return {trat:e.trat, area:areaE, custo:custoE, m:mExtras[k]};
+      return {trat:e.trat, area:areaE, custo:custoE, m:mE};
     });
     cInsumo = cPrim + cExtras.reduce((s,x)=>s+x.custo,0);
     tratsDetalhe = [{trat:p.trat, area:areaPrim, custo:cPrim, principal:true, m:mPrim}, ...cExtras];
