@@ -1,5 +1,19 @@
 # Histórico de mudanças
 
+## 2.27.1 — 2026-09-21 · Unidade do Cadastro de Atividades em ha/h e ton/h
+
+No Cadastro de Atividades, a coluna **Unidade** mostrava "ha/mês" e "ton/mês"
+ao lado do **Rendimento**, que é por hora (colheita 45 t/h, gradagem 0,7 ha/h).
+Agora mostra **ha/h** e **ton/h**, e a coluna se chama "Rendimento (por hora)".
+O seletor das atividades criadas pelo usuário também oferece ha/h e ton/h.
+
+O dado guardado não muda. A atividade continua registrando a unidade do volume
+lançado **por mês** no Plano Operacional — lá, ao lado dos meses, "ha/mês" é a
+unidade certa. O sistema só lê a parte "ha" ou "ton", então custos, documentos
+salvos e demais telas ficam como estavam. As outras telas que mostram
+rendimento (Dimensionamento, Acompanhamento, metas, critério por mês) já usavam
+"/h".
+
 ## 2.27.0 — 2026-09-21 · Consumo de diesel em L/h ou L/km
 
 A tabela **Consumo por equipamento** da aba Combustível agora é editável:
