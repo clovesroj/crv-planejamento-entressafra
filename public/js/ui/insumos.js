@@ -1,4 +1,4 @@
-import { composicao, doseBase, etapasNoPlano, familiaDe, insumosPorFamilia, precoInsumo, todasFamilias, tratCodigos, tratEtapas, tratListaTodos, usosTrat } from '../calculo/insumos.js';
+import { composicao, doseBase, etapasNoPlano, familiaDe, freteEfetivo, insumosPorFamilia, precoInsumo, todasFamilias, tratCodigos, tratEtapas, tratListaTodos, usosTrat } from '../calculo/insumos.js';
 import { TRAT_ETAPAS } from '../dados/insumos.js';
 import { ATIV_TRAT_SEL, DIM, INSUMO, INS_EDIT, INS_FICHA, P, PLANO, TRATC, TRAT_NOME, TRAT_OBS, TRAT_SEL, atividadesLista, insLista } from '../nucleo/estado.js';
 import { $, brl, esc, fmt, num, urlWeb } from '../nucleo/formato.js';
@@ -67,6 +67,12 @@ const buscaProd = ligarBuscaSelect("#busca_prod", "#lista_prod", "#sel_prod", in
 // um clique) -- por isso usa definir(), sincronizado a cada render, em vez de limpar().
 const buscaTrat = ligarBuscaSelect("#busca_trat", "#lista_trat", "#sel_trat", tratCodigos,
   c => c + (TRAT_NOME[c] ? " — " + TRAT_NOME[c] : "") + (TRATC[c] ? " (ajustado)" : ""), c => c);
+// "Atividade que usa este tratamento": mesmo criterio do buscaTrat — 61
+// atividades num select nativo tambem pedia rolar tudo pra achar uma. Rotulo
+// recalcula usosTrat(TRAT_SEL) a cada tecla (nao guarda a lista, ela muda de
+// tratamento pra tratamento) pra marcar "(vinculada)" sempre certo.
+const buscaTratAtiv = ligarBuscaSelect("#busca_trat_ativ", "#lista_trat_ativ", "#sel_trat_ativ", atividadesLista,
+  a => `${a.cod} — ${a.nome}${usosTrat(TRAT_SEL).includes(a.cod) ? " (vinculada)" : ""}`, a => a.cod);
 
 function pintarInsumos(R){
   const TL = tratListaTodos();
@@ -188,13 +194,13 @@ function pintarInsumos(R){
   $("#c_etapa_sel").innerHTML = TRAT_SEL ? celulaEtapas(TRAT_SEL) : "";
 
   const comp = composicao(TRAT_SEL);
-  const custoHa = comp.reduce((s,l)=>s+doseBase(l)*precoInsumo(l.prod),0);
+  const custoHa = comp.reduce((s,l)=>s+doseBase(l)*(precoInsumo(l.prod)+freteEfetivo(l)),0);
   $("#c_trat").value = brl(custoHa,2) + "/ha";
 
   $("#t_comp").innerHTML = th([["Produto"],["Princípio ativo"],["Dose",1],["Un."],
-    ["Preço corrigido",1],["Custo/ha",1],["% do tratamento",1],[""]])+"<tbody>"+
+    ["Preço corrigido",1],["Frete"],["Custo/ha",1],["% do tratamento",1],[""]])+"<tbody>"+
     (comp.length? comp.map((l,i)=>{
-      const pr = precoInsumo(l.prod), c = doseBase(l)*pr;
+      const pr = precoInsumo(l.prod), fr = freteEfetivo(l), c = doseBase(l)*(pr+fr);
       const pp = custoHa>0 ? c/custoHa*100 : 0;
       const reg = insLista().find(x=>x.prod===l.prod);
       const regUn = reg && reg.un;
@@ -202,6 +208,8 @@ function pintarInsumos(R){
       // um produto comprado em ton, por exemplo, sem mudar o custo por hectare
       const opcoesUn = unidadesDaFamilia(regUn);
       const unAtual = opcoesUn.includes(l.un) ? l.un : (regUn || l.un || "");
+      const f = l.frete || {};
+      const unRot = esc(unAtual || regUn || "un");
       return `<tr><td>${esc(l.prod)}</td>
         <td class="calc">${esc((reg&&reg.pa)||"—")}</td>
         <td class="num"><input data-td="${i}" value="${l.dose}" inputmode="decimal"></td>
@@ -210,11 +218,22 @@ function pintarInsumos(R){
               `<option value="${u}"${u===unAtual?" selected":""}>${u}/ha</option>`).join("")}</select>`
           : `<span class="calc">${esc(unAtual || "—")}${unAtual?"/ha":""}</span>`}</td>
         <td class="num calc">${pr>0?brl(pr,2):'<span class="badge b-warn">sem preço</span>'}</td>
+        <td class="frete-cel">
+          <label title="Este insumo tem frete pago à parte, além do preço"><input type="checkbox" data-tfrete="${i}" ${f.on?"checked":""}>Frete</label>
+          ${f.on ? `<select data-tfretetipo="${i}">
+              <option value="unit"${f.tipo!=="total"?" selected":""}>R$/${unRot}</option>
+              <option value="total"${f.tipo==="total"?" selected":""}>Total pago</option>
+            </select>
+            <input data-tfretevalor="${i}" value="${f.valor||""}" inputmode="decimal"
+              placeholder="${f.tipo==="total"?"valor total":"R$/"+unRot}" title="${f.tipo==="total"?"Valor total pago de frete nesta entrega":"Frete por "+unRot}">
+            ${f.tipo==="total" ? `<input data-tfreteqtd="${i}" value="${f.qtd||""}" inputmode="decimal"
+              placeholder="qtd ${unRot}" title="Quantidade recebida nesta entrega, em ${unRot}">` : ""}` : ""}
+        </td>
         <td class="num tot">${brl(c,2)}</td>
         <td class="num calc">${fmt(pp,1)}%</td>
         <td><button class="btn d" data-tr="${i}">Remover</button></td></tr>`;}).join("")
-      : `<tr><td colspan="8" class="calc">Tratamento sem produtos. Use o campo abaixo para adicionar.</td></tr>`)+
-    `<tr><td class="tot" colspan="4">CUSTO/HA DO TRATAMENTO</td><td></td>
+      : `<tr><td colspan="9" class="calc">Tratamento sem produtos. Use o campo abaixo para adicionar.</td></tr>`)+
+    `<tr><td class="tot" colspan="4">CUSTO/HA DO TRATAMENTO</td><td></td><td></td>
      <td class="num tot">${brl(custoHa,2)}</td><td class="num tot">${custoHa>0?"100,0%":"—"}</td><td></td></tr></tbody>`;
 
   // --- 2. atividade e período: liga o tratamento a uma atividade do Plano
@@ -269,10 +288,7 @@ function pintarTratPeriodo(R){
   const lista = atividadesLista();
   const vinculadas = usosTrat(TRAT_SEL);
   const exibindo = vinculadas.includes(ATIV_TRAT_SEL) ? ATIV_TRAT_SEL : (vinculadas[0] || "");
-
-  $("#sel_trat_ativ").innerHTML = `<option value="">— escolher atividade —</option>` +
-    lista.map(a => `<option value="${esc(a.cod)}"${a.cod===exibindo?" selected":""}>${esc(a.cod)} — ${esc(a.nome)}${
-      vinculadas.includes(a.cod) ? " (vinculada)" : ""}</option>`).join("");
+  buscaTratAtiv && buscaTratAtiv.definir(exibindo);
 
   if(!exibindo){
     $("#t_trat_periodo").innerHTML = "";

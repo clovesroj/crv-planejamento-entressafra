@@ -548,8 +548,11 @@
 
   <div class="panel"><h3>2. Atividade e período de lançamento</h3>
     <div class="row" style="margin-bottom:12px">
-      <div style="min-width:260px"><label for="sel_trat_ativ">Atividade que usa este tratamento</label>
-        <select id="sel_trat_ativ"><option value="">— escolher atividade —</option></select></div>
+      <div style="min-width:280px;position:relative"><label for="busca_trat_ativ">Atividade que usa este tratamento</label>
+        <input type="text" id="busca_trat_ativ" autocomplete="off" placeholder="Buscar por código ou nome..."
+               role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="lista_trat_ativ">
+        <input type="hidden" id="sel_trat_ativ">
+        <div class="lista-select" id="lista_trat_ativ" role="listbox" hidden></div></div>
     </div>
     <div class="tblwrap"><table id="t_trat_periodo"></table></div>
     <div class="hint" style="margin-top:9px" id="trat_periodo_hint"></div>

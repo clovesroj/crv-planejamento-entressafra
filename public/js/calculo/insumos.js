@@ -288,6 +288,25 @@ function duplicarTrat(de, para){
   if(TRAT_OBS[de]) TRAT_OBS[novo] = TRAT_OBS[de];
   return true;
 }
+/* Frete de uma linha da composição: opcional (l.frete.on), soma um R$/un a
+   mais no preço do produto, só nesta linha deste tratamento — outro
+   tratamento com o mesmo produto não é afetado. "unit" já vem em R$/un (na
+   mesma unidade em que a dose da linha foi lançada); "total" é o valor pago
+   numa entrega, dividido pela quantidade daquela entrega (l.frete.qtd, na
+   mesma unidade) pra virar a mesma taxa por unidade — bate com nota fiscal
+   de frete. Convertido pra unidade do cadastro com o mesmo fator de
+   doseBase(), pra somar direto ao preço sem descasar unidade. */
+function freteEfetivo(l){
+  const f = l.frete;
+  if(!f || !f.on) return 0;
+  const reg = insLista().find(i => i.prod === l.prod);
+  const fator = fatorParaBase(l.un, reg && reg.un);
+  if(f.tipo === "total"){
+    const qtdBase = num(f.qtd) * fator;
+    return qtdBase>0 ? num(f.valor)/qtdBase : 0;
+  }
+  return fator>0 ? num(f.valor)/fator : 0;
+}
 /** Dose de uma linha de composição, convertida pra unidade do cadastro do
     insumo — a que o preço usa (precoInsumo). É o que permite dosar em kg/ha
     um produto comprado em ton (ou g/ha, ml/ha...) sem mexer no preço nem na
@@ -314,7 +333,7 @@ function tratTabela(){
   if(_tratCache && _tratKey===key) return _tratCache;
   const m = {};
   tratCodigos().forEach(cod=>{
-    m[cod] = composicao(cod).reduce((s,l)=>s + doseBase(l)*precoInsumo(l.prod), 0);
+    m[cod] = composicao(cod).reduce((s,l)=>s + doseBase(l)*(precoInsumo(l.prod)+freteEfetivo(l)), 0);
   });
   _tratCache = m; _tratKey = key;
   return m;
@@ -343,7 +362,7 @@ function volumeDemandado(L){
 }
 
 
-export { _tratCache, _tratKey, codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, doseBase, duplicarTrat, etapaTrat, etapasNoPlano, familiaDe,
+export { _tratCache, _tratKey, codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, doseBase, duplicarTrat, etapaTrat, etapasNoPlano, familiaDe, freteEfetivo,
   familiaDoInsumo, insumosPorFamilia, mesclarBaseInsumos,
   marcarEtapa, precoInsumo, removerGrupoInsumo, removerTrat, renomearGrupoInsumo, renomearTrat, setClasseGrupo, todasFamilias, tratCodigos, tratCusto, tratEtapas,
   tratLista, tratListaTodos, tratTabela, usosTrat, volumeDemandado };

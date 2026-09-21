@@ -165,6 +165,12 @@ document.addEventListener("input",e=>{
   if(t.dataset.ie!==undefined){ INSUMO[t.dataset.ie]=INSUMO[t.dataset.ie]||{}; INSUMO[t.dataset.ie].est=num(t.value); salvar(); leve(); return; }
   if(t.dataset.ex!==undefined){ ESPOR[+t.dataset.ex][t.dataset.f]=t.dataset.f==="valor"?num(t.value):t.value; salvar(); leve(); return; }
   if(t.dataset.td!==undefined){ const c=destravar(TRAT_SEL); c[+t.dataset.td].dose=num(t.value); salvar(); leve(); return; }
+  // frete de uma linha da composicao: valor (R$/un ou total pago) e a
+  // quantidade da entrega, quando "total" (ver freteEfetivo em calculo/insumos.js)
+  if(t.dataset.tfretevalor!==undefined){ const c=destravar(TRAT_SEL), l=c[+t.dataset.tfretevalor];
+    l.frete = l.frete || {}; l.frete.valor = num(t.value); salvar(); leve(); return; }
+  if(t.dataset.tfreteqtd!==undefined){ const c=destravar(TRAT_SEL), l=c[+t.dataset.tfreteqtd];
+    l.frete = l.frete || {}; l.frete.qtd = num(t.value); salvar(); leve(); return; }
   if(t.id==="in_trat_nome"){ TRAT_NOME[TRAT_SEL]=t.value; salvar(); leve(); return; }
   if(t.id==="in_trat_obs"){ TRAT_OBS[TRAT_SEL]=t.value; salvar(); leve(); return; }
   // nome do tratamento editado na propria linha do cadastro
@@ -222,6 +228,12 @@ document.addEventListener("change",e=>{
   // de custear (calculo/insumos.js, doseBase) -- o custo/ha nao muda sozinho
   if(t.dataset.tud!==undefined){
     const c=destravar(TRAT_SEL); c[+t.dataset.tud].un=t.value; salvar(); render(); return; }
+  // liga/desliga e tipo do frete de uma linha — muda o que a celula mostra
+  // (valor unico vs valor+quantidade), por isso redesenha (render), nao leve()
+  if(t.dataset.tfrete!==undefined){ const c=destravar(TRAT_SEL), l=c[+t.dataset.tfrete];
+    l.frete = l.frete || {tipo:"unit"}; l.frete.on = t.checked; salvar(true); render(); return; }
+  if(t.dataset.tfretetipo!==undefined){ const c=destravar(TRAT_SEL), l=c[+t.dataset.tfretetipo];
+    l.frete = l.frete || {}; l.frete.tipo = t.value; salvar(true); render(); return; }
   // codigo do tratamento: leva composicao, nome, etapas e as atividades que o usam
   if(t.dataset.trc!==undefined || t.id==="in_trat_cod"){
     const de = t.dataset.trc!==undefined ? t.dataset.trc : TRAT_SEL;
