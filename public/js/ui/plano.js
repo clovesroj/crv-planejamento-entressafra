@@ -2,7 +2,7 @@ import { MODOS_ORD, modosDe } from '../calculo/atividade.js';
 import { tratListaTodos } from '../calculo/insumos.js';
 import { CFG } from '../dados/cfg.js';
 import { NM } from '../nucleo/calendario.js';
-import { TRAT_NOME } from '../nucleo/estado.js';
+import { DIM, TRAT_NOME } from '../nucleo/estado.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
 import { th } from './componentes.js';
 import { MESES, PERIODO_MESES, clsMes } from '../nucleo/calendario.js';
@@ -58,9 +58,10 @@ function pintarPlano(R){
     // janela de datas: define em que meses a atividade pode ser lancada
     const jIdx = r.janela.fonte==="datas" ? r.janela.idx : null;
     const dentro = j => !jIdx || jIdx.includes(j);
+    const d = DIM[r.a.cod] || {};
     h+=`<tr><td>${r.a.cod}</td><td>${r.a.nome}${auto?' <span class="badge b-ok">auto</span>':''}</td>
-        <td><input type="date" data-dt="${r.a.cod}" data-f="ini" value="${r.janela.ini||""}" title="Início da execução"></td>
-        <td><input type="date" data-dt="${r.a.cod}" data-f="fim" value="${r.janela.fim||""}" title="Fim da execução"></td>
+        <td><input type="date" data-dt="${r.a.cod}" data-f="ini" value="${r.janela.ini||""}" max="${d.fim||""}" title="Início da execução"></td>
+        <td><input type="date" data-dt="${r.a.cod}" data-f="fim" value="${r.janela.fim||""}" min="${d.ini||""}" title="Fim da execução"></td>
         <td class="calc">${r.a.un}</td>`+
       r.meses.map((q,j)=> auto
         ? `<td class="num calc ${clsMes(j)}">${q?fmt(num(q)):""}</td>`

@@ -254,10 +254,23 @@ document.addEventListener("change",e=>{
   if(t.id==="sel_dest"){ setFROTA_DEST(t.value); render(); return; }
   if(t.dataset.undest!==undefined){ const c=t.dataset.undest;
     FROTA_UN[c]=FROTA_UN[c]||{}; FROTA_UN[c].st=t.value; salvar(); render(); return; }
-  if(t.dataset.dt!==undefined){ const c=t.dataset.dt;
+  if(t.dataset.dt!==undefined){ const c=t.dataset.dt, f=t.dataset.f, outroF=f==="ini"?"fim":"ini";
     DIM[c]=DIM[c]||{};
     // data em branco volta a janela para os meses com volume lançado
-    if(!t.value) delete DIM[c][t.dataset.f]; else DIM[c][t.dataset.f]=t.value;
+    if(!t.value) delete DIM[c][f]; else DIM[c][f]=t.value;
+    // fim nunca fica antes do início: trava o calendário nativo do par (min/
+    // max) pra não abrir em hoje e obrigar a rolar meses até uma janela
+    // distante (ex.: início lançado em dezembro), e realinha o outro lado se
+    // ficou invertido — mesma ideia já usada em entIni/entFim de fornecedores
+    const outro = t.closest("table")?.querySelector(`input[data-dt="${CSS.escape(c)}"][data-f="${outroF}"]`);
+    if(outro){
+      const invertido = t.value && outro.value && (f==="ini" ? outro.value < t.value : outro.value > t.value);
+      if(invertido){ outro.value = t.value; DIM[c][outroF] = t.value; }
+      // recalcula os dois limites juntos — senão o lado que so' recebeu o
+      // ajuste de "invertido" fica com um min/max desatualizado
+      const ini = f==="ini" ? t : outro, fim = f==="ini" ? outro : t;
+      fim.min = ini.value || ""; ini.max = fim.value || "";
+    }
     // leve() preserva o foco; render() reconstruia a tabela e derrubava a
     // digitacao no meio da data
     salvar(); leve(); return; }

@@ -284,8 +284,8 @@ function pintarTratPeriodo(){
   const d = DIM[exibindo] || {};
   $("#t_trat_periodo").innerHTML = th([["Início"],["Fim"],["Un."],...MESES.map((m,j)=>[m,1,clsMes(j)])])+
     `<tbody><tr>
-      <td><input type="date" data-dt="${esc(exibindo)}" data-f="ini" value="${d.ini||""}" title="Início da execução"></td>
-      <td><input type="date" data-dt="${esc(exibindo)}" data-f="fim" value="${d.fim||""}" title="Fim da execução"></td>
+      <td><input type="date" data-dt="${esc(exibindo)}" data-f="ini" value="${d.ini||""}" max="${d.fim||""}" title="Início da execução"></td>
+      <td><input type="date" data-dt="${esc(exibindo)}" data-f="fim" value="${d.fim||""}" min="${d.ini||""}" title="Fim da execução"></td>
       <td class="calc">${esc(a.un||"")}</td>` +
     (p.m||Array(NM).fill(0)).map((q,j)=>
       `<td class="num ${clsMes(j)}"><input data-c="${esc(exibindo)}" data-m="${j}" value="${q||""}" inputmode="decimal"></td>`).join("") +
