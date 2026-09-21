@@ -20,14 +20,15 @@ function linhasDe(R, cods){
 
 function tabelaOndas(linhas){
   if(!linhas.length) return '<p class="calc">Nenhuma atividade cadastrada.</p>';
-  return th([["Atividade"],["Tratamento"],["Área/ano (ha)",1],["Insumo (R$)",1],["Serviço terceiro (R$)",1],["Custo total (R$)",1]]) +
+  return th([["Atividade"],["Tratamento"],["Área/ano (ha)",1],["Insumo (R$)",1],["Serviço terceiro (R$)",1],["Custo total (R$)",1],["Valor/ha (R$)",1]]) +
     "<tbody>" + linhas.map(r => `<tr>
       <td>${esc(r.a.cod)} — ${esc(r.a.nome)}</td>
       <td class="calc">${esc(r.trat || "—")}</td>
       <td class="num">${fmt(r.total)}</td>
       <td class="num">${brl(r.cInsumo)}</td>
       <td class="num">${brl(r.cTerc)}</td>
-      <td class="num tot">${brl(r.direto + r.cInsumo)}</td></tr>`).join("") + "</tbody>";
+      <td class="num tot">${brl(r.direto + r.cInsumo)}</td>
+      <td class="num">${r.total>0 ? brl((r.cInsumo + r.cTerc) / r.total, 2) : "—"}</td></tr>`).join("") + "</tbody>";
 }
 
 // soma, por produto, o volume usado nas atividades da lista (dose já na

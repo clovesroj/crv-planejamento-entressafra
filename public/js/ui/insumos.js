@@ -282,13 +282,16 @@ function pintarTratPeriodo(){
   const a = lista.find(x=>x.cod===exibindo) || {};
   const p = PLANO[exibindo] || {m:Array(NM).fill(0), trat:""};
   const d = DIM[exibindo] || {};
-  $("#t_trat_periodo").innerHTML = th([["Início"],["Fim"],["Un."],...MESES.map((m,j)=>[m,1,clsMes(j)])])+
+  const meses = p.m || Array(NM).fill(0);
+  const totalArea = meses.reduce((s,q)=>s+num(q),0);
+  $("#t_trat_periodo").innerHTML = th([["Início"],["Fim"],["Un."],...MESES.map((m,j)=>[m,1,clsMes(j)]),["Total planejado",1]])+
     `<tbody><tr>
       <td><input type="date" data-dt="${esc(exibindo)}" data-f="ini" value="${d.ini||""}" max="${d.fim||""}" title="Início da execução"></td>
       <td><input type="date" data-dt="${esc(exibindo)}" data-f="fim" value="${d.fim||""}" min="${d.ini||""}" title="Fim da execução"></td>
       <td class="calc">${esc(a.un||"")}</td>` +
-    (p.m||Array(NM).fill(0)).map((q,j)=>
+    meses.map((q,j)=>
       `<td class="num ${clsMes(j)}"><input data-c="${esc(exibindo)}" data-m="${j}" value="${q||""}" inputmode="decimal"></td>`).join("") +
+    `<td class="num tot">${fmt(totalArea)}</td>` +
     `</tr></tbody>`;
   $("#trat_periodo_hint").textContent = p.trat===TRAT_SEL
     ? `Lançando para ${a.cod} — ${a.nome}. Início e fim distribuem a área pelos meses automaticamente; os meses continuam editáveis à mão.`
