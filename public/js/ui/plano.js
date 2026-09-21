@@ -8,6 +8,12 @@ import { th } from './componentes.js';
 import { MESES, PERIODO_MESES, clsMes } from '../nucleo/calendario.js';
 
 /* ---------- PLANO ---------- */
+// A44-A53 (Broca e Cigarrinha) agrupam visualmente como "Manejo
+// Fitossanitário" nesta tabela, sem mudar a.etapa: etapa continua "Tratos
+// Culturais" pra tudo que usa etapa pra calcular (rateio de arrendamento,
+// administrativo, relatórios) — é só o cabeçalho de grupo que muda aqui.
+const COD_FITOSSANITARIO = new Set(["A44","A45","A46","A47","A48","A49","A50","A51","A52","A53"]);
+const grupoPlano = a => COD_FITOSSANITARIO.has(a.cod) ? "MANEJO FITOSSANITÁRIO" : a.etapa;
 // editor compacto do mix de modos: 4 percentuais numa célula só
 function mixEditor(r){
   const mx = r.mix || {};
@@ -44,7 +50,8 @@ function pintarPlano(R){
               ["Modo de execução"],["Equip."],["Tratamento"],["Insumo",1]])+"<tbody>";
   let et="";
   R.L.forEach(r=>{
-    if(r.a.etapa!==et){et=r.a.etapa; h+=`<tr class="stage"><td colspan="${SEL.meses.length+10}">${et}</td></tr>`;}
+    const grupo = grupoPlano(r.a);
+    if(grupo!==et){et=grupo; h+=`<tr class="stage"><td colspan="${SEL.meses.length+10}">${et}</td></tr>`;}
     const opts=['<option value="">—</option>'].concat(TL.map(t=>
       `<option value="${t.cod}" ${t.cod===r.trat?"selected":""}>${t.cod}${TRAT_NOME[t.cod]?" — "+esc(TRAT_NOME[t.cod]):""} · ${brl(t.custo_ha,0)}/ha</option>`)).join("");
     const auto = r.a.tipo==="transp";
