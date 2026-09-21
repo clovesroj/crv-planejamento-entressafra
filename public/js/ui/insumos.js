@@ -4,6 +4,7 @@ import { ATIV_TRAT_SEL, DIM, INSUMO, INS_EDIT, INS_FICHA, P, PLANO, TRATC, TRAT_
 import { $, brl, esc, fmt, num, urlWeb } from '../nucleo/formato.js';
 import { unidadesDaFamilia } from '../nucleo/unidades.js';
 import { kpi, ligarBuscaSelect, th } from './componentes.js';
+import { mixEditor } from './plano.js';
 import { setTRAT_SEL } from '../nucleo/estado.js';
 import { MESES, NM, clsMes } from '../nucleo/calendario.js';
 
@@ -220,7 +221,7 @@ function pintarInsumos(R){
   // Operacional e lança a mesma janela de datas e os mesmos meses que a aba
   // Plano Operacional usa — data-dt/data-c/data-m já existem lá (app/eventos.js);
   // aqui é só outro lugar de onde os mesmos campos são editados. ---
-  pintarTratPeriodo();
+  pintarTratPeriodo(R);
 
   // --- 3. cadastro dos tratamentos: código, nome e etapa de uso ---
   $("#t_trat").innerHTML = th([["Cod_Trat"],["Nome"],["Observação"],["Etapas em que é usado"],["Produtos",1],
@@ -264,7 +265,7 @@ function pintarInsumos(R){
    app/eventos.js já trata para o Plano Operacional: nenhum handler novo,
    é a mesma atividade vista por outra tela. ATIV_TRAT_SEL é só visão (qual
    atividade das já vinculadas está sendo mostrada) — não é gravado. */
-function pintarTratPeriodo(){
+function pintarTratPeriodo(R){
   const lista = atividadesLista();
   const vinculadas = usosTrat(TRAT_SEL);
   const exibindo = vinculadas.includes(ATIV_TRAT_SEL) ? ATIV_TRAT_SEL : (vinculadas[0] || "");
@@ -284,14 +285,20 @@ function pintarTratPeriodo(){
   const d = DIM[exibindo] || {};
   const meses = p.m || Array(NM).fill(0);
   const totalArea = meses.reduce((s,q)=>s+num(q),0);
-  $("#t_trat_periodo").innerHTML = th([["Início"],["Fim"],["Un."],...MESES.map((m,j)=>[m,1,clsMes(j)]),["Total planejado",1]])+
+  // mesmo editor de modo (M/T/U/D/Q/3º) do Plano Operacional, na mesma linha
+  // calculada (R.L) — o "›" do 3º já abre o detalhamento por sub-modo (avião,
+  // drone, terrestre) de lá, sem handler novo: é tudo delegado em app/eventos.js.
+  const linha = R && R.L.find(x=>x.a.cod===exibindo);
+  $("#t_trat_periodo").innerHTML = th([["Início"],["Fim"],["Un."],...MESES.map((m,j)=>[m,1,clsMes(j)]),
+      ["Total planejado",1],["Modo de execução"]])+
     `<tbody><tr>
       <td><input type="date" data-dt="${esc(exibindo)}" data-f="ini" value="${d.ini||""}" max="${d.fim||""}" title="Início da execução"></td>
       <td><input type="date" data-dt="${esc(exibindo)}" data-f="fim" value="${d.fim||""}" min="${d.ini||""}" title="Fim da execução"></td>
       <td class="calc">${esc(a.un||"")}</td>` +
     meses.map((q,j)=>
       `<td class="num ${clsMes(j)}"><input data-c="${esc(exibindo)}" data-m="${j}" value="${q||""}" inputmode="decimal"></td>`).join("") +
-    `<td class="num tot">${fmt(totalArea)}</td>` +
+    `<td class="num tot">${fmt(totalArea)}</td>
+     <td>${a.modoOn && linha ? mixEditor(linha) : '<span class="calc">—</span>'}</td>` +
     `</tr></tbody>`;
   $("#trat_periodo_hint").textContent = p.trat===TRAT_SEL
     ? `Lançando para ${a.cod} — ${a.nome}. Início e fim distribuem a área pelos meses automaticamente; os meses continuam editáveis à mão.`
