@@ -4,8 +4,14 @@
      como padrão — Letter em maquina configurada em ingles, por exemplo — e
      relatorio pensado para A4 desalinhava a margem e cortava coluna do lado
      direito. Fixando aqui, o relatorio sai em A4 mesmo que o padrao do sistema
-     seja outro. */
-  @page{size:A4;margin:14mm 12mm}
+     seja outro.
+     Paisagem, não retrato: relatório com muita coluna (o de critério por mês
+     tem 19) cortava cabeçalho e coluna do lado direito mesmo em A4 retrato —
+     table-layout:auto (ver #print_report table abaixo) só ajuda até o ponto em
+     que a soma das colunas passa da largura da folha. Paisagem dá ~35% a mais
+     de largura útil (277mm contra 186mm), que é o que resolve de fato. Todo
+     relatório sai assim, padronizado — não só o de muita coluna. */
+  @page{size:A4 landscape;margin:12mm 14mm}
   .sidebar,.scrim,header,main,footer{display:none!important}
   /* .app tem min-height:100vh (layout.css) pra preencher a tela no uso normal.
      #print_report é irmão de .app no HTML, vem DEPOIS dela — com os filhos
