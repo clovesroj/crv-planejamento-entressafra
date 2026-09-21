@@ -38,9 +38,22 @@ const maxSel  = (arr, SEL) => SEL.meses.reduce((m,i)=>Math.max(m, +arr[i]||0), 0
    sozinha. Quem chama reaplica no fim de cada pintura, porque o innerHTML é
    reconstruído do zero a cada render() e "esconder" não sobrevive a isso. */
 // textContent não pega o value de input/select — em tabela editável (insumo,
-// tratamento...) é ali que mora o nome, não em texto solto na célula
-const textoDaLinha = tr => tr.textContent + " " +
-  [...tr.querySelectorAll("input,select")].map(el=>el.value).join(" ");
+// tratamento...) é ali que mora o nome, não em texto solto na célula. E não
+// pode pegar o textContent de dentro de um <select> puro: ele carrega TODAS
+// as opções do catálogo (ex.: o select de tratamento lista todos os
+// tratamentos em toda linha do Plano Operacional), então buscar o nome de
+// UM tratamento "achava" TODA linha, mesmo a que não usa aquele tratamento —
+// era por isso que buscar "Dessecação" não filtrava nada.
+const textoDaLinha = tr => {
+  let texto = "";
+  const nos = document.createTreeWalker(tr, NodeFilter.SHOW_TEXT, {
+    acceptNode: n => n.parentElement.closest("select") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT
+  });
+  for(let n; n = nos.nextNode();) texto += n.textContent + " ";
+  return texto + " " + [...tr.querySelectorAll("input,select")].map(el =>
+    el.tagName === "SELECT" ? (el.selectedOptions[0] ? el.selectedOptions[0].textContent : "") : el.value
+  ).join(" ");
+};
 function filtrarPorNome(tabelaId, termo){
   const tab = $(tabelaId);
   if(!tab) return;
