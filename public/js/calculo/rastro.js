@@ -1,12 +1,14 @@
 import { ADM_CRITERIOS } from '../dados/administrativo.js';
 import { CFG } from '../dados/cfg.js';
 import { ESCALAS } from '../dados/escalas.js';
-import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
+import { CAT_LBL, MESES, NM, PERIODOS, periodoMes } from '../nucleo/calendario.js';
 import { P, insLista } from '../nucleo/estado.js';
 import { brl, fmt, num, pct } from '../nucleo/formato.js';
 import { ETAPAS_ORD, arrRat } from './arrendamento.js';
 import { criterioMensal, tarifaTerc } from './atividade.js';
 import { tratCusto } from './insumos.js';
+import { comps, custoPorOperacao } from './custo-operacao.js';
+import { baseEtapa, custoUnit, premissaBase, rotuloBase } from './base-fisica.js';
 import { reforma } from './reforma.js';
 
 // soma um array de NM meses respeitando o filtro de período (mesmo critério de R.PER)
@@ -77,12 +79,208 @@ function rastroTotal(R){
   };
 }
 
+/* ---------- custo por hectare plantado ----------
+   O cartão mostra custo total ÷ área de plantio; o rastro tem de explicar essa
+   divisão, e não o custo total — era o que abria antes. Segue o filtro de
+   período da barra de cima, como o cartão. */
+function rastroCustoHa(R){
+  const ha = num(P.plantio), S = R.SEL, tot = S.total;
+  const porHa = v => ha>0 ? brl(v/ha)+"/ha" : "—";
+  const etapas = Object.entries(R.etapas)
+    .map(([e,d])=>[e, S.parcial && S.etapa ? (S.etapa[e]||0) : d.total])
+    .filter(([,v])=>v>0.5).sort((a,b)=>b[1]-a[1]);
+  const cats = Object.keys(CAT_LBL)
+    .map(k=>[k, S.parcial && S.cat ? (S.cat[k]||0) : (R.mesesCat[k]||[]).reduce((s,v)=>s+v,0)])
+    .filter(([,v])=>v>0.5).sort((a,b)=>b[1]-a[1]);
+  const F = custoPorOperacao(R).formacao;
+  const blocos = [
+    {titulo:"A conta", linhas:[
+      {rot:"Custo total"+(S.parcial?" — "+S.rotulo:""), val:brl(tot), ir:"total",
+       sub:"todo o plano: operações, rateios, administrativo, depreciação"},
+      {rot:"Área de plantio", val:fmt(ha)+" ha", sub:"premissa, aba Premissas"},
+      {rot:"Custo por hectare plantado", val:porHa(tot), sub:"custo total ÷ área de plantio"},
+    ]},
+    {titulo:"Quanto cada etapa pesa no hectare plantado", linhas: etapas.map(([e,v])=>({
+      rot:e, val:porHa(v), ir:"etapa:"+e,
+      sub:brl(v)+" ÷ "+fmt(ha)+" ha · "+fmt(tot>0?v/tot*100:0,1)+"% do custo"}))},
+    {titulo:"Por grande conta", linhas: cats.map(([k,v])=>({
+      rot:CAT_LBL[k], val:porHa(v), sub:brl(v)}))},
+  ];
+  // a formação do canavial é a parte do hectare plantado que põe o canavial de pé
+  if(F && !S.parcial) blocos.push({titulo:"Formação do canavial (plantio + tratos de cana planta)", linhas:[
+    {rot:"Custo operacional", val:porHa(F.oper.total), sub:brl(F.oper.total)},
+    {rot:"Rateios", val:porHa(F.rateio.total),
+     sub:"apoio, arrendamento, administrativo, depreciação e custos gerais · "+brl(F.rateio.total)},
+    {rot:"Custo contábil da formação", val:porHa(F.contabil), sub:brl(F.contabil)+" ÷ "+fmt(ha)+" ha", ir:"op:formacao"},
+  ]});
+  return {
+    titulo:"Custo por hectare plantado",
+    subtitulo:(S.parcial ? S.rotulo+" · " : "")+"custo total do plano ÷ área de plantio",
+    valor: porHa(tot),
+    blocos,
+    premissas:[{rot:"Área de plantio", val:fmt(ha)+" ha"}].concat(premissasGerais()),
+    voltar:"total",
+  };
+}
+
+/* ---------- uma operação: plantio, cana planta, cana soca, colheita, formação ----------
+   Os cartões de tratos por cultura abriam a etapa inteira de tratos, e o de
+   formação do canavial abriria o custo por hectare do plano. Aqui a própria
+   operação: custo operacional aberto por natureza, cada rateio, e as
+   atividades — com a mesma base física do cartão. */
+function rastroOperacao(R, id, modo){
+  const C = custoPorOperacao(R);
+  const l = id==="formacao" ? C.formacao : C.principais.concat(C.outras).find(x=>x.id===id);
+  if(!l) return rastroTotal(R);
+  const b = l.base, porUn = v => custoUnit(v, b);
+  const rotBase = rotuloBase(b);
+  const o = l.oper, r = l.rateio;
+  const OPER = [["diesel","Diesel das máquinas da operação"],["mdo","Mão de obra"],["manut","Manutenção (CRM)"],
+                ["insumo","Insumos"],["irrig","Irrigação (energia, água, materiais)"],["terc","Terceirização"]];
+  const RAT = [["apoio","Diesel dos equipamentos de apoio","pelos litros da operação"],
+               ["arrend","Arrendamento","percentual PECEGE/USP da aba Arrendamentos"],
+               ["admin","Administrativo","critério de cada linha, aba Custos Administrativos"],
+               ["deprec","Depreciação","pelo custo direto da operação"],
+               ["gerais","Demais custos gerais","apoio, estrutura indireta, manutenção, transporte de pessoal…"]];
+  const blocos = [
+    {titulo:"A conta", linhas:[
+      {rot:"Custo operacional", val:brl(o.total), sub:porUn(o.total)+" · o que custa fazer a operação"},
+      {rot:"Rateios", val:brl(r.total), sub:porUn(r.total)+(o.total>0?" · +"+fmt(r.total/o.total*100,1)+"% sobre o operacional":"")},
+      {rot:"Custo contábil", val:brl(l.contabil), sub:porUn(l.contabil)+" · ÷ "+rotBase},
+    ]},
+    {titulo:"Custo operacional por natureza", linhas: OPER.filter(([k])=>o[k]>0.5)
+      .map(([k,n])=>({rot:n, val:brl(o[k]), sub:porUn(o[k])}))},
+    {titulo:"Rateios", linhas: RAT.filter(([k])=>Math.abs(r[k])>0.5)
+      .map(([k,n,como])=>({rot:n, val:brl(r[k]), sub:porUn(r[k])+" · "+como}))},
+  ];
+  // de onde vem: as partes da formação, ou as atividades da operação
+  if(id==="formacao"){
+    blocos.push({titulo:"Partes da formação do canavial", linhas: C.principais.filter(x=>x.formacao)
+      .map(x=>({rot:x.nome, val:brl(x.contabil), sub:porUn(x.contabil)+" · operacional "+brl(x.oper.total),
+                ir:"op:"+x.id}))});
+  } else {
+    const culturaDe = a => a.cultura || "Soca";
+    const ativs = R.L.filter(x=>x.a.etapa===l.etapa && x.total>0 && (!l.cultura || culturaDe(x.a)===l.cultura))
+      .sort((x,y)=>y.direto-x.direto);
+    blocos.push({titulo:"Atividades da operação (custo operacional)", linhas: ativs.map(x=>({
+      rot:x.a.cod+" · "+x.a.nome, val:brl(x.direto), ir:"ativ:"+x.a.cod,
+      sub:fmt(x.total)+" "+x.a.un.split("/")[0]+" · "+fmt(x.horas)+" h"}))});
+  }
+  const premBase = [{rot:"Base física", val:rotBase,
+    sub: b.fonte==="premissa" ? "premissa, bloco Base física dos custos" : "premissa em branco — soma das atividades"}];
+  return {
+    titulo: l.nome,
+    subtitulo: id==="formacao" ? "plantio + tratos culturais de cana planta · por hectare plantado"
+                               : "custo operacional e rateios · base "+rotBase,
+    // o número de cabeça é o do cartão que abriu: custo operacional, custo
+    // contábil ou o custo contábil por unidade (Painel)
+    valor: modo==="oper" ? brl(o.total) : modo==="contabil" ? brl(l.contabil) : porUn(l.contabil),
+    blocos,
+    premissas: premBase.concat(premissasGerais()),
+    voltar: l.etapa ? "etapa:"+l.etapa : "custoha",
+  };
+}
+
+/* ---------- custo de colheita, só o corte ----------
+   O cartão do Painel é o corte (A01+A02), sem transporte nem transbordo, com
+   a parte do corte no indireto e no arrendamento da colheita. Abria a etapa
+   inteira; aqui a mesma conta do cartão. */
+function rastroCorte(R){
+  const colh = R.etapas["COLHEITA"];
+  const corte = R.L.filter(r=>r.a.cod==="A01"||r.a.cod==="A02");
+  const dir = corte.reduce((s,r)=>s+r.direto,0);
+  // pelo volume colhido informado em Premissas; sem ele, as toneladas do corte
+  const ton = premissaBase("colheita") || corte.reduce((s,r)=>s+r.total,0);
+  const ind = R.indiretoPool*(dir/(R.diretoSum||1));
+  const arr = colh && colh.direto>0 ? colh.arrend*(dir/colh.direto) : 0;
+  const tot = dir+ind+arr;
+  const porT = v => ton>0 ? brl(v/ton,2)+"/t" : "—";
+  return {
+    titulo:"Custo de colheita — só o corte",
+    subtitulo:"corte (A01 e A02), sem transporte nem transbordo · por tonelada cortada",
+    valor: porT(tot),
+    blocos:[
+      {titulo:"A conta", linhas:[
+        {rot:"Custo direto do corte", val:brl(dir), sub:porT(dir)},
+        {rot:"Parte do corte no custo indireto", val:brl(ind), sub:"pelo custo direto · "+porT(ind)},
+        {rot:"Parte do corte no arrendamento da colheita", val:brl(arr), sub:"pelo custo direto · "+porT(arr)},
+        {rot:"Custo do corte", val:brl(tot), sub:porT(tot)+" · "+fmt(ton)+(premissaBase("colheita")?" t colhidas (premissa)":" t cortadas nas atividades")},
+      ]},
+      {titulo:"Atividades", linhas: corte.map(r=>({rot:r.a.cod+" · "+r.a.nome, val:brl(r.direto),
+        ir:"ativ:"+r.a.cod, sub:fmt(r.total)+" t · "+(r.total>0?brl(r.direto/r.total,2)+"/t":"—")}))},
+      {titulo:"A etapa inteira", linhas:[{rot:"Colheita com transporte e transbordo",
+        val: colh ? custoUnit(colh.total, baseEtapa(R,"COLHEITA")) : "—", ir:"etapa:COLHEITA",
+        sub: colh ? brl(colh.total) : ""}]},
+    ],
+    premissas: premissasGerais(),
+    voltar:"etapa:COLHEITA",
+  };
+}
+
+/* ---------- custo variável e custo fixo ----------
+   Os cartões da aba Custos abriam o custo total. Fixo = administrativo +
+   depreciação + arrendamento; variável = o resto. No filtro de período, o
+   cartão aplica ao ano a parcela do período (fixo pelos meses, variável pelo
+   custo) — aqui a mesma conta, para o número bater. */
+function rastroFixoVariavel(R, qual){
+  const S = R.SEL;
+  const fixo = [["Administrativo", R.admT, "nat:admin"], ["Depreciação", R.depT, null], ["Arrendamento", R.arrT, "nat:arrend"]];
+  const fixoSet = new Set(["Arrendamento","Administração","Depreciação"]);
+  const f = qual==="fixo" ? S.fracaoDoAno : S.fracaoCusto;
+  const itens = qual==="fixo" ? fixo
+    : comps(R).filter(([n])=>!fixoSet.has(n)).map(([n,v])=>[n,v,null]);
+  const tot = qual==="fixo" ? R.fixoT : R.variavel;
+  return {
+    titulo: qual==="fixo" ? "Custo fixo" : "Custo variável",
+    subtitulo: (S.parcial ? S.rotulo+" · " : "")+(qual==="fixo"
+      ? "administrativo, depreciação e arrendamento" : "o que varia com o volume do plano"),
+    valor: brl(tot*f),
+    blocos:[
+      {titulo:"Composição"+(S.parcial?" — parcela do período":""), linhas: itens.filter(([,v])=>v>0.5)
+        .sort((a,b)=>b[1]-a[1]).map(([n,v,ir])=>({rot:n, val:brl(v*f), ir:ir||undefined,
+          sub:fmt(tot>0?v/tot*100:0,1)+"% do "+(qual==="fixo"?"fixo":"variável")}))},
+      {titulo:"No custo total", linhas:[{rot:"Peso no custo total", val:fmt(R.total>0?tot/R.total*100:0,1)+"%",
+        ir:"total", sub:brl(R.total)+" no ano"}]},
+    ],
+    premissas: premissasGerais(),
+    voltar:"total",
+  };
+}
+
+
+/* ---------- custo de um período (safra ou entressafra) ----------
+   Os cartões "Custo na safra" e "Custo na entressafra" abriam o rastro do custo
+   total. Aqui o custo do período, pela mesma distribuição mensal (R.PER). */
+function rastroPeriodo(R, p){
+  const o = R.PER && R.PER[p];
+  if(!o) return rastroTotal(R);
+  const etapas = Object.entries(o.etapa).filter(([,v])=>v>0.5).sort((a,b)=>b[1]-a[1]);
+  const cats = Object.entries(o.cat).filter(([,v])=>v>0.5).sort((a,b)=>b[1]-a[1]);
+  const meses = MESES.map((m,i)=>i).filter(i=>periodoMes(i)===p);
+  return {
+    titulo:"Custo na "+(p==="safra"?"safra":"entressafra"),
+    subtitulo:PERIODOS[p]+" · "+meses.length+" meses no orçamento",
+    valor: brl(o.total),
+    blocos:[
+      {titulo:"Mês a mês", linhas: meses.map(i=>({rot:MESES[i], val:brl(R.meses[i]), ir:"mes:"+i}))},
+      {titulo:"Por etapa", linhas: etapas.map(([e,v])=>({rot:e, val:brl(v), ir:"etapa:"+e,
+        sub:fmt(o.total>0?v/o.total*100:0,1)+"% do período"}))},
+      {titulo:"Por grande conta", linhas: cats.map(([k,v])=>({rot:CAT_LBL[k]||k, val:brl(v),
+        sub:fmt(o.total>0?v/o.total*100:0,1)+"% do período"}))},
+      {titulo:"No ano", linhas:[{rot:"Participação no custo total", val:fmt(R.total>0?o.total/R.total*100:0,1)+"%",
+        ir:"total", sub:brl(R.total)+" no ano"}]},
+    ],
+    premissas: premissasGerais(),
+    voltar:"total",
+  };
+}
+
 /* ---------- nível 2: etapa (centro de custo) ---------- */
 function rastroEtapa(R, etapa){
   const d = R.etapas[etapa];
   if(!d) return null;
   const ativs = R.L.filter(r=>r.a.etapa===etapa && r.direto>0).sort((a,b)=>b.direto-a.direto);
-  const base = d.ha>0 ? {q:d.ha, un:"ha"} : {q:d.ton, un:"t"};
+  const base = baseEtapa(R, etapa);
   const admLinhas = (R.ADM.linhas||[]).filter((l,i)=>l.total>0 && (R.AD.porLinha[i]||{}).rateado>0);
   const somaPct = ETAPAS_ORD.reduce((s,e)=>s+arrRat(e),0);
 
@@ -110,8 +308,9 @@ function rastroEtapa(R, etapa){
     ]},
   ];
   if(base.q>0) blocos.push({titulo:"Custo unitário", linhas:[
-    {rot:`Base física`, val:fmt(base.q)+" "+base.un},
-    {rot:`Custo por ${base.un}`, val:brl(d.total/base.q,2)+"/"+base.un},
+    {rot:`Base física`, val:rotuloBase(base),
+     sub: base.fonte==="premissa" ? "premissa, bloco Base física dos custos" : "premissa em branco — soma das atividades"},
+    {rot:`Custo por ${base.un}`, val:custoUnit(d.total, base)},
   ]});
 
   return {titulo:etapa, subtitulo:"Centro de custo · etapa do plano", valor:brl(d.total), blocos,
@@ -315,7 +514,9 @@ function rastroAtividade(R, cod){
          sub:`${fmt(p.area)} ${un} × ${brl(tarifaTerc(cod),2)}/ha de tarifa`}
       : {rot:`${p.modo?p.modo+" · ":""}${p.maq}${p.imp&&p.imp!=="----"?" + "+p.imp:""}`,
          val:brl(p.cDiesel+p.cManut+p.cMDO),
-         sub:`${fmt(p.horas)} h · ${fmt(p.litros)} L a ${fmt(p.consumoLh,1)} L/h · diesel ${brl(p.cDiesel)} · MDO ${brl(p.cMDO)} · CRM ${brl(p.cManut)}`})},
+         sub:`${fmt(p.horas)} h · ${p.consumoUn==="km"
+             ? fmt(p.km)+" km"+(p.fonteKm==="viagens"?" (viagens)":" (horas × velocidade)")+" × "+fmt(p.consumoLkm,3)+" L/km"
+             : fmt(p.consumoLh,1)+" L/h"} = ${fmt(p.litros)} L · diesel ${brl(p.cDiesel)} · MDO ${brl(p.cMDO)} · CRM ${brl(p.cManut)}`})},
     {titulo:"Preços e custos aplicados", linhas:[
       {rot:"Diesel", val:brl(r.cDiesel),
        sub:`${fmt(r.litros)} L · preço médio ${r.litros>0?brl(r.cDiesel/r.litros,2):brl(P.diesel,2)}/L, ponderado pelos meses`},
@@ -634,6 +835,11 @@ function rastro(R, chave, periodo){
   const arg  = i<0 ? "" : s.slice(i+1);
   const p = periodo || "todos";
   if(tipo==="total") return rastroTotal(R);
+  if(tipo==="custoha") return rastroCustoHa(R);
+  if(tipo==="op"){ const [id, modo] = arg.split(":"); return rastroOperacao(R, id, modo); }
+  if(tipo==="corte") return rastroCorte(R);
+  if(tipo==="fixo" || tipo==="variavel") return rastroFixoVariavel(R, tipo);
+  if(tipo==="periodo") return rastroPeriodo(R, arg);
   if(tipo==="etapa") return rastroEtapa(R, arg);
   if(tipo==="ativ")  return rastroAtividade(R, arg);
   if(tipo==="nat")   return rastroNatureza(R, arg);

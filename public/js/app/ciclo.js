@@ -16,6 +16,7 @@ import { pintarCombustivel } from '../ui/combustivel.js';
 import { pintarConfig } from '../ui/configuracoes.js';
 import { pintarContas } from '../ui/contas.js';
 import { pintarCustos } from '../ui/custos.js';
+import { pintarBasesPremissas } from '../ui/premissas.js';
 import { pintarDim } from '../ui/dimensionamento.js';
 import { pintarCRM } from '../ui/frota.js';
 import { pintarReforma } from '../ui/reforma.js';
@@ -127,6 +128,7 @@ function esconderMeses(visiveis){
 function render(){
   const R=calcularCompleto();
   $("#c_muda").value=fmt(R.muda)+" t"; $("#c_viveiro").value=fmt(R.viveiro)+" ha";
+  pintarBasesPremissas(R);
   $("#c_capTransb").value=fmt(P.capTransb,1)+" t/viagem";
   $("#c_adm").value=brl(R.ADM.mensal)+"/mês";
   $("#c_arr_ha").value=fmt(R.AR.area)+" ha";

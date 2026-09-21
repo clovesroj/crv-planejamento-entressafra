@@ -8,7 +8,7 @@ function pintarCapa(R){
   const prog=R.L.filter(r=>r.total>0).length, bad=validar(R).filter(v=>!v.ok).length;
   $("#k_capa").innerHTML =
     kpi("Custo total projetado","",brl(R.SEL.total), R.SEL.parcial?R.SEL.rotulo:"","total") +
-    kpi("Custo por ha plantado","t",brl(R.SEL.total/(P.plantio||1)), R.SEL.parcial?R.SEL.rotulo:"","total") +
+    kpi("Custo por ha plantado","t",brl(R.SEL.total/(P.plantio||1)), R.SEL.parcial?R.SEL.rotulo:"","custoha") +
     kpi("Hectares operados","g",fmt(R.haOp)+" ha","","hect:total") +
     kpi("Efetivo total","a",fmt(R.efetivoTotal||0)+" pessoas","","pessoas:total");
   $("#capa_status").innerHTML = `

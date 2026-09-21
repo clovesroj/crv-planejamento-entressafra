@@ -1,4 +1,5 @@
 import { maqDe } from './crm.js';
+import { litrosDe } from './consumo.js';
 import { CFG } from '../dados/cfg.js';
 import { fatorEscala } from '../dados/escalas.js';
 import { MESES, NM, diasCorridos, diasNoMesEntre, mesesEntre } from '../nucleo/calendario.js';
@@ -307,11 +308,14 @@ function linha(a, MP){
               efetivo:0, direto:cTerc};
     }
     let horas, capMes, frota;
+    let kmViagens = null;   // distância rodada, quando o trabalho a conhece
     if(a.tipo==="transp"){
       const raio = a.src==="A02" ? P.raioMuda : P.raioSafra;
       const ciclo = cicloTransporte(raio);
       const cap = a.modo==="caminhao" ? P.capCam : P.capTransb;
       const viagens = cap>0 ? area/cap : 0;
+      // cada viagem vai carregada e volta vazia: duas vezes o raio
+      kmViagens = viagens*2*num(raio);
       horas = P.dispTr>0 ? viagens*ciclo/(P.dispTr/100) : 0;
       capMes = P.dias * P.hDiaTr * (P.dispTr/100) * util;
     }else if(f.rendM || mensal){
@@ -353,11 +357,14 @@ function linha(a, MP){
     // a função segue o modo, salvo se o usuário tiver fixado uma função na atividade
     const fc = p.fcod ? fcod : (f.fcodPad || fcod);
     const cf = custoDaFuncao(fc, MP);
-    const litros  = horas*mq.d;
+    // L/h × horas ou L/km × km, conforme o equipamento (calculo/consumo.js)
+    const cons    = litrosDe(f.maq, horas, kmViagens);
+    const litros  = cons.litros;
     const cDiesel = litros*precoMed;
     const cManut  = 0;   // alocado adiante, a partir do CRM da frota prevista
     const cMDO    = horas*cf.hora*f.ops*fator;
-    return {...f, area, horas, capMes, frota, frotaR:Math.ceil(frota), cTerc:0, litros, consumoLh:mq.d,
+    return {...f, area, horas, capMes, frota, frotaR:Math.ceil(frota), cTerc:0, litros, consumoLh:cons.lh,
+            consumoUn:cons.un, consumoLkm:cons.lkm, km:cons.km, fonteKm:cons.fonteKm,
             rend: rendAlvo!=null ? rendAlvo : f.rend, rendAlvo,
             fcod:fc, fnome:cf.nome, cDiesel, cManut, cMDO,
             turnosEf: turnosOv>0 ? turnosOv : f.turnos,

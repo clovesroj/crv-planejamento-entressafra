@@ -1,3 +1,4 @@
+import { PREMISSAS_BASE, premissaBase } from '../calculo/base-fisica.js';
 import { ETAPAS_ORD, arrRat } from '../calculo/arrendamento.js';
 import { CFG } from '../dados/cfg.js';
 import { SEP_MOD, crmDe, crmEspDe } from '../calculo/crm.js';
@@ -113,6 +114,17 @@ function validar(R){
   add(true,"Tratamentos sem etapa marcada",
       tratSemEtapa.length ? tratSemEtapa.length+" de "+tratCodigos().length : "nenhum");
   add(R.total>0,"Plano gera custo calculável",brl(R.total));
+  // base física dos custos unitários (Premissas): em branco, o custo por ha cai
+  // na soma das atividades, que conta cada passada como um hectare a mais
+  const basesVazias = Object.entries(PREMISSAS_BASE).filter(([id])=>!premissaBase(id)).map(([,b])=>b.nome.toLowerCase());
+  add(basesVazias.length===0,"Base física dos custos informada em Premissas",
+      basesVazias.length ? "em branco: "+basesVazias.join(", ") : "");
+  // volume de colheita da premissa x toneladas lançadas nas atividades de colheita
+  const tonPrem = premissaBase("colheita"), tonPlano = (R.etapas["COLHEITA"]||{}).ton||0;
+  const difTon = tonPrem && tonPlano>0 ? Math.abs(tonPrem-tonPlano)/tonPlano : 0;
+  add(difTon<=0.10,"Volume estimado de colheita perto do lançado no plano (±10%)",
+      tonPrem && tonPlano>0 ? fmt(tonPrem)+" t na premissa · "+fmt(tonPlano)+" t no plano ("+
+        (tonPrem>tonPlano?"+":"−")+fmt(difTon*100,1)+"%)" : "");
   const somaMeses=R.meses.reduce((s,x)=>s+x,0);
   add(Math.abs(somaMeses-R.total)<1,"Soma dos meses confere com o total",brl(somaMeses));
   const somaEt=Object.values(R.etapas).reduce((s,e)=>s+e.total,0);

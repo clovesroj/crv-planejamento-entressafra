@@ -154,10 +154,27 @@
 <section id="premissas">
   <h2>Premissas</h2>
   <p class="lead">Parâmetros que alimentam todos os cálculos. Qualquer alteração recalcula o sistema inteiro.</p>
+  <div class="panel"><h3>Base física dos custos</h3>
+    <div class="grid g5">
+      <div><label>Área de plantio (ha)</label><input type="number" id="p_plantio" step="10"></div>
+      <div><label>Área de tratos culturais — cana planta (ha)</label><input type="number" id="p_haTratosPlanta" step="10">
+        <div class="hint" id="h_haTratosPlanta"></div></div>
+      <div><label>Área de tratos culturais — cana soca (ha)</label><input type="number" id="p_haTratosSoca" step="10">
+        <div class="hint" id="h_haTratosSoca"></div></div>
+      <div><label>Área de colheita (ha)</label><input type="number" id="p_haColheita" step="10">
+        <div class="hint" id="h_haColheita"></div></div>
+      <div><label>Volume estimado de colheita (t)</label><input type="number" id="p_tonColheita" step="1000">
+        <div class="hint" id="h_tonColheita"></div></div>
+    </div>
+    <div class="hint" style="margin-top:9px">Estas áreas e o volume são a base de todo custo por hectare e por tonelada
+    do sistema — Painel, Custos, Arrendamentos, Custos Administrativos e relatórios. Plantio e formação do canavial
+    dividem pela área de plantio; tratos de cana planta e de cana soca, pela área de cada cultura; colheita, pelo volume
+    colhido (e pela área colhida, quando informada). Em branco, a base cai na soma do que foi lançado nas atividades do
+    Plano Operacional — que conta cada passada no mesmo talhão como um hectare a mais — e a aba Validação avisa.
+    Preparo de solo e apoio e conservação seguem por hectare operado.</div></div>
   <div class="panel"><h3>Agronômicas</h3><div class="grid g4">
     <div><label>Densidade de muda (t/ha)</label><input type="number" id="p_dens" step="0.5"><div class="hint">Mercado: 12–18</div></div>
     <div><label>TCH da cana-muda (t/ha)</label><input type="number" id="p_tch" step="1"></div>
-    <div><label>Área de plantio (ha)</label><input type="number" id="p_plantio" step="10"></div>
     <div><label>Área arrendada (ha)</label><input id="c_arr_ha" disabled><div class="hint">Cadastrada na aba Arrendamentos</div></div>
     <div><label>Necessidade de muda (t)</label><input id="c_muda" disabled></div>
     <div><label>Área de viveiro (ha)</label><input id="c_viveiro" disabled></div>
@@ -857,14 +874,18 @@
     <summary><span class="bl-tit">Custo operacional</span></summary>
     <div class="bloco-corpo">
       <div class="panel"><h3>Custo operacional — o que custa fazer cada operação</h3>
-        <div class="grid g4" id="k_oper" style="margin-bottom:14px"></div>
+        <div class="grid g5" id="k_oper" style="margin-bottom:14px"></div>
         <div class="tblwrap"><table id="t_oper"></table></div>
         <div class="hint" style="margin-top:9px">Custo efetivo da operação: o que as atividades de cada operação consomem
         — diesel das máquinas da operação, operadores, manutenção (CRM) das máquinas, insumos e terceirização das
         aplicações — e, em tratos, a irrigação (energia, água e materiais), atribuída a cana planta ou soca pela
         modalidade. <b>Não entra</b> nenhum rateio: diesel dos equipamentos de apoio, arrendamento, administrativo,
-        depreciação e custos gerais estão na página <b>Custo total (contábil)</b>. Base física em hectares operados
-        (soma das passadas) ou toneladas, como na tabela de custo por etapa. <span id="oper_nota"></span></div></div>
+        depreciação e custos gerais estão na página <b>Custo total (contábil)</b>.
+        <b>Formação do canavial</b> = plantio + tratos culturais de cana planta. Plantio, tratos de cana planta e a
+        formação são divididos pela <b>área plantada</b> (premissa "Área de plantio"), não pela soma dos hectares das
+        atividades — várias operações no mesmo talhão não são vários hectares; passe o mouse na base física para ver
+        os hectares operados. Cana soca segue por hectare operado e colheita por tonelada.
+        <span id="oper_nota"></span></div></div>
     </div>
   </details>
 
@@ -872,7 +893,7 @@
     <summary><span class="bl-tit">Custo total (contábil)</span></summary>
     <div class="bloco-corpo">
       <div class="panel"><h3>Custo total — custo operacional mais todos os rateios</h3>
-        <div class="grid g4" id="k_contabil" style="margin-bottom:14px"></div>
+        <div class="grid g5" id="k_contabil" style="margin-bottom:14px"></div>
         <div class="tblwrap"><table id="t_contabil"></table></div>
         <div class="hint" style="margin-top:9px">Custo contábil = custo operacional + rateios. <b>Diesel do apoio</b>:
         equipamentos de apoio, rateados pelos litros de cada operação. <b>Arrendamento</b>: percentuais de referência
@@ -1000,7 +1021,17 @@
         proporcionalmente aos litros consumidos por cada uma — o mesmo valor aparece na coluna Diesel da aba Custos.</div></div>
       <div class="panel"><h3>Consumo por equipamento</h3>
         <input type="search" class="tbl-busca" data-alvo="#t_comb_maq" placeholder="Buscar equipamento...">
-        <div class="tblwrap"><table id="t_comb_maq"></table></div></div>
+        <div class="tblwrap"><table id="t_comb_maq"></table></div>
+        <div class="hint" style="margin-top:9px">Escolha em que unidade cada equipamento consome — <b>L/h</b> para
+        máquinas (trator, colhedora, motobomba) ou <b>L/km</b> para veículos (caminhão, veículo leve) — e ajuste o
+        consumo. A alteração vale para o sistema inteiro: é o mesmo consumo do cadastro de máquinas da aba Manutenção
+        de Frota. <b>Horas</b> são projetadas pelas premissas de cada atividade (área ÷ rendimento; no transporte,
+        viagens × ciclo). <b>Km</b> são projetados sozinhos: no transporte de cana, viagens × ida e volta do raio da
+        aba Transporte; nos demais veículos, horas × velocidade média. Ao passar para L/km, o consumo começa no
+        equivalente do L/h na velocidade média (campo em itálico) — <b>digite o consumo real por km</b>. Esse
+        equivalente só vale com o veículo rodando: as horas do plano incluem o tempo parado na carga e na descarga,
+        os km não — por isso, só de trocar a unidade, os litros costumam cair. Campo apagado volta ao padrão.
+        <span id="comb_vel_nota"></span></div></div>
     </div>
   </details>
 

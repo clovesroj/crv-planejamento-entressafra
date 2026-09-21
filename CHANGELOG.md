@@ -1,5 +1,131 @@
 # Histórico de mudanças
 
+## 2.27.0 — 2026-09-21 · Consumo de diesel em L/h ou L/km
+
+A tabela **Consumo por equipamento** da aba Combustível agora é editável:
+
+- **Unidade** por equipamento: **L/h** para máquinas (trator, colhedora,
+  motobomba) ou **L/km** para veículos (caminhão, veículo leve).
+- **Consumo** editável na própria linha. É o mesmo consumo do cadastro de
+  máquinas da aba Manutenção de Frota: alterar em uma aba altera na outra.
+- **Velocidade média** (km/h), editável, usada quando o km sai das horas.
+- Colunas novas de **horas** e **km** projetados, e uma linha de total.
+
+**Horas e km são projetados sozinhos, pelas premissas.**
+- Horas das máquinas: área ÷ rendimento de cada atividade; no transporte,
+  viagens × ciclo. Isso já era assim e continua.
+- Km do transporte de cana: **viagens × ida e volta do raio** (capacidade e
+  raio da aba Transporte). No plano de teste, transporte de cana da colheita:
+  30.000 viagens × 2 × 18 km = 1.080.000 km.
+- Km dos demais veículos: **horas × velocidade média**. O padrão da velocidade
+  é a média de carregado e vazio da aba Transporte.
+
+**A unidade vale para a conta, não só para a tela.** Litros = horas × L/h ou
+km × L/km, e isso entra no diesel da atividade, do apoio, das etapas, do
+custo mensal, dos relatórios e do rastro.
+
+**Todo equipamento continua em L/h até alguém trocar.** Nenhum número mudou
+com esta versão. Ao passar para L/km, o consumo começa no equivalente do L/h
+na velocidade média (em itálico, marcado como padrão). Esse equivalente só vale
+com o veículo rodando: as horas do plano contam o tempo parado na carga e
+descarga, os km não. Por isso, só de trocar, os litros tendem a cair — no
+teste, o caminhão caiu 45%. O consumo real por km (fabricante ou telemetria)
+deve ser digitado. Campo apagado volta ao padrão.
+
+A aba Combustível passa a gravar o cadastro de máquinas (`MAQ`) no controle de
+permissões do servidor.
+
+## 2.26.0 — 2026-09-21 · Base física dos custos na aba Premissas
+
+A aba Premissas ganhou o bloco **Base física dos custos**, o primeiro da aba:
+
+- **Área de plantio (ha)** — já existia, mudou de lugar;
+- **Área de tratos culturais — cana planta (ha)**;
+- **Área de tratos culturais — cana soca (ha)**;
+- **Área de colheita (ha)**;
+- **Volume estimado de colheita (t)**.
+
+Esses números passam a ser a base de todo custo por hectare e por tonelada:
+Painel, aba Custos (custo por etapa, custo operacional, custo contábil),
+Arrendamentos, Custos Administrativos, relatórios e rastro. A regra mora num
+lugar só, `calculo/base-fisica.js`, e toda tela usa a mesma:
+
+| Operação | Divide por |
+|---|---|
+| Plantio e formação do canavial | área de plantio |
+| Tratos de cana planta | área de cana planta |
+| Tratos de cana soca | área de cana soca |
+| Tratos (etapa inteira) | área de cana planta + área de cana soca |
+| Colheita | volume colhido, e também a área colhida quando informada ("R$/t · R$/ha colhido") |
+| Preparo de solo, apoio e conservação | hectares operados (não têm premissa de área) |
+
+**Campo em branco não é zero, é "não informado".** A base cai no que o plano
+já sabe: tratos de cana planta usa a área de plantio, e cana soca e colheita
+usam a soma lançada nas atividades. A tela escreve "(soma das atividades)"
+quando a base veio daí. Embaixo de cada campo, uma dica diz o que está sendo
+usado. Com os campos em branco, os valores ficam exatamente como estavam na
+versão anterior.
+
+**Só o divisor muda.** Os custos totais continuam os mesmos; muda o custo
+unitário. No plano de teste, com 8.000 ha de soca informados, tratos de cana
+soca foi de R$ 180/ha operado para R$ 1.487/ha de soca.
+
+**Validação** ganhou dois avisos: premissa de base física em branco, e volume
+estimado de colheita a mais de 10% das toneladas lançadas na colheita do plano.
+
+As premissas novas entram na lista de campos da aba Premissas em
+`server/permissoes.js`: quem edita Premissas grava esses campos.
+
+O consumo de diesel por unidade (L/ha) da aba Combustível segue por hectare
+operado. É um índice técnico de consumo por passada, não um custo.
+
+## 2.25.0 — 2026-09-21 · Formação do canavial e cartões que abrem o próprio detalhe
+
+### Formação do canavial
+
+**Plantio + tratos culturais de cana planta** agora aparecem somados como
+**Formação do canavial**, em linha de subtotal logo abaixo das duas
+operações, nas páginas *Custo operacional* e *Custo total (contábil)* da aba
+Custos. Também ganham cartão próprio nessas páginas e no Painel, e entram no
+relatório.
+
+Plantio, tratos de cana planta e a formação passam a ser divididos pela **área
+física do plantio** (premissa "Área de plantio"), não mais pela soma dos
+hectares das atividades. Dez operações no mesmo talhão são um hectare
+plantado, não dez. No plano de teste, tratos de cana planta ia de R$ 190/ha
+(sobre 43.901 ha operados) para R$ 3.476/ha plantado (sobre 2.400 ha). A base
+física mostra "ha plantados" e, ao passar o mouse, os hectares operados. Cana
+soca segue por hectare operado e colheita por tonelada.
+
+Os cartões "Tratos — cana planta" e "Tratos — cana soca" do Painel passam a
+usar a divisão que inclui a irrigação de cada cultura, a mesma da aba Custos.
+
+### Cartões que abriam o detalhamento errado
+
+No Painel, "Custo / ha plantado" abria o detalhamento do custo total. Agora
+abre a própria conta: custo total ÷ área de plantio, quanto cada etapa e cada
+grande conta pesam no hectare, e a formação do canavial. O mesmo valeu para a
+Capa e a aba Custos.
+
+A varredura de todos os cartões clicáveis achou o mesmo defeito em outros, e
+eles ganharam o próprio detalhamento:
+
+- **Custo na safra / na entressafra** (Painel e Custos): o custo do período,
+  mês a mês, por etapa e por grande conta.
+- **Custo de colheita** (só corte): a conta do cartão — direto do corte mais a
+  parte dele no indireto e no arrendamento — em vez da etapa inteira.
+- **Tratos — cana planta / soca** e **Formação do canavial**: a própria
+  operação, com custo operacional por natureza, cada rateio e as atividades,
+  em vez da etapa inteira de tratos.
+- **Custo variável / Custo fixo**: a composição de cada um.
+- Os cartões das páginas operacional e contábil abrem a operação com o mesmo
+  número do cartão.
+
+Dos 36 cartões clicáveis de Painel, Capa e Custos, 32 abrem com o mesmo número
+do cartão. Os outros 4 são médias ou índices — CRM por hora, arrendamento por
+hectare, média mensal da safra e da entressafra — e abrem o total de onde o
+índice sai.
+
 ## 2.24.0 — 2026-09-21 · Custo operacional x custo contábil
 
 A aba Custos ganhou duas páginas, que agora abrem a aba. Elas separam o que

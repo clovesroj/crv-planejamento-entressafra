@@ -1,4 +1,6 @@
 import { linha } from '../calculo/atividade.js';
+import { custoPorOperacao } from '../calculo/custo-operacao.js';
+import { baseEtapa, custoUnit, premissaBase, rotuloBase } from '../calculo/base-fisica.js';
 import { CRM_COMP } from '../calculo/crm.js';
 import { MESES, clsMes, periodoMes } from '../nucleo/calendario.js';
 import { P } from '../nucleo/estado.js';
@@ -16,19 +18,32 @@ function pintarPainel(R){
   // o corte recebe o indireto e a parte do arrendamento da colheita na proporção do seu custo direto
   const corteTotal = corteDireto + R.indiretoPool*(corteDireto/R.diretoSum)
     + (colh && colh.direto>0 ? colh.arrend*(corteDireto/colh.direto) : 0);
+  // corte pelo volume colhido (premissa); sem ela, pelas toneladas das atividades de corte
+  const tonPrem = premissaBase("colheita");
+  const baseCorte = tonPrem ? {q:tonPrem, un:"t", rot:"t colhidas", fonte:"premissa"}
+                            : {q:corteTon, un:"t", rot:"t", fonte:"atividades"};
+  const bColh = baseEtapa(R, "COLHEITA");
   $("#k_painel").innerHTML =
     kpi("Custo total","",brl(R.SEL.total), R.SEL.parcial?R.SEL.rotulo:"","total") +
-    kpi("Custo / ha plantado","t",brl(R.SEL.total/ha), R.SEL.parcial?R.SEL.rotulo:"","total") +
-    kpi("Custo de colheita","g",corteTon>0?brl(corteTotal/corteTon,2)+"/t":"—","só corte (A01+A02), sem transporte","etapa:COLHEITA") +
+    kpi("Custo / ha plantado","t",brl(R.SEL.total/ha), R.SEL.parcial?R.SEL.rotulo:"","custoha") +
+    kpi("Custo de colheita","g",custoUnit(corteTotal, baseCorte),"só corte (A01+A02), sem transporte · "+rotuloBase(baseCorte),"corte") +
     kpi("Efetivo total","a",fmt(R.efetivoTotal)+" pessoas","","pessoas:total") +
-    kpi("Custo na safra","g",brl(R.PER.safra.total),"abr a nov · "+R.PER.safra.meses.length+" meses no orçamento","total") +
-    kpi("Custo na entressafra","a",brl(R.PER.entressafra.total),"dez a mar · "+R.PER.entressafra.meses.length+" meses no orçamento","total");
+    kpi("Custo na safra","g",brl(R.PER.safra.total),"abr a nov · "+R.PER.safra.meses.length+" meses no orçamento","periodo:safra") +
+    kpi("Custo na entressafra","a",brl(R.PER.entressafra.total),"dez a mar · "+R.PER.entressafra.meses.length+" meses no orçamento","periodo:entressafra");
+  // planta x soca pela divisão que inclui a irrigação de cada cultura (aba
+  // Custos). Cana planta e a formação do canavial dividem pela área plantada;
+  // cana soca, por hectare operado.
+  const OP = custoPorOperacao(R), op = id => OP.principais.find(l=>l.id===id);
+  const unitHa = l => l ? custoUnit(l.contabil, l.base) : "—";
+  const soca = op("soca"), planta = op("planta"), F = OP.formacao;
   $("#k_tratos").innerHTML =
-    kpi("Tratos — cana soca","t",R.tratosCult.Soca.ha>0?brl(R.tratosCult.Soca.total/R.tratosCult.Soca.ha,2)+"/ha":"—",
-        brl(R.tratosCult.Soca.total)+" · "+fmt(R.tratosCult.Soca.ha)+" ha","etapa:TRATOS CULTURAIS") +
-    kpi("Tratos — cana planta","g",R.tratosCult.Planta.ha>0?brl(R.tratosCult.Planta.total/R.tratosCult.Planta.ha,2)+"/ha":"—",
-        brl(R.tratosCult.Planta.total)+" · "+fmt(R.tratosCult.Planta.ha)+" ha","etapa:TRATOS CULTURAIS") +
-    kpi("Etapa colheita (c/ transporte)","",tonEtapa>0?brl(colh.total/tonEtapa,2)+"/t":"—","corte + transporte + transbordo","etapa:COLHEITA") +
+    (F ? kpi("Formação do canavial","g",unitHa(F),
+        brl(F.contabil)+" · plantio + tratos de cana planta ÷ "+rotuloBase(F.base),"op:formacao") : "") +
+    kpi("Tratos — cana soca","t",unitHa(soca),
+        soca ? brl(soca.contabil)+" · "+rotuloBase(soca.base) : "—","op:soca") +
+    kpi("Tratos — cana planta","g",unitHa(planta),
+        planta ? brl(planta.contabil)+" · "+rotuloBase(planta.base) : "—","op:planta") +
+    kpi("Etapa colheita (c/ transporte)","",colh?custoUnit(colh.total, bColh):"—","corte + transporte + transbordo · "+rotuloBase(bColh),"op:colheita") +
     kpi("CRM total","a",brl(CRM_COMP.reduce((s,k)=>s+R.crmComp[k],0)),"","frota:crm") +
     kpi("CRM por hora média","",R.horasT>0?brl(CRM_COMP.reduce((s,k)=>s+R.crmComp[k],0)/R.horasT,2)+"/h":"—","","frota:crm") +
     kpi("Diesel projetado","t",fmt(R.CB.litrosT)+" L",

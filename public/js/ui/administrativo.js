@@ -1,3 +1,4 @@
+import { baseEtapa, custoUnit, rotuloBase } from '../calculo/base-fisica.js';
 import { admRat } from '../calculo/administrativo.js';
 import { ADM_CC, ADM_CRITERIOS, ADM_GRUPOS } from '../dados/administrativo.js';
 import { ETAPAS_ORD } from '../calculo/arrendamento.js';
@@ -57,14 +58,14 @@ function pintarAdm(R){
   /* ---- resultado: rateio por etapa, com a base de cada critério ---- */
   const nomes = Object.keys(R.etapas).sort((a,b)=>ETAPAS_ORD.indexOf(a)-ETAPAS_ORD.indexOf(b));
   $("#t_adm_etapa").innerHTML = th([["Etapa"],["Hectares",1],["Toneladas",1],["Horas",1],["Custo direto",1],
-    ["Administrativo",1],["% do administrativo",1],["R$/ha",1]])+"<tbody>"+
+    ["Administrativo",1],["% do administrativo",1],["Custo unitário",1]])+"<tbody>"+
     nomes.map(e=>{ const d=R.etapas[e], v=d.admin||0;
       return `<tr><td>${e}</td>
         <td class="num calc">${d.ha>0?fmt(d.ha):"—"}</td><td class="num calc">${d.ton>0?fmt(d.ton):"—"}</td>
         <td class="num calc">${d.horas>0?fmt(d.horas):"—"}</td><td class="num calc">${brl(d.direto)}</td>
         <td class="num tot">${brl(v)}</td>
         <td class="num calc">${AD.rateado>0?fmt(v/AD.rateado*100,1)+"%":"—"}</td>
-        <td class="num calc">${d.ha>0?brl(v/d.ha,2):"—"}</td></tr>`; }).join("")+
+        <td class="num calc" title="${rotuloBase(baseEtapa(R, e))}">${custoUnit(v, baseEtapa(R, e))}</td></tr>`; }).join("")+
     `<tr><td class="tot">RATEADO NAS ETAPAS</td><td colspan="4"></td>
      <td class="num tot">${brl(AD.rateado)}</td><td class="num tot">100,0%</td><td></td></tr>`+
     (AD.semRateio>0 ? `<tr><td class="calc">Sem base para rateio — fica no rateio indireto geral</td>

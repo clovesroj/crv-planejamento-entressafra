@@ -14,6 +14,7 @@ import { CONTA_COMBINADA, contasValores } from '../ui/contas.js';
 import { comps } from '../ui/custos.js';
 import { validar } from '../ui/validacao.js';
 import { custoPorOperacao } from '../calculo/custo-operacao.js';
+import { baseEtapa, custoUnit, rotuloBase } from '../calculo/base-fisica.js';
 
 /* ================== SEÇÕES DE RELATÓRIO ==================
    Cada seção é uma função de R -> {aba, titulo, cab, linhas}. O relatório
@@ -192,7 +193,7 @@ const producao = R => sec("Produção","Produção e moagem",
 const porEtapa = (aba, titulo, etapa) => R => {
   const d = etapaP(R, etapa);
   const ativs = R.L.filter(r=>r.a.etapa===etapa).map(ativP).filter(r=>r.total>0);
-  const base = d.ha>0 ? [fmt(d.ha),"ha"] : [fmt(d.ton||0),"t"];
+  const b = baseEtapa(R, etapa);
   return secP(aba, titulo, CAB_ATIV,
     ativs.map(linhaAtiv).concat([
       ["","","TOTAL DIRETO","","","","", brl(d.diesel||0), brl(d.mdo||0), brl(d.manut||0),
@@ -200,9 +201,8 @@ const porEtapa = (aba, titulo, etapa) => R => {
       ["","","Arrendamento rateado","","","","","","","","","", brl(d.arrend||0), ""],
       ["","","Administrativo rateado","","","","","","","","","", brl(d.admin||0), ""],
       ["","","Indireto do plano","","","","","","","","","", brl(d.indireto||0), ""],
-      ["","","TOTAL DA ETAPA","","","","","","","","","", brl(d.total||0),
-       (d.ha>0||d.ton>0) ? brl((d.total||0)/(d.ha>0?d.ha:d.ton),2)+"/"+base[1] : "—"],
-      ["","","Base física","","","","","","","","","", base[0]+" "+base[1], ""],
+      ["","","TOTAL DA ETAPA","","","","","","","","","", brl(d.total||0), custoUnit(d.total||0, b)],
+      ["","","Base física","","","","","","","","","", rotuloBase(b), ""],
     ]));
 };
 
@@ -362,11 +362,10 @@ const custoEtapa = R => { const E = etapasP(R);
   ["Etapa","Diesel","Mão de obra","Manutenção","Insumos","Terceirização","Arrendamento","Administrativo",
    "Indireto","Total","% do total","Base física","Custo unitário"],
   Object.entries(E).sort((a,b)=>b[1].total-a[1].total).map(([e,d])=>{
-    const base = d.ha>0?[fmt(d.ha),"ha"]:[fmt(d.ton||0),"t"];
-    const q = d.ha>0?d.ha:d.ton;
+    const b = baseEtapa(R, e);
     return [e, brl(d.diesel), brl(d.mdo), brl(d.manut), brl(d.insumo+(d.irrig||0)), brl(d.terc),
       brl(d.arrend||0), brl(d.admin||0), brl(d.indireto), brl(d.total),
-      fmt(d.total/totE*100,1)+"%", base[0]+" "+base[1], q>0?brl(d.total/q,2)+"/"+base[1]:"—"];}));
+      fmt(d.total/totE*100,1)+"%", rotuloBase(b), custoUnit(d.total, b)];}));
 };
 /* A abertura fina por natureza (MDO direta, de apoio, indireta...) só existe
    para o ano. No recorte, a composição sai pelas grandes contas, que têm série
@@ -506,7 +505,8 @@ const indicadores = R => {
     ["Custo por kg de ATR", R.FORN.atrTotal>0?brl(R.FORN.rsAtrMedio,4)+"/kg":"—", "ATR médio "+fmt(R.FORN.atrMedio,1)],
     ["Custo da cana própria", R.FORN.origens.propria.ton>0?brl(R.FORN.origens.propria.rsT,2)+"/t":"—", "produção"],
     ["Custo da cana de fornecedor", R.FORN.origens.fornecedor.ton>0?brl(R.FORN.origens.fornecedor.rsT,2)+"/t":"—", "aquisição"],
-    ["Custo de colheita por tonelada", colh.ton>0?brl(colh.total/colh.ton,2)+"/t":"—", "etapa colheita"],
+    ["Custo de colheita por tonelada", colh.total ? custoUnit(colh.total, baseEtapa(R,"COLHEITA")) : "—",
+     "etapa colheita · "+rotuloBase(baseEtapa(R,"COLHEITA"))],
     ["Diesel por hectare operado", R.haOp>0?fmt(R.CB.litrosT/R.haOp,1)+" L/ha":"—", fmt(R.CB.litrosT)+" L"],
     ["Diesel por tonelada", ton>0?fmt(R.CB.litrosT/ton,2)+" L/t":"—", ""],
     ["Custo-hora médio de máquina", R.horasT>0?brl((R.dieselT+R.manutT)/R.horasT,2)+"/h":"—", fmt(R.horasT)+" h"],
@@ -606,16 +606,20 @@ const irrigacao = R => sec("Irrigação","Irrigação e fertirrigação",
 /* ---------- custo operacional x contábil ----------
    As duas páginas da aba Custos. São do ano: no recorte por período saem com
    "ano todo" no título, como toda seção sem série mensal. */
-const unitOp = (v, b) => b.q>0 ? brl(v/b.q,2)+"/"+b.un : "—";
+const unitOp = (v, b) => custoUnit(v, b);
+// as quatro operações com a formação do canavial logo depois de tratos de cana planta
+const comFormacaoRel = (C, lin, linF) => { const ult = C.principais.map(l=>!!l.formacao).lastIndexOf(true);
+  return C.principais.flatMap((l,k)=> k===ult && C.formacao ? [lin(l), linF(C.formacao)] : [lin(l)]); };
 const custoOperacional = R => { const C = custoPorOperacao(R), L = C.principais.concat(C.outras);
-  const lin = l => [l.nome, fmt(l.base.q)+" "+l.base.un, brl(l.oper.diesel), brl(l.oper.mdo), brl(l.oper.manut),
+  const lin = l => [l.nome, rotuloBase(l.base), brl(l.oper.diesel), brl(l.oper.mdo), brl(l.oper.manut),
     brl(l.oper.insumo), brl(l.oper.irrig), brl(l.oper.terc), brl(l.oper.total), unitOp(l.oper.total, l.base)];
+  const linF = f => ["= "+f.nome+" (plantio + tratos de cana planta)", ...lin(f).slice(1)];
   const tot = (lista, rot) => [rot, "", ...["diesel","mdo","manut","insumo","irrig","terc","total"]
     .map(k=>brl(C.soma(lista, l=>l.oper[k]))), ""];
   return sec("Custo operacional","Custo operacional — o que custa fazer cada operação",
     ["Operação","Base física","Diesel","Mão de obra","Manutenção (CRM)","Insumos","Irrigação","Terceirização",
      "Custo operacional","Custo unitário"],
-    C.principais.map(lin).concat([tot(C.principais, "SUBTOTAL DAS QUATRO OPERAÇÕES")],
+    comFormacaoRel(C, lin, linF).concat([tot(C.principais, "SUBTOTAL DAS QUATRO OPERAÇÕES")],
       C.outras.map(lin), [tot(L, "TOTAL OPERACIONAL DO PLANO")]));
 };
 const custoContabil = R => { const C = custoPorOperacao(R), L = C.principais.concat(C.outras);
@@ -623,13 +627,14 @@ const custoContabil = R => { const C = custoPorOperacao(R), L = C.principais.con
   const lin = l => [l.nome, brl(l.oper.total), ...RAT.map(k=>brl(l.rateio[k])), brl(l.rateio.total),
     brl(l.contabil), unitOp(l.contabil, l.base),
     l.oper.total>0 ? "+"+fmt(l.rateio.total/l.oper.total*100,1)+"%" : "—"];
+  const linF = f => ["= "+f.nome+" (plantio + tratos de cana planta)", ...lin(f).slice(1)];
   const tot = (lista, rot) => { const o = C.soma(lista, l=>l.oper.total), r = C.soma(lista, l=>l.rateio.total);
     return [rot, brl(o), ...RAT.map(k=>brl(C.soma(lista, l=>l.rateio[k]))), brl(r),
       brl(C.soma(lista, l=>l.contabil)), "", o>0 ? "+"+fmt(r/o*100,1)+"%" : "—"]; };
   return sec("Custo contábil","Custo total (contábil) — custo operacional mais todos os rateios",
     ["Operação","Custo operacional","Diesel do apoio","Arrendamento","Administrativo","Depreciação",
      "Demais custos gerais","Total de rateios","Custo contábil","Custo unitário","Rateio sobre o operacional"],
-    C.principais.map(lin).concat([tot(C.principais, "SUBTOTAL DAS QUATRO OPERAÇÕES")],
+    comFormacaoRel(C, lin, linF).concat([tot(C.principais, "SUBTOTAL DAS QUATRO OPERAÇÕES")],
       C.outras.map(lin), [tot(L, "CUSTO TOTAL DO PLANO")]));
 };
 

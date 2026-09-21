@@ -1,3 +1,5 @@
+import { custoPorOperacao } from '../calculo/custo-operacao.js';
+import { baseEtapa, custoUnit, rotuloBase } from '../calculo/base-fisica.js';
 import { ARR_FORMAS, ARR_PAG, ETAPAS_ORD, PAG_LIVRE, arrPar, arrRat } from '../calculo/arrendamento.js';
 import { MESES, NM, clsMes } from '../nucleo/calendario.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
@@ -74,16 +76,18 @@ function pintarArrend(R){
   $("#t_arr_rat").innerHTML = th([["Etapa"],["% referência",1],["% aplicado",1],["Arrendamento",1],
     ["Base física",1],["R$ por unidade",1]])+"<tbody>"+
     ETAPAS_ORD.map(e=>{
-      const d=R.etapas[e]||{}, v=d.arrend||0, base=d.ha>0?d.ha:(d.ton||0), un=d.ha>0?"ha":"t";
+      const d=R.etapas[e]||{}, v=d.arrend||0, b=baseEtapa(R, e);
       let h=`<tr><td>${e}</td>
         <td class="num"><input data-arrat="${e}" value="${+arrRat(e).toFixed(4)}" inputmode="decimal"></td>
         <td class="num calc">${ratSoma>0?fmt(arrRat(e)/ratSoma*100,1)+"%":"—"}</td>
-        <td class="num tot">${brl(v)}</td><td class="num calc">${base>0?fmt(base)+" "+un:"—"}</td>
-        <td class="num calc">${base>0&&v>0?brl(v/base,2)+"/"+un:"—"}</td></tr>`;
-      if(e==="TRATOS CULTURAIS") ["Soca","Planta"].forEach(c=>{ const x=R.tratosCult[c];
+        <td class="num tot">${brl(v)}</td><td class="num calc">${b.q>0?rotuloBase(b):"—"}</td>
+        <td class="num calc">${v>0?custoUnit(v, b):"—"}</td></tr>`;
+      // cana planta e soca: o arrendamento de cada cultura sobre a área dela (Premissas)
+      if(e==="TRATOS CULTURAIS") [["soca","Soca"],["planta","Planta"]].forEach(([id,c])=>{
+        const x = custoPorOperacao(R).principais.find(l=>l.id===id); if(!x) return;
         h+=`<tr class="sub"><td class="calc">↳ Cana ${c.toLowerCase()}</td><td></td><td></td>
-          <td class="num calc">${brl(x.arrend)}</td><td class="num calc">${fmt(x.ha)} ha</td>
-          <td class="num calc">${x.ha>0&&x.arrend>0?brl(x.arrend/x.ha,2)+"/ha":"—"}</td></tr>`; });
+          <td class="num calc">${brl(x.rateio.arrend)}</td><td class="num calc">${rotuloBase(x.base)}</td>
+          <td class="num calc">${x.rateio.arrend>0?custoUnit(x.rateio.arrend, x.base):"—"}</td></tr>`; });
       return h; }).join("")+
     `<tr><td class="tot">TOTAL</td><td class="num tot">${fmt(ratSoma,1)}%${Math.abs(ratSoma-100)>0.01?' <span class="badge b-bad">≠ 100%</span>':""}</td>
      <td class="num tot">${ratSoma>0?"100,0%":"—"}</td>

@@ -32,7 +32,7 @@ const AREAS = [
   { id: 'acomp', nome: 'Acompanhamento do Plano', grupo: 'Visão geral', chaves: ['REAL'] },
 
   { id: 'premissas', nome: 'Premissas', grupo: 'Planejamento',
-    campos: ['dens', 'tch', 'plantio', 'hdia', 'disp', 'efic', 'dias', 'diesel', 'imob', 'dep', 'ipreco',
+    campos: ['dens', 'tch', 'plantio', 'haTratosPlanta', 'haTratosSoca', 'haColheita', 'tonColheita', 'hdia', 'disp', 'efic', 'dias', 'diesel', 'imob', 'dep', 'ipreco',
              'hPorMec', 'eqPorAjud', 'colPorLider', 'tercAereaTar', 'tercSistTar', 'tercSistHa'] },
   { id: 'plano', nome: 'Plano Operacional', grupo: 'Planejamento', chaves: ['PLANO', 'DIM'] },
   { id: 'dimens', nome: 'Dimensionamento', grupo: 'Planejamento',
@@ -55,7 +55,7 @@ const AREAS = [
   { id: 'transp', nome: 'Transporte', grupo: 'Frota e logística',
     campos: ['densCarga', 'volTransb', 'velC', 'velV', 'tCarga', 'tDesc', 'hDiaTr', 'dispTr',
              'consTr', 'manutTr', 'raioSafra', 'raioMuda', 'capTransb'] },
-  { id: 'combust', nome: 'Combustível', grupo: 'Frota e logística', chaves: ['DIESEL_MES'] },
+  { id: 'combust', nome: 'Combustível', grupo: 'Frota e logística', chaves: ['DIESEL_MES', 'MAQ'] },
   { id: 'apoio', nome: 'Apoio', grupo: 'Frota e logística', chaves: ['APOIO'] },
   { id: 'tpess', nome: 'Transporte de Pessoal', grupo: 'Frota e logística', chaves: ['TPESS'] },
 

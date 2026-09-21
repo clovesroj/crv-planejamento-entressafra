@@ -141,6 +141,9 @@ function maqDe(item){
   const ov = MAQ[item] || {};
   const o = {...base};
   MAQ_CAMPOS.forEach(k=>{ if(ov[k]!=null) o[k] = num(ov[k]); });
+  // consumo por km (aba Combustível): unidade, L/km e velocidade média
+  if(ov.unC==="km" || ov.unC==="h") o.unC = ov.unC;
+  ["dKm","vel"].forEach(k=>{ if(ov[k]!=null) o[k] = num(ov[k]); });
   return o;
 }
 
