@@ -3,7 +3,7 @@ import { TERC_TAR, insLista } from '../nucleo/estado.js';
 import { $, brl, esc, fmt } from '../nucleo/formato.js';
 import { kpi, th } from './componentes.js';
 
-/* ---------- CONTROLE FITOSSANITÁRIO (Broca e Cigarrinha) ----------
+/* ---------- MANEJO FITOSSANITÁRIO (Broca e Cigarrinha) ----------
    Painel de leitura: não edita nada de novo. Área e tratamento de cada onda
    se lançam no Plano Operacional (o mesmo PLANO[cod] que esta tela lê),
    composição e dose na aba Insumos — aqui só agrupa Broca e Cigarrinha
