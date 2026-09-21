@@ -33,6 +33,10 @@ const valorHa = r => r.total>0 ? custoTotal(r)/r.total : 0;
    então rateia exato pela área de cada linha — não é aproximação. */
 function linhasModo(r){
   const tarifaIns = r.total>0 ? r.cInsumo/r.total : 0;
+  // volume tambem e R$/ha-equivalente (dose uniforme por hectare), entao
+  // rateia pela mesma fracao de area que o custo de insumo
+  const volumeBase = volumeInsumo(r);
+  const volumeFrac = area => r.total>0 ? volumeBase.map(v=>({...v, vol:v.vol*(area/r.total)})) : [];
   const linhas = [];
   r.partes.forEach(p => {
     if(p.terc){
@@ -44,23 +48,37 @@ function linhasModo(r){
           const area = p.area * (num(sub[m].pct)/soma);
           const terc = area * num(sub[m].tar);
           const insumo = area * tarifaIns;
-          linhas.push({rot:`Terceiro — ${m}`, area, insumo, terc, total:insumo+terc});
+          linhas.push({rot:`Terceiro — ${m}`, area, insumo, terc, total:insumo+terc, volume:volumeFrac(area)});
         });
         return;
       }
       const insumo = p.area * tarifaIns;
-      linhas.push({rot:"Terceiro", area:p.area, insumo, terc:p.direto, total:insumo+p.direto});
+      linhas.push({rot:"Terceiro", area:p.area, insumo, terc:p.direto, total:insumo+p.direto, volume:volumeFrac(p.area)});
       return;
     }
     const insumo = p.area * tarifaIns;
-    linhas.push({rot:p.modo || "Padrão", area:p.area, insumo, terc:0, total:insumo+p.direto});
+    linhas.push({rot:p.modo || "Padrão", area:p.area, insumo, terc:0, total:insumo+p.direto, volume:volumeFrac(p.area)});
   });
   return linhas;
 }
 
+// volume físico de cada produto do tratamento, na área do ano da atividade
+// (mesma dose × área de resumoInsumos, só que por linha em vez de somado)
+function volumeInsumo(r){
+  if(!r.trat) return [];
+  return composicao(r.trat).map(l => {
+    const reg = insLista().find(i => i.prod === l.prod) || {};
+    return {prod: l.prod, un: reg.un || "", vol: doseBase(l) * r.total};
+  });
+}
+const fmtVolume = vs => vs.length
+  ? vs.map(v => `${fmt(v.vol, 2)} ${esc(v.un)} ${esc(v.prod)}`).join(" · ")
+  : "—";
+
 function tabelaOndas(linhas){
   if(!linhas.length) return '<p class="calc">Nenhuma atividade cadastrada.</p>';
-  return th([["",1],["Atividade"],["Tratamento"],["Área/ano (ha)",1],["Insumo (R$)",1],["Serviço terceiro (R$)",1],["Custo total (R$)",1],["Valor/ha (R$)",1]]) +
+  return th([["",1],["Atividade"],["Tratamento"],["Área/ano (ha)",1],["Volume de insumo"],["Insumo (R$)",1],
+      ["Serviço terceiro (R$)",1],["Custo total (R$)",1],["Valor/ha (R$)",1]]) +
     "<tbody>" + linhas.map(r => {
       const aberto = !!FITO_ABERTO[r.a.cod];
       const estratificavel = r.partes && r.partes.length>0;
@@ -69,6 +87,7 @@ function tabelaOndas(linhas){
         <td>${esc(r.a.cod)} — ${esc(r.a.nome)}</td>
         <td class="calc">${esc(r.trat || "—")}</td>
         <td class="num">${fmt(r.total)}</td>
+        <td class="calc">${fmtVolume(volumeInsumo(r))}</td>
         <td class="num">${brl(r.cInsumo)}</td>
         <td class="num">${brl(r.cTerc)}</td>
         <td class="num tot">${brl(custoTotal(r))}</td>
@@ -77,6 +96,7 @@ function tabelaOndas(linhas){
       const subs = linhasModo(r).map(s => `<tr class="sub">
         <td></td><td colspan="2" class="calc">${esc(s.rot)}</td>
         <td class="num calc">${fmt(s.area)}</td>
+        <td class="calc">${fmtVolume(s.volume)}</td>
         <td class="num calc">${brl(s.insumo)}</td>
         <td class="num calc">${s.terc>0?brl(s.terc):"—"}</td>
         <td class="num calc">${brl(s.total)}</td>
