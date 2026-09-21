@@ -3,7 +3,7 @@ import { tratListaTodos } from '../calculo/insumos.js';
 import { CFG } from '../dados/cfg.js';
 import { TERC_MODOS } from '../dados/modos.js';
 import { NM } from '../nucleo/calendario.js';
-import { DIM, TERC_DET, TERC_SUB, TRAT_NOME, atividadesLista } from '../nucleo/estado.js';
+import { DIM, PLANO_ABERTO, TERC_DET, TERC_SUB, TRAT_NOME, atividadesLista } from '../nucleo/estado.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
 import { th } from './componentes.js';
 import { MESES, PERIODO_MESES, clsMes } from '../nucleo/calendario.js';
@@ -84,6 +84,29 @@ function totalNoFiltro(r, SEL){
   if(!SEL.parcial) return r.total;
   return SEL.meses.reduce((s,j)=>s+num(r.meses[j]),0);
 }
+/* Dois tratamentos na mesma atividade (área rateada, ver calculo/atividade.js
+   tratsDetalhe): a linha continua uma só, com o total; expande pro detalhe
+   por tratamento — mesmo critério do data-fitoabre no Manejo Fitossanitário,
+   só que aqui as células de mês do tratamento extra são editáveis (a área
+   principal já é editável na própria linha; expandir só ajusta a mistura). */
+function subLinhasTrat(r, SEL){
+  if(!r.tratsDetalhe) return "";
+  return r.tratsDetalhe.map((d,i)=>{
+    const nome = TRAT_NOME[d.trat] ? `${esc(d.trat)} — ${esc(TRAT_NOME[d.trat])}` : esc(d.trat||"—");
+    const totalFiltro = SEL.parcial ? SEL.meses.reduce((s,j)=>s+num(d.m[j]),0) : d.area;
+    const editavel = !d.principal;
+    return `<tr class="sub">
+      <td></td>
+      <td class="calc">${nome}${d.principal?' <span class="badge b-ok">principal</span>':''}</td>
+      <td></td><td></td><td></td>` +
+      d.m.map((q,j)=> editavel
+        ? `<td class="num ${clsMes(j)}"><input data-cx="${esc(r.a.cod)}" data-tx="${i-1}" data-m="${j}" value="${q||""}" inputmode="decimal"></td>`
+        : `<td class="num calc ${clsMes(j)}">${q?fmt(q):"—"}</td>`).join("") +
+      `<td class="num calc tot">${fmt(totalFiltro)}</td>
+       <td></td><td></td><td></td>
+       <td class="num calc">${d.custo?brl(d.custo):"—"}</td></tr>`;
+  }).join("");
+}
 function pintarPlano(R){
   const TL = tratListaTodos();
   const SEL = R.SEL;
@@ -102,7 +125,10 @@ function pintarPlano(R){
     const jIdx = r.janela.fonte==="datas" ? r.janela.idx : null;
     const dentro = j => !jIdx || jIdx.includes(j);
     const d = DIM[r.a.cod] || {};
-    h+=`<tr><td>${r.a.cod}</td><td>${r.a.nome}${auto?' <span class="badge b-ok">auto</span>':''}</td>
+    const temExtras = !!r.tratsDetalhe;
+    const aberto = temExtras && !!PLANO_ABERTO[r.a.cod];
+    h+=`<tr><td>${r.a.cod}</td><td>${temExtras?`<button type="button" class="mini-seta" data-planoabre="${r.a.cod}"
+          title="Área por tratamento">${aberto?"▾":"▸"}</button>`:""}${r.a.nome}${auto?' <span class="badge b-ok">auto</span>':''}</td>
         <td><input type="date" data-dt="${r.a.cod}" data-f="ini" value="${r.janela.ini||""}" max="${d.fim||""}" title="Início da execução"></td>
         <td><input type="date" data-dt="${r.a.cod}" data-f="fim" value="${r.janela.fim||""}" min="${d.ini||""}" title="Fim da execução"></td>
         <td class="calc">${r.a.un}</td>`+
@@ -117,6 +143,7 @@ function pintarPlano(R){
            title="Como se chegou nessa frota">${r.frotaR ? r.frotaR+" ›" : "—"}</td>
        <td><select data-t="${r.a.cod}" ${r.ehHa?"":"disabled"}>${opts}</select></td>
        <td class="num calc">${r.cInsumo?brl(r.cInsumo):"—"}</td></tr>`;
+    if(aberto) h += subLinhasTrat(r, SEL);
   });
   $("#t_plano").innerHTML = h+"</tbody>";
   // O resumo segue o filtro. Horas e insumos de uma atividade são lineares na

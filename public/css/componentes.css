@@ -221,6 +221,12 @@ footer{display:flex;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;co
   cursor:pointer;padding:0 1px;align-self:stretch;line-height:1}
 .terc-det:hover{color:var(--leaf-hover)}
 .terc-det.on{color:var(--warn)}
+/* expande a quebra por tratamento (dois tratamentos na mesma atividade) ou
+   por modo, dentro de uma celula de texto — nao e uma celula propria como no
+   Manejo Fitossanitario, entao fica pequeno e alinhado com a linha */
+.mini-seta{border:none;background:transparent;color:var(--leaf);font-weight:700;font-size:10px;
+  cursor:pointer;padding:0 4px 0 0;vertical-align:middle}
+.mini-seta:hover{color:var(--leaf-hover)}
 .steps{margin:0;padding-left:20px;font-size:13.5px;line-height:1.85;color:var(--ink)}
 .steps b{color:var(--leaf)}
 .notes{margin:0;padding-left:18px;font-size:13px;line-height:1.8;color:var(--grey)}

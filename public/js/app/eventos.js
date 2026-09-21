@@ -8,7 +8,7 @@ import { buscarAgrofit, bulaDoProduto } from '../io/agrofit.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
 import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TERC_SUB, TERC_DET, setTERC_DET, TPESS, TRATC, TRAT_NOME, TRAT_OBS, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, atividadesLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE } from '../nucleo/estado.js';
-import { AGROFIT_BUSCA, FITO_ABERTO, FROTA_ABERTO, FROTA_UN, INS_EDIT, INS_FICHA, MAQ, setAGROFIT_BUSCA, setFROTA_DEST, setFROTA_ORIG, setINS_EDIT, setINS_FICHA } from '../nucleo/estado.js';
+import { AGROFIT_BUSCA, FITO_ABERTO, PLANO_ABERTO, FROTA_ABERTO, FROTA_UN, INS_EDIT, INS_FICHA, MAQ, setAGROFIT_BUSCA, setFROTA_DEST, setFROTA_ORIG, setINS_EDIT, setINS_FICHA } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { filtrarPorNome } from '../ui/componentes.js';
 import { alternarFam, aplicarFamIns, buscaExigeRedesenho, recolherTodas, todasRecolhidas } from '../ui/insumos.js';
@@ -46,6 +46,14 @@ document.addEventListener("input",e=>{
   if(t.dataset.c!==undefined&&t.dataset.m!==undefined){
     const c=t.dataset.c; PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""};
     PLANO[c].m[+t.dataset.m]=num(t.value); salvar(); leve(); return; }
+  // area mes a mes de um tratamento EXTRA na mesma atividade (dois tratamentos
+  // dividindo a mesma area — ver calculo/atividade.js). O principal (data-c)
+  // continua sendo o total; aqui so a fatia de um tratamento extra.
+  if(t.dataset.cx!==undefined){ const c=t.dataset.cx, i=+t.dataset.tx, j=+t.dataset.m;
+    PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""}; PLANO[c].trats=PLANO[c].trats||[];
+    const e=PLANO[c].trats[i]; if(!e) return;
+    e.m=Array.isArray(e.m)?e.m:Array(NM).fill(0); e.m[j]=num(t.value);
+    salvar(); leve(); return; }
   if(t.dataset.r!==undefined){ DIM[t.dataset.r]=DIM[t.dataset.r]||{}; DIM[t.dataset.r].rend=num(t.value); salvar(); leve(); return; }
   // criterio por mes do modal de rendimento: rendimento, frota, disponibilidade e
   // utilizacao. Campo em branco volta a herdar o criterio da atividade, e por
@@ -437,6 +445,30 @@ document.addEventListener("click",e=>{
   if(fa){ const k = fa.dataset.fitoabre;
     if(FITO_ABERTO[k]) delete FITO_ABERTO[k]; else FITO_ABERTO[k]=true;
     render(); return; }
+  // dois tratamentos na mesma atividade: expande a quebra por tratamento, no
+  // Plano Operacional — visao, nao dado, nao passa por salvar()
+  const pa = e.target.closest && e.target.closest("[data-planoabre]");
+  if(pa){ const k = pa.dataset.planoabre;
+    if(PLANO_ABERTO[k]) delete PLANO_ABERTO[k]; else PLANO_ABERTO[k]=true;
+    render(); return; }
+  // dois tratamentos na mesma atividade: adicionar um tratamento extra, que
+  // passa a dividir a mesma área com o principal (ver calculo/atividade.js)
+  if(e.target.closest && e.target.closest("#btn_trat_extra_add")){
+    const cod = document.getElementById("sel_trat_ativ")?.value;
+    const trat = document.getElementById("sel_trat_extra")?.value;
+    if(!cod || !trat) return;
+    PLANO[cod] = PLANO[cod] || {m:Array(NM).fill(0), trat:""};
+    PLANO[cod].trats = Array.isArray(PLANO[cod].trats) ? PLANO[cod].trats : [];
+    PLANO[cod].trats.push({trat, m:Array(NM).fill(0)});
+    salvar(true); render(); return;
+  }
+  const txrm = e.target.closest && e.target.closest("[data-txrm]");
+  if(txrm){ const cod = txrm.dataset.txrm, i = +txrm.dataset.txi;
+    const trats = PLANO[cod] && PLANO[cod].trats;
+    if(!trats || !trats[i]) return;
+    if(!confirm(`Remover o tratamento extra "${trats[i].trat}" desta atividade? A área lançada mês a mês se perde.`)) return;
+    trats.splice(i,1); salvar(true); render(); return;
+  }
   const t=e.target;
   if(t.dataset.rm!==undefined){ ESPOR.splice(+t.dataset.rm,1); salvar(); render(); return; }
   if(t.dataset.admrm!==undefined){ const l=admLista()[+t.dataset.admrm];

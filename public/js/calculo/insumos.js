@@ -239,7 +239,8 @@ function marcarEtapa(cod, etapa, ligada){
 /* ---------- cadastro de tratamentos: incluir, remover, renomear ---------- */
 // atividades do plano que usam o tratamento
 function usosTrat(cod){
-  return atividadesLista().filter(a=>{ const p=PLANO[a.cod]; return p && p.trat===cod; }).map(a=>a.cod);
+  return atividadesLista().filter(a=>{ const p=PLANO[a.cod];
+    return p && (p.trat===cod || (Array.isArray(p.trats) && p.trats.some(e=>e && e.trat===cod))); }).map(a=>a.cod);
 }
 /* O código vira texto de tela, valor de <option>, atributo data-* e rótulo de
    relatório em quase cem lugares, quase todos sem escape. Os da base são letras,

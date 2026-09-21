@@ -278,6 +278,7 @@ function pintarTratPeriodo(R){
     $("#t_trat_periodo").innerHTML = "";
     $("#trat_periodo_hint").textContent = vinculadas.length
       ? "" : "Nenhuma atividade usa este tratamento ainda — escolha uma acima para vincular e lançar a área mês a mês.";
+    const wrap = $("#trat_extras_wrap"); if(wrap) wrap.hidden = true;
     return;
   }
   const a = lista.find(x=>x.cod===exibindo) || {};
@@ -303,6 +304,52 @@ function pintarTratPeriodo(R){
   $("#trat_periodo_hint").textContent = p.trat===TRAT_SEL
     ? `Lançando para ${a.cod} — ${a.nome}. Início e fim distribuem a área pelos meses automaticamente; os meses continuam editáveis à mão.`
     : `${a.cod} — ${a.nome} ainda usa outro tratamento (${p.trat || "nenhum"}). Escolher esta atividade acima substitui o vínculo.`;
+  pintarTratExtras(exibindo, p, linha);
+}
+
+/* Dois tratamentos na mesma atividade: dividem a MESMA área (a de cima) em
+   vez de somar área nova — o principal fica com o que sobra depois do que
+   for lançado aqui. Mesma unidade de medida de sempre (mês a mês), só que
+   por tratamento extra em vez de pelo total. Ver calculo/atividade.js
+   (tratsDetalhe) para a conta de custo. */
+function pintarTratExtras(cod, p, linha){
+  const wrap = $("#trat_extras_wrap");
+  if(!wrap) return;
+  if(!p.trat){ wrap.hidden = true; return; }
+  wrap.hidden = false;
+  const extras = Array.isArray(p.trats) ? p.trats : [];
+  const rotulo = t => TRAT_NOME[t] ? `${esc(t)} — ${esc(TRAT_NOME[t])}` : esc(t);
+  // mesma conta do motor (calculo/atividade.js): sem extra ainda, o principal
+  // fica com a área cheia; com extra, o detalhe já vem calculado de lá — não
+  // reduz a mesma "resto por mês" duas vezes em dois lugares diferentes.
+  const det = (linha && linha.tratsDetalhe) ||
+    [{trat:p.trat, area:(p.m||[]).reduce((s,q)=>s+num(q),0), principal:true, m:(p.m||Array(NM).fill(0)).map(num)}];
+
+  let h = th([["Tratamento"],...MESES.map((m,j)=>[m,1,clsMes(j)]),["Total",1],[""]]) + "<tbody>";
+  det.forEach((d,i)=>{
+    if(d.principal){
+      h += `<tr><td class="calc">${rotulo(d.trat)} <span class="badge b-ok">principal</span></td>` +
+        d.m.map((q,j)=>`<td class="num calc ${clsMes(j)}">${q?fmt(q):"—"}</td>`).join("") +
+        `<td class="num calc tot">${fmt(d.area)}</td><td></td></tr>`;
+      return;
+    }
+    // indice do extra dentro de PLANO[cod].trats — det[0] é sempre o principal
+    const ix = i-1;
+    h += `<tr><td>${rotulo(d.trat)}</td>` +
+      d.m.map((q,j)=>`<td class="num ${clsMes(j)}"><input data-cx="${esc(cod)}" data-tx="${ix}" data-m="${j}" value="${q||""}" inputmode="decimal"></td>`).join("") +
+      `<td class="num tot">${fmt(d.area)}</td>
+       <td><button class="btn d" data-txrm="${esc(cod)}" data-txi="${ix}">Remover</button></td></tr>`;
+  });
+  $("#t_trat_extras").innerHTML = h + "</tbody>";
+
+  const usados = new Set([p.trat, ...extras.map(e=>e.trat)].filter(Boolean));
+  const disponiveis = tratListaTodos().filter(t=>!usados.has(t.cod));
+  const selExtra = $("#sel_trat_extra");
+  if(selExtra) selExtra.innerHTML = disponiveis.length
+    ? disponiveis.map(t=>`<option value="${esc(t.cod)}">${rotulo(t.cod)}</option>`).join("")
+    : `<option value="">— todos os tratamentos já estão vinculados —</option>`;
+  const btnAdd = $("#btn_trat_extra_add");
+  if(btnAdd) btnAdd.disabled = !disponiveis.length;
 }
 
 /* Célula de marcação da etapa: uma caixa por etapa do plano. Sem marca, mostra

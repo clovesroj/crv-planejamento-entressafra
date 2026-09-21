@@ -355,7 +355,31 @@ function linha(a, MP){
 
   const soma = k => partes.reduce((s,x)=>s+x[k],0);
   const t = tratCusto(p.trat);
-  const cInsumo = (t && ehHa) ? total*t : 0;
+  /* dois tratamentos na mesma atividade: p.trats cobre uma PARTE do mesmo
+     total (meses/total não mudam — é a mesma área de sempre, só a mistura de
+     produto que varia mês a mês). O principal (p.trat) fica com o que sobra
+     depois dos extras; nunca fica negativo. R$/ha não varia por mês, então
+     sem extras a conta bate exatamente com total*t de antes (zero regressão
+     pra quem não usa isto). */
+  const extras = (Array.isArray(p.trats) ? p.trats : []).filter(e=>e && e.trat);
+  let cInsumo, tratsDetalhe = null;
+  if(extras.length){
+    const mExtras = extras.map(e => Array.isArray(e.m) ? e.m.map(num) : Array(NM).fill(0));
+    const extraAreaMes = i => mExtras.reduce((s,arr)=>s+num(arr[i]||0),0);
+    const mPrim = meses.map((q,i)=>Math.max(0,num(q)-extraAreaMes(i)));
+    const areaPrim = mPrim.reduce((s,q)=>s+q,0);
+    const cPrim = (t && ehHa) ? mPrim.reduce((s,q)=>s+q*t,0) : 0;
+    const cExtras = extras.map((e,k)=>{
+      const tE = tratCusto(e.trat);
+      const areaE = mExtras[k].reduce((s,q)=>s+q,0);
+      const custoE = (tE && ehHa) ? areaE*tE : 0;
+      return {trat:e.trat, area:areaE, custo:custoE, m:mExtras[k]};
+    });
+    cInsumo = cPrim + cExtras.reduce((s,x)=>s+x.custo,0);
+    tratsDetalhe = [{trat:p.trat, area:areaPrim, custo:cPrim, principal:true, m:mPrim}, ...cExtras];
+  }else{
+    cInsumo = (t && ehHa) ? total*t : 0;
+  }
   const rendMed = soma("horas")>0 ? total/soma("horas") : (frentes[0].rend||0);
 
   return {a, meses, total, rend:rendMed,
@@ -365,7 +389,7 @@ function linha(a, MP){
           criterioMensal: mensal, util, partes, escala:(d.esc||""), fator, turnosOv, janela:jan, mix:M?M.mx:null, mixSoma:M?M.soma:0,
           horas:soma("horas"), capMes:partes[0].capMes, frota:soma("frota"),
           frotaR:partes.reduce((s,x)=>s+x.frotaR,0),
-          cDiesel:soma("cDiesel"), cManut:soma("cManut"), cMDO:soma("cMDO"), cTerc:soma("cTerc"), cInsumo,
+          cDiesel:soma("cDiesel"), cManut:soma("cManut"), cMDO:soma("cMDO"), cTerc:soma("cTerc"), cInsumo, tratsDetalhe,
           fcod, fnome:partes[0].fnome, efetivo:soma("efetivo"),
           modo: M ? "mix" : "", maqEfetiva: partes.map(x=>x.maq).join(" + "),
           impEfetivo: partes.map(x=>x.imp).join(" + "),

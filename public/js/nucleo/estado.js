@@ -46,6 +46,7 @@ let PERIODO_SEL = "todos";  // filtro global de periodo: todos | safra | entress
 let MESES_SEL = [];
 let FROTA_ABERTO = {};   // chave do modelo -> true quando a lista de unidades está aberta
 let FITO_ABERTO = {};    // cod da atividade -> true quando a estratificação por modo está aberta (Manejo Fitossanitário)
+let PLANO_ABERTO = {};   // cod da atividade -> true quando a quebra por tratamento está aberta (Plano Operacional)
 let INS_FICHA = null;    // produto com a ficha técnica aberta no modal, ou null
 let INS_EDIT = null;     // produto em edição no modal (Cadastro de Insumos), ou null
 let FROTA_ORIG = "todos"; // filtro próprio/terceiro das abas de frota (não é salvo: é visão, não dado)
@@ -85,7 +86,7 @@ let AGROFIT_BUSCA = null;
 
 export {
   P, PLANO, DIM, INSUMO, ESPOR, TRATC, NIV, GRAT, APOIO, TERC_TAR, TERC_SUB, TERC_DET, CRM, MATX,
-  INSX, INSX_V, ATVX, ATVX_V, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, CRIT_GER, CRIT_CABE, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, FITO_ABERTO, INS_FICHA, APOIO_FIXO, TRAT_NOME, TRAT_OBS, TRAT_ETAPA, TRAT_DEL, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
+  INSX, INSX_V, ATVX, ATVX_V, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, CRIT_GER, CRIT_CABE, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, FITO_ABERTO, PLANO_ABERTO, INS_FICHA, APOIO_FIXO, TRAT_NOME, TRAT_OBS, TRAT_ETAPA, TRAT_DEL, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
   TPESS, QUADRO, ADM, ADM_RAT, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL, ATIV_TRAT_SEL, GRUPOS_INS, FAM_NOME, FAM_CLASSE, AGROFIT_BUSCA, INS_EDIT,
 };
 
