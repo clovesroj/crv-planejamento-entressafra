@@ -4,7 +4,13 @@ import { $, esc } from '../nucleo/formato.js';
 import { th } from './componentes.js';
 
 const ETAPAS = ["PREPARO DE SOLO", "PLANTIO", "TRATOS CULTURAIS", "COLHEITA", "APOIO E CONSERVAÇÃO"];
-const UNIDADES = ["ha/mês", "ton/mês"];
+/* A unidade que o cadastro mostra é a do RENDIMENTO, que é por hora: 45 t/h,
+   0,7 ha/h. O dado guardado na atividade continua sendo a unidade do volume
+   lançado por mês no Plano Operacional ("ha/mês", "ton/mês") — lá, ao lado dos
+   meses, é a unidade certa. O sistema só lê a parte da frente ("ha" ou
+   "ton"), então trocar o rótulo aqui não muda conta nem documento salvo. */
+const UNIDADES = [["ha/mês", "ha/h"], ["ton/mês", "ton/h"]];
+const unRend = un => String(un||"").split("/")[0] + "/h";
 
 /* ---------- CADASTRO DE ATIVIDADES ----------
    Espelha o Cadastro de Insumos: lista as atividades do cadastro do sistema
@@ -23,9 +29,10 @@ function pintarAtividadesCad(){
       <td>${fixo ? esc(a.etapa) : `<select data-at="${i}" data-f="etapa">${ETAPAS.map(e =>
         `<option value="${esc(e)}"${a.etapa===e?" selected":""}>${esc(e)}</option>`).join("")}</select>`}</td>
       <td><input data-at="${i}" data-f="nome" value="${esc(a.nome)}" style="text-align:left;min-width:200px"${fixo?' title="Atividade do cadastro do sistema — nome pode ser ajustado"':""}></td>
-      <td>${fixo ? esc(a.un) : `<select data-at="${i}" data-f="un">${UNIDADES.map(u =>
-        `<option value="${esc(u)}"${a.un===u?" selected":""}>${esc(u)}</option>`).join("")}</select>`}</td>
-      <td class="num"><input data-at="${i}" data-f="rend" value="${a.rend}" inputmode="decimal" style="width:70px"></td>
+      <td>${fixo ? esc(unRend(a.un)) : `<select data-at="${i}" data-f="un">${UNIDADES.map(([v,rot]) =>
+        `<option value="${esc(v)}"${a.un===v?" selected":""}>${esc(rot)}</option>`).join("")}</select>`}</td>
+      <td class="num"><input data-at="${i}" data-f="rend" value="${a.rend}" inputmode="decimal" style="width:70px"
+          title="Rendimento em ${esc(unRend(a.un))}${a.tipo==="transp"?" — no transporte, calculado pelas viagens":""}"></td>
       <td><input data-at="${i}" data-f="maq" value="${esc(a.maq||"")}" style="text-align:left;min-width:150px"></td>
       <td><input data-at="${i}" data-f="imp" value="${esc(a.imp||"")}" style="text-align:left;min-width:150px"></td>
       <td class="num"><input data-at="${i}" data-f="ops" value="${a.ops??1}" inputmode="decimal" style="width:55px"></td>
@@ -35,7 +42,7 @@ function pintarAtividadesCad(){
       <td>${fixo ? "" : `<button class="btn d" data-atrm="${esc(a.cod)}">Remover</button>`}</td></tr>`;
   }).join("");
 
-  $("#t_ativ").innerHTML = th([["Código"],["Etapa"],["Nome"],["Unidade"],["Rendimento",1],
+  $("#t_ativ").innerHTML = th([["Código"],["Etapa"],["Nome"],["Unidade"],["Rendimento (por hora)",1],
     ["Máquina"],["Implemento"],["Operadores",1],["Turnos",1],["Utilização %",1],["Origem"],[""]]) +
     "<tbody>" + linhas + "</tbody>";
 }

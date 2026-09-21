@@ -8,6 +8,7 @@ import { ETAPAS_ORD, arrRat } from './arrendamento.js';
 import { criterioMensal, tarifaTerc } from './atividade.js';
 import { tratCusto } from './insumos.js';
 import { comps, custoPorOperacao } from './custo-operacao.js';
+import { SEM_CONTA, contasValores, totaisContas } from './contas.js';
 import { baseEtapa, custoUnit, premissaBase, rotuloBase } from './base-fisica.js';
 import { reforma } from './reforma.js';
 
@@ -223,24 +224,29 @@ function rastroCorte(R){
    cartão aplica ao ano a parcela do período (fixo pelos meses, variável pelo
    custo) — aqui a mesma conta, para o número bater. */
 function rastroFixoVariavel(R, qual){
-  const S = R.SEL;
-  const fixo = [["Administrativo", R.admT, "nat:admin"], ["Depreciação", R.depT, null], ["Arrendamento", R.arrT, "nat:arrend"]];
+  const S = R.SEL, n = S.meses.length;
+  const somaMes = arr => S.meses.reduce((t,i)=>t+num((arr||[])[i]), 0);
+  // no período, cada parte pela sua série mensal; no ano, os totais do motor
+  const fixo = [["Administrativo", S.parcial ? R.admT*n/NM : R.admT, "nat:admin"],
+                ["Depreciação", S.parcial ? R.depT*n/NM : R.depT, null],
+                ["Arrendamento", S.parcial ? somaMes(R.mesesCat.arrend) : R.arrT, "nat:arrend"]];
   const fixoSet = new Set(["Arrendamento","Administração","Depreciação"]);
-  const f = qual==="fixo" ? S.fracaoDoAno : S.fracaoCusto;
   const itens = qual==="fixo" ? fixo
-    : comps(R).filter(([n])=>!fixoSet.has(n)).map(([n,v])=>[n,v,null]);
-  const tot = qual==="fixo" ? R.fixoT : R.variavel;
+    : S.parcial
+      ? ["mdo","manut","diesel","insumo","terc","espor"].map(k=>[CAT_LBL[k]||k, somaMes(R.mesesCat[k]), null])
+      : comps(R).filter(([n2])=>!fixoSet.has(n2)).map(([n2,v])=>[n2,v,null]);
+  const tot = qual==="fixo" ? S.fixo : S.variavel;
   return {
     titulo: qual==="fixo" ? "Custo fixo" : "Custo variável",
     subtitulo: (S.parcial ? S.rotulo+" · " : "")+(qual==="fixo"
       ? "administrativo, depreciação e arrendamento" : "o que varia com o volume do plano"),
-    valor: brl(tot*f),
+    valor: brl(tot),
     blocos:[
-      {titulo:"Composição"+(S.parcial?" — parcela do período":""), linhas: itens.filter(([,v])=>v>0.5)
-        .sort((a,b)=>b[1]-a[1]).map(([n,v,ir])=>({rot:n, val:brl(v*f), ir:ir||undefined,
+      {titulo:"Composição"+(S.parcial?" no período":""), linhas: itens.filter(([,v])=>v>0.5)
+        .sort((a,b)=>b[1]-a[1]).map(([n2,v,ir])=>({rot:n2, val:brl(v), ir:ir||undefined,
           sub:fmt(tot>0?v/tot*100:0,1)+"% do "+(qual==="fixo"?"fixo":"variável")}))},
-      {titulo:"No custo total", linhas:[{rot:"Peso no custo total", val:fmt(R.total>0?tot/R.total*100:0,1)+"%",
-        ir:"total", sub:brl(R.total)+" no ano"}]},
+      {titulo:"No custo", linhas:[{rot:"Peso no custo"+(S.parcial?" do período":""), val:fmt(S.total>0?tot/S.total*100:0,1)+"%",
+        ir:"total", sub:brl(S.total)+(S.parcial?" no período":" no ano")}]},
     ],
     premissas: premissasGerais(),
     voltar:"total",
@@ -783,40 +789,16 @@ function rastroTPess(R){
 
 /* ---------- plano de contas ---------- */
 function rastroContas(R){
-  const CV = contasValoresRastro(R);
-  const mapeado = CFG.contas.reduce((s,c)=>s+(CV[c.conta]||0),0);
+  const CV = contasValores(R);
+  const {mapeado, semConta} = totaisContas(CV);
   const linhas = CFG.contas.filter(c=>CV[c.conta]>0).sort((a,b)=>CV[b.conta]-CV[a.conta]);
   return {titulo:"Plano de Contas", subtitulo:"Custo projetado mapeado às contas contábeis", valor:brl(mapeado),
     blocos:[{titulo:"Contas com maior valor", linhas: linhas.slice(0,20).map(c=>({rot:c.conta+" · "+c.desc,
-      val:brl(CV[c.conta]), sub:c.grupo}))}],
+      val:brl(CV[c.conta]), sub:c.grupo}))}].concat(semConta>0.5 ? [{titulo:"Sem conta no plano de contas",
+      linhas: Object.entries(SEM_CONTA).filter(([k])=>(CV[k]||0)>0.5).map(([k,rot])=>({rot, val:brl(CV[k])}))}] : []),
     nota:`${CFG.contas.length} contas cadastradas · ${fmt(R.total>0?mapeado/R.total*100:0,0)}% do custo total mapeado.`,
     premissas:premissasGerais()};
 }
-// versão local, sem depender de ui/contas.js (calculo/ não importa de ui/)
-function contasValoresRastro(R){
-  const efet = R.efetivoTotal||0, encTot = R.MP.encTot, benTot = R.MP.benTot;
-  const totalBenef = benTot*efet*NM;
-  const totalBase = (1+encTot)>0 ? (R.mdoTotal-totalBenef)/(1+encTot) : 0;
-  const totalEnc = totalBase*encTot;
-  const encPctNome = nome => (CFG.encargos.find(e=>e.nome.includes(nome))||{pct:0}).pct;
-  const encVal = nome => encTot>0 ? totalEnc*(encPctNome(nome)/encTot) : 0;
-  const benVal = conta => { const b=CFG.beneficios.find(x=>x.conta===conta); return b? b.valor*efet*NM : 0; };
-  const mdoMaq   = R.L.filter(r=>r.a.maq!=="Equipe manual").reduce((s,r)=>s+r.cMDO,0);
-  const mdoManual= R.L.filter(r=>r.a.maq==="Equipe manual").reduce((s,r)=>s+r.cMDO,0);
-  const tc = cod => (R.TC.itens.find(i=>i.cod===cod)||{total:0}).total;
-  return {
-    "200-15": R.mdoIndirT, "200-16": R.mdoManut, "200-17": mdoMaq, "200-18": mdoManual,
-    "200-35": encVal("INSS"), "200-36": encVal("FGTS"),
-    "200-51": benVal("200-51 / 200-52"), "200-53": benVal("200-53"),
-    "200-54": benVal("200-54"), "200-55": benVal("200-55"),
-    "200-72": benVal("200-72 / 200-73"), "200-77": benVal("200-79 / 200-77"),
-    "200-93": R.crmComp.pecas, "200-94": R.crmComp.terc,
-    "200-95": R.crmComp.consumo+R.MT.total, "200-98": R.crmComp.lubrif,
-    "200-110": R.dieselT, "200-124": tc("T02")+tc("T03")+R.tercAtivT, "200-126": tc("T01"), "200-127": R.tpessT,
-    "INS-05": R.irrT, "DEP-01": R.depT, "EST-01": R.admT, "ARR-01": R.arrT,
-  };
-}
-
 /* ---------- hectares operados ---------- */
 function rastroHectares(R){
   const ativs = R.L.filter(r=>r.ehHa && r.total>0).sort((a,b)=>b.total-a.total);

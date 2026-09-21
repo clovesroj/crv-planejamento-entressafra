@@ -10,7 +10,7 @@ import { composicao, etapasNoPlano, tratEtapas, tratListaTodos } from '../calcul
 import { TRAT_ETAPAS } from '../dados/insumos.js';
 import { INSUMO, P, TRAT_NOME, insLista } from '../nucleo/estado.js';
 import { brl, fmt, num, pct } from '../nucleo/formato.js';
-import { CONTA_COMBINADA, contasValores } from '../ui/contas.js';
+import { CONTA_COMBINADA, SEM_CONTA, contasValores, totaisContas } from '../calculo/contas.js';
 import { comps } from '../ui/custos.js';
 import { validar } from '../ui/validacao.js';
 import { custoPorOperacao } from '../calculo/custo-operacao.js';
@@ -399,7 +399,11 @@ const contas = R => { const CV = contasValores(R);
     ["Conta","Descrição","Grupo","Natureza","Classificação","Custo projetado"],
     CFG.contas.map(c=>{ const comb=CONTA_COMBINADA[c.conta];
       return [c.conta, c.desc, c.grupo, c.nat, c.cls,
-        comb?"incluído em "+comb:(CV[c.conta]!=null?brl(CV[c.conta]):"—")];}));
+        comb?"incluído em "+comb:(CV[c.conta]!=null?brl(CV[c.conta]):"—")];})
+    .concat([["","TOTAL MAPEADO ÀS CONTAS","","","", brl(totaisContas(CV).mapeado)]])
+    .concat(Object.entries(SEM_CONTA).filter(([k])=>(CV[k]||0)>0.5)
+      .map(([k,rot])=>["—", rot, "Sem conta", "", "", brl(CV[k])]))
+    .concat([["","TOTAL — CONFERE COM O CUSTO DO PLANO","","","", brl(totaisContas(CV).total)]]));
 };
 
 /* ---------- 18. fluxo de caixa ---------- */

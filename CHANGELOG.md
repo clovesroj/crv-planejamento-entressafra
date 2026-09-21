@@ -1,5 +1,98 @@
 # Histórico de mudanças
 
+## 2.28.0 — 2026-09-21 · Auditoria do cálculo
+
+Auditoria de toda a parte de cálculo, com um plano de teste completo: todas as
+atividades com volume, tratamentos, arrendamentos, esporádico, bases físicas e
+veículos em L/km.
+
+**O que foi conferido e fechou no centavo** — 45 invariantes, em três cenários:
+
+- custo total = variável + fixo = soma dos meses = soma das etapas = soma das
+  grandes contas = safra + entressafra = naturezas = operações (contábil);
+- mês a mês, as grandes contas e as etapas somam o custo do mês;
+- atividades: custo direto = diesel + MDO + CRM + insumos + terceiros; frentes
+  somam a atividade; meses somam diesel, litros e volume;
+- diesel (atividades + apoio, mês a mês, por etapa), CRM (alocado + excedente,
+  componentes, destinos), pessoas = mão de obra, arrendamento (meses, contratos,
+  rateio), administrativo (etapas + sem base), insumos, irrigação, terceiros,
+  transporte e matéria-prima.
+
+Também: as 29 abas renderizam sem `NaN`, `undefined` ou `Infinity`; os 122
+detalhamentos abrem; os 126 relatórios geram com toda linha do tamanho do
+cabeçalho. Com o plano vazio também. Premissas propagam exatamente o efeito
+esperado: diesel +10%, preço de insumos, consumo L/km, arrendamento,
+esporádico e administrativo. Base física não muda custo, só o unitário.
+
+### Corrigido
+
+**Plano de Contas não fechava com o custo total.** No plano de teste somava
+R$ 157,0 mi para R$ 217,8 mi de custo. Três defeitos:
+
+- **Insumos agronômicos não caíam em conta nenhuma** (R$ 77 mi). Agora entram
+  pela família do produto: herbicidas INS-01; inseticidas, fungicidas e
+  biológicos INS-02; fertilizantes e corretivos INS-03; foliares,
+  micronutrientes e bioestimulantes INS-04.
+- **Mão de obra entrava duas vezes.** As contas de salário recebiam o custo
+  cheio e os benefícios eram somados de novo à parte (R$ 18 mi), estimados por
+  efetivo × 12 meses; os encargos, por subtração, saíam negativos. Agora o custo
+  de cada função se abre pela sua composição: salário-base e provisões (13º,
+  férias, aviso) na conta de salário do grupo; INSS, RAT e Terceiros na 200-35;
+  FGTS na 200-36; cada benefício na sua conta. O MDO dos equipamentos de apoio,
+  que não tinha conta, vai para 200-17.
+- A lógica existia **em duas cópias** (tela e rastro). Agora mora num lugar só,
+  `calculo/contas.js`, lido pela aba, pelo relatório, pelo rastro e pela
+  Validação.
+
+O que não tem conta no plano — reguladores, adjuvantes, **produtos sem classe
+agronômica** e esporádicos — aparece numa linha "Sem conta" no fim da aba. A
+soma sempre fecha com o custo total. A maior parte é insumo antigo sem classe:
+basta escolher o Grupo do produto na aba Insumos para ele ir para a conta certa.
+
+**Custo variável + custo fixo não davam o total com o filtro de período.**
+Com "Safra" na barra de cima, os cartões da aba Custos mostravam variável +
+fixo R$ 6,3 mi abaixo do total (acima na entressafra). O variável era uma
+fração proporcional do ano, mas o custo não cai proporcional. Agora sai da
+série mensal: fixo = administrativo + depreciação + arrendamento nos meses do
+período, variável = total − fixo. O detalhamento dos dois cartões segue a
+mesma conta.
+
+### Novos avisos na Validação
+
+- As conferências principais da auditoria rodam a cada recálculo: grandes
+  contas, safra + entressafra, diesel mês a mês, CRM, pessoas = MDO,
+  operações = total.
+- **Todo custo tem conta no plano de contas** — pendente enquanto houver valor
+  na linha "Sem conta".
+- **Transporte de pessoal contado uma vez só** — o benefício "Transporte de
+  pessoal" (R$ 340/pessoa/mês, dentro do custo de toda função) e as rotas da aba
+  Transporte de Pessoal vão para a mesma conta 200-127. Se forem o mesmo
+  ônibus, o custo está em dobro. A decisão é da usina; o sistema só avisa.
+
+### Para decidir — mão de obra direta
+
+O custo de MDO das atividades é cobrado por **hora de máquina**, a salário
+mensal ÷ 403 h (24 dias × 16,8 h da máquina), e **não multiplica pelos
+turnos**. O efetivo, por sua vez, conta frota × operadores × turnos. No plano
+de teste, a MDO direta sai R$ 7,4 mi, e as mesmas pessoas do efetivo, pelos
+meses em que trabalham, custariam R$ 27,4 mi (3,7×). Não foi alterado: muda
+milhões no total e depende de como a usina contrata (por mês ou por hora
+produtiva).
+
+## 2.27.1 — 2026-09-21 · Unidade do Cadastro de Atividades em ha/h e ton/h
+
+No Cadastro de Atividades, a coluna **Unidade** mostrava "ha/mês" e "ton/mês"
+ao lado do **Rendimento**, que é por hora (colheita 45 t/h, gradagem 0,7 ha/h).
+Agora mostra **ha/h** e **ton/h**, e a coluna se chama "Rendimento (por hora)".
+O seletor das atividades criadas pelo usuário também oferece ha/h e ton/h.
+
+O dado guardado não muda. A atividade continua registrando a unidade do volume
+lançado **por mês** no Plano Operacional — lá, ao lado dos meses, "ha/mês" é a
+unidade certa. O sistema só lê a parte "ha" ou "ton", então custos, documentos
+salvos e demais telas ficam como estavam. As outras telas que mostram
+rendimento (Dimensionamento, Acompanhamento, metas, critério por mês) já usavam
+"/h".
+
 ## 2.27.0 — 2026-09-21 · Consumo de diesel em L/h ou L/km
 
 A tabela **Consumo por equipamento** da aba Combustível agora é editável:
