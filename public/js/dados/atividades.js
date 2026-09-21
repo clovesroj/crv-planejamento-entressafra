@@ -20,8 +20,10 @@
    sabe que tem atividade nova para receber (calculo/atividade.js mescla na
    leitura, mesmo mecanismo de INSUMOS_V/mesclarBaseInsumos).
      1  cadastro base, 48 atividades (44 originais + A40-A43 da importacao
-        de herbicida) — ponto de partida da aba Cadastro de Atividades */
-export const ATIVIDADES_V = 1;
+        de herbicida) — ponto de partida da aba Cadastro de Atividades
+     2  A44-A53, Controle Fitossanitario (Broca e Cigarrinha) da planilha
+        Plano Inseticida — 58 atividades no total */
+export const ATIVIDADES_V = 2;
 
 export const ATIVIDADES = [
   {"cod":"A01","etapa":"COLHEITA","nome":"Colheita safra 2026","un":"ton/mês","rend":45,"maq":"Colhedora CH570 / John Deere","imp":"Transbordo 2 eixos","ops":1,"turnos":3,"util":1},
@@ -80,5 +82,22 @@ export const ATIVIDADES = [
   {"cod":"A40","etapa":"TRATOS CULTURAIS","nome":"Bordaduras cana planta (reforço)","un":"ha/mês","rend":1.2,"maq":"Quadriciclo","imp":"Pulverizador costal pressurizado","ops":1,"turnos":1,"util":0.6,"modoOn":true,"cultura":"Planta"},
   {"cod":"A41","etapa":"TRATOS CULTURAIS","nome":"Catação canto de árvores","un":"ha/mês","rend":0.8,"maq":"Equipe manual","imp":"Pulverizador costal","ops":0,"turnos":1,"util":0.8,"modoOn":true,"cultura":"Soca"},
   {"cod":"A42","etapa":"TRATOS CULTURAIS","nome":"Catação folha larga (drone)","un":"ha/mês","rend":1,"maq":"Aeronave / Drone (terceiro)","imp":"----","ops":0,"turnos":1,"util":1,"modoOn":true,"cultura":"Soca"},
-  {"cod":"A43","etapa":"TRATOS CULTURAIS","nome":"Aplicação pós-emergência pontual (drone)","un":"ha/mês","rend":1,"maq":"Aeronave / Drone (terceiro)","imp":"----","ops":0,"turnos":1,"util":1,"modoOn":true,"cultura":"Soca"}
+  {"cod":"A43","etapa":"TRATOS CULTURAIS","nome":"Aplicação pós-emergência pontual (drone)","un":"ha/mês","rend":1,"maq":"Aeronave / Drone (terceiro)","imp":"----","ops":0,"turnos":1,"util":1,"modoOn":true,"cultura":"Soca"},
+  /* A44-A53: Controle Fitossanitário (Broca e Cigarrinha), da planilha
+     "Planejamento Safra 2026" aba "Plano Inseticida". rend/maq/imp são
+     estimativa a partir da atividade de aplicação de inseticida mais
+     parecida (A20/A21/A42) — a planilha de origem só dá dose e área, não
+     rendimento operacional. modos/modoOn liberam o mix de execução; a
+     tarifa de terceiro (R$/ha aéreo e terrestre da planilha) é dado de
+     plano, não de cadastro, e entra em TERC_TAR por safra. */
+  {"cod":"A44","etapa":"TRATOS CULTURAIS","nome":"Broca 1ª Cana Planta","un":"ha/mês","rend":2.5,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"modoOn":true,"cultura":"Planta"},
+  {"cod":"A45","etapa":"TRATOS CULTURAIS","nome":"Broca 2ª Cana Planta","un":"ha/mês","rend":2.5,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"modoOn":true,"cultura":"Planta"},
+  {"cod":"A46","etapa":"TRATOS CULTURAIS","nome":"Broca 1ª Soca Muda","un":"ha/mês","rend":2.5,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"modoOn":true,"cultura":"Planta"},
+  {"cod":"A47","etapa":"TRATOS CULTURAIS","nome":"Broca 2ª Soca Muda","un":"ha/mês","rend":2.5,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"modoOn":true,"cultura":"Planta"},
+  {"cod":"A48","etapa":"TRATOS CULTURAIS","nome":"Broca 1ª Aplicação Soca Moagem","un":"ha/mês","rend":2.5,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"modoOn":true,"cultura":"Soca"},
+  {"cod":"A49","etapa":"TRATOS CULTURAIS","nome":"Broca 2ª Aplicação Soca Moagem","un":"ha/mês","rend":2.5,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"modoOn":true,"cultura":"Soca"},
+  {"cod":"A50","etapa":"TRATOS CULTURAIS","nome":"Cigarrinha 1ª Aplicação Terrestre","un":"ha/mês","rend":2.5,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"modoOn":true,"modos":["Trator","Terceiro"],"cultura":"Soca"},
+  {"cod":"A51","etapa":"TRATOS CULTURAIS","nome":"Cigarrinha 2ª Aplicação Terrestre","un":"ha/mês","rend":2.5,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"modoOn":true,"modos":["Trator","Terceiro"],"cultura":"Soca"},
+  {"cod":"A52","etapa":"TRATOS CULTURAIS","nome":"Cigarrinha 1ª Aplicação Aérea","un":"ha/mês","rend":1,"maq":"Aeronave / Drone (terceiro)","imp":"----","ops":0,"turnos":1,"util":1,"modoOn":true,"modos":["Drone","Terceiro"],"cultura":"Soca"},
+  {"cod":"A53","etapa":"TRATOS CULTURAIS","nome":"Cigarrinha 2ª Aplicação Aérea","un":"ha/mês","rend":1,"maq":"Aeronave / Drone (terceiro)","imp":"----","ops":0,"turnos":1,"util":1,"modoOn":true,"modos":["Drone","Terceiro"],"cultura":"Soca"}
 ];
