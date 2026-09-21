@@ -13,8 +13,8 @@ export const IRR_TEC = {
   "Fertirrigação localizada socaria": ["Gotejamento subsuperficial",0.92,0.9,15,5,20,12,1],
   "Fertirrigação localizada plantio": ["Gotejamento subsuperficial",0.92,0.9,12,5,20,12,1],
   "Irrigação convencional plantio": ["Aspersão convencional (canhão hidráulico)",0.75,0.82,25,7,16,32,15],
-  "Irrigação localizada socaria": ["Gotejamento superficial",0.92,0.9,15,6,20,12,1],
-  "Irrigação localizada plantio": ["Gotejamento superficial",0.92,0.9,12,5,20,12,1]
+  "Irrigação localizada socaria": ["Aspersão localizada",0.92,0.9,15,6,20,12,1],
+  "Irrigação localizada plantio": ["Aspersão localizada",0.92,0.9,12,5,20,12,1]
 };
 
 export const IRR_CUSTOS = {

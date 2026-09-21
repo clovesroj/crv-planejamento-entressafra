@@ -1,4 +1,5 @@
 import { CFG } from '../dados/cfg.js';
+import { custoPorOperacao } from '../calculo/custo-operacao.js';
 import { CAT_LBL, MESES, clsMes, perTag } from '../nucleo/calendario.js';
 import { ESPOR, P } from '../nucleo/estado.js';
 import { $, brl, fmt } from '../nucleo/formato.js';
@@ -18,8 +19,94 @@ const NAT_RASTRO = {"Combustível (diesel)":"diesel","Mão de obra direta":"mdo"
   "Insumos agronômicos":"insumo","Terceirização de aplicações":"terc","Arrendamento":"arrend",
   "Administração":"admin"};
 
+/* ---------- custo operacional x custo contábil ----------
+   Duas páginas sobre as mesmas operações: o que custa fazer (operacional) e o
+   que a operação carrega com os rateios (contábil). O cálculo mora em
+   calculo/custo-operacao.js; aqui só se desenha. */
+const unit = (v, b) => b.q>0 ? brl(v/b.q,2)+"/"+b.un : "—";
+function pintarOperacional(R){
+  const C = custoPorOperacao(R);
+  const P4 = C.principais, OUT = C.outras;
+  const somaP = f => C.soma(P4, f);
+  const anoTodo = R.SEL.parcial ? " · ano todo" : "";
+
+  $("#k_oper").innerHTML = P4.map((l,k)=>kpi(l.nome, ["","t","g","a"][k%4], brl(l.oper.total),
+    unit(l.oper.total, l.base)+anoTodo)).join("");
+
+  const COLS = [["diesel","Diesel"],["mdo","Mão de obra"],["manut","Manutenção (CRM)"],["insumo","Insumos"],
+                ["irrig","Irrigação"],["terc","Terceirização"]];
+  const totOperPlano = C.totalOper || 1;
+  const linhaOper = (l, cls) => `<tr${cls?` class="${cls}"`:""}><td>${l.nome}</td>
+      <td class="num calc">${fmt(l.base.q)} ${l.base.un}</td>
+      ${COLS.map(([k])=>`<td class="num calc">${l.oper[k]?brl(l.oper[k]):"—"}</td>`).join("")}
+      <td class="num tot">${brl(l.oper.total)}</td>
+      <td class="num tot">${unit(l.oper.total, l.base)}</td>
+      <td class="num calc">${fmt(l.oper.total/totOperPlano*100,1)}%</td></tr>`;
+  $("#t_oper").innerHTML = th([["Operação"],["Base física",1],...COLS.map(([,n])=>[n,1]),
+    ["Custo operacional",1],["Custo unitário",1],["% do operacional",1]])+"<tbody>"+
+    (P4.length ? P4.map(l=>linhaOper(l)).join("")
+      : `<tr><td colspan="${COLS.length+5}" class="calc">Sem custo: lance quantidades no Plano Operacional.</td></tr>`)+
+    `<tr><td class="tot">SUBTOTAL DAS QUATRO OPERAÇÕES</td><td></td>
+      ${COLS.map(([k])=>`<td class="num tot">${brl(somaP(l=>l.oper[k]))}</td>`).join("")}
+      <td class="num tot">${brl(somaP(l=>l.oper.total))}</td><td></td>
+      <td class="num tot">${fmt(somaP(l=>l.oper.total)/totOperPlano*100,1)}%</td></tr>`+
+    (OUT.length ? `<tr class="stage"><td colspan="${COLS.length+5}">Outras etapas do plano</td></tr>`+
+      OUT.map(l=>linhaOper(l,"sub")).join("") : "")+
+    `<tr><td class="tot">TOTAL OPERACIONAL DO PLANO</td><td></td>
+      ${COLS.map(([k])=>`<td class="num tot">${brl(C.soma(P4.concat(OUT), l=>l.oper[k]))}</td>`).join("")}
+      <td class="num tot">${brl(C.totalOper)}</td><td></td><td class="num tot">100,0%</td></tr></tbody>`;
+  $("#oper_nota").textContent = R.SEL.parcial ? "Valores do ano todo — o filtro de período da barra de cima não recorta esta página." : "";
+}
+
+function pintarContabil(R){
+  const C = custoPorOperacao(R);
+  const P4 = C.principais, OUT = C.outras;
+  const anoTodo = R.SEL.parcial ? " · ano todo" : "";
+
+  $("#k_contabil").innerHTML = P4.map((l,k)=>kpi(l.nome, ["","t","g","a"][k%4], brl(l.contabil),
+    unit(l.contabil, l.base)+" · rateios "+(l.oper.total>0?"+"+fmt(l.rateio.total/l.oper.total*100,0)+"%":"—")+anoTodo)).join("");
+
+  const RAT = [["apoio","Diesel do apoio"],["arrend","Arrendamento"],["admin","Administrativo"],
+               ["deprec","Depreciação"],["gerais","Demais custos gerais"]];
+  const tot = R.total || 1;
+  const linha = (l, cls) => { const pOper = l.contabil>0 ? l.oper.total/l.contabil*100 : 0;
+    const rastro = l.cultura ? "" : ` data-rastro="etapa:${l.etapa}" title="Clique para ver a composição da etapa"`;
+    return `<tr${cls?` class="${cls}"`:""}><td>${l.nome}</td>
+      <td class="num">${brl(l.oper.total)}</td>
+      ${RAT.map(([k])=>`<td class="num calc">${l.rateio[k]?brl(l.rateio[k]):"—"}</td>`).join("")}
+      <td class="num">${brl(l.rateio.total)}</td>
+      <td class="num tot"${rastro}>${brl(l.contabil)}</td>
+      <td class="num tot">${unit(l.contabil, l.base)}</td>
+      <td class="num calc">${l.oper.total>0?"+"+fmt(l.rateio.total/l.oper.total*100,1)+"%":"—"}</td>
+      <td class="num calc">${fmt(l.contabil/tot*100,1)}%</td>
+      <td title="${fmt(pOper,0)}% operacional · ${fmt(100-pOper,0)}% rateios"><div class="bar"><i style="width:${Math.min(pOper,100)}%"></i></div></td></tr>`; };
+  const somaLinha = (lista, rot) => `<tr><td class="tot">${rot}</td>
+      <td class="num tot">${brl(C.soma(lista,l=>l.oper.total))}</td>
+      ${RAT.map(([k])=>`<td class="num tot">${brl(C.soma(lista,l=>l.rateio[k]))}</td>`).join("")}
+      <td class="num tot">${brl(C.soma(lista,l=>l.rateio.total))}</td>
+      <td class="num tot">${brl(C.soma(lista,l=>l.contabil))}</td><td></td>
+      <td class="num tot">${(()=>{ const o=C.soma(lista,l=>l.oper.total); return o>0?"+"+fmt(C.soma(lista,l=>l.rateio.total)/o*100,1)+"%":"—"; })()}</td>
+      <td class="num tot">${fmt(C.soma(lista,l=>l.contabil)/tot*100,1)}%</td><td></td></tr>`;
+  $("#t_contabil").innerHTML = th([["Operação"],["Custo operacional",1],...RAT.map(([,n])=>[n,1]),
+    ["Total de rateios",1],["Custo contábil",1],["Custo unitário",1],["Rateio sobre o operacional",1],
+    ["% do custo total",1],["Operacional × rateio"]])+"<tbody>"+
+    (P4.length ? P4.map(l=>linha(l)).join("")
+      : `<tr><td colspan="${RAT.length+8}" class="calc">Sem custo: lance quantidades no Plano Operacional.</td></tr>`)+
+    somaLinha(P4, "SUBTOTAL DAS QUATRO OPERAÇÕES")+
+    (OUT.length ? `<tr class="stage"><td colspan="${RAT.length+8}">Outras etapas do plano</td></tr>`+
+      OUT.map(l=>linha(l,"sub")).join("") : "")+
+    somaLinha(P4.concat(OUT), "CUSTO TOTAL DO PLANO")+"</tbody>";
+
+  // a soma das operações é o custo do plano; se não fechar, dizer o quanto e por quê
+  $("#contabil_nota").textContent =
+    (Math.abs(C.diferenca)>1 ? `Custos gerais sem nenhuma operação com custo direto para absorvê-los (${brl(C.diferenca)}) ficam fora desta tabela. ` : "")+
+    (R.SEL.parcial ? "Valores do ano todo — o filtro de período da barra de cima não recorta esta página." : "");
+}
+
 function pintarCustos(R){
   const ha=P.plantio||1;
+  pintarOperacional(R);
+  pintarContabil(R);
   $("#k_custo").innerHTML =
     kpi("Custo total","",brl(R.SEL.total), R.SEL.parcial?R.SEL.rotulo:"","total") +
     kpi("Custo variável","t",brl(R.variavel*R.SEL.fracaoCusto), R.SEL.parcial?R.SEL.rotulo:"","total") +
@@ -79,8 +166,9 @@ function pintarCustos(R){
 
   const etapasOrd = Object.entries(R.etapas).sort((a,b)=>b[1].total-a[1].total);
   const totalEtapas = etapasOrd.reduce((s,[,d])=>s+d.total,0)||1;
+  const OPS = Object.fromEntries(custoPorOperacao(R).principais.map(l=>[l.id, l]));
   $("#t_unit").innerHTML = th([["Etapa"],["Diesel",1],["Mão de obra",1],["Manutenção",1],["Insumos",1],
-    ["Terceirização",1],["Arrendamento",1],["Indireto",1],["Total",1],["% do total",1],["Base física",1],["Custo unitário",1]])+"<tbody>"+
+    ["Terceirização",1],["Arrendamento",1],["Administrativo",1],["Indireto",1],["Total",1],["% do total",1],["Base física",1],["Custo unitário",1]])+"<tbody>"+
     etapasOrd.map(([e,d])=>{
       const base=d.ha>0?d.ha:d.ton, un=d.ha>0?"ha":"t";
       const pp = d.total/totalEtapas*100;
@@ -88,19 +176,23 @@ function pintarCustos(R){
         <td class="num calc">${brl(d.diesel)}</td><td class="num calc">${brl(d.mdo)}</td>
         <td class="num calc">${brl(d.manut)}</td>
         <td class="num calc">${brl(d.insumo+(d.irrig||0))}</td><td class="num calc">${brl(d.terc)}</td>
-        <td class="num calc">${brl(d.arrend)}</td><td class="num calc">${brl(d.indireto)}</td>
+        <td class="num calc">${brl(d.arrend)}</td><td class="num calc">${brl(d.admin||0)}</td>
+        <td class="num calc">${brl(d.indireto)}</td>
         <td class="num tot" data-rastro="etapa:${e}" title="Clique para ver a composição da etapa">${brl(d.total)}</td>
         <td class="num calc">${fmt(pp,1)}%</td>
         <td class="num calc">${fmt(base)} ${un}</td>
         <td class="num tot">${base>0?brl(d.total/base,2)+"/"+un:"—"}</td></tr>`;
+      // planta x soca com a irrigação de cada cultura: a divisão antiga deixava a
+      // irrigação de fora, e as duas linhas somavam menos que a etapa
       if(e==="TRATOS CULTURAIS"){
-        ["Soca","Planta"].forEach(c=>{const x=R.tratosCult[c];
+        [["soca","Soca"],["planta","Planta"]].forEach(([id,c])=>{const x=OPS[id]; if(!x) return;
           h += `<tr class="sub"><td class="calc">↳ Cana ${c.toLowerCase()}</td>
             <td colspan="5"></td>
-            <td class="num calc">${brl(x.arrend)}</td><td class="num calc">${brl(x.indireto)}</td>
-            <td class="num calc">${brl(x.total)}</td><td></td>
-            <td class="num calc">${fmt(x.ha)} ha</td>
-            <td class="num calc">${x.ha>0?brl(x.total/x.ha,2)+"/ha":"—"}</td></tr>`;});
+            <td class="num calc">${brl(x.rateio.arrend)}</td><td class="num calc">${brl(x.rateio.admin)}</td>
+            <td class="num calc">${brl(x.rateio.deprec+x.rateio.gerais)}</td>
+            <td class="num calc">${brl(x.contabil)}</td><td></td>
+            <td class="num calc">${fmt(x.base.q)} ${x.base.un}</td>
+            <td class="num calc">${x.base.q>0?brl(x.contabil/x.base.q,2)+"/"+x.base.un:"—"}</td></tr>`;});
       }
       return h;}).join("")+
     `<tr><td class="tot">TOTAL</td>
@@ -110,6 +202,7 @@ function pintarCustos(R){
      <td class="num tot">${brl(etapasOrd.reduce((s,[,d])=>s+d.insumo+(d.irrig||0),0))}</td>
      <td class="num tot">${brl(etapasOrd.reduce((s,[,d])=>s+d.terc,0))}</td>
      <td class="num tot">${brl(etapasOrd.reduce((s,[,d])=>s+d.arrend,0))}</td>
+     <td class="num tot">${brl(etapasOrd.reduce((s,[,d])=>s+(d.admin||0),0))}</td>
      <td class="num tot">${brl(etapasOrd.reduce((s,[,d])=>s+d.indireto,0))}</td>
      <td class="num tot">${brl(totalEtapas)}</td><td class="num tot">100,0%</td><td colspan="2"></td></tr></tbody>`;
 
