@@ -1,6 +1,6 @@
 import { CFG } from '../dados/cfg.js';
 import { CLASSES_GRUPO, FAMILIAS_INSUMO, TRAT_ETAPAS } from '../dados/insumos.js';
-import { FAM_CLASSE, FAM_NOME, INSUMO, P, PLANO, TRATC, TRAT_DEL, TRAT_ETAPA, TRAT_NOME, insLista, gruposInsLista, atividadesLista } from '../nucleo/estado.js';
+import { FAM_CLASSE, FAM_NOME, INSUMO, P, PLANO, TRATC, TRAT_DEL, TRAT_ETAPA, TRAT_NOME, TRAT_OBS, insLista, gruposInsLista, atividadesLista } from '../nucleo/estado.js';
 import { num } from '../nucleo/formato.js';
 import { fatorParaBase } from '../nucleo/unidades.js';
 
@@ -273,6 +273,20 @@ function renomearTrat(de, para){
   Object.values(PLANO).forEach(p=>{ if(p.trat===de) p.trat = novo; });
   return true;
 }
+/* Duplicar: ponto de partida pra um tratamento parecido, sem recomeçar do
+   zero nem mexer no original. Leva composição, nome (marcado "cópia") e
+   observação; não leva etapa marcada nem atividade vinculada — a cópia
+   nasce solta, porque servir a mesma atividade do original é decisão de
+   quem duplicou, não algo pra herdar sozinho. */
+function duplicarTrat(de, para){
+  const novo = String(para||"").trim();
+  if(!novo || novo===de || !codigoTratValido(novo) || tratCodigos().includes(novo)) return false;
+  TRATC[novo] = composicao(de).map(l=>({...l}));
+  const nomeBase = TRAT_NOME[de] || de;
+  TRAT_NOME[novo] = `${nomeBase} (cópia)`;
+  if(TRAT_OBS[de]) TRAT_OBS[novo] = TRAT_OBS[de];
+  return true;
+}
 /** Dose de uma linha de composição, convertida pra unidade do cadastro do
     insumo — a que o preço usa (precoInsumo). É o que permite dosar em kg/ha
     um produto comprado em ton (ou g/ha, ml/ha...) sem mexer no preço nem na
@@ -328,7 +342,7 @@ function volumeDemandado(L){
 }
 
 
-export { _tratCache, _tratKey, codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, doseBase, etapaTrat, etapasNoPlano, familiaDe,
+export { _tratCache, _tratKey, codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, doseBase, duplicarTrat, etapaTrat, etapasNoPlano, familiaDe,
   familiaDoInsumo, insumosPorFamilia, mesclarBaseInsumos,
   marcarEtapa, precoInsumo, removerGrupoInsumo, removerTrat, renomearGrupoInsumo, renomearTrat, setClasseGrupo, todasFamilias, tratCodigos, tratCusto, tratEtapas,
   tratLista, tratListaTodos, tratTabela, usosTrat, volumeDemandado };

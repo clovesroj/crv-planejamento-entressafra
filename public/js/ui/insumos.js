@@ -240,7 +240,8 @@ function pintarInsumos(R){
         <td>${TRATC[t.cod]?'<span class="badge b-warn">ajustado</span>':'<span class="badge b-ok">original</span>'}</td>
         <td class="calc">${usos.length?usos.map(u=>u.a.cod).join(", "):"—"}</td>
         <td class="num ${areaT?"tot":"calc"}">${areaT?brl(areaT*t.custo_ha):"—"}</td>
-        <td><button class="btn d" data-trrm="${esc(t.cod)}">Remover</button></td></tr>`;}).join("")+
+        <td><button class="btn" data-trdup="${esc(t.cod)}" title="Criar uma cópia deste tratamento para ajustar">Duplicar</button>
+            <button class="btn d" data-trrm="${esc(t.cod)}">Remover</button></td></tr>`;}).join("")+
     "</tbody>";
 
   // --- 4. materiais ---

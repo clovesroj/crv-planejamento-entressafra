@@ -1,6 +1,6 @@
 import { ETAPAS_ORD, PAG_LIVRE, mesesPag } from '../calculo/arrendamento.js';
 import { AG_SEM_FROTA, FROTA_AG, FROTA_ESP, SEP_MOD, crmDe, espDe } from '../calculo/crm.js';
-import { codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, marcarEtapa, mesclarBaseInsumos, removerGrupoInsumo, removerTrat,
+import { codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, duplicarTrat, marcarEtapa, mesclarBaseInsumos, removerGrupoInsumo, removerTrat,
   renomearGrupoInsumo, renomearTrat, setClasseGrupo, todasFamilias, tratCodigos, usosTrat } from '../calculo/insumos.js';
 import { codigoAtividadeValido, criarAtividade, removerAtividade } from '../calculo/atividade.js';
 import { CFG } from '../dados/cfg.js';
@@ -420,6 +420,13 @@ document.addEventListener("click",e=>{
     if(!confirm(`Remover "${l.forn}" dos fornecedores?`)) return;
     fornLista().splice(+t.dataset.fnrm,1); salvar(); render(); return; }
   if(t.dataset.tr!==undefined){ const c=destravar(TRAT_SEL); c.splice(+t.dataset.tr,1); salvar(); render(); return; }
+  if(t.dataset.trdup!==undefined){ const de=t.dataset.trdup;
+    const novo = prompt(`Código do tratamento duplicado a partir de "${de}":`, `${de} (cópia)`);
+    if(!novo) return;
+    if(!codigoTratValido(novo.trim())){ alert(MSG_COD_TRAT); return; }
+    if(!duplicarTrat(de, novo.trim())){ alert(`Já existe um tratamento com o código "${novo.trim()}".`); return; }
+    setTRAT_SEL(novo.trim());
+    salvar(true); render(); return; }
   if(t.dataset.trrm!==undefined){ const cod=t.dataset.trrm, usos=usosTrat(cod);
     if(!confirm(usos.length
       ? `Remover o tratamento "${cod}"? As atividades ${usos.join(", ")} ficam sem tratamento.`
