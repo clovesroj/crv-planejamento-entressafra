@@ -51,6 +51,7 @@
     <div class="navgroup" data-g="Agricultura">
       <div class="gl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21V4"/><path d="M12 9.5C9 9.5 6.5 7.5 5.5 4.5c3 0 5.5 2 6.5 5z"/><path d="M12 14.5c3 0 5.5-2 6.5-5-3 0-5.5 2-6.5 5z"/><path d="M8.5 21h7"/></svg>Agricultura</div>
       <button data-s="insumos">Insumos</button>
+      <button data-s="fito">Controle Fitossanitário</button>
       <button data-s="irrig">Irrigação</button>
       <button data-s="forn">Fornecedores de Cana</button>
     </div>
@@ -576,6 +577,33 @@
     <div class="tblwrap"><table id="t_mat"></table></div>
     <div class="row" style="margin-top:10px"><button class="btn p" id="btn_mat_add">Adicionar material</button></div>
     <div class="hint" style="margin-top:9px">Lista livre — inclua qualquer material projetado além dos padrões.</div></div>
+</section>
+
+<!-- ===== CONTROLE FITOSSANITÁRIO ===== -->
+<section id="fito">
+  <h2>Controle Fitossanitário</h2>
+  <p class="lead">Broca e Cigarrinha, separado do resto do Plano Operacional. Área e tratamento de cada onda se
+  lançam no <b>Plano Operacional</b> (atividades A44 a A53); dose e produto, na aba <b>Insumos</b>. Esta tela só
+  soma o que cada praga custa — volume e valor de insumo, e o serviço de terceiro (aéreo ou terrestre) — do
+  jeito que a planilha "Plano Inseticida" resume no fim.</p>
+  <div class="grid g4" id="k_fito" style="margin-bottom:16px"></div>
+
+  <div class="panel"><h3>Broca</h3>
+    <div class="tblwrap"><table id="t_fito_broca"></table></div></div>
+
+  <div class="panel"><h3>Cigarrinha</h3>
+    <div class="tblwrap"><table id="t_fito_cig"></table></div>
+    <div class="hint" style="margin-top:9px">A receita de cada onda é uma média ponderada pela área entre os
+    produtos que a planilha de origem usa nessa rodada (Curbix, Actara, Sperto, Reporth) — o custo total bate
+    com a planilha, mas não reproduz qual produto foi usado em qual talhão especificamente.</div></div>
+
+  <div class="panel"><h3>Resumo de Insumos</h3>
+    <div class="tblwrap"><table id="t_fito_resumo"></table></div>
+    <div class="hint" style="margin-top:9px">Volume necessário = dose × área lançada no ano, somado entre Broca
+    e Cigarrinha. Estoque e preço vêm do cadastro de insumos — ajuste lá se mudar.</div></div>
+
+  <div class="panel"><h3>Serviços de Terceiros</h3>
+    <div class="tblwrap"><table id="t_fito_terc"></table></div></div>
 </section>
 
 <!-- ===== CONFIGURAÇÕES ===== -->
