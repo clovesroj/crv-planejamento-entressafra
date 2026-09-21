@@ -1,3 +1,5 @@
+import { custoPorOperacao } from '../calculo/custo-operacao.js';
+import { benVal } from '../calculo/mao-de-obra.js';
 import { PREMISSAS_BASE, premissaBase } from '../calculo/base-fisica.js';
 import { ETAPAS_ORD, arrRat } from '../calculo/arrendamento.js';
 import { CFG } from '../dados/cfg.js';
@@ -8,7 +10,7 @@ import { DIM, INSUMO, P, insLista } from '../nucleo/estado.js';
 import { MESES, NM, diasNoMesEntre, mesesEntre } from '../nucleo/calendario.js';
 import { $, brl, fmt, num } from '../nucleo/formato.js';
 import { th } from './componentes.js';
-import { contasValores } from './contas.js';
+import { contasValores, totaisContas } from '../calculo/contas.js';
 import { estado } from '../io/persistencia.js';
 import { areasDePermissao } from '../nucleo/sessao.js';
 
@@ -131,9 +133,39 @@ function validar(R){
   add(Math.abs(somaEt-R.total)<1,"Soma das etapas confere com o total",brl(somaEt));
   // mesma conferência para o Plano de Contas: custo lançado duas vezes em contas
   // diferentes, ou custo que não chega a conta nenhuma, aparece aqui
-  const somaContas=Object.values(contasValores(R)).reduce((s,x)=>s+(num(x)||0),0);
-  add(Math.abs(somaContas-R.total)<1,"Plano de Contas confere com o total",
-      brl(somaContas)+(R.total>0?" — "+fmt(somaContas/R.total*100,1)+"% do custo total":""));
+  /* Auditoria do cálculo: cada total tem de fechar com as suas partes. Rodam
+     a cada recálculo, então qualquer mudança que desalinhe o motor aparece
+     aqui. Com o plano vazio não há etapa para receber os custos gerais, e as
+     que dependem disso só rodam quando há custo direto. */
+  const somaA = a => (a||[]).reduce((t,x)=>t+(+x||0),0);
+  const temDireto = R.diretoSum>0.5;
+  add(Math.abs(Object.values(R.mesesCat).reduce((t,a)=>t+somaA(a),0)-R.total)<1,
+      "Auditoria: grandes contas somam o custo total", brl(Object.values(R.mesesCat).reduce((t,a)=>t+somaA(a),0)));
+  add(Math.abs(R.PER.safra.total+R.PER.entressafra.total-R.total)<1,
+      "Auditoria: safra + entressafra somam o custo total", brl(R.PER.safra.total+R.PER.entressafra.total));
+  const dieselMes = somaA(R.CB.custoOperMes)+somaA(R.CB.custoApoioMes);
+  add(Math.abs(dieselMes-R.dieselT)<1, "Auditoria: diesel mês a mês soma o diesel do ano", brl(dieselMes));
+  const crmAloc = R.L.reduce((t,r)=>t+r.cManut,0)+R.AE.manut+R.crmExtra;
+  add(Math.abs(crmAloc-R.crmTotal)<1, "Auditoria: CRM alocado às atividades + excedente = CRM da frota", brl(crmAloc));
+  if(R.PS) add(Math.abs(R.PS.custo-R.mdoTotal)<1, "Auditoria: custo do Resumo de Pessoas = mão de obra do plano", brl(R.PS.custo));
+  if(temDireto){
+    const opTot = custoPorOperacao(R).totalContabil;
+    add(Math.abs(opTot-R.total)<1, "Auditoria: custo contábil das operações soma o custo total", brl(opTot));
+  }
+  const TC_ = totaisContas(contasValores(R));
+  add(Math.abs(TC_.total-R.total)<1,"Plano de Contas confere com o total",
+      brl(TC_.total)+(R.total>0?" — "+fmt(TC_.total/R.total*100,1)+"% do custo total":""));
+  add(TC_.semConta<0.5,"Todo custo tem conta no plano de contas",
+      TC_.semConta>0.5 ? brl(TC_.semConta)+" sem conta — veja o fim da aba Plano de Contas" : "");
+  /* Transporte de pessoal nas duas pontas: como benefício dentro do custo de
+     toda função e como rotas na aba Transporte de Pessoal. Se forem os mesmos
+     ônibus, o custo está contado duas vezes; se o benefício é vale-transporte
+     de quem não usa a rota, está certo. Decisão da usina — aqui só se avisa. */
+  const iTp = CFG.beneficios.findIndex(b=>/transporte/i.test(b.nome));
+  const benTp = iTp>=0 ? num(benVal(iTp)) : 0;
+  add(!(benTp>0 && R.tpessT>0),"Transporte de pessoal contado uma vez só",
+      benTp>0 && R.tpessT>0 ? "benefício de "+brl(benTp)+"/pessoa/mês na aba Mão de Obra e "+brl(R.tpessT)+
+        " de rotas na aba Transporte de Pessoal — zere um dos dois se forem o mesmo transporte" : "");
   // Perfis: todo dado que o app grava precisa ter uma aba dona no catálogo do
   // servidor (server/permissoes.js). Sem isso, quem não é administrador edita,
   // o servidor descarta em silêncio, e a alteração "não pega". Confere as chaves

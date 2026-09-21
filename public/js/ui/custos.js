@@ -135,8 +135,8 @@ function pintarCustos(R){
   pintarContabil(R);
   $("#k_custo").innerHTML =
     kpi("Custo total","",brl(R.SEL.total), R.SEL.parcial?R.SEL.rotulo:"","total") +
-    kpi("Custo variável","t",brl(R.variavel*R.SEL.fracaoCusto), R.SEL.parcial?R.SEL.rotulo:"","variavel") +
-    kpi("Custo fixo","a",brl(R.fixoT*R.SEL.fracaoDoAno), R.SEL.parcial?R.SEL.meses.length+" meses":"","fixo") +
+    kpi("Custo variável","t",brl(R.SEL.variavel), R.SEL.parcial?R.SEL.rotulo:"","variavel") +
+    kpi("Custo fixo","a",brl(R.SEL.fixo), R.SEL.parcial?R.SEL.meses.length+" meses":"","fixo") +
     kpi("Custo por ha plantado","g",brl(R.SEL.total/ha), R.SEL.parcial?R.SEL.rotulo:"","custoha");
 
   // safra (abril a novembro) × entressafra (dezembro a março)

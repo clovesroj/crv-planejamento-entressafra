@@ -85,6 +85,12 @@ function recorteDoPeriodo(R){
     cat:   parcial ? porChave(R.mesesCat) : null,
     etapa: parcial && R.etapaMes ? porChave(R.etapaMes) : null,
     fracaoDoAno: parcial ? meses.length/NM : 1,
+    // fixo e variável do período pela série mensal: administrativo e
+    // depreciação são iguais todo mês, o arrendamento segue os pagamentos.
+    // A fração proporcional do ano deixava variável + fixo diferente do total
+    // do período (R$ 6 mi no teste), porque o custo não cai proporcional.
+    fixo:     parcial ? soma(R.mesesCat.fixo) + soma(R.mesesCat.arrend) : R.fixoT,
+    variavel: parcial ? soma(R.meses) - soma(R.mesesCat.fixo) - soma(R.mesesCat.arrend) : R.variavel,
     // parcela do custo do ano que cai no periodo; o fixo e uniforme por mes,
     // entao o que sobra do total do periodo e o variavel
     fracaoCusto: parcial && R.total>0 ? soma(R.meses)/R.total : 1,
