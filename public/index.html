@@ -86,6 +86,7 @@
     </div>
     <div class="navgroup" data-g="Administração" data-admin hidden>
       <div class="gl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3.2v5c0 4.5-3 7.8-7 9.8-4-2-7-5.3-7-9.8v-5z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>Administração</div>
+      <button data-s="orientacoes">Orientações</button>
       <button data-s="usuarios">Usuários</button>
     </div>
   </nav>
@@ -146,30 +147,6 @@
   <div class="panel">
     <h3>Situação do plano</h3>
     <div id="capa_status"></div>
-  </div>
-  <div class="grid g2">
-    <div class="panel">
-      <h3>Como usar</h3>
-      <ol class="steps">
-        <li><b>Premissas</b> — confirme densidade de muda, TCH, preços e parâmetros operacionais.</li>
-        <li><b>Mão de Obra</b> — ajuste salários, encargos, benefícios e a escala de trabalho.</li>
-        <li><b>Plano Operacional</b> — lance a área ou tonelada de cada atividade por mês e vincule o tratamento.</li>
-        <li><b>Dimensionamento</b> — revise rendimento e taxa de utilização por atividade.</li>
-        <li><b>Custos e Painel</b> — leitura do resultado; nada a preencher.</li>
-        <li><b>Validação</b> — zere as pendências antes de apresentar.</li>
-      </ol>
-    </div>
-    <div class="panel">
-      <h3>Premissas que precisam de confirmação</h3>
-      <ul class="notes">
-        <li>Densidade de muda e TCH da cana-muda — confirmar com o time agronômico.</li>
-        <li>Salários e benefícios — usar a CCT do sindicato rural de Capinópolis/MG.</li>
-        <li>Custo/hora de manutenção e consumo de diesel — médias de mercado, ajustar pela frota real.</li>
-        <li>Depreciação e administração — substituir pelo orçamento oficial.</li>
-        <li>Fazendas arrendadas, formas de pagamento e percentuais de rateio por etapa — confirmar na aba Arrendamentos com o contrato e o relatório PECEGE/USP.</li>
-        <li>Frota padronizada em Volvo FMX 540; colheita 100% mecanizada.</li>
-      </ul>
-    </div>
   </div>
 </section>
 
@@ -1216,6 +1193,37 @@
   <p class="lead">Checagens automáticas de consistência.</p>
   <input type="search" class="tbl-busca" data-alvo="#t_val" placeholder="Buscar verificação...">
   <div class="tblwrap"><table id="t_val"></table></div>
+</section>
+
+<!-- ===== ORIENTAÇÕES ===== -->
+<section id="orientacoes">
+  <h2>Orientações</h2>
+  <p class="lead">Como usar o sistema e o que ainda precisa de confirmação — tirado da Capa pra não repetir a
+  cada acesso.</p>
+  <div class="grid g2">
+    <div class="panel">
+      <h3>Como usar</h3>
+      <ol class="steps">
+        <li><b>Premissas</b> — confirme densidade de muda, TCH, preços e parâmetros operacionais.</li>
+        <li><b>Mão de Obra</b> — ajuste salários, encargos, benefícios e a escala de trabalho.</li>
+        <li><b>Plano Operacional</b> — lance a área ou tonelada de cada atividade por mês e vincule o tratamento.</li>
+        <li><b>Dimensionamento</b> — revise rendimento e taxa de utilização por atividade.</li>
+        <li><b>Custos e Painel</b> — leitura do resultado; nada a preencher.</li>
+        <li><b>Validação</b> — zere as pendências antes de apresentar.</li>
+      </ol>
+    </div>
+    <div class="panel">
+      <h3>Premissas que precisam de confirmação</h3>
+      <ul class="notes">
+        <li>Densidade de muda e TCH da cana-muda — confirmar com o time agronômico.</li>
+        <li>Salários e benefícios — usar a CCT do sindicato rural de Capinópolis/MG.</li>
+        <li>Custo/hora de manutenção e consumo de diesel — médias de mercado, ajustar pela frota real.</li>
+        <li>Depreciação e administração — substituir pelo orçamento oficial.</li>
+        <li>Fazendas arrendadas, formas de pagamento e percentuais de rateio por etapa — confirmar na aba Arrendamentos com o contrato e o relatório PECEGE/USP.</li>
+        <li>Frota padronizada em Volvo FMX 540; colheita 100% mecanizada.</li>
+      </ul>
+    </div>
+  </div>
 </section>
 
 <!-- ===== USUÁRIOS ===== -->
