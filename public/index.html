@@ -843,8 +843,9 @@
 <!-- ===== CUSTOS ===== -->
 <section id="custos">
   <h2>Custos</h2>
-  <p class="lead">Custo por etapa, calculado automaticamente a partir do Plano Operacional, seguido da composição
-  consolidada por natureza e da evolução mensal. Três páginas — use o menu ao lado para trocar.</p>
+  <p class="lead">Custo operacional e custo contábil de cada operação, custo por etapa, composição por natureza e
+  evolução mensal, calculados automaticamente a partir do Plano Operacional. Cinco páginas — use o menu ao lado
+  para trocar.</p>
   <div class="grid g4" id="k_custo" style="margin-bottom:16px"></div>
   <div class="row" style="margin-bottom:14px">
     <button class="btn p" data-rastro="total">Explicar o custo total</button>
@@ -852,7 +853,38 @@
     tabelas para abrir a composição, e desça até a premissa.</span>
   </div>
 
-  <details class="bloco" id="bl_custos_periodo" open>
+  <details class="bloco" id="bl_custos_oper" open>
+    <summary><span class="bl-tit">Custo operacional</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Custo operacional — o que custa fazer cada operação</h3>
+        <div class="grid g4" id="k_oper" style="margin-bottom:14px"></div>
+        <div class="tblwrap"><table id="t_oper"></table></div>
+        <div class="hint" style="margin-top:9px">Custo efetivo da operação: o que as atividades de cada operação consomem
+        — diesel das máquinas da operação, operadores, manutenção (CRM) das máquinas, insumos e terceirização das
+        aplicações — e, em tratos, a irrigação (energia, água e materiais), atribuída a cana planta ou soca pela
+        modalidade. <b>Não entra</b> nenhum rateio: diesel dos equipamentos de apoio, arrendamento, administrativo,
+        depreciação e custos gerais estão na página <b>Custo total (contábil)</b>. Base física em hectares operados
+        (soma das passadas) ou toneladas, como na tabela de custo por etapa. <span id="oper_nota"></span></div></div>
+    </div>
+  </details>
+
+  <details class="bloco" id="bl_custos_contabil">
+    <summary><span class="bl-tit">Custo total (contábil)</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Custo total — custo operacional mais todos os rateios</h3>
+        <div class="grid g4" id="k_contabil" style="margin-bottom:14px"></div>
+        <div class="tblwrap"><table id="t_contabil"></table></div>
+        <div class="hint" style="margin-top:9px">Custo contábil = custo operacional + rateios. <b>Diesel do apoio</b>:
+        equipamentos de apoio, rateados pelos litros de cada operação. <b>Arrendamento</b>: percentuais de referência
+        PECEGE/USP da aba Arrendamentos; dentro de tratos, pela área tratada de cada cultura. <b>Administrativo</b>:
+        cada linha pelo seu critério, na aba Custos Administrativos. <b>Depreciação</b> e <b>demais custos gerais</b>
+        (equipamentos de apoio, estrutura indireta, equipe de manutenção, transporte de pessoal, terceirizações por
+        contrato, esporádicos): rateados pelo custo direto de cada operação. A soma de todas as operações é o custo
+        total do plano. <span id="contabil_nota"></span></div></div>
+    </div>
+  </details>
+
+  <details class="bloco" id="bl_custos_periodo">
     <summary><span class="bl-tit">Por período</span></summary>
     <div class="bloco-corpo">
       <div class="panel"><h3>Custos por período — safra × entressafra</h3>

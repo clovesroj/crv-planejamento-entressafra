@@ -1,5 +1,50 @@
 # Histórico de mudanças
 
+## 2.24.0 — 2026-09-21 · Custo operacional x custo contábil
+
+A aba Custos ganhou duas páginas, que agora abrem a aba. Elas separam o que
+custa **fazer** cada operação do que ela **carrega** com os rateios.
+Operações: plantio, tratos culturais de cana planta, tratos culturais de cana
+soca e colheita. Preparo de solo e apoio e conservação vêm abaixo, para o total
+fechar com o plano.
+
+**Custo operacional** — custo efetivo da operação: diesel das máquinas da
+operação, mão de obra, manutenção (CRM), insumos e terceirização das
+atividades e, em tratos, a irrigação (energia, água e materiais). Nenhum
+rateio entra. Custo unitário por hectare operado ou por tonelada.
+
+**Custo total (contábil)** — o operacional mais os rateios, cada um na sua
+coluna: diesel dos equipamentos de apoio, arrendamento, administrativo,
+depreciação e demais custos gerais (apoio, estrutura indireta, equipe de
+manutenção, transporte de pessoal, terceirizações por contrato, esporádicos).
+Também mostra quanto os rateios acrescentam sobre o operacional e o peso da
+operação no custo total.
+
+Nada é conta nova: tudo sai do motor, com os mesmos critérios de rateio. A
+depreciação, que antes ficava dentro do "indireto", ganhou coluna própria, com
+o critério que o motor já usava (custo direto de cada etapa).
+
+### Correção — cana planta x cana soca
+
+As linhas "↳ Cana soca" e "↳ Cana planta" da tabela de custo por etapa não
+incluíam a irrigação. As duas somavam cerca de R$ 2,6 mi menos que o total de
+tratos no plano de teste: a irrigação mais a parte dela no rateio geral. Agora
+a irrigação entra em cada cultura pela modalidade ("socaria" → soca,
+"plantio" → planta), e planta + soca fecha com tratos no centavo. A mesma
+tabela ganhou a coluna **Administrativo**: ele fazia parte do total da linha,
+mas não aparecia em nenhuma coluna.
+
+### Relatórios
+
+As duas visões entram no *Orçamento por Centro de Custo* e no nível
+detalhado do *Orçamento Agrícola Anual*. São do ano: no recorte por período,
+o título diz "ano todo".
+
+**Conferido:** operacional + rateios = contábil em cada linha; planta + soca
+= tratos; cada operação bate com o total da sua etapa; depreciação,
+arrendamento, administrativo e irrigação batem com os totais do plano; e a
+soma de todas as operações é o custo total do plano.
+
 ## 2.23.1 — 2026-09-21 · Método da irrigação localizada
 
 Na aba Irrigação, as modalidades **Irrigação localizada socaria** e **Irrigação

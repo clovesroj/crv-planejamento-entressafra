@@ -13,6 +13,7 @@ import { brl, fmt, num, pct } from '../nucleo/formato.js';
 import { CONTA_COMBINADA, contasValores } from '../ui/contas.js';
 import { comps } from '../ui/custos.js';
 import { validar } from '../ui/validacao.js';
+import { custoPorOperacao } from '../calculo/custo-operacao.js';
 
 /* ================== SEÇÕES DE RELATÓRIO ==================
    Cada seção é uma função de R -> {aba, titulo, cab, linhas}. O relatório
@@ -602,8 +603,39 @@ const irrigacao = R => sec("Irrigação","Irrigação e fertirrigação",
     brl(l.energia), brl(l.insumo), brl(l.material), brl(l.total)])
   .concat([["TOTAL","","","", brl(R.IR.energia), "", "", brl(R.irrT)]]));
 
+/* ---------- custo operacional x contábil ----------
+   As duas páginas da aba Custos. São do ano: no recorte por período saem com
+   "ano todo" no título, como toda seção sem série mensal. */
+const unitOp = (v, b) => b.q>0 ? brl(v/b.q,2)+"/"+b.un : "—";
+const custoOperacional = R => { const C = custoPorOperacao(R), L = C.principais.concat(C.outras);
+  const lin = l => [l.nome, fmt(l.base.q)+" "+l.base.un, brl(l.oper.diesel), brl(l.oper.mdo), brl(l.oper.manut),
+    brl(l.oper.insumo), brl(l.oper.irrig), brl(l.oper.terc), brl(l.oper.total), unitOp(l.oper.total, l.base)];
+  const tot = (lista, rot) => [rot, "", ...["diesel","mdo","manut","insumo","irrig","terc","total"]
+    .map(k=>brl(C.soma(lista, l=>l.oper[k]))), ""];
+  return sec("Custo operacional","Custo operacional — o que custa fazer cada operação",
+    ["Operação","Base física","Diesel","Mão de obra","Manutenção (CRM)","Insumos","Irrigação","Terceirização",
+     "Custo operacional","Custo unitário"],
+    C.principais.map(lin).concat([tot(C.principais, "SUBTOTAL DAS QUATRO OPERAÇÕES")],
+      C.outras.map(lin), [tot(L, "TOTAL OPERACIONAL DO PLANO")]));
+};
+const custoContabil = R => { const C = custoPorOperacao(R), L = C.principais.concat(C.outras);
+  const RAT = ["apoio","arrend","admin","deprec","gerais"];
+  const lin = l => [l.nome, brl(l.oper.total), ...RAT.map(k=>brl(l.rateio[k])), brl(l.rateio.total),
+    brl(l.contabil), unitOp(l.contabil, l.base),
+    l.oper.total>0 ? "+"+fmt(l.rateio.total/l.oper.total*100,1)+"%" : "—"];
+  const tot = (lista, rot) => { const o = C.soma(lista, l=>l.oper.total), r = C.soma(lista, l=>l.rateio.total);
+    return [rot, brl(o), ...RAT.map(k=>brl(C.soma(lista, l=>l.rateio[k]))), brl(r),
+      brl(C.soma(lista, l=>l.contabil)), "", o>0 ? "+"+fmt(r/o*100,1)+"%" : "—"]; };
+  return sec("Custo contábil","Custo total (contábil) — custo operacional mais todos os rateios",
+    ["Operação","Custo operacional","Diesel do apoio","Arrendamento","Administrativo","Depreciação",
+     "Demais custos gerais","Total de rateios","Custo contábil","Custo unitário","Rateio sobre o operacional"],
+    C.principais.map(lin).concat([tot(C.principais, "SUBTOTAL DAS QUATRO OPERAÇÕES")],
+      C.outras.map(lin), [tot(L, "CUSTO TOTAL DO PLANO")]));
+};
+
 /* ---------- catálogo ---------- */
 const SECOES = {
+  custoOperacional, custoContabil,
   resumo, premissas, area, producao,
   plantio: porEtapa("Plantio","Orçamento de plantio","PLANTIO"),
   preparo: porEtapa("Preparo de Solo","Orçamento de preparo de solo","PREPARO DE SOLO"),
@@ -729,7 +761,7 @@ SECOES.criterioApertado = R => {
 const RELATORIOS = [
   {id:"anual",   nome:"Orçamento Agrícola Anual",     secoes: ABAS_COMPLETO},
   {id:"fazenda", nome:"Orçamento por Fazenda",        secoes:["resumo","porFazenda","arrendamentos","fornecedores"]},
-  {id:"cc",      nome:"Orçamento por Centro de Custo",secoes:["resumo","porCentroCusto","custoEtapa","administracao"]},
+  {id:"cc",      nome:"Orçamento por Centro de Custo",secoes:["resumo","custoOperacional","custoContabil","porCentroCusto","custoEtapa","administracao"]},
   {id:"ativ",    nome:"Orçamento por Atividade",      secoes:["resumo","porAtividade","planoOperacional","dimensionamento"]},
   {id:"nat",     nome:"Orçamento por Natureza",       secoes:["resumo","natureza","custoEtapa","contas"]},
   {id:"mensal",  nome:"Orçamento Mensal",             secoes:["resumo","mensal","periodos","fluxo"]},
@@ -751,7 +783,7 @@ const RELATORIOS = [
 ];
 
 /* Seções extras que só saem no nível detalhado do relatório anual. */
-const DETALHE = ["planoOperacional","dimensionamento","porAtividade","porCentroCusto","porFazenda",
+const DETALHE = ["custoOperacional","custoContabil","planoOperacional","dimensionamento","porAtividade","porCentroCusto","porFazenda",
   "mensal","periodos","natureza","combustivel","apoio","irrigacao","pessoasDept","fluxoMdo",
   "logistica","indicadores","frotaBase","modelos","preparo","apoioEtapa","tratamentos"];
 
