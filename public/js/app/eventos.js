@@ -114,6 +114,9 @@ document.addEventListener("input",e=>{
     if(t.value.trim()==="") delete FROTA_UN[c].crm[t.dataset.k];
     else FROTA_UN[c].crm[t.dataset.k]=num(t.value);
     salvar(); leve(); return; }
+  // consumo por equipamento: grava no change (sair do campo / Enter), não a cada
+  // tecla — o render redesenha a tabela e tiraria o foco de quem está digitando
+  if(t.dataset.cmaq!==undefined) return;
   if(t.dataset.maq!==undefined){ const m=t.dataset.maq;
     MAQ[m]=MAQ[m]||{}; MAQ[m][t.dataset.k]=num(t.value); salvar(); render(); return; }
   if(t.dataset.fq!==undefined){ const m=t.dataset.fq;
@@ -200,6 +203,14 @@ document.addEventListener("input",e=>{
 });
 document.addEventListener("change",e=>{
   const t=e.target;
+  // consumo por equipamento (aba Combustível): unidade, L/h, L/km, velocidade.
+  // Grava no cadastro da máquina; campo vazio volta ao padrão.
+  if(t.dataset.cmaq!==undefined){ const m=t.dataset.cmaq, k=t.dataset.ck;
+    MAQ[m]=MAQ[m]||{};
+    if(k==="unC") MAQ[m].unC = t.value;
+    else if(t.value.trim()==="") delete MAQ[m][k];
+    else MAQ[m][k]=num(t.value);
+    salvar(); render(); return; }
   if(t.dataset.at!==undefined && t.tagName==="SELECT"){ atividadesLista()[+t.dataset.at][t.dataset.f]=t.value;
     salvar(); render(); return; }
   if(t.dataset.grpclasse!==undefined){

@@ -55,7 +55,7 @@ const AREAS = [
   { id: 'transp', nome: 'Transporte', grupo: 'Frota e logística',
     campos: ['densCarga', 'volTransb', 'velC', 'velV', 'tCarga', 'tDesc', 'hDiaTr', 'dispTr',
              'consTr', 'manutTr', 'raioSafra', 'raioMuda', 'capTransb'] },
-  { id: 'combust', nome: 'Combustível', grupo: 'Frota e logística', chaves: ['DIESEL_MES'] },
+  { id: 'combust', nome: 'Combustível', grupo: 'Frota e logística', chaves: ['DIESEL_MES', 'MAQ'] },
   { id: 'apoio', nome: 'Apoio', grupo: 'Frota e logística', chaves: ['APOIO'] },
   { id: 'tpess', nome: 'Transporte de Pessoal', grupo: 'Frota e logística', chaves: ['TPESS'] },
 

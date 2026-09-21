@@ -514,7 +514,9 @@ function rastroAtividade(R, cod){
          sub:`${fmt(p.area)} ${un} × ${brl(tarifaTerc(cod),2)}/ha de tarifa`}
       : {rot:`${p.modo?p.modo+" · ":""}${p.maq}${p.imp&&p.imp!=="----"?" + "+p.imp:""}`,
          val:brl(p.cDiesel+p.cManut+p.cMDO),
-         sub:`${fmt(p.horas)} h · ${fmt(p.litros)} L a ${fmt(p.consumoLh,1)} L/h · diesel ${brl(p.cDiesel)} · MDO ${brl(p.cMDO)} · CRM ${brl(p.cManut)}`})},
+         sub:`${fmt(p.horas)} h · ${p.consumoUn==="km"
+             ? fmt(p.km)+" km"+(p.fonteKm==="viagens"?" (viagens)":" (horas × velocidade)")+" × "+fmt(p.consumoLkm,3)+" L/km"
+             : fmt(p.consumoLh,1)+" L/h"} = ${fmt(p.litros)} L · diesel ${brl(p.cDiesel)} · MDO ${brl(p.cMDO)} · CRM ${brl(p.cManut)}`})},
     {titulo:"Preços e custos aplicados", linhas:[
       {rot:"Diesel", val:brl(r.cDiesel),
        sub:`${fmt(r.litros)} L · preço médio ${r.litros>0?brl(r.cDiesel/r.litros,2):brl(P.diesel,2)}/L, ponderado pelos meses`},

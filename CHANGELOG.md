@@ -1,5 +1,40 @@
 # Histórico de mudanças
 
+## 2.27.0 — 2026-09-21 · Consumo de diesel em L/h ou L/km
+
+A tabela **Consumo por equipamento** da aba Combustível agora é editável:
+
+- **Unidade** por equipamento: **L/h** para máquinas (trator, colhedora,
+  motobomba) ou **L/km** para veículos (caminhão, veículo leve).
+- **Consumo** editável na própria linha. É o mesmo consumo do cadastro de
+  máquinas da aba Manutenção de Frota: alterar em uma aba altera na outra.
+- **Velocidade média** (km/h), editável, usada quando o km sai das horas.
+- Colunas novas de **horas** e **km** projetados, e uma linha de total.
+
+**Horas e km são projetados sozinhos, pelas premissas.**
+- Horas das máquinas: área ÷ rendimento de cada atividade; no transporte,
+  viagens × ciclo. Isso já era assim e continua.
+- Km do transporte de cana: **viagens × ida e volta do raio** (capacidade e
+  raio da aba Transporte). No plano de teste, transporte de cana da colheita:
+  30.000 viagens × 2 × 18 km = 1.080.000 km.
+- Km dos demais veículos: **horas × velocidade média**. O padrão da velocidade
+  é a média de carregado e vazio da aba Transporte.
+
+**A unidade vale para a conta, não só para a tela.** Litros = horas × L/h ou
+km × L/km, e isso entra no diesel da atividade, do apoio, das etapas, do
+custo mensal, dos relatórios e do rastro.
+
+**Todo equipamento continua em L/h até alguém trocar.** Nenhum número mudou
+com esta versão. Ao passar para L/km, o consumo começa no equivalente do L/h
+na velocidade média (em itálico, marcado como padrão). Esse equivalente só vale
+com o veículo rodando: as horas do plano contam o tempo parado na carga e
+descarga, os km não. Por isso, só de trocar, os litros tendem a cair — no
+teste, o caminhão caiu 45%. O consumo real por km (fabricante ou telemetria)
+deve ser digitado. Campo apagado volta ao padrão.
+
+A aba Combustível passa a gravar o cadastro de máquinas (`MAQ`) no controle de
+permissões do servidor.
+
 ## 2.26.0 — 2026-09-21 · Base física dos custos na aba Premissas
 
 A aba Premissas ganhou o bloco **Base física dos custos**, o primeiro da aba:

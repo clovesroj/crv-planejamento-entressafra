@@ -1021,7 +1021,17 @@
         proporcionalmente aos litros consumidos por cada uma — o mesmo valor aparece na coluna Diesel da aba Custos.</div></div>
       <div class="panel"><h3>Consumo por equipamento</h3>
         <input type="search" class="tbl-busca" data-alvo="#t_comb_maq" placeholder="Buscar equipamento...">
-        <div class="tblwrap"><table id="t_comb_maq"></table></div></div>
+        <div class="tblwrap"><table id="t_comb_maq"></table></div>
+        <div class="hint" style="margin-top:9px">Escolha em que unidade cada equipamento consome — <b>L/h</b> para
+        máquinas (trator, colhedora, motobomba) ou <b>L/km</b> para veículos (caminhão, veículo leve) — e ajuste o
+        consumo. A alteração vale para o sistema inteiro: é o mesmo consumo do cadastro de máquinas da aba Manutenção
+        de Frota. <b>Horas</b> são projetadas pelas premissas de cada atividade (área ÷ rendimento; no transporte,
+        viagens × ciclo). <b>Km</b> são projetados sozinhos: no transporte de cana, viagens × ida e volta do raio da
+        aba Transporte; nos demais veículos, horas × velocidade média. Ao passar para L/km, o consumo começa no
+        equivalente do L/h na velocidade média (campo em itálico) — <b>digite o consumo real por km</b>. Esse
+        equivalente só vale com o veículo rodando: as horas do plano incluem o tempo parado na carga e na descarga,
+        os km não — por isso, só de trocar a unidade, os litros costumam cair. Campo apagado volta ao padrão.
+        <span id="comb_vel_nota"></span></div></div>
     </div>
   </details>
 

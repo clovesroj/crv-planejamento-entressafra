@@ -634,3 +634,6 @@ td.pmes.on span{color:var(--ink);font-weight:600}
 
 /* subtotal da formação do canavial nas páginas de custo operacional e contábil */
 tr.formacao td{background:var(--leaf-soft);border-top:1px solid var(--leaf);border-bottom:1px solid var(--leaf)}
+
+/* consumo por equipamento: valor ainda no padrão (não informado pelo usuário) */
+input.padrao{font-style:italic;color:var(--grey)}

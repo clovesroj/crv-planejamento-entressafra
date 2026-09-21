@@ -1,4 +1,4 @@
-import { maqDe } from './crm.js';
+import { litrosDe } from './consumo.js';
 import { CFG } from '../dados/cfg.js';
 import { MESES, NM } from '../nucleo/calendario.js';
 import { APOIO_FIXO, apoioLista } from '../nucleo/estado.js';
@@ -9,18 +9,20 @@ import { custoDaFuncao } from './mao-de-obra.js';
 /* ================== EQUIPAMENTOS DE APOIO ================== */
 function apoioCalc(MP){
   const linhas = apoioLista().map(a=>{
-    const mq = maqDe(a.maq);
     const horas = num(a.qtd)*num(a.hmes)*NM;
     const cf = custoDaFuncao(a.fcod, MP);
     // apoio trabalha as mesmas horas todo mês: volume mensal constante, preço de cada mês
-    const litrosMes = Array(NM).fill(num(a.qtd)*num(a.hmes)*mq.d);
+    // L/h × horas ou L/km × (horas × velocidade média), conforme o equipamento
+    const cons = litrosDe(a.maq, num(a.qtd)*num(a.hmes));
+    const litrosMes = Array(NM).fill(cons.litros);
     const dieselMes = litrosMes.map((l,i)=>l*precoDiesel(i));
     const litros = litrosMes.reduce((s,x)=>s+x,0);
     const diesel = dieselMes.reduce((s,x)=>s+x,0);
     const manut  = 0;   // idem: vem do CRM da frota
     const mdo    = num(a.qtd)*cf.mensal*NM*MP.fatorEscala;
     return {...a, horas, diesel, manut, mdo, fnome:cf.nome,
-            litros, litrosMes, dieselMes, consumoLh:mq.d,
+            litros, litrosMes, dieselMes, consumoLh:cons.lh,
+            consumoUn:cons.un, consumoLkm:cons.lkm, km: cons.km!=null ? cons.km*NM : null, fonteKm:cons.fonteKm,
             efetivo: Math.ceil(num(a.qtd)*MP.fatorEscala),
             total: diesel+manut+mdo};
   });
