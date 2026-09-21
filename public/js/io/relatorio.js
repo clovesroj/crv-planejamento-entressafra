@@ -2,7 +2,7 @@ import { calcularCompleto } from '../app/ciclo.js';
 import { LOGO } from '../dados/logo.js';
 import { $, esc } from '../nucleo/formato.js';
 import { ligarBuscaSelect } from '../ui/componentes.js';
-import { RELATORIOS, montarSecoes } from './secoes.js';
+import { RELATORIOS, montarSecoes, nomePeriodo } from './secoes.js';
 import { baixar } from './arquivo.js';
 
 /* ---------- RELATÓRIOS (PDF / EXCEL / CSV) ----------
@@ -14,20 +14,24 @@ import { baixar } from './arquivo.js';
 const relDe = id => RELATORIOS.find(r=>r.id===id) || RELATORIOS[0];
 const nivelAtual = () => ($("#sel_report_nivel")||{value:"resumido"}).value;
 const relAtual = () => ($("#sel_report_rel")||{value:"anual"}).value;
+// período do relatório: safra, entressafra ou os dois (ano todo)
+const periodoAtual = () => ($("#sel_report_periodo")||{value:"ambos"}).value;
+// sufixo de arquivo: o ano todo não leva nada, para não mudar o nome de sempre
+const sufPer = per => per && per!=="ambos" ? "_"+per : "";
 
 // nome de arquivo sem acento nem espaço, que atravessa qualquer sistema
 const slug = s => String(s).normalize("NFD").replace(/[̀-ͯ]/g,"")
   .replace(/[^A-Za-z0-9]+/g,"_").replace(/^_|_$/g,"").toLowerCase();
 
-function relatorioSecoes(R, nivel, relId){
-  return montarSecoes(R || calcularCompleto(), relId || "anual", nivel);
+function relatorioSecoes(R, nivel, relId, periodo){
+  return montarSecoes(R || calcularCompleto(), relId || "anual", nivel, periodo);
 }
 
 /* ---------- Excel ---------- */
-async function gerarExcel(nivel, relId){
+async function gerarExcel(nivel, relId, periodo){
   if(typeof XLSX==="undefined"){ alert("A biblioteca de planilha não carregou. Verifique a conexão e tente novamente."); return; }
   const rel = relDe(relId);
-  const secoes = montarSecoes(calcularCompleto(), rel.id, nivel);
+  const secoes = montarSecoes(calcularCompleto(), rel.id, nivel, periodo);
   const wb = XLSX.utils.book_new();
   const usados = new Set();
   secoes.forEach(s=>{
@@ -35,27 +39,27 @@ async function gerarExcel(nivel, relId){
     while(usados.has(nome)){ nome = s.aba.slice(0,28)+" "+n; n++; }
     usados.add(nome);
     const corpo = s.linhas.length ? s.linhas : [["Sem dados lançados."]];
-    const ws = XLSX.utils.aoa_to_sheet([[s.titulo],[],s.cab, ...corpo]);
+    const ws = XLSX.utils.aoa_to_sheet([[s.titulo],["Período: "+nomePeriodo(periodo)],s.cab, ...corpo]);
     ws["!cols"] = s.cab.map((c,i)=>({wch: Math.min(42, Math.max(10, String(c).length+2,
       ...corpo.slice(0,80).map(l=>String(l[i]==null?"":l[i]).length+2)))}));
     XLSX.utils.book_append_sheet(wb, ws, nome);
   });
   const out = XLSX.write(wb,{bookType:"xlsx",type:"array"});
-  await baixar(out, `${slug(rel.nome)}_${nivel}.xlsx`,
+  await baixar(out, `${slug(rel.nome)}_${nivel}${sufPer(periodo)}.xlsx`,
                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 }
 
 /* ---------- CSV ----------
    Ponto e vírgula e BOM: é o que o Excel em português abre sem pedir
    importação, e os valores em R$ já vêm com vírgula decimal. */
-async function gerarCSV(nivel, relId){
+async function gerarCSV(nivel, relId, periodo){
   const rel = relDe(relId);
-  const secoes = montarSecoes(calcularCompleto(), rel.id, nivel);
+  const secoes = montarSecoes(calcularCompleto(), rel.id, nivel, periodo);
   const cel = v => { const t = String(v==null?"":v);
     return /[;"\n]/.test(t) ? '"'+t.replace(/"/g,'""')+'"' : t; };
   const linha = l => l.map(cel).join(";");
   const partes = [linha(["CRV Industrial — "+rel.nome]),
-                  linha(["Safra 2026/2027 · Unidade Capinópolis-MG · "+
+                  linha(["Safra 2026/2027 · Unidade Capinópolis-MG · Período: "+nomePeriodo(periodo)+" · "+
                          (nivel==="detalhado"?"detalhado":"resumido")+" · gerado em "+
                          new Date().toLocaleDateString("pt-BR")])];
   secoes.forEach(s=>{
@@ -63,7 +67,7 @@ async function gerarCSV(nivel, relId){
     if(s.linhas.length) s.linhas.forEach(l=>partes.push(linha(l)));
     else partes.push(linha(["Sem dados lançados."]));
   });
-  await baixar("﻿"+partes.join("\r\n"), `${slug(rel.nome)}_${nivel}.csv`,
+  await baixar("﻿"+partes.join("\r\n"), `${slug(rel.nome)}_${nivel}${sufPer(periodo)}.csv`,
                "text/csv;charset=utf-8");
 }
 
@@ -71,13 +75,14 @@ async function gerarCSV(nivel, relId){
    O mesmo marcado vira página impressa (#print_report, estilizado só em
    @media print) ou modal na tela (#prev_rel) — o conteúdo é idêntico, só o
    destino muda, então não faz sentido montar duas vezes. */
-function montarHtmlRelatorio(nivel, relId){
+function montarHtmlRelatorio(nivel, relId, periodo){
   const rel = relDe(relId);
-  const secoes = montarSecoes(calcularCompleto(), rel.id, nivel);
+  const secoes = montarSecoes(calcularCompleto(), rel.id, nivel, periodo);
   // papel branco: logo azul original
   let html = `<img class="rel-logo" src="${LOGO}" alt="CRV Industrial">
     <h1>CRV Industrial — ${esc(rel.nome)}</h1>
-    <p>Safra 2026/2027 · Unidade Capinópolis-MG · Relatório ${nivel==="detalhado"?"detalhado":"resumido"} ·
+    <p>Safra 2026/2027 · Unidade Capinópolis-MG · <b>Período: ${esc(nomePeriodo(periodo))}</b> ·
+    Relatório ${nivel==="detalhado"?"detalhado":"resumido"} ·
     gerado em ${new Date().toLocaleDateString("pt-BR")}</p>`;
   // as células são texto puro (as mesmas vão para o Excel); nome de insumo com
   // aspa ou < virava marcação no relatório impresso — esc() em tudo que é dado
@@ -91,8 +96,8 @@ function montarHtmlRelatorio(nivel, relId){
 }
 
 /* ---------- PDF ---------- */
-function gerarPDF(nivel, relId){
-  $("#print_report").innerHTML = montarHtmlRelatorio(nivel, relId);
+function gerarPDF(nivel, relId, periodo){
+  $("#print_report").innerHTML = montarHtmlRelatorio(nivel, relId, periodo);
   setTimeout(()=>window.print(),80);
 }
 
@@ -105,7 +110,7 @@ function fecharPreview(){
   if(p) p.hidden = true;
   if(f) f.hidden = true;
 }
-function abrirPreview(nivel, relId){
+function abrirPreview(nivel, relId, periodo){
   const p = $("#prev_rel"), f = $("#prev_rel_fundo");
   if(!p || !f) return;
   p.innerHTML = `
@@ -116,7 +121,7 @@ function abrirPreview(nivel, relId){
           <button class="ghost-btn" id="prev_rel_fechar" title="Fechar" aria-label="Fechar">✕</button>
         </div>
       </div>
-      <div class="ra-corpo prev-corpo">${montarHtmlRelatorio(nivel, relId)}</div>
+      <div class="ra-corpo prev-corpo">${montarHtmlRelatorio(nivel, relId, periodo)}</div>
     </div>`;
   p.hidden = false;
   f.hidden = false;
@@ -199,7 +204,7 @@ if(navRel){
     navRel.setAttribute("aria-expanded", String(abrindo));
   });
 }
-const fechaEGera = fn => ()=>{ fecharReportPop(); fn(nivelAtual(), relAtual()); };
+const fechaEGera = fn => ()=>{ fecharReportPop(); fn(nivelAtual(), relAtual(), periodoAtual()); };
 $("#btn_report_pdf").onclick  = fechaEGera(gerarPDF);
 $("#btn_report_xlsx").onclick = fechaEGera(gerarExcel);
 if($("#btn_report_csv")) $("#btn_report_csv").onclick = fechaEGera(gerarCSV);

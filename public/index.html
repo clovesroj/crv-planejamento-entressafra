@@ -1338,13 +1338,21 @@
       </div>
       <label for="sel_report_nivel">Nível do relatório</label>
       <select id="sel_report_nivel"><option value="resumido">Resumido</option><option value="detalhado">Detalhado</option></select>
+      <label for="sel_report_periodo">Período</label>
+      <select id="sel_report_periodo">
+        <option value="ambos">Safra e entressafra (ano todo)</option>
+        <option value="safra">Safra (abr a nov)</option>
+        <option value="entressafra">Entressafra (dez a mar)</option>
+      </select>
       <div class="row" style="margin-top:10px"><button class="btn" id="btn_report_preview">Pré-visualizar</button></div>
       <div class="row" style="margin-top:10px"><button class="btn p" id="btn_report_pdf">Gerar PDF</button>
         <button class="btn" id="btn_report_xlsx">Gerar Excel</button></div>
       <div class="row" style="margin-top:10px"><button class="btn" id="btn_report_csv">Gerar CSV</button></div>
       <div class="hint" style="margin-top:8px">O Orçamento Agrícola Anual sai com as 20 abas
         padronizadas; os demais saem focados no tema. O nível detalhado acrescenta as abas de
-        apoio ao relatório anual.</div>
+        apoio ao relatório anual.<br>No <b>período</b> safra ou entressafra, as tabelas mês a mês e os
+        custos saem só com os meses do período, pelo mesmo critério do app. Cadastro, contrato e
+        dimensionamento não têm série mensal: saem do ano, e o título da tabela diz "ano todo".</div>
     </div>
   </div>
 </aside>

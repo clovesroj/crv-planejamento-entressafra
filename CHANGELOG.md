@@ -1,5 +1,40 @@
 # Histórico de mudanças
 
+## 2.23.0 — 2026-09-21 · Relatório por período: safra, entressafra ou os dois
+
+A janela de gerar relatório ganhou o campo **Período**: *Safra e entressafra
+(ano todo)*, *Safra (abr a nov)* ou *Entressafra (dez a mar)*. Vale para PDF,
+Excel, CSV e pré-visualização, em todos os 21 relatórios.
+
+**Como o recorte é feito.** Pelo critério do próprio motor, sem conta nova:
+
+- série mensal — custo do mês, grandes contas, diesel, pessoas, pagamentos do
+  arrendamento — soma só os meses do período;
+- custo de atividade cai nos meses pela quantidade lançada, e o diesel pelo
+  litro e preço de cada mês;
+- administrativo e depreciação são iguais todo mês; o arrendamento segue os
+  meses de pagamento; a irrigação segue a área operada; os equipamentos de
+  apoio trabalham as mesmas horas todo mês.
+
+**O que é recortado:** resumo executivo, orçamento de cada etapa, custo por
+etapa, centro de custo, por atividade, natureza (pelas grandes contas),
+mensal, fluxo de caixa, cenários, indicadores, mão de obra, pessoas por
+departamento, fluxo de MDO, tratamentos, arrendamentos, administração,
+combustível, plano operacional, dimensionamento (atividades e horas do
+período), acompanhamento e critério por mês.
+
+**O que fica do ano:** premissas, área, produção, transporte, frota, CRM,
+insumos, fornecedores, plano de contas, logística, apoio e irrigação — não têm
+série mensal no motor. No recorte, o título dessas tabelas diz "ano todo (sem
+série mensal)", para ninguém ler um número do ano como sendo do período. Frota
+e efetivo são o dimensionamento do plano e aparecem marcados como tal.
+
+**Conferido:** no ano todo o relatório sai idêntico ao de antes — só ganhou a
+linha "Período do relatório" no resumo e três rótulos mais claros; nenhum
+número mudou. Safra + entressafra fecha com o ano em cada tabela recortada,
+no R$ 1 de arredondamento. O cabeçalho do PDF, do CSV e de cada aba do Excel
+diz o período, e o nome do arquivo ganha `_safra` ou `_entressafra`.
+
 ## 2.22.1 — 2026-09-17 · Revisão de continuidade dos commits do dia
 
 Revisão conduzida por **Caio Souza** sobre os commits de 17/09 (perfis, janela
