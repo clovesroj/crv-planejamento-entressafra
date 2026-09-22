@@ -388,6 +388,13 @@ footer{display:flex;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;co
 .ra-ir:focus-visible{outline:none;box-shadow:var(--focus)}
 .ra-seta{color:var(--leaf);margin-left:7px;font-weight:700}
 .ra-prem .ra-val{font-weight:500;color:var(--grey)}
+/* linha do rastro com checkbox -- marca/desmarca um lancamento do ERP no
+   orcamento da reforma (ver rastroReformaBiItem() em calculo/rastro.js) */
+.ra-linha-flag{display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:7px 0}
+.ra-linha-flag input{flex:none;margin-top:4px;cursor:pointer}
+.ra-flag-corpo{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex:1;min-width:0}
+.ra-linha-flag:has(input:not(:checked)){opacity:.5}
+.ra-linha-flag:has(input:not(:checked)) .ra-val{text-decoration:line-through}
 /* valor ou KPI que abre o rastro */
 [data-rastro]{cursor:pointer}
 tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:underline dotted;text-underline-offset:3px}

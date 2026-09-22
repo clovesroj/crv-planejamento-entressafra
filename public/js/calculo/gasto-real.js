@@ -79,4 +79,20 @@ function opcoesDe(campo) {
   return [...new Set(lancamentos().map(l => l[campo]).filter(Boolean))].sort();
 }
 
-export { lancamentos, filtrarLancamentos, agruparPor, opcoesDe, infoDeCod };
+// Índice cod -> seus próprios lançamentos (todo compartimento), pra busca por
+// equipamento (ex.: preencher à mão um conjunto sem gasto real mapeado,
+// olhando os lançamentos do próprio equipamento em outras tags do ERP).
+let porFrotaIdx = null;
+function itensDoEquipamento(cod) {
+  if (!porFrotaIdx) {
+    porFrotaIdx = new Map();
+    for (const l of lancamentos()) {
+      const k = String(l.frota);
+      const arr = porFrotaIdx.get(k);
+      if (arr) arr.push(l); else porFrotaIdx.set(k, [l]);
+    }
+  }
+  return porFrotaIdx.get(String(cod)) || [];
+}
+
+export { lancamentos, filtrarLancamentos, agruparPor, opcoesDe, infoDeCod, itensDoEquipamento };

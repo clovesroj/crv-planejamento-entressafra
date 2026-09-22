@@ -33,7 +33,15 @@ function pintarRastro(R){
 
   // Tudo que vem de calculo/rastro.js é texto puro e pode citar nome de insumo,
   // equipamento ou rota digitados pelo usuário — por isso passa por esc().
-  const linha = l => `<div class="ra-linha${l.ir?" ra-ir":""}"${l.ir?` data-rastro="${esc(l.ir)}" tabindex="0" role="button"`:""}>
+  // linha normal, ou linha com checkbox pra marcar/desmarcar um lancamento do
+  // ERP que conta (ou nao) no orcamento -- ver rastroReformaBiItem() em calculo/rastro.js
+  const linha = l => l.flag ? `<label class="ra-linha ra-linha-flag">
+      <input type="checkbox" data-flag-cod="${esc(l.flag.cod)}" data-flag-chave="${esc(l.flag.chave)}"${l.flag.ligado?" checked":""}>
+      <div class="ra-flag-corpo">
+        <div class="ra-rot">${esc(l.rot)}${l.sub?`<span class="ra-sub">${esc(l.sub)}</span>`:""}</div>
+        <div class="ra-val">${esc(l.val)}</div>
+      </div>
+    </label>` : `<div class="ra-linha${l.ir?" ra-ir":""}"${l.ir?` data-rastro="${esc(l.ir)}" tabindex="0" role="button"`:""}>
       <div class="ra-rot">${esc(l.rot)}${l.sub?`<span class="ra-sub">${esc(l.sub)}</span>`:""}</div>
       <div class="ra-val">${esc(l.val)}${l.ir?'<span class="ra-seta">›</span>':""}</div>
     </div>`;

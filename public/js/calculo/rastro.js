@@ -10,7 +10,7 @@ import { tratCusto } from './insumos.js';
 import { comps, custoPorOperacao } from './custo-operacao.js';
 import { SEM_CONTA, contasValores, totaisContas } from './contas.js';
 import { baseEtapa, custoUnit, premissaBase, rotuloBase } from './base-fisica.js';
-import { reforma } from './reforma.js';
+import { reforma, chaveItemReforma, itensExcluidosReforma } from './reforma.js';
 import { GASTO_REFORMA_BI } from '../dados/gasto-reforma-bi.js';
 import { tagsBiDoConjunto } from '../dados/reforma-bi-map.js';
 
@@ -755,13 +755,18 @@ function rastroReforma(){
 function rastroReformaBiItem(familia, cod, conjunto){
   const porFrota = GASTO_REFORMA_BI.porFrota[cod] || {};
   const tags = tagsBiDoConjunto(familia, conjunto);
+  const excl = itensExcluidosReforma(cod);
   let total = 0;
   const itens = [];
   for(const tag of tags){
     const dado = porFrota[tag];
     if(!dado) continue;
-    total += dado.total;
-    itens.push(...dado.itens);
+    for(const it of dado.itens){
+      const chave = chaveItemReforma(cod, tag, it);
+      const ligado = !excl.has(chave);
+      if(ligado) total += it.valor;
+      itens.push({...it, chave, ligado});
+    }
   }
   itens.sort((a,b)=>b.valor-a.valor);
   return {
@@ -769,10 +774,12 @@ function rastroReformaBiItem(familia, cod, conjunto){
     subtitulo: `Gasto real no ERP — equipamento ${cod}`,
     valor: brl(total),
     largo: true,
-    blocos: [{titulo:"Lançamentos", linhas: itens.length ? itens.map(it=>({
-      rot: it.desc, val: brl(it.valor), sub: fmtDataCurta(it.data)}))
+    blocos: [{titulo:"Lançamentos — desmarque o que não deve entrar no orçamento", linhas: itens.length ? itens.map(it=>({
+      rot: it.desc, val: brl(it.valor), sub: fmtDataCurta(it.data),
+      flag: {cod, chave: it.chave, ligado: it.ligado}}))
       : [{rot:"Nenhum lançamento neste compartimento", val:"—"}]}],
-    nota: itens.length ? `${itens.length} lançamento${itens.length>1?"s":""} do ERP, extraídos do Power BI.` : "",
+    nota: itens.length ? `${itens.length} lançamento${itens.length>1?"s":""} do ERP, extraídos do Power BI. `+
+      `Desmarque o que não deve contar no orçamento desta unidade — o total do conjunto e da reforma acompanham.` : "",
   };
 }
 function fmtDataCurta(iso){

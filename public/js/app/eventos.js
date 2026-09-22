@@ -220,6 +220,16 @@ document.addEventListener("input",e=>{
 });
 document.addEventListener("change",e=>{
   const t=e.target;
+  // marca/desmarca um lancamento do ERP no rastro do gasto real da reforma —
+  // o total do conjunto (e da especialidade) so soma o que estiver marcado
+  // (ver realDe() em calculo/reforma.js e rastroReformaBiItem() em calculo/rastro.js)
+  if(t.dataset.flagChave!==undefined){
+    const cod = t.dataset.flagCod;
+    FROTA_UN[cod] = FROTA_UN[cod] || {};
+    const excl = new Set(FROTA_UN[cod].reformaExcl || []);
+    if(t.checked) excl.delete(t.dataset.flagChave); else excl.add(t.dataset.flagChave);
+    FROTA_UN[cod].reformaExcl = [...excl];
+    salvar(); render(); return; }
   // consumo por equipamento (aba Combustível): unidade, L/h, L/km, velocidade.
   // Grava no cadastro da máquina; campo vazio volta ao padrão.
   if(t.dataset.cmaq!==undefined){ const m=t.dataset.cmaq, k=t.dataset.ck;
