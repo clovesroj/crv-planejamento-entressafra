@@ -298,10 +298,14 @@
 </section>
 
 <!-- ===== DIMENSIONAMENTO ===== -->
-<section id="dimens">
+<!-- data-blocos="juntos": os tres dimensionamentos ficam na mesma tela, um
+     abaixo do outro. Eles sao a mesma conta lida de tres angulos — atividade,
+     frota e pessoas —, e comparar os tres exigia sair de um e entrar no outro.
+     O submenu continua existindo, mas como atalho que rola ate o bloco. -->
+<section id="dimens" data-blocos="juntos">
   <h2>Dimensionamento</h2>
-  <p class="lead">Três dimensionamentos, um por página: atividade, frota e pessoas. Use o menu ao lado para trocar
-  de página.</p>
+  <p class="lead">Três leituras da mesma conta, na mesma tela: por atividade, por frota e por pessoas.
+  O menu ao lado leva direto a cada bloco, e cada um recolhe no clique do título.</p>
 
   <details class="bloco" id="bl_dim_ativ" open>
     <summary><span class="bl-tit">Dimensionamento por atividade</span>
@@ -310,12 +314,15 @@
       <div class="grid g5" id="k_dim" style="margin-bottom:16px"></div>
       <input type="search" class="tbl-busca" data-alvo="#t_dim" placeholder="Buscar atividade por cód. ou nome...">
       <div class="tblwrap"><table id="t_dim"></table></div>
-      <div class="hint" style="margin-top:9px">Rendimento e utilização são editáveis. Atividade com mix de modos
-      abre uma frente por modo.</div>
+      <div class="hint" style="margin-top:9px">Uma linha por atividade, com as três leituras lado a lado:
+      <b>atividade</b> (volume, rendimento, utilização, horas), <b>frota</b> (quantidade, máquina, implemento,
+      diesel e manutenção) e <b>pessoas</b> (função, escala, turnos, fator e efetivo). Rendimento, utilização,
+      frota, escala e turnos são editáveis; o botão <b>mês</b> abre o critério mês a mês. Atividade com mix de
+      modos abre uma frente por modo. Role a tabela na horizontal para ver todas as colunas.</div>
     </div>
   </details>
 
-  <details class="bloco" id="bl_dim_frota">
+  <details class="bloco" id="bl_dim_frota" open>
     <summary><span class="bl-tit">Dimensionamento de frota</span>
       <span class="bl-sub" id="bl_frota_sub"></span></summary>
     <div class="bloco-corpo">
@@ -334,16 +341,11 @@
     </div>
   </details>
 
-  <details class="bloco" id="bl_dim_pessoas">
+  <details class="bloco" id="bl_dim_pessoas" open>
     <summary><span class="bl-tit">Dimensionamento de pessoas</span>
       <span class="bl-sub" id="bl_pes_sub"></span></summary>
     <div class="bloco-corpo">
       <div class="grid g4" id="k_dim_pes" style="margin-bottom:16px"></div>
-      <div class="panel"><h3>Pessoas por atividade, especialidade e função</h3>
-        <input type="search" class="tbl-busca" data-alvo="#t_dim_pes" placeholder="Buscar atividade por cód. ou nome...">
-        <div class="tblwrap"><table id="t_dim_pes"></table></div>
-        <div class="hint" style="margin-top:9px">A especialidade vem da base de frota do ERP quando a máquina da
-        frente está cadastrada lá; equipe manual e prestador de serviço aparecem como tal.</div></div>
       <div class="panel"><h3>Quadro ativo do ERP</h3>
         <input type="search" class="tbl-busca" data-alvo="#t_pes_base" placeholder="Buscar cargo ou especialidade...">
         <div class="tblwrap"><table id="t_pes_base"></table></div>

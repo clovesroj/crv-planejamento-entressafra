@@ -117,16 +117,30 @@ document.querySelectorAll("nav button[data-s]").forEach(b=>{
   b.insertAdjacentElement("afterend", sub);
   const itens = [...sub.querySelectorAll("button")];
 
+  /* Aba marcada com data-blocos="juntos" nao vira paginas: os blocos ficam
+     todos na tela, e o submenu passa a ser atalho que rola ate o bloco. E o
+     caso do Dimensionamento, onde os tres blocos sao a mesma conta lida de
+     tres angulos e comparar exigia sair de um e entrar no outro. */
+  const juntos = secao.dataset.blocos === "juntos";
+
   function mostrar(i){
-    blocos.forEach((bl,j)=>{
-      const ativo = j===i;
-      bl.open = ativo;      // so estilo (chevron, borda) — quem tira da tela e o hidden
-      bl.hidden = !ativo;
-    });
+    if(juntos){
+      blocos.forEach(bl=>{ bl.hidden = false; });
+      const alvo = blocos[i];
+      if(alvo){ alvo.open = true; alvo.scrollIntoView({block:"start", behavior:"smooth"}); }
+    }else{
+      blocos.forEach((bl,j)=>{
+        const ativo = j===i;
+        bl.open = ativo;      // so estilo (chevron, borda) — quem tira da tela e o hidden
+        bl.hidden = !ativo;
+      });
+    }
     itens.forEach((it,j)=>it.classList.toggle("on", j===i));
   }
-  // estado inicial: o bloco que ja nasce com "open" no HTML e a primeira pagina
-  mostrar(Math.max(0, blocos.findIndex(bl=>bl.open)));
+  // estado inicial: em paginas, o bloco que ja nasce "open" e a primeira; em
+  // juntos, todos aparecem e nada rola sozinho
+  if(juntos) blocos.forEach(bl=>{ bl.hidden = false; });
+  else mostrar(Math.max(0, blocos.findIndex(bl=>bl.open)));
 
   itens.forEach((item,i)=>{
     item.onclick = e=>{
@@ -139,7 +153,9 @@ document.querySelectorAll("nav button[data-s]").forEach(b=>{
   });
   // a pagina ativa e a unica visivel, entao o titulo dela continua clicavel
   // (accessibilidade/teclado) — mas fechar sozinha deixaria a tela em branco
-  blocos.forEach(bl=>{
+  // em paginas, fechar a unica visivel deixaria a tela em branco — reabre.
+  // em juntos, recolher e justamente o que se quer: ha outros blocos na tela.
+  if(!juntos) blocos.forEach(bl=>{
     bl.addEventListener("toggle", ()=>{ if(!bl.open && !bl.hidden) bl.open = true; });
   });
 

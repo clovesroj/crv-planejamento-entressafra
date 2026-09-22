@@ -15,6 +15,16 @@ const btnMes = cod => `<button class="btn xs" data-rendmes="${cod}"
   title="Critério por mês: produção, frota, disponibilidade e utilização">${
   temCriterioMensal(cod) ? "mês •" : "mês"}</button>`;
 
+/* Quadro por funcao e opcoes de escala/turno. Subiram para o modulo quando o
+   dimensionamento virou uma tabela so: antes viviam dentro do bloco de pessoas,
+   que era a unica tela que os usava. */
+const infoQuadro = f => { const v=(QUADRO[f]||{}).ativo; return v!=null && v!=="" ? num(v) : null; };
+const ativoDe = (f, base) => { const v=infoQuadro(f); return v!=null ? v : ((base.porFuncao||{})[f]||0); };
+const turOpts = sel => `<option value="">Padrão</option>` +
+  [1,2,3].map(n=>`<option value="${n}" ${n===+sel?"selected":""}>${n}t</option>`).join("");
+const escOpts = sel => `<option value="">Padrão (premissas)</option>` +
+  Object.keys(ESCALAS).map(k=>`<option value="${k}" ${k===sel?"selected":""}>${k}</option>`).join("");
+
 function pintarDim(R){
   $("#k_dim").innerHTML =
     kpi("Horas-máquina","",fmt(R.horasT),"","frota:horas") +
@@ -26,13 +36,23 @@ function pintarDim(R){
     kpi("Efetivo das atividades","g",fmt(R.L.reduce((s,r)=>s+r.efetivo,0))+" pessoas",
         "operadores das frentes · apoio e indiretos ficam em Pessoas","pessoas:total");
 
-  $("#t_dim").innerHTML = th([["Cod"],["Atividade / frente"],["Modo"],["Área/Volume",1],["Rend. (un/h)",1],["Utiliz.",1],
-    ["Horas",1],["Frota",1],["Efetivo (pessoas)",1],["Função"],["Máquina"],["Implemento"]])+"<tbody>"+
+  /* UMA tabela para os tres dimensionamentos. Atividade, frota e pessoas nao
+     sao tres assuntos: sao a mesma conta lida de tres angulos, e o numero de um
+     so faz sentido ao lado do outro -- a frota sai do rendimento, e o efetivo
+     sai da frota. Ver os tres exigia trocar de pagina e guardar numero de
+     cabeca, entao eles viram colunas vizinhas da mesma linha. */
+  const BASE = quadroBase();
+  $("#t_dim").innerHTML = th([["Cod"],["Atividade / frente"],["Etapa"],["Modo"],
+    ["Área/Volume",1],["Rend. (un/h)",1],["Utiliz.",1],["Horas",1],
+    ["Frota",1],["Máquina"],["Implemento"],
+    ["Função"],["Escala"],["Turnos"],["Fator",1],["Efetivo (pessoas)",1],["Ativos da função",1],
+    ["Diesel",1],["Manutenção",1]])+"<tbody>"+
     // a coluna Frota aceita edicao: preenchida, inverte o dimensionamento
     R.L.map(r=>{
       const multi = r.partes.length>1;
       const un = r.a.un.split("/")[0];
       let h = `<tr><td>${r.a.cod}</td><td>${r.a.nome}</td>
+        <td class="calc">${r.a.etapa}</td>
         <td class="calc">${multi?`<span class="badge b-warn">${r.partes.length} frentes</span>`:(r.a.modoOn?"padrão":"—")}</td>
         <td class="num calc">${fmt(r.total)} <span style="font-size:10px">${un}</span></td>
         <td class="num">${multi?`<span class="calc">${fmt(r.rend,2)} ${un}/h</span>`
@@ -56,18 +76,38 @@ function pintarDim(R){
           ? `<span class="tot">${r.frotaR||"—"}</span>`
           : `<input data-fr="${r.a.cod}" value="${r.frotaAlvo||""}" placeholder="${r.frotaR||"—"}"
                     inputmode="decimal" title="Em branco, a frota sai do rendimento. Preenchida, ela fixa a frota e o rendimento passa a ser o que ela exige.">`}</td>
-        <td class="num calc">${r.efetivo||"—"}</td><td class="calc">${r.fcod}</td>
-        <td class="calc">${multi?"—":r.maqEfetiva}</td><td class="calc">${multi?"—":r.impEfetivo}</td></tr>`;
+        <td class="calc">${multi?"—":r.maqEfetiva}</td><td class="calc">${multi?"—":r.impEfetivo}</td>
+        <td class="calc">${multi?"—":r.fcod+" — "+r.fnome}</td>
+        <td><select data-esc="${r.a.cod}">${escOpts(r.escala)}</select></td>
+        <td><select data-tur="${r.a.cod}">${turOpts(r.turnosOv)}</select></td>
+        <td class="num calc">${fmt(r.fator,2)}</td>
+        <td class="num tot">${r.efetivo||"—"}</td>
+        <td class="num calc">${ativoDe(r.fcod, BASE)||"—"}</td>
+        <td class="num calc">${r.cDiesel?brl(r.cDiesel):"—"}</td>
+        <td class="num calc">${r.cManut?brl(r.cManut):"—"}</td></tr>`;
       if(multi) r.partes.forEach(p=>{
-        h += `<tr class="sub"><td></td><td class="calc">↳ ${p.modo}</td>
-          <td class="num calc">${fmt(p.pct*100,0)}%</td><td class="num calc">${fmt(p.area)} <span style="font-size:9.5px">${un}</span></td>
+        h += `<tr class="sub"><td></td><td class="calc">↳ ${p.modo}</td><td></td>
+          <td class="num calc">${fmt(p.pct*100,0)}%</td>
+          <td class="num calc">${fmt(p.area)} <span style="font-size:9.5px">${un}</span></td>
           <td class="num calc">${fmt(p.rend,2)} ${un}/h</td><td class="calc"></td>
           <td class="num calc">${p.terc?"—":fmt(p.horas)}</td>
           <td class="num calc">${p.terc?"—":p.frotaR}</td>
+          <td class="calc">${p.maq}</td><td class="calc">${p.imp}</td>
+          <td class="calc">${p.terc?'<span class="badge b-warn">terceiro</span>':p.fcod+" — "+p.fnome}</td>
+          <td colspan="2"></td>
+          <td class="num calc">${p.terc?"—":p.turnosEf+"t"}</td>
           <td class="num calc">${p.terc?"—":p.efetivo}</td>
-          <td class="calc">${p.terc?'<span class="badge b-warn">terceiro</span>':p.fcod}</td>
-          <td class="calc">${p.maq}</td><td class="calc">${p.imp}</td></tr>`;});
-      return h;}).join("")+"</tbody>";
+          <td colspan="3"></td></tr>`;});
+      return h;}).join("")+
+    // o rodape fecha as tres leituras de uma vez
+    `<tr><td class="tot" colspan="7">TOTAL DAS ATIVIDADES</td>
+     <td class="num tot">${fmt(R.L.reduce((s,r)=>s+r.horas,0))}</td>
+     <td class="num tot">${fmt(R.L.reduce((s,r)=>s+r.frotaR,0))}</td>
+     <td colspan="6"></td>
+     <td class="num tot">${fmt(R.L.reduce((s,r)=>s+r.efetivo,0))}</td>
+     <td></td>
+     <td class="num tot">${brl(R.L.reduce((s,r)=>s+r.cDiesel,0))}</td>
+     <td class="num tot">${brl(R.L.reduce((s,r)=>s+r.cManut,0))}</td></tr></tbody>`;
 
   const fr={};
   R.L.forEach(r=>r.partes.forEach(p=>{
@@ -137,59 +177,18 @@ function pintarDimPessoas(R){
   const qv = (f,k) => num((QUADRO[f]||{})[k]);
   const BASE = quadroBase();
   // o ativo vem do ERP; o campo da tela e um ajuste opcional que sobrepoe a base
-  const informado = f => { const v=(QUADRO[f]||{}).ativo; return v!=null && v!=="" ? num(v) : null; };
-  const ativoDe = f => { const v=informado(f); return v!=null ? v : (BASE.porFuncao[f]||0); };
 
-  // uma linha por atividade, com nivel da funcao e escala escolhidos ali mesmo;
-  // as frentes da atividade entram como sub-linhas
-  const turOpts = sel => `<option value="">Padrão</option>` +
-    [1,2,3].map(n=>`<option value="${n}" ${n===+sel?"selected":""}>${n}t</option>`).join("");
-  const escOpts = sel => `<option value="">Padrão (premissas)</option>` +
-    Object.entries(ESCALAS).map(([k,e])=>`<option value="${k}" ${k===sel?"selected":""}>${k}</option>`).join("");
-
-  const comGente = R.L.filter(r=>r.partes.some(p=>!p.terc && p.efetivo>0));
-  let corpoAtiv = "", totPessoas = 0;
-  comGente.forEach(r=>{
-    const frentes = r.partes.filter(p=>!p.terc && p.efetivo>0);
-    const pessoas = frentes.reduce((s,p)=>s+p.efetivo,0);
-    const frota = frentes.reduce((s,p)=>s+p.frotaR,0);
-    const horas = frentes.reduce((s,p)=>s+p.horas,0);
-    totPessoas += pessoas;
-    const multi = frentes.length>1;
-    corpoAtiv += `<tr><td>${r.a.cod}</td><td>${r.a.nome}</td><td class="calc">${r.a.etapa}</td>
-      <td class="calc">${multi?`<span class="badge b-warn">${frentes.length} frentes</span>`:(espDe(frentes[0].maq)||frentes[0].maq)}</td>
-      <td class="calc">${multi?"—":r.fcod+" — "+frentes[0].fnome}</td>
-      <td><select data-esc="${r.a.cod}" style="min-width:150px">${escOpts(r.escala)}</select></td>
-      <td><select data-tur="${r.a.cod}" style="min-width:74px">${turOpts(r.turnosOv)}</select></td>
-      <td class="num calc">${fmt(r.fator,2)}</td>
-      <td class="num calc">${frota||"—"}</td><td class="num calc">${fmt(horas)}</td>
-      <td class="num tot">${fmt(pessoas)}</td>
-      <td class="num calc">${ativoDe(r.fcod)||"—"}</td></tr>`;
-    if(multi) frentes.forEach(p=>{
-      corpoAtiv += `<tr class="sub"><td></td><td class="calc">↳ ${p.modo}</td><td></td>
-        <td class="calc">${espDe(p.maq)||p.maq}</td><td class="calc">${p.fcod} — ${p.fnome}</td>
-        <td colspan="3"></td>
-        <td class="num calc">${p.turnosEf}t</td>
-        <td class="num calc">${p.frotaR||"—"}</td><td class="num calc">${fmt(p.horas)}</td>
-        <td class="num calc">${fmt(p.efetivo)}</td><td></td></tr>`;
-    });
-  });
-
-  $("#t_dim_pes").innerHTML = th([["Cod"],["Atividade / frente"],["Etapa"],["Especialidade"],["Função"],
-    ["Escala"],["Turnos"],["Fator",1],["Frota",1],["Horas",1],["Pessoas",1],
-    ["Ativos da função",1]])+"<tbody>"+
-    (comGente.length ? corpoAtiv
-    : `<tr><td colspan="12" class="calc">Sem frente com efetivo: lance quantidades no Plano Operacional.</td></tr>`)+
-    `<tr><td class="tot" colspan="10">TOTAL NAS ATIVIDADES</td>
-     <td class="num tot">${fmt(totPessoas)}</td><td></td></tr></tbody>`;
-
+  /* A leitura por atividade saiu daqui: virou coluna da tabela unica de
+     Dimensionamento, ao lado da frota e das horas que a geram. O que fica neste
+     bloco e o que so existe por FUNCAO -- confronto com o quadro ativo, ferias,
+     demissoes e o pico mensal que decide a contratacao. */
   const funcoes = Object.keys(PS.porFun).sort();
   const tot = {nec:0, pico:0, ativo:0, ferias:0, demis:0, disp:0, contratar:0, exced:0};
   const disponivel = {};
   const corpo = funcoes.map(f=>{
     const o = PS.porFun[f];
-    const base = BASE.porFuncao[f]||0, ajuste = informado(f);
-    const ativo = ativoDe(f), ferias = qv(f,"ferias"), demis = qv(f,"demis");
+    const base = BASE.porFuncao[f]||0, ajuste = infoQuadro(f);
+    const ativo = ativoDe(f, BASE), ferias = qv(f,"ferias"), demis = qv(f,"demis");
     const disp = ativo - ferias - demis;
     disponivel[f] = disp;
     const contratar = Math.max(0, o.pico - disp), exced = Math.max(0, disp - o.pico);

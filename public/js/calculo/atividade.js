@@ -212,7 +212,10 @@ function criterioMensal(r){
     const D = diasDoMes(i, r.janela);
     const diasMes = D.efetivos;
     const c = criterioDoMes(r.a.cod, i, r.util);
-    const n = c.frota > 0 ? c.frota : nPad;
+    // Mes sem volume nao opera: frota e efetivo sao zero, nao os da atividade.
+    // Herdar o criterio ali fazia o mes aparecer com maquina e gente alocadas
+    // para uma producao que nao existe.
+    const n = q > 0 ? (c.frota > 0 ? c.frota : nPad) : 0;
     // com a frota do mes fixada, as horas sao a capacidade dela e o rendimento
     // e o que fecha a conta -- a mesma inversao do Dimensionamento, por mes
     const hDispEquip = hDia * c.disp * c.util * c.efic;   // hora produtiva por equipamento/dia

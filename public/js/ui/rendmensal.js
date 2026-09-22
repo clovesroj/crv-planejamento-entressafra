@@ -185,25 +185,27 @@ function pintarRendMensal(R){
       <div class="rm-campos">
         <label>Frota
           <input data-frotam="${cod}" data-i="${i}" value="${frotaM[i]||""}"
-                 inputmode="decimal" placeholder="${r.frotaR||"—"}" title="Equipamentos neste mês">
+                 inputmode="decimal" placeholder="${vazio ? "0" : (r.frotaR||"—")}"
+                 title="${vazio ? "Mês sem volume no plano: não opera, então não tem frota nem efetivo. O critério lançado aqui passa a valer se o mês receber quantidade."
+                               : "Equipamentos neste mês"}">
         </label>
         <label>Rend. (${un}/h)
           ${c.daFrota
             ? `<span class="rm-calc" title="Calculado a partir da frota deste mês">${fmt(c.rend,2)}</span>`
             : `<input data-rendm="${cod}" data-i="${i}" value="${rendM[i]||""}"
-                      inputmode="decimal" placeholder="${fmt(padrao,2)}">`}
+                      inputmode="decimal" placeholder="${vazio ? "—" : fmt(padrao,2)}">`}
         </label>
         <label>Disponib. %
           <input data-dispm="${cod}" data-i="${i}" value="${dispM[i]||""}"
-                 inputmode="decimal" placeholder="${fmt(num(P.disp),0)}" title="Disponibilidade mecânica — manutenção">
+                 inputmode="decimal" placeholder="${vazio ? "—" : fmt(num(P.disp),0)}" title="Disponibilidade mecânica — manutenção">
         </label>
         <label>Utiliz. %
           <input data-utilm="${cod}" data-i="${i}" value="${utilM[i]||""}"
-                 inputmode="decimal" placeholder="${fmt(r.util*100,0)}" title="Utilização — quanto do tempo disponível vai para a operação">
+                 inputmode="decimal" placeholder="${vazio ? "—" : fmt(r.util*100,0)}" title="Utilização — quanto do tempo disponível vai para a operação">
         </label>
         <label>Efic. %
           <input data-eficm="${cod}" data-i="${i}" value="${eficM[i]||""}"
-                 inputmode="decimal" placeholder="${fmt(eficPad*100,0)}"
+                 inputmode="decimal" placeholder="${vazio ? "—" : fmt(eficPad*100,0)}"
                  title="Eficiência operacional — quanto do tempo em campo é produtivo. Desconta chuva, manobra, espera e abastecimento.">
         </label>
       </div>
