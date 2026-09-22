@@ -30,9 +30,54 @@ import { $, fmt, num, pct } from '../nucleo/formato.js';
 let cod = null;         // atividade com o modal aberto, ou null
 let jaAberto = false;   // anima so na transicao fechado->aberto
 
+/* ---------- RASCUNHO ----------
+   Digitar aqui nao grava mais a cada tecla. Antes cada tecla chamava salvar() e
+   um render() que repinta as 24 abas e reconstroi este modal -- o campo em que
+   se estava digitando era destruido e recriado no meio da digitacao, e o cursor
+   pulava ou o caractere se perdia.
+
+   Agora a digitacao mexe so nesta copia, que nao passa pelo motor de calculo.
+   O botao Salvar e que escreve no plano e redesenha. E o mesmo desenho de um
+   formulario: preenche, confere, grava. */
+const CAMPOS = ["rendM", "frotaM", "dispM", "utilM", "eficM"];
+let RASCUNHO = null;
+
+function rascunhoDe(c){
+  const d = DIM[c] || {};
+  const r = {};
+  CAMPOS.forEach(k => { r[k] = Array.isArray(d[k]) ? d[k].slice() : Array(NM).fill(""); });
+  return r;
+}
+/** Campo em branco volta a herdar o criterio da atividade: guarda "", nao zero. */
+function editarRascunho(chave, i, valor){
+  if(!RASCUNHO || !CAMPOS.includes(chave)) return;
+  RASCUNHO[chave][i] = String(valor).trim() === "" ? "" : num(valor);
+}
+/** Array vazio (so "" ou 0) nao vira campo no plano -- e ausencia de criterio. */
+const vazia = a => a.every(v => v === "" || num(v) === 0);
+/** Quantos meses tem valor diferente do que esta gravado. */
+function pendencias(){
+  if(!cod || !RASCUNHO) return 0;
+  const grav = rascunhoDe(cod);
+  let n = 0;
+  CAMPOS.forEach(k => RASCUNHO[k].forEach((v, i) => {
+    if(String(v) !== String(grav[k][i])) n++;
+  }));
+  return n;
+}
+/** Escreve o rascunho no plano. Quem grava e chama render() e o chamador. */
+function salvarRascunho(){
+  if(!cod || !RASCUNHO) return false;
+  const d = DIM[cod] = DIM[cod] || {};
+  CAMPOS.forEach(k => { if(vazia(RASCUNHO[k])) delete d[k]; else d[k] = RASCUNHO[k].slice(); });
+  RASCUNHO = rascunhoDe(cod);
+  return true;
+}
+function descartarRascunho(){ if(cod) RASCUNHO = rascunhoDe(cod); }
+
 const aberto = () => !!cod;
-function abrirRendMensal(c){ cod = c; }
-function fecharRendMensal(){ cod = null; jaAberto = false; }
+function abrirRendMensal(c){ cod = c; RASCUNHO = rascunhoDe(c); }
+function fecharRendMensal(){ cod = null; RASCUNHO = null; jaAberto = false; }
 
 function pintarRendMensal(R){
   const cont = $("#rendm"), fundo = $("#rendm_fundo");
@@ -42,10 +87,12 @@ function pintarRendMensal(R){
   const r = R.L.find(x=>x.a.cod===cod);
   if(!r){ fecharRendMensal(); cont.hidden = true; fundo.hidden = true; return; }
 
-  const d = DIM[cod] || {};
-  const arr = k => Array.isArray(d[k]) ? d[k] : Array(NM).fill("");
-  const rendM = arr("rendM"), frotaM = arr("frotaM"), dispM = arr("dispM"),
-        utilM = arr("utilM"), eficM = arr("eficM");
+  // os campos mostram o RASCUNHO (o que se esta digitando); os numeros
+  // calculados abaixo continuam vindo do plano gravado
+  if(!RASCUNHO) RASCUNHO = rascunhoDe(cod);
+  const rendM = RASCUNHO.rendM, frotaM = RASCUNHO.frotaM, dispM = RASCUNHO.dispM,
+        utilM = RASCUNHO.utilM, eficM = RASCUNHO.eficM;
+  const pend = pendencias();
   const un = r.a.un.split("/")[0];
   // o padrao exibido e a PREMISSA da atividade, nao a media do periodo: a media
   // se move quando um mes ganha criterio proprio, e o placeholder passaria a
@@ -67,6 +114,13 @@ function pintarRendMensal(R){
         <button class="ghost-btn" id="rm_fechar" title="Fechar" aria-label="Fechar">✕</button>
       </div>
       <div class="ra-tit">${r.a.cod} · ${r.a.nome}</div>
+      <div class="rm-acoes">
+        <span class="rm-pend ${pend?"tem":""}">${pend
+          ? `<b>${pend}</b> campo${pend>1?"s":""} não salvo${pend>1?"s":""}`
+          : "tudo salvo"}</span>
+        <button class="btn" id="rm_descartar" ${pend?"":"disabled"}>Descartar</button>
+        <button class="btn p" id="rm_salvar" ${pend?"":"disabled"}>Salvar critério</button>
+      </div>
       <div class="ra-subtit">Critério por mês · padrão ${fmt(padrao,2)} ${un}/h ·
         ${r.frotaR||0} ${r.frotaR===1?"equipamento":"equipamentos"} ·
         ${pct(num(P.disp)/100)} de disponibilidade · ${pct(r.util)} de utilização ·
@@ -74,6 +128,7 @@ function pintarRendMensal(R){
     </div>
     <div class="ra-corpo">
       <div class="hint" style="margin-bottom:12px">
+        Digite à vontade: o critério só entra no plano quando você clicar em <b>Salvar critério</b>.
         Campo em branco herda o critério da atividade — preencha só o mês que foge dele.
         <b>Preenchendo a frota, o rendimento do mês passa a ser calculado</b>: com aquelas máquinas,
         naquele critério, é o ${un}/h que o volume do mês exige.
@@ -87,6 +142,9 @@ function pintarRendMensal(R){
         <b>Por dia corrido</b> divide pelos dias do calendário — é o <b>termômetro</b>, para saber
         se o mês está no prazo. A efetiva é sempre maior, e é ela que a operação persegue.
       </div>
+      ${pend ? `<div class="rm-resumo rm-alerta">Há <b>${pend}</b> campo${pend>1?"s":""} digitado${pend>1?"s":""}
+        e ainda não salvo${pend>1?"s":""}. Os números calculados abaixo — meta por dia, horas e o bloco
+        <i>para o mês caber</i> — ainda são os do critério <b>gravado</b>; eles se atualizam ao salvar.</div>` : ""}
       ${comVolume.length ? `<div class="rm-resumo ${apertados?"rm-alerta":"rm-ok"}">
         ${apertados
           ? `<b>${apertados}</b> ${apertados>1?"meses pedem":"mês pede"} mais do que o critério entrega.
@@ -160,4 +218,5 @@ function pintarRendMensal(R){
   }
 }
 
-export { abrirRendMensal, aberto, fecharRendMensal, pintarRendMensal };
+export { abrirRendMensal, aberto, descartarRascunho, editarRascunho, fecharRendMensal,
+  pendencias, pintarRendMensal, salvarRascunho };

@@ -477,6 +477,13 @@ tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:under
 #rendm{position:fixed;inset:0;z-index:95;display:flex;align-items:center;justify-content:center;padding:24px}
 #rendm[hidden]{display:none}
 .rm-modal{width:min(1180px,100%)}
+/* barra de acao do modal de criterio: digitar nao grava, o botao e que grava */
+.rm-acoes{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+.rm-pend{font-size:11.5px;color:var(--muted);margin-right:auto}
+.rm-pend.tem{color:var(--warn);font-weight:600}
+.rm-acoes .btn:disabled{opacity:.45;cursor:default}
+.rm-acoes .btn:disabled:hover{background:var(--card);border-color:var(--line-strong)}
+.rm-acoes .btn.p:disabled:hover{background:var(--leaf);border-color:var(--leaf)}
 /* input,select tem width:100% global — ao lado de um botao isso disputa espaco
    de um jeito que o auto-layout da tabela nao resolve direito (o botao ficava
    atras da coluna vizinha). Bloco flex com o input em largura fixa faz a coluna
