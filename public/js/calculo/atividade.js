@@ -253,6 +253,27 @@ function criterioMensal(r){
   });
 }
 
+/* ===== Frota que a atividade exige ter =====
+   Frota nao se soma nem se tira media: quem tem de existir no patio e a do MES
+   QUE MAIS PEDE. A media da janela subestima -- uma atividade que roda com 10
+   maquinas em fevereiro e 2 em marco aparecia como 2, e 2 nao fazem fevereiro.
+
+   `pico` e o maior mes; `media` e a da janela, que e a que o motor usa para
+   ratear custo. As duas convivem porque respondem perguntas diferentes:
+   quantas comprar, e quanto custa o uso. */
+function frotaDaAtividade(r){
+  const C = criterioMensal(r).filter(c => c.temVolume);
+  const pico = C.reduce((m,c)=>Math.max(m, c.n), 0);
+  const mesPico = C.find(c => c.n === pico);
+  return {
+    pico: pico || r.frotaR || 0,
+    media: r.frotaR || 0,
+    mes: mesPico ? mesPico.mes : null,
+    // so avisa quando o pico de fato passa da media arredondada
+    difere: pico > (r.frotaR || 0),
+  };
+}
+
 function linha(a, MP){
   const p = PLANO[a.cod] || {m:Array(NM).fill(0), trat:""};
   const baseMeses = a.tipo==="transp"
@@ -476,5 +497,5 @@ function removerAtividade(cod){
   return true;
 }
 
-export { MODOS_ORD, criterioMensal, diasDoMes, fatorDe, modosDe, linha, mixDe, tarifaTerc, tarifaTercDe, temDetalheTerc, metaDe,
+export { MODOS_ORD, criterioMensal, diasDoMes, fatorDe, frotaDaAtividade, modosDe, linha, mixDe, tarifaTerc, tarifaTercDe, temDetalheTerc, metaDe,
   temCriterioMensal, mesclarBaseAtividades, codigoAtividadeValido, criarAtividade, removerAtividade };

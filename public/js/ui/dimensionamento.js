@@ -6,7 +6,7 @@ import { MESES, NM, clsMes } from '../nucleo/calendario.js';
 import { kpi, maxSel, tdMeses, th, thMeses } from './componentes.js';
 import { ESCALAS } from '../dados/escalas.js';
 import { quadroBase } from '../calculo/quadro.js';
-import { temCriterioMensal } from '../calculo/atividade.js';
+import { frotaDaAtividade, temCriterioMensal } from '../calculo/atividade.js';
 
 /* ---------- DIMENSIONAMENTO ---------- */
 /* Botao do criterio mensal. O ponto avisa que algum mes ja foge do padrao da
@@ -50,35 +50,36 @@ function pintarDim(R){
     R.L.map(r=>{
       const multi = r.partes.length>1;
       const un = r.a.un.split("/")[0];
+      const F = frotaDaAtividade(r);
       return `<tr><td>${r.a.cod}</td><td>${r.a.nome}</td>
         <td class="calc">${r.a.etapa}</td>
         <td class="num calc">${fmt(r.total)} <span style="font-size:10px">${un}</span></td>
-        <td class="num">${multi?`<span class="calc">${fmt(r.rend,2)} ${un}/h</span>`
-          : r.frotaAlvo
-          ? `<div class="rend-cel"><span class="tot" title="Rendimento que a frota fixada exige">${fmt(r.rend,2)}</span>
-              <span class="calc">${un}/h</span><span class="badge b-ok">da frota</span></div>`
-          :`<div class="rend-cel">
-              <input data-r="${r.a.cod}" value="${r.rend}" inputmode="decimal">
-              <span class="calc">${un}/h</span>
-              ${r.frotaAlvoSuspensa ? `<span class="badge b-warn"
-                title="A frota de ${fmt(r.frotaAlvoSuspensa)} lançada aqui está suspensa: há critério lançado por mês, e é ele que vale.">frota do mês manda</span>` : ""}
-            </div>`}
-          <div class="dim-btns">${btnMes(r.a.cod)}
-            <button class="btn xs" data-dimdet="${r.a.cod}" data-aba="oper"
-              title="Modo, utilização e horas desta atividade">operação</button></div></td>
-        <td class="num">${multi
-          ? `<span class="tot">${r.frotaR||"—"}</span>`
-          : `<input data-fr="${r.a.cod}" value="${r.frotaAlvo||""}" placeholder="${r.frotaR||"—"}"
-                    inputmode="decimal" title="Em branco, a frota sai do rendimento. Preenchida, ela fixa a frota e o rendimento passa a ser o que ela exige.">`}
-          <button class="btn xs" data-dimdet="${r.a.cod}" data-aba="frota"
-            title="Máquina, implemento, diesel e manutenção">frota ›</button></td>
-        <td class="num"><span class="tot">${r.efetivo||"—"}</span>
-          <button class="btn xs" data-dimdet="${r.a.cod}" data-aba="pessoas"
-            title="Função, escala, turnos e quadro ativo — ajuste aqui">pessoas ›</button></td></tr>`;
+        <td class="num">
+          <div class="dim-cel">
+            ${multi
+              ? `<span class="dim-val calc">${fmt(r.rend,2)}</span>`
+              : `<input data-r="${r.a.cod}" value="${r.rend}" inputmode="decimal" class="dim-inp">`}
+            <span class="dim-un">${un}/h</span>
+            ${btnMes(r.a.cod)}
+            <button class="btn xs" data-dimdet="${r.a.cod}" data-aba="oper">detalhe ›</button>
+          </div></td>
+        <td class="num">
+          <div class="dim-cel">
+            <span class="dim-val" title="${F.difere
+              ? `Frota do mês que mais pede (${F.mes}): ${fmt(F.pico)}. Na média da janela dá ${fmt(F.media)}, mas média não estaciona no pátio — quem tem de existir é a do mês cheio. Ajuste mês a mês no botão mês.`
+              : `Sai do critério por mês. Ajuste mês a mês no botão mês.`}">${F.pico||"—"}</span>
+            ${F.difere ? `<span class="badge b-warn" title="A média da janela é ${fmt(F.media)}">pico ${F.mes}</span>` : ""}
+            <button class="btn xs" data-dimdet="${r.a.cod}" data-aba="frota">detalhe ›</button>
+          </div></td>
+        <td class="num">
+          <div class="dim-cel">
+            <span class="dim-val">${r.efetivo||"—"}</span>
+            <button class="btn xs" data-dimdet="${r.a.cod}" data-aba="pessoas">detalhe ›</button>
+          </div></td></tr>`;
     }).join("")+
     `<tr><td class="tot" colspan="4">TOTAL DAS ATIVIDADES</td>
      <td class="num tot">${fmt(R.L.reduce((s,r)=>s+r.horas,0))} h</td>
-     <td class="num tot">${fmt(R.L.reduce((s,r)=>s+r.frotaR,0))}</td>
+     <td class="num calc" title="Somar o pico de cada atividade nao da a frota da usina: atividades que picam em meses diferentes dividem a mesma maquina. O total esta no cartao Frota operacional, no topo.">ver cartão</td>
      <td class="num tot">${fmt(R.L.reduce((s,r)=>s+r.efetivo,0))}</td></tr></tbody>`;
 
   const fr={};
@@ -261,6 +262,7 @@ function pintarDimDetalhe(R){
   const un = r.a.un.split("/")[0];
   const multi = r.partes.length>1;
   const BASE = quadroBase();
+  const FR = frotaDaAtividade(r);
   const aba = DIM_DET.aba || "oper";
   const linha = (rot, val, dica) => `<div class="dd-linha"${dica?` title="${dica}"`:""}>
     <span>${rot}</span><b>${val}</b></div>`;
@@ -290,13 +292,22 @@ function pintarDimDetalhe(R){
     <div class="dd-bloco" id="dd_frota">
       <div class="dd-tit">Frota</div>
       <div class="dd-grade">
-        ${linha("Frota necessária", (r.frotaR||"—")+(r.frotaAlvo?" (fixada)":""))}
+        ${linha("Frota a ter no pátio", fmt(FR.pico)+(FR.mes?" · pico em "+FR.mes:""),
+                "O mes que mais pede. E o que tem de existir: media da janela nao estaciona no patio.")}
+        ${linha("Média da janela", fmt(FR.media),
+                "E a que o motor usa para ratear custo — uso medio, nao quantidade a ter.")}
         ${linha("Máquina", multi?"—":(r.maqEfetiva||"—"))}
         ${linha("Implemento", multi?"—":(r.impEfetivo||"—"))}
         ${linha("Capacidade por equipamento", r.capMes?fmt(r.capMes)+" h/mês":"—",
                 "dias efetivos × jornada × disponibilidade × utilização")}
         ${linha("Diesel", r.cDiesel?brl(r.cDiesel):"—")}
         ${linha("Manutenção (CRM)", r.cManut?brl(r.cManut):"—")}
+        ${multi ? "" : `<div class="dd-campo"><label for="dd_frota_fixa">Frota fixa da atividade</label>
+          <input id="dd_frota_fixa" data-fr="${r.a.cod}" value="${r.frotaAlvo||""}"
+                 placeholder="${r.frotaR||"—"}" inputmode="decimal">
+          <span class="calc">Em branco, a frota sai do rendimento. Preenchida, fixa a frota e o rendimento
+          passa a ser o que ela exige.${r.frotaAlvoSuspensa
+            ? ` <b>Suspensa agora:</b> há critério lançado por mês, e é ele que vale.` : ""}</span></div>`}
       </div>
       ${multi ? `<div class="tblwrap ra-tbl"><table>${th([["Frente"],["Frota",1],["Máquina"],["Implemento"]])}
         <tbody>${r.partes.map(p=>`<tr><td>${p.modo}</td>
