@@ -38,20 +38,22 @@ O menu lateral agrupa as abas assim:
 
 | Grupo | Aba | Conteúdo |
 |---|---|---|
-| Visão geral | Capa | Custo total, custo por hectare, hectares operados, efetivo e situação da validação |
+| Visão geral | Capa | Custo total, custo por hectare, hectares operados, efetivo e situação do plano |
 | | Painel | Indicadores, custo de colheita R$/t, grandes contas por mês |
 | | Acompanhamento do Plano | Realizado × planejado mês a mês, metas por gerência e **critério por mês** (o que cada mês exige de frota, rendimento, disponibilidade e utilização) |
-| | Validação | Checagens automáticas de consistência — inclusive dado sem aba de permissão e janela de datas descartada |
-| Planejamento | Premissas | Parâmetros agronômicos, operacionais e econômicos, incluindo disponibilidade mecânica e eficiência operacional |
-| | Plano Operacional | Área/tonelada por atividade e mês, janela de datas de execução, tratamentos vinculados |
+| | Validação | Checagens automáticas de consistência — inclusive dado sem aba de permissão, janela de datas descartada e conta sem mapeamento no Plano de Contas |
+| Planejamento | Premissas | Parâmetros agronômicos, operacionais e econômicos, incluindo a **base física dos custos** (áreas de plantio, tratos por cultura e colheita, volume colhido — o divisor de todo custo por hectare/tonelada), disponibilidade mecânica e eficiência operacional |
+| | Plano Operacional | Área/tonelada por atividade e mês, até dois tratamentos por atividade dividindo a área, janela de datas de execução |
 | | Dimensionamento | Horas, rendimento, frota e efetivo por atividade; frota como entrada (o rendimento passa a ser o calculado) e critério mês a mês no modal da atividade |
+| | Cadastro de Atividades | As atividades que aparecem no Plano Operacional e no Dimensionamento, com rendimento em ha/h ou ton/h; cria atividade nova além do cadastro padrão do sistema |
 | Pessoas | Mão de Obra | Encargos, benefícios, funções, níveis salariais e escalas |
 | | Resumo de Pessoas | Efetivo por departamento e função, mobilização e custo de mão de obra mês a mês |
-| Agricultura | Insumos | Composição dos tratamentos (código, nome, etapas, produtos e doses), com editar e remover por linha, e materiais de manutenção |
+| Agricultura | Insumos | Composição dos tratamentos — editar, duplicar e remover por linha, com vínculo direto a uma atividade — e materiais de manutenção, com mês de alocação do recurso |
+| | Manejo Fitossanitário | Broca e Cigarrinha à parte do resto do Plano Operacional: volume, valor de insumo e terceirização (aérea ou terrestre) por onda de aplicação |
 | | Irrigação | Dimensionamento hidráulico e energia por modalidade |
 | | Fornecedores de Cana | Contratos, estimativa de entrega, ATR e preço |
 | Frota e logística | Transporte | Transbordo e transporte de cana por raio, ciclo e capacidade |
-| | Combustível | Volume de diesel mês a mês, preço projetado por mês, consumo por etapa e equipamento; referência de mercado (ANP) por município e combustível, com histórico semanal e detalhe por posto pesquisado |
+| | Combustível | Volume de diesel mês a mês, consumo editável por equipamento (L/h para máquina ou L/km para veículo, com horas e km projetados), preço projetado por mês; referência de mercado (ANP) por município e combustível, com histórico semanal e detalhe por posto pesquisado |
 | | Apoio | Equipamentos de apoio por quantidade e horas |
 | | Transporte de Pessoal | Rotas, diárias de ônibus e quilometragem |
 | Manutenção de frota | Manutenção de Frota | CRM por especialidade, modelo e equipamento; destino de cada frota na safra |
@@ -59,11 +61,12 @@ O menu lateral agrupa as abas assim:
 | | Resumo de Frota | Necessidade do plano confrontada com a frota cadastrada |
 | Custos | Arrendamentos | Contratos, forma e meses de pagamento (valor por pagamento), custo mensal e rateio por etapa (referência PECEGE/USP) |
 | | Custos Administrativos | Estrutura, pessoal administrativo e rateio |
-| | Custos | Custo por etapa, por natureza e mensal |
-| | Plano de Contas | Custo projetado por conta contábil |
+| | Custos | Custo por etapa, por natureza e mensal; **custo operacional** (o que cada operação gasta, sem rateio) e **custo contábil** (com os rateios), lado a lado |
+| | Plano de Contas | Custo projetado por conta contábil, fechando com o custo total do plano — o que não tem conta cai numa linha "Sem conta" à parte |
 | Configurações | Cadastro de Insumos | Os produtos, em blocos por família e ordem de princípio ativo; ficha técnica, editar em modal e link da bula pela API AGROFIT (Embrapa) |
 | | Grupos de Insumos | Grupos personalizados, além das famílias padrão |
-| Administração | Usuários | Usuários, perfis e a matriz de quais abas cada perfil edita (só o administrador vê) |
+| Administração | Orientações | Como usar o sistema e as premissas que ainda precisam de confirmação (só o administrador vê) |
+| | Usuários | Usuários, perfis e a matriz de quais abas cada perfil edita (só o administrador vê) |
 
 **Relatórios:** 21 relatórios (orçamento anual, por fazenda, por etapa, fluxo de
 caixa, metas por gerência, critério operacional por mês e outros), em nível
@@ -98,7 +101,7 @@ inclusive quem só visualiza.
 
 ```
 public/                 FRONT — servido ao navegador
-  index.html            só marcação: as 26 abas, os modais e a moldura
+  index.html            só marcação: as 29 abas, os modais e a moldura
   css/                  tokens → layout → componentes → responsivo → impressão
                         (a ordem dos <link> importa: é a cascata)
   js/                   ~90 módulos ES, sem build
@@ -118,6 +121,12 @@ public/                 FRONT — servido ao navegador
       atividade.js      linha(): horas, frota, diesel, mão de obra por atividade;
                         janelaDe(), criterioMensal(), metaDe()
       acompanhamento.js realizado × planejado, criterioPorMes()
+      base-fisica.js    divisor de cada operação (área de plantio, de cana
+                        planta/soca, volume colhido...) — lido pela tela,
+                        pelo relatório e pelo rastro, um lugar só
+      contas.js         mapeia cada custo pra conta do Plano de Contas
+      custo-operacao.js custo operacional × contábil, por operação
+      consumo.js        L/h ou L/km por equipamento, na aba Combustível
       crm.js · mao-de-obra.js · arrendamento.js · insumos.js · irrigacao.js · ...
     ui/                 uma função pintar* por aba, só leem o resultado do cálculo;
                         componentes.js tem busca, combobox de busca, coluna
@@ -184,6 +193,9 @@ Quem importa `P` enxerga a troca — são bindings vivos. Esquecer o setter dá
 | Valor padrão de uma premissa | `public/js/dados/padroes.js` |
 | Fórmula de custo de uma atividade | `public/js/calculo/atividade.js` |
 | Rateio entre etapas, consolidação | `public/js/calculo/index.js` |
+| Divisor de um custo por hectare/tonelada (base física) | `public/js/calculo/base-fisica.js` |
+| Em que conta contábil um custo cai | `public/js/calculo/contas.js` — lido pela aba, pelo relatório, pelo rastro e pela Validação, um lugar só |
+| Consumo de diesel (L/h ou L/km) de um equipamento | `public/js/calculo/consumo.js` |
 | Layout ou colunas de uma aba | `public/js/ui/<aba>.js` |
 | Critério por mês, meta diária, janela de datas | `public/js/calculo/atividade.js` (`criterioMensal()`, `metaDe()`, `janelaDe()`) |
 | Família (bloco) de um insumo pela classe | `public/js/dados/insumos.js` (`FAMILIAS_INSUMO` — a ordem é o desempate) |
@@ -490,6 +502,10 @@ funciona essa vez; depois disso responde sempre 409. Não há usuário nem senha
 fixos no código-fonte.
 
 ## Premissas a confirmar
+
+A mesma lista, sempre atualizada, está na aba **Orientações** do app (grupo
+Administração, só o administrador vê) — foi tirada da Capa em 2026-09-21 para
+não repetir a cada acesso.
 
 - Densidade de muda e TCH da cana-muda — time agronômico
 - Salários e benefícios — CCT do sindicato rural de Capinópolis/MG
