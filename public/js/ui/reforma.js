@@ -35,7 +35,6 @@ function pintarReforma(){
        Marque o destino de cada frota em <b>Manutenção de Frota</b> — abra o modelo no botão <b>+</b>
        e escolha <i>Vai reformar</i>. O que for marcado aparece aqui para orçar por conjunto.</td></tr></tbody>`;
     $("#t_ref_detalhe").innerHTML = "";
-    $("#t_ref_conj").innerHTML = "";
     return;
   }
 
@@ -135,18 +134,6 @@ function pintarReforma(){
         </tbody></table></div></div>`;
   }).join("") : `<div class="panel" style="margin-top:14px">
       <p class="calc">Nada bate com esse filtro. Limpe algum campo ou escolha "Todos"/"Todas" acima.</p></div>`;
-
-  // Onde a reforma concentra gasto
-  const conj = Object.entries(R.porConjunto).sort((a,b)=>b[1]-a[1]);
-  const tot = conj.reduce((s,[,v])=>s+v, 0) || 1;
-  $("#t_ref_conj").innerHTML = th([["Conjunto"], ["Total", 1], ["% da reforma", 1], ["Peso"]]) + "<tbody>" +
-    (conj.length ? conj.map(([c,v])=>
-      `<tr><td>${c}</td><td class="num">${brl(v)}</td>
-       <td class="num calc">${fmt(v/tot*100, 1)}%</td>
-       <td><div class="bar"><i style="width:${Math.min(v/tot*100, 100)}%"></i></div></td></tr>`).join("")
-      : `<tr><td colspan="4" class="calc">Nenhum conjunto orçado ainda.</td></tr>`) +
-    `<tr><td class="tot">TOTAL</td><td class="num tot">${brl(R.total)}</td>
-     <td class="num tot">${conj.length ? "100,0%" : "—"}</td><td></td></tr></tbody>`;
 }
 
 /** Soma de um conjunto em todas as unidades de um modelo (real do ERP + digitado). */
