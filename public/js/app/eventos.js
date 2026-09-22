@@ -149,8 +149,10 @@ document.addEventListener("input",e=>{
     } else if(["un","pa","conc","cod","classe","fam"].includes(f)){ i[f]=t.value; }
     else i[f]=num(t.value);
     salvar(); leve(); return; }
-  if(t.dataset.mt!==undefined){ const l=matLista()[+t.dataset.mt];
-    l[t.dataset.f] = ["preco","qtd"].includes(t.dataset.f) ? num(t.value) : t.value;
+  if(t.dataset.mt!==undefined){ const l=matLista()[+t.dataset.mt], f=t.dataset.f;
+    // mês de alocação: índice da janela, ou vazio para distribuir no ano
+    if(f==="mes"){ l.mes = t.value==="" ? "" : +t.value; salvar(); render(); return; }
+    l[f] = ["preco","qtd"].includes(f) ? num(t.value) : t.value;
     salvar(); leve(); return; }
   if(t.dataset.at!==undefined && t.tagName==="INPUT"){ const a=atividadesLista()[+t.dataset.at], f=t.dataset.f;
     a[f] = ["nome","maq","imp"].includes(f) ? t.value : num(t.value);

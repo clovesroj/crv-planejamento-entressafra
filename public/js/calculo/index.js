@@ -116,8 +116,10 @@ function calcular(){
     // mês com volume; o restante do custo direto, pela quantidade
     r.meses.forEach((q,i)=>{ if(tot>0) meses[i] += (r.direto-r.cDiesel-r.cMDO)*(num(q)/tot) + r.dieselMes[i] + r.mdoMes[i]; });
   });
-  const outros = (AE.total-AE.diesel) + IR.total + MT.total + TC.total + EM.total + mdoIndirT + TP.total + crmExtra;
-  for(let i=0;i<NM;i++){ meses[i] += outros*pesoMes(i) + fixoMes + AE.dieselMes[i] + AR.mes[i]; }
+  // materiais de manutenção: os que têm mês marcado caem no mês; o resto, pela área operada
+  const outros = (AE.total-AE.diesel) + IR.total + MT.distribuido + TC.total + EM.total + mdoIndirT + TP.total + crmExtra;
+  for(let i=0;i<NM;i++){ meses[i] += outros*pesoMes(i) + fixoMes + AE.dieselMes[i] + AR.mes[i] + MT.mesFixo[i]; }
+  MT.mes = MESES.map((m,i)=>MT.mesFixo[i] + MT.distribuido*pesoMes(i));
   ESPOR.forEach(e=>{ const i = MESES.indexOf(e.mes); if(i>=0) meses[i]+=num(e.valor); });
 
   // grandes contas por mês — mesmo critério de rateio do total mensal, só que por natureza
@@ -129,12 +131,12 @@ function calcular(){
       mesesCat.mdo[i]+=r.mdoMes[i]; mesesCat.manut[i]+=r.cManut*f;
       mesesCat.diesel[i]+=r.dieselMes[i]; mesesCat.insumo[i]+=r.cInsumo*f; mesesCat.terc[i]+=r.cTerc*f; });
   });
-  const indiretoMdo = AE.mdo+mdoIndirT+EM.total, indiretoManut = AE.manut+crmExtra+MT.total,
+  const indiretoMdo = AE.mdo+mdoIndirT+EM.total, indiretoManut = AE.manut+crmExtra+MT.distribuido,
     indiretoInsumo = IR.total, indiretoTerc = TC.total+TP.total;
   for(let i=0;i<NM;i++){ const h=pesoMes(i);
     mesesCat.mdo[i]+=indiretoMdo*h; mesesCat.manut[i]+=indiretoManut*h;
     mesesCat.diesel[i]+=AE.dieselMes[i]; mesesCat.insumo[i]+=indiretoInsumo*h; mesesCat.terc[i]+=indiretoTerc*h;
-    mesesCat.fixo[i]+=fixoMes; mesesCat.arrend[i]+=AR.mes[i];
+    mesesCat.fixo[i]+=fixoMes; mesesCat.arrend[i]+=AR.mes[i]; mesesCat.manut[i]+=MT.mesFixo[i];
   }
   ESPOR.forEach(e=>{ const i=MESES.indexOf(e.mes); if(i>=0) mesesCat.espor[i]+=num(e.valor); });
 

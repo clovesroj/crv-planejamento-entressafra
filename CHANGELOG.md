@@ -1,5 +1,26 @@
 # Histórico de mudanças
 
+## 2.30.0 — 2026-09-22 · Mês de alocação dos materiais de manutenção
+
+Na aba Insumos, a tabela **Materiais de manutenção** ganhou a coluna **Mês de
+alocação**: o mês em que o recurso financeiro de cada material é alocado.
+
+- Com mês marcado, o valor do material cai **inteiro naquele mês** no custo
+  mensal, na grande conta de manutenção, no custo das etapas mês a mês, no
+  fluxo de caixa, no filtro de período e nos relatórios por período.
+- Em **"Distribuído no ano"** (o padrão), o valor se espalha pelos meses
+  conforme a área operada, como era antes. Nenhum número muda até alguém marcar
+  um mês.
+- O total do ano não muda: marcar o mês só muda **quando** o recurso entra.
+- Embaixo da tabela, a alocação mês a mês; no detalhamento de cada mês (clique
+  no mês na aba Custos), os materiais alocados nele.
+
+### Correção
+
+O detalhamento de um mês ainda calculava o valor de cada atividade dividindo a
+mão de obra pelo volume do mês — resto da mudança da 2.29.0, em que a MDO passou
+a ser a equipe paga mês cheio. Agora usa a mesma regra do motor.
+
 ## 2.29.0 — 2026-09-22 · Mão de obra direta pelo efetivo, mês cheio
 
 Decisão da auditoria 2.28.0. A mão de obra das atividades era cobrada por
