@@ -18,7 +18,8 @@ import { alternarFam, aplicarFamIns, buscaExigeRedesenho, recolherTodas, todasRe
 import { lerPremissas } from '../ui/premissas.js';
 import { leve, render, renderAgrofit, renderEditIns, renderFichaIns, renderRastro, renderRendMensal, renderTercDet } from './ciclo.js';
 import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarRastro, voltarRastro } from '../ui/rastro.js';
-import { abrirRendMensal, aberto as rendMensalAberto, fecharRendMensal } from '../ui/rendmensal.js';
+import { abrirRendMensal, aberto as rendMensalAberto, descartarRascunho, editarRascunho,
+  fecharRendMensal, pendencias, salvarRascunho } from '../ui/rendmensal.js';
 import { setAPOIO, setATIV_TRAT_SEL, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setINSX_V, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
 import { USUARIO, areasDePermissao, podeEditar } from '../nucleo/sessao.js';
 
@@ -70,18 +71,14 @@ document.addEventListener("input",e=>{
   // criterio por mes do modal de rendimento: rendimento, frota, disponibilidade e
   // utilizacao. Campo em branco volta a herdar o criterio da atividade, e por
   // isso guarda "" em vez de zero -- zero seria um criterio de fato lancado.
+  // Criterio por mes: a tecla mexe so no rascunho do modal. Nao grava, nao
+  // recalcula e nao redesenha -- era isso que destruia o campo no meio da
+  // digitacao. Quem escreve no plano e o botao Salvar, mais abaixo.
   const MENSAIS = {rendm:"rendM", frotam:"frotaM", dispm:"dispM", utilm:"utilM", eficm:"eficM"};
   for(const [attr, chave] of Object.entries(MENSAIS)){
     if(t.dataset[attr]===undefined) continue;
-    const c=t.dataset[attr];
-    DIM[c]=DIM[c]||{};
-    DIM[c][chave]=Array.isArray(DIM[c][chave])?DIM[c][chave]:Array(NM).fill("");
-    DIM[c][chave][+t.dataset.i]= t.value.trim()==="" ? "" : num(t.value);
-    if(DIM[c][chave].every(v=>v===""||num(v)===0)) delete DIM[c][chave];
-    salvar();
-    // frota preenchida faz o campo de rendimento do mes virar numero calculado:
-    // e troca de marcacao, entao redesenha o modal em vez de so recalcular
-    if(attr==="frotam") render(); else leve();
+    editarRascunho(chave, +t.dataset.i, t.value);
+    marcarPendencia();
     return;
   }
   if(t.dataset.u!==undefined){ DIM[t.dataset.u]=DIM[t.dataset.u]||{}; DIM[t.dataset.u].util=num(t.value)/100; salvar(); leve(); return; }
@@ -408,6 +405,19 @@ function pintarMeses(){
   if(n) n.textContent = MESES_SEL.length ? "("+MESES_SEL.length+")" : "";
 }
 
+/* A barra de acao do modal de criterio reage a cada tecla, mas sem repintar o
+   modal: so o texto e o estado dos dois botoes mudam. Repintar aqui recriaria o
+   campo em que se esta digitando, que e justamente o bug que o rascunho corrige. */
+function marcarPendencia(){
+  const n = pendencias();
+  const rot = $(".rm-pend"), desc = $("#rm_descartar"), sal = $("#rm_salvar");
+  if(!rot) return;
+  rot.classList.toggle("tem", n > 0);
+  rot.innerHTML = n ? `<b>${n}</b> campo${n>1?"s":""} não salvo${n>1?"s":""}` : "tudo salvo";
+  if(desc) desc.disabled = !n;
+  if(sal) sal.disabled = !n;
+}
+
 document.addEventListener("click",e=>{
   // pendência da Validação: vai direto ao ponto onde se corrige
   const vi = e.target.closest && e.target.closest("[data-valir]");
@@ -462,7 +472,15 @@ document.addEventListener("click",e=>{
   // rendimento por mes: botao "mês" ao lado do rendimento padrao, no Dimensionamento
   const alvoRendMes = e.target.closest && e.target.closest("[data-rendmes]");
   if(alvoRendMes){ abrirRendMensal(alvoRendMes.dataset.rendmes); renderRendMensal(); return; }
+  if(e.target.closest && e.target.closest("#rm_salvar")){
+    if(salvarRascunho()){ salvar(); render(); }
+    return; }
+  if(e.target.closest && e.target.closest("#rm_descartar")){
+    descartarRascunho(); renderRendMensal(); return; }
+  // fechar com campo digitado e nao salvo perderia o que foi digitado: avisa
   if((e.target.closest && e.target.closest("#rm_fechar")) || e.target.id==="rendm_fundo"){
+    const n = pendencias();
+    if(n && !confirm(`Há ${n} campo(s) digitado(s) e não salvo(s). Fechar e descartar?`)) return;
     fecharRendMensal(); renderRendMensal(); return; }
   // ficha tecnica em modal. E visao, nao dado: nao passa por salvar(), e redesenha
   // so o modal, porque nenhum numero das abas muda ao abrir ou fechar.

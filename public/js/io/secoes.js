@@ -126,7 +126,8 @@ const resumo = R => {
     ["Meses no período", REC.meses.length+" ("+MESES[REC.meses[0]]+" a "+MESES[REC.meses[REC.meses.length-1]]+")"],
     ["Custo total projetado", brl(tot)],
     ["Custo variável", brl(tot-fixo)], ["Custo fixo", brl(fixo)],
-    ["Custo por ha plantado", brl(tot/(P.plantio||1))],
+    ["Custo por hectare plantado (formação do canavial)", brl(custoHaForm(R))],
+    ["Custo do plano por hectare de plantio", brl(tot/(P.plantio||1))],
     ["Área de plantio", fmt(P.plantio)+" ha"],
     ["Hectares operados", fmt(REC.parcial ? noPer(R.haMes) : R.haOp)+" ha"],
     ["Moagem própria + terceiros"+ano, fmt(R.FORN.tonTotal)+" t"],
@@ -505,7 +506,8 @@ const indicadores = R => {
   if(REC.parcial) return indicadoresP(R);
   return sec("Indicadores","Indicadores de custo",["Indicador","Valor","Base"],[
     ["Custo total", brl(R.total), MESES.length+" meses"],
-    ["Custo por hectare plantado", brl(R.total/ha,2)+"/ha", fmt(ha)+" ha"],
+    ["Custo por hectare plantado", brl(custoHaForm(R),2)+"/ha", "formação do canavial ÷ "+fmt(ha)+" ha"],
+    ["Custo do plano por hectare de plantio", brl(R.total/ha,2)+"/ha", fmt(ha)+" ha"],
     ["Custo por tonelada moída", ton>0?brl(R.total/ton,2)+"/t":"—", fmt(ton)+" t"],
     ["Custo médio da matéria-prima", ton>0?brl(R.FORN.rsTMedio,2)+"/t":"—", "todas as origens"],
     ["Custo por kg de ATR", R.FORN.atrTotal>0?brl(R.FORN.rsAtrMedio,4)+"/kg":"—", "ATR médio "+fmt(R.FORN.atrMedio,1)],
@@ -542,7 +544,8 @@ function indicadoresP(R){
   const ano = "do ano — sem série mensal";
   return secP("Indicadores","Indicadores de custo",["Indicador","Valor","Base"],[
     ["Custo total", brl(tot), REC.meses.length+" meses"],
-    ["Custo por hectare plantado", brl(tot/ha,2)+"/ha", fmt(ha)+" ha"],
+    ["Custo por hectare plantado", brl(custoHaForm(R),2)+"/ha", "formação do canavial ÷ "+fmt(ha)+" ha (ano)"],
+    ["Custo do plano por hectare de plantio", brl(tot/ha,2)+"/ha", fmt(ha)+" ha"],
     ["Custo por hectare operado", haOp>0?brl(tot/haOp,2)+"/ha":"—", fmt(haOp)+" ha operados"],
     ["Custo médio da matéria-prima", R.FORN.tonTotal>0?brl(R.FORN.rsTMedio,2)+"/t":"—", ano],
     ["Custo por kg de ATR", R.FORN.atrTotal>0?brl(R.FORN.rsAtrMedio,4)+"/kg":"—", ano],
@@ -613,19 +616,22 @@ const irrigacao = R => sec("Irrigação","Irrigação e fertirrigação",
    As duas páginas da aba Custos. São do ano: no recorte por período saem com
    "ano todo" no título, como toda seção sem série mensal. */
 const unitOp = (v, b) => custoUnit(v, b);
-// as quatro operações com a formação do canavial logo depois de tratos de cana planta
+// custo por hectare plantado: a formação do canavial ÷ área de plantio
+const custoHaForm = R => { const F = custoPorOperacao(R).formacao;
+  return F && F.base && F.base.q>0 ? F.contabil/F.base.q : 0; };
+// as operações com a formação do canavial logo depois da última parte dela
 const comFormacaoRel = (C, lin, linF) => { const ult = C.principais.map(l=>!!l.formacao).lastIndexOf(true);
   return C.principais.flatMap((l,k)=> k===ult && C.formacao ? [lin(l), linF(C.formacao)] : [lin(l)]); };
 const custoOperacional = R => { const C = custoPorOperacao(R), L = C.principais.concat(C.outras);
   const lin = l => [l.nome, rotuloBase(l.base), brl(l.oper.diesel), brl(l.oper.mdo), brl(l.oper.manut),
     brl(l.oper.insumo), brl(l.oper.irrig), brl(l.oper.terc), brl(l.oper.total), unitOp(l.oper.total, l.base)];
-  const linF = f => ["= "+f.nome+" (plantio + tratos de cana planta)", ...lin(f).slice(1)];
+  const linF = f => ["= "+f.nome+" (preparo + plantio + tratos de cana planta)", ...lin(f).slice(1)];
   const tot = (lista, rot) => [rot, "", ...["diesel","mdo","manut","insumo","irrig","terc","total"]
     .map(k=>brl(C.soma(lista, l=>l.oper[k]))), ""];
   return sec("Custo operacional","Custo operacional — o que custa fazer cada operação",
     ["Operação","Base física","Diesel","Mão de obra","Manutenção (CRM)","Insumos","Irrigação","Terceirização",
      "Custo operacional","Custo unitário"],
-    comFormacaoRel(C, lin, linF).concat([tot(C.principais, "SUBTOTAL DAS QUATRO OPERAÇÕES")],
+    comFormacaoRel(C, lin, linF).concat([tot(C.principais, "SUBTOTAL DAS OPERAÇÕES PRINCIPAIS")],
       C.outras.map(lin), [tot(L, "TOTAL OPERACIONAL DO PLANO")]));
 };
 const custoContabil = R => { const C = custoPorOperacao(R), L = C.principais.concat(C.outras);
@@ -633,14 +639,14 @@ const custoContabil = R => { const C = custoPorOperacao(R), L = C.principais.con
   const lin = l => [l.nome, brl(l.oper.total), ...RAT.map(k=>brl(l.rateio[k])), brl(l.rateio.total),
     brl(l.contabil), unitOp(l.contabil, l.base),
     l.oper.total>0 ? "+"+fmt(l.rateio.total/l.oper.total*100,1)+"%" : "—"];
-  const linF = f => ["= "+f.nome+" (plantio + tratos de cana planta)", ...lin(f).slice(1)];
+  const linF = f => ["= "+f.nome+" (preparo + plantio + tratos de cana planta)", ...lin(f).slice(1)];
   const tot = (lista, rot) => { const o = C.soma(lista, l=>l.oper.total), r = C.soma(lista, l=>l.rateio.total);
     return [rot, brl(o), ...RAT.map(k=>brl(C.soma(lista, l=>l.rateio[k]))), brl(r),
       brl(C.soma(lista, l=>l.contabil)), "", o>0 ? "+"+fmt(r/o*100,1)+"%" : "—"]; };
   return sec("Custo contábil","Custo total (contábil) — custo operacional mais todos os rateios",
     ["Operação","Custo operacional","Diesel do apoio","Arrendamento","Administrativo","Depreciação",
      "Demais custos gerais","Total de rateios","Custo contábil","Custo unitário","Rateio sobre o operacional"],
-    comFormacaoRel(C, lin, linF).concat([tot(C.principais, "SUBTOTAL DAS QUATRO OPERAÇÕES")],
+    comFormacaoRel(C, lin, linF).concat([tot(C.principais, "SUBTOTAL DAS OPERAÇÕES PRINCIPAIS")],
       C.outras.map(lin), [tot(L, "CUSTO TOTAL DO PLANO")]));
 };
 

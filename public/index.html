@@ -167,8 +167,8 @@
         <div class="hint" id="h_tonColheita"></div></div>
     </div>
     <div class="hint" style="margin-top:9px">Estas áreas e o volume são a base de todo custo por hectare e por tonelada
-    do sistema — Painel, Custos, Arrendamentos, Custos Administrativos e relatórios. Plantio e formação do canavial
-    dividem pela área de plantio; tratos de cana planta e de cana soca, pela área de cada cultura; colheita, pelo volume
+    do sistema — Painel, Custos, Arrendamentos, Custos Administrativos e relatórios. Preparo de solo, plantio e a
+    formação do canavial dividem pela área de plantio; tratos de cana planta e de cana soca, pela área de cada cultura; colheita, pelo volume
     colhido (e pela área colhida, quando informada). Em branco, a base cai na soma do que foi lançado nas atividades do
     Plano Operacional — que conta cada passada no mesmo talhão como um hectare a mais — e a aba Validação avisa.
     Preparo de solo e apoio e conservação seguem por hectare operado.</div></div>
@@ -815,7 +815,7 @@
 <section id="arrend">
   <h2>Arrendamentos</h2>
   <p class="lead">Fazendas ou grupos de fazendas arrendadas, com área e forma de pagamento. O custo é calculado
-  automaticamente, distribuído nos meses do orçamento e rateado entre as etapas pela referência PECEGE/USP.
+  automaticamente, distribuído nos meses do orçamento e rateado entre as etapas pela referência setorial.
   Alimenta Custos, Plano de Contas (ARR-01) e Painel. Três páginas — use o menu ao lado para trocar.</p>
   <div class="grid g4" id="k_arr" style="margin-bottom:16px"></div>
 
@@ -852,11 +852,11 @@
     <summary><span class="bl-tit">Rateio</span></summary>
     <div class="bloco-corpo">
       <div class="panel"><h3>Resumo por grupo de fazendas</h3><div class="tblwrap"><table id="t_arr_grupo"></table></div></div>
-      <div class="panel"><h3>Rateio por etapa — referência PECEGE/USP</h3>
+      <div class="panel"><h3>Rateio por etapa — referência setorial</h3>
         <div class="tblwrap"><table id="t_arr_rat"></table></div>
         <div class="row" style="margin-top:10px"><button class="btn" id="btn_arr_rat_reset">Restaurar percentuais de referência</button></div>
-        <div class="hint" style="margin-top:9px">Percentuais-padrão editáveis — confirme com o relatório de custos PECEGE/USP
-        adotado pela empresa. Se a soma não fechar 100%, os valores são normalizados e a aba Validação avisa. Em tratos
+        <div class="hint" style="margin-top:9px">Percentuais-padrão editáveis — confirme com o relatório de custos de
+        referência adotado pela empresa. Se a soma não fechar 100%, os valores são normalizados e a aba Validação avisa. Em tratos
         culturais, cana soca e cana planta dividem a parcela pela área tratada. O valor de cada etapa aparece na coluna
         Arrendamento da aba Custos.</div></div>
     </div>
@@ -951,7 +951,8 @@
         aplicações — e, em tratos, a irrigação (energia, água e materiais), atribuída a cana planta ou soca pela
         modalidade. <b>Não entra</b> nenhum rateio: diesel dos equipamentos de apoio, arrendamento, administrativo,
         depreciação e custos gerais estão na página <b>Custo total (contábil)</b>.
-        <b>Formação do canavial</b> = plantio + tratos culturais de cana planta. Plantio, tratos de cana planta e a
+        <b>Formação do canavial</b> = preparo de solo + plantio + tratos culturais de cana planta — é o que o
+        <b>custo por hectare plantado</b> mede no Painel e na Capa. Preparo, plantio, tratos de cana planta e a
         formação são divididos pela <b>área plantada</b> (premissa "Área de plantio"), não pela soma dos hectares das
         atividades — várias operações no mesmo talhão não são vários hectares; passe o mouse na base física para ver
         os hectares operados. Cana soca segue por hectare operado e colheita por tonelada.
@@ -967,7 +968,7 @@
         <div class="tblwrap"><table id="t_contabil"></table></div>
         <div class="hint" style="margin-top:9px">Custo contábil = custo operacional + rateios. <b>Diesel do apoio</b>:
         equipamentos de apoio, rateados pelos litros de cada operação. <b>Arrendamento</b>: percentuais de referência
-        PECEGE/USP da aba Arrendamentos; dentro de tratos, pela área tratada de cada cultura. <b>Administrativo</b>:
+        setorial da aba Arrendamentos; dentro de tratos, pela área tratada de cada cultura. <b>Administrativo</b>:
         cada linha pelo seu critério, na aba Custos Administrativos. <b>Depreciação</b> e <b>demais custos gerais</b>
         (equipamentos de apoio, estrutura indireta, equipe de manutenção, transporte de pessoal, terceirizações por
         contrato, esporádicos): rateados pelo custo direto de cada operação. A soma de todas as operações é o custo
@@ -999,7 +1000,7 @@
         (apoio, irrigação, transporte de pessoal, terceirizações por contrato, esporádicos,
         administração e depreciação) são indiretos ao plano como um todo e rateados proporcionalmente ao custo
         direto de cada etapa. O arrendamento tem coluna própria: é distribuído entre as etapas pelos percentuais
-        de referência PECEGE/USP da aba Arrendamentos.</div></div>
+        de referência setorial da aba Arrendamentos.</div></div>
       <div class="panel"><h3>Composição por natureza</h3><div class="tblwrap"><table id="t_custo"></table></div></div>
     </div>
   </details>
@@ -1229,6 +1230,22 @@
   </div>
   <div class="panel"><h3>Tratos culturais e manutenção</h3>
     <div class="grid g4" id="k_tratos"></div></div>
+  <div class="panel"><h3>Custo por hectare — visão por operação</h3>
+    <div class="tblwrap"><table id="t_pec_ha" class="pec"></table></div>
+    <div class="hint" style="margin-top:9px">R$/ha de cada operação e o peso de cada item no total dela. Formação do
+    canavial = preparo + plantio + tratos de cana planta, como na referência setorial. Preparo, plantio e formação dividem pela área
+    de plantio; tratos de cana planta e de cana soca, pela área de cada cultura (bloco Base física dos custos, aba
+    Premissas). Além do que a referência mostra, a tabela traz o que o plano calcula: serviços terceirizados,
+    arrendamento, depreciação, diesel dos equipamentos de apoio e demais custos gerais; a linha "Base de comparação" soma só
+    operação, insumos e administrativo, para confrontar com o relatório de referência. Insumos pela classe agronômica do produto; produto
+    sem classe cai em "Outros insumos", exceto fertilizantes e corretivos reconhecidos pelo nome (fórmula NPK, ureia,
+    KCl, calcário). Royalties não têm dado no plano. <span id="pec_ha_nota"></span></div></div>
+  <div class="panel"><h3>Sistema de colheita (R$/t)</h3>
+    <div class="tblwrap"><table id="t_pec_colh" class="pec"></table></div>
+    <div class="hint" style="margin-top:9px">Corte, transbordo e transporte com o custo direto das atividades:
+    operador (equipe paga mês cheio), diesel, manutenção (CRM), locação (frentes terceirizadas) e outros. Apoio + Adm é
+    a parte do CTTA nos rateios da colheita — equipamentos de apoio, custos gerais, administrativo e depreciação —
+    pelo custo direto. <span id="pec_colh_nota"></span></div></div>
   <div class="panel"><h3>Custo mensal</h3><div id="ch_mes"></div></div>
   <div class="panel"><h3>Grandes contas por mês</h3><div class="tblwrap"><table id="t_grandes"></table></div>
     <div class="hint" style="margin-top:9px">Custos diretos (mão de obra, manutenção, diesel, insumos,
@@ -1236,7 +1253,7 @@
     (apoio, irrigação, estrutura, arrendamento, administração, depreciação) são distribuídos proporcionalmente
     à área operada de cada mês, o mesmo critério usado no gráfico de custo mensal.</div></div>
   <div class="panel"><h3>Composição do custo</h3><div id="ch_comp"></div></div>
-  <div class="panel"><h3>Aderência PECEGE/USP</h3><div class="tblwrap"><table id="t_bench"></table></div>
+  <div class="panel"><h3>Aderência à referência setorial</h3><div class="tblwrap"><table id="t_bench"></table></div>
     <div class="hint" style="margin-top:9px">A comparação só é significativa com o plano preenchido.</div></div>
 </section>
 
@@ -1363,7 +1380,7 @@
         <li>Salários e benefícios — usar a CCT do sindicato rural de Capinópolis/MG.</li>
         <li>Custo/hora de manutenção e consumo de diesel — médias de mercado, ajustar pela frota real.</li>
         <li>Depreciação e administração — substituir pelo orçamento oficial.</li>
-        <li>Fazendas arrendadas, formas de pagamento e percentuais de rateio por etapa — confirmar na aba Arrendamentos com o contrato e o relatório PECEGE/USP.</li>
+        <li>Fazendas arrendadas, formas de pagamento e percentuais de rateio por etapa — confirmar na aba Arrendamentos com o contrato e o relatório de custos de referência.</li>
         <li>Frota padronizada em Volvo FMX 540; colheita 100% mecanizada.</li>
       </ul>
     </div>

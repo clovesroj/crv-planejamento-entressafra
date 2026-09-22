@@ -1,3 +1,4 @@
+import { categoriaInsumo } from '../calculo/modelo-pecege.js';
 import { custoPorOperacao } from '../calculo/custo-operacao.js';
 import { benVal } from '../calculo/mao-de-obra.js';
 import { PREMISSAS_BASE, premissaBase } from '../calculo/base-fisica.js';
@@ -132,6 +133,18 @@ function validar(R){
   const semPrecoFora = insSemPreco.length - semPrecoUsado.length;
   add(true,"Insumos do cadastro ainda sem preço",
       semPrecoFora ? semPrecoFora+" produto(s) sem uso em tratamento — preencher ao começar a usar" : "nenhum");
+  /* Produto usado no plano sem classe agronômica: nas tabelas do modelo PECEGE
+     (Painel) ele cai em "Outros insumos" e, no Plano de Contas, sem conta.
+     Classificar é escolher o Grupo do produto no cadastro de insumos. */
+  const noPlano = new Set();
+  R.L.filter(r=>r.total>0).forEach(r=>{
+    const trats = Array.isArray(r.tratsDetalhe) && r.tratsDetalhe.length ? r.tratsDetalhe.map(t=>t.trat) : [r.trat];
+    trats.filter(Boolean).forEach(c=>composicao(c).forEach(l=>noPlano.add(l.prod))); });
+  const semClasse = [...noPlano].filter(prod=>categoriaInsumo(prod)==="outros");
+  add(semClasse.length===0,"Insumo usado no plano sem classe agronômica",
+      semClasse.length ? semClasse.length+": "+semClasse.slice(0,5).join(", ")+(semClasse.length>5?"…":"")+
+        " — escolha o Grupo no cadastro de insumos" : "",
+      ir("insbase", `#t_ins tr.stage[data-fam="outros"]`, "#t_ins"));
   // etapa marcada no tratamento x etapa em que o plano o usa
   const etapaFora = [];
   tratCodigos().forEach(c=>{

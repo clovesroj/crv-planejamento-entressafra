@@ -1,5 +1,120 @@
 # Histórico de mudanças
 
+## 2.33.1 — 2026-09-22 · Nome da referência fora das telas
+
+Nenhuma tela, rastro ou relatório cita mais "PECEGE" ou "modelo PECEGE". O
+método não mudou: só o rótulo.
+
+- **Painel** — "Custo por hectare — modelo PECEGE" virou **Custo por hectare —
+  visão por operação**; "Sistema de colheita (R$/t) — modelo PECEGE" virou
+  **Sistema de colheita (R$/t)**; a linha "Base PECEGE" virou **Base de
+  comparação**; "Aderência PECEGE/USP" virou **Aderência à referência
+  setorial**.
+- **Arrendamentos e Custos** — "referência PECEGE/USP" virou **referência
+  setorial**, e "relatório de custos PECEGE/USP" virou **relatório de custos de
+  referência**.
+- **Rastros** — o percentual de rateio do arrendamento e a nota da muda passaram
+  a falar em referência setorial e na tabela de custo por hectare do Painel.
+
+Conferido com o plano montado: 29 abas, 124 rastros e os 126 relatórios sem
+nenhuma ocorrência do nome, e a auditoria segue com 45 invariantes sem falha.
+
+## 2.33.0 — 2026-09-22 · Custo por hectare plantado: só o que forma o canavial
+
+O indicador **Custo por ha plantado** dividia o custo do plano inteiro pela área
+de plantio: colheita, tratos de cana soca e apoio entravam na conta do hectare
+que foi plantado. Agora ele é a **formação do canavial ÷ área de plantio**, e a
+formação é o que o modelo PECEGE chama de formação: **preparo de solo + plantio
++ tratos culturais de cana planta**.
+
+No plano de referência o indicador sai de R$ 20.163/ha (custo total ÷ 2.400 ha)
+para R$ 29.971/ha (R$ 71.931.300 de formação ÷ 2.400 ha).
+
+### O que mudou
+
+- **Preparo de solo entrou na formação.** Antes a formação era plantio + tratos
+  de cana planta. O preparo acontece na área que vai ser plantada e é custo de
+  formação; agora conta, e a base física do preparo passou a ser a área de
+  plantio (antes era a soma das passadas das atividades, que contava o mesmo
+  talhão uma vez por operação).
+- **Cartões iguais nas três telas.** Painel, Capa e Custos mostram o mesmo
+  número, com a nota "preparo + plantio + tratos de cana planta".
+- **Relatórios.** O Resumo Executivo e os Indicadores trazem duas linhas
+  separadas: *Custo por hectare plantado (formação do canavial)* e *Custo do
+  plano por hectare de plantio*, que é a conta antiga — útil, mas outra coisa.
+- **Rastro reescrito.** Abre a conta ("Formação do canavial ÷ área de plantio"),
+  as três etapas que formam o canavial com o peso de cada uma, o que entra
+  (operação e rateios) e o que fica fora — cana soca, colheita e apoio —,
+  fechando com o custo total do plano.
+
+### Mudas
+
+A colheita, o transbordo e o transporte de muda estão na etapa Colheita do Plano
+Operacional, e é lá que este indicador os deixa. A tabela do modelo PECEGE, no
+Painel, os conta como insumo do plantio — é a diferença de R$ 736/ha entre a
+coluna Formação daquela tabela e o cartão. As duas telas agora dizem isso: o
+rastro mostra a linha da muda dentro da colheita e a nota da tabela explica a
+diferença.
+
+### Auditoria
+
+45 invariantes do motor sem falha, 29 abas e 124 rastros sem NaN, undefined ou
+Infinity, e os 126 relatórios (21 × 2 níveis × 3 períodos) sem resíduo. A soma
+das três etapas da formação fecha com as etapas PREPARO DE SOLO e PLANTIO mais
+a operação de tratos de cana planta, com diferença zero.
+
+## 2.32.0 — 2026-09-22 · Painel: tabelas no modelo PECEGE
+
+O Painel ganhou as duas tabelas do relatório de custos PECEGE/USP, montadas
+com os números do plano, logo abaixo dos indicadores de tratos.
+
+### Custo por hectare
+
+Colunas **Preparo · Plantio · Tratos planta · Formação do canavial · Tratos
+soca**, cada uma com R$/ha e o peso no total. Linhas como no modelo:
+Operação (Máq + mão de obra, Irrigação/Fertirrigação), Insumos (Mudas,
+Adubação corretiva, Fertilizantes, Defensivos — herbicidas, inseticidas,
+fungicidas, nematicidas —, Controle biológico, Maturador, Inibidor, Torta de
+filtro, Outros) e Administrativo (Administrativo, Royalties).
+
+Acrescentado o que o plano calcula e o modelo não mostra: **serviços
+terceirizados**, e o grupo **Outros custos (rateios)** — arrendamento,
+depreciação, diesel dos equipamentos de apoio e demais custos gerais. A linha
+**Base PECEGE** soma só operação, insumos e administrativo, para comparar com o
+relatório; o Total é o custo completo.
+
+- Formação do canavial = **preparo + plantio + tratos planta**, como no
+  modelo. (Na aba Custos, a formação continua plantio + tratos planta.)
+- Preparo, plantio e formação por hectare de plantio; tratos planta e soca pela
+  área de cada cultura — o bloco Base física dos custos, da aba Premissas.
+- Insumos pela classe agronômica do produto; os fertilizantes e corretivos sem
+  classe são reconhecidos pelo nome (fórmula NPK, ureia, KCl, calcário).
+- **Mudas**: colheita, transbordo e transporte de muda estão na etapa Colheita
+  do Plano Operacional; aqui, como no modelo, entram no plantio — custo direto
+  mais a parte delas nos rateios da colheita.
+
+### Sistema de colheita (R$/t)
+
+Colunas **Corte (C) · Transbordo (T) · C + T · Transporte (T) · Apoio + Adm (A)
+· CTTA**; linhas Operador, Diesel, Manutenção, Locação e Outros com o custo
+direto das atividades, e — acrescentado — o Apoio + Adm aberto em equipamentos
+de apoio e custos gerais, administrativo e depreciação. R$ por tonelada colhida
+(premissa de volume de colheita, ou as toneladas do corte). Colheita de muda
+fica no plantio; o arrendamento rateado à colheita aparece em nota, fora do
+CTTA.
+
+**Conferido:** cada coluna soma as suas linhas; as colunas batem com o custo
+por operação da aba Custos; formação = preparo + plantio + tratos planta; e
+plantio (com mudas) + CTTA + arrendamento da colheita = etapas Plantio +
+Colheita, no centavo.
+
+### Validação
+
+Nova pendência **Insumo usado no plano sem classe agronômica**: lista os
+produtos dos tratamentos lançados que caem em "Outros insumos" (e sem conta no
+Plano de Contas) e leva ao grupo "Outros" do cadastro de insumos, onde se
+escolhe o Grupo de cada um.
+
 ## 2.31.0 — 2026-09-22 · Validação leva direto ao ponto de correção
 
 Na aba **Validação**, cada pendência virou um botão com o nome da aba onde se
