@@ -1,7 +1,7 @@
 import { composicao, doseBase, precoInsumo } from '../calculo/insumos.js';
 import { tarifaTercDe } from '../calculo/atividade.js';
 import { TERC_MODOS } from '../dados/modos.js';
-import { FITO_ABERTO, TERC_SUB, insLista } from '../nucleo/estado.js';
+import { FITO_ABERTO, INSUMO, TERC_SUB, insLista } from '../nucleo/estado.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
 import { kpi, th } from './componentes.js';
 
@@ -140,7 +140,11 @@ function resumoInsumos(linhas){
     const reg = insLista().find(i => i.prod === prod) || {};
     const preco = precoInsumo(prod);
     const valor = vol * preco;
-    const estoque = reg.est || 0;
+    // estoque aceita ajuste na aba Insumos sem mudar o cadastro base (INSUMO[prod].est,
+    // mesma sobreposição que já vale para o preço) — sem isso o Resumo ficava preso
+    // no estoque do cadastro, mesmo depois de o usuário atualizar na tela
+    const ov = INSUMO[prod] || {};
+    const estoque = ov.est != null ? num(ov.est) : num(reg.est);
     const comprar = Math.max(0, vol - estoque);
     return {prod, un: reg.un || "", vol, area, preco, valor, estoque, comprar, valorInvestir: comprar * preco};
   }).sort((a, b) => b.valor - a.valor);
