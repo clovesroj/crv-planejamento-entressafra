@@ -47,8 +47,8 @@ import { habilitarReordenacao, reaplicarBuscas, reaplicarExportar } from '../ui/
    trocar de posição sem quebrar o freeze. */
 const TABELAS_REORDENAVEIS = [
   ['#t_enc',0], ['#t_ben',0], ['#t_fun',0], ['#t_ind',0], ['#t_plano',2],
-  ['#t_dim',0], ['#t_frota',0], ['#t_rf_base',0], ['#t_apoio',0],
-  ['#t_pes_base',0], ['#t_pes_quadro',0], ['#t_apoio_eq',0], ['#t_crm',0], ['#t_maq',0],
+  ['#t_dim',0], ['#t_dim_frotames',0], ['#t_rf_base',0], ['#t_apoio',0],
+  ['#t_pes_quadro',0], ['#t_apoio_eq',0], ['#t_crm',0], ['#t_maq',0],
   ['#t_ref_resumo',0], ['#t_tp',0],
   ['#t_ins',0], ['#t_comp',0], ['#t_trat',0], ['#t_mat',0],
   ['#t_forn',0], ['#t_forn_qual',0], ['#t_arr',0], ['#t_adm',0],

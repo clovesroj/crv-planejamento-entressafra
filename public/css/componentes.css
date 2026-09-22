@@ -535,6 +535,12 @@ tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:under
    mesma ordem e alinhados a direita. Antes cada coluna montava a celula de um
    jeito -- input solto aqui, botao embaixo ali -- e a tabela parecia tres
    tabelas. O alinhamento a direita e o que deixa comparar linha com linha. */
+/* Titulo de secao dentro de um bloco: quando o bloco perdeu os cartoes, este
+   titulo passou a ser o primeiro texto da area e precisa ter peso de titulo,
+   nao de rotulo de tabela. */
+.h-secao{font-family:var(--f-display);font-size:19px;font-weight:600;letter-spacing:.2px;
+  color:var(--ink);margin:0 0 12px}
+
 .dim-cel{display:flex;align-items:center;justify-content:flex-end;gap:7px;white-space:nowrap}
 .dim-val{font-weight:700;color:var(--ink);font-size:14px}
 .dim-val.calc{font-weight:600;color:var(--grey)}

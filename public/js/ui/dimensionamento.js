@@ -3,10 +3,10 @@ import { FROTA_ESP, SEP_MOD, chaveDoModelo, destinoDe, espDe, modDe, opcoesDesti
 import { DIM, DIM_DET, FROTA_ABERTO, QUADRO } from '../nucleo/estado.js';
 import { $, brl, fmt, num, pct } from '../nucleo/formato.js';
 import { MESES, NM, clsMes } from '../nucleo/calendario.js';
-import { kpi, maxSel, tdMeses, th, thMeses } from './componentes.js';
+import { maxSel, tdMeses, th, thMeses } from './componentes.js';
 import { ESCALAS } from '../dados/escalas.js';
 import { quadroBase } from '../calculo/quadro.js';
-import { frotaDaAtividade, temCriterioMensal } from '../calculo/atividade.js';
+import { criterioMensal, frotaDaAtividade, temCriterioMensal } from '../calculo/atividade.js';
 
 /* ---------- DIMENSIONAMENTO ---------- */
 /* Botao do criterio mensal. O ponto avisa que algum mes ja foge do padrao da
@@ -26,16 +26,6 @@ const escOpts = sel => `<option value="">Padrão (premissas)</option>` +
   Object.keys(ESCALAS).map(k=>`<option value="${k}" ${k===sel?"selected":""}>${k}</option>`).join("");
 
 function pintarDim(R){
-  $("#k_dim").innerHTML =
-    kpi("Horas-máquina","",fmt(R.horasT),"","frota:horas") +
-    kpi("Frota operacional","t",fmt(R.frotaT)+" un","","frota:oper") +
-    kpi("Frota de apoio","g",fmt(Math.ceil(R.AP.total))+" un","","frota:apoiofixo") +
-    kpi("Transbordos","a",fmt(R.TR.frota)+" un","","frota:transbordo") +
-    // o bloco tinha hora e frota, mas nenhum cartao de gente: o efetivo das
-    // atividades so aparecia coluna a coluna, sem o total na frente
-    kpi("Efetivo das atividades","g",fmt(R.L.reduce((s,r)=>s+r.efetivo,0))+" pessoas",
-        "operadores das frentes · apoio e indiretos ficam em Pessoas","pessoas:total");
-
   /* A tabela ficou com o essencial, e o detalhe foi para o modal.
      As tres leituras continuam na mesma tela, mas 19 colunas nao se leem: modo,
      utilizacao, horas, maquina, implemento, funcao, escala, turnos, fator,
@@ -82,47 +72,30 @@ function pintarDim(R){
      <td class="num calc" title="Somar o pico de cada atividade nao da a frota da usina: atividades que picam em meses diferentes dividem a mesma maquina. O total esta no cartao Frota operacional, no topo.">ver cartão</td>
      <td class="num tot">${fmt(R.L.reduce((s,r)=>s+r.efetivo,0))}</td></tr></tbody>`;
 
-  const fr={};
-  R.L.forEach(r=>r.partes.forEach(p=>{
-    if(p.horas<=0) return;
-    fr[p.maq]=fr[p.maq]||{h:0,f:0,n:0,d:0,m:0};
-    fr[p.maq].h+=p.horas; fr[p.maq].f+=p.frota; fr[p.maq].n++;
-    fr[p.maq].d+=p.cDiesel; fr[p.maq].m+=p.cManut;}));
-  // Cada maquina do plano abre na frota real que a representa, para marcar ali
-  // mesmo quem vai rodar e quem vai reformar -- e aqui que se olha o
-  // dimensionamento, entao e aqui que a duvida aparece.
-  const anoAtual = new Date().getFullYear();
-  $("#t_frota").innerHTML = th([["Máquina"],["Frentes",1],["Horas",1],["Frota",1],["Diesel",1],["Manutenção",1]])+"<tbody>"+
-    Object.entries(fr).sort((a,b)=>b[1].h-a[1].h).map(([m,d])=>{
-      const chave = chaveDoModelo(m);
-      const un = chave ? unidadesDoModelo(chave, true) : [];
-      const k = "dim:"+m, aberto = FROTA_ABERTO[k];
-      const emRef = un.filter(u=>destinoDe(u[0])==="reforma").length;
-      const emSb  = un.filter(u=>destinoDe(u[0])==="standby").length;
-      const linha = `<tr><td>${
-          un.length?`<button class="btn xs" data-abrefrota="${k}" style="margin-right:6px;padding:1px 6px">${aberto?"−":"+"}</button>`:""
-        }${m}${un.length?` <span class="calc" style="font-weight:400">· ${un.length} na frota${
-          emRef?`, ${emRef} em reforma`:""}${emSb?`, ${emSb} em stand by`:""}</span>`:""}</td>
-        <td class="num calc">${d.n}</td><td class="num calc">${fmt(d.h)}</td>
-        <td class="num tot">${Math.ceil(d.f)}</td><td class="num calc">${brl(d.d)}</td>
-        <td class="num calc">${brl(d.m)}</td></tr>`;
-      if(!aberto) return linha;
-      return linha+`<tr><td colspan="6" style="padding:0"><div style="padding:6px 0 10px 40px">
-        <table style="width:auto;min-width:520px"><thead><tr>
-          <th>Frota</th><th class="num">Ano</th><th class="num">Idade</th>
-          <th>Origem</th><th>Destino na safra</th></tr></thead><tbody>${
-          un.map(([cod,ano,prop])=>{ const i = ano?anoAtual-ano:null, dst = destinoDe(cod);
-            return `<tr${dst==="reforma"?' style="opacity:.62"':''}><td>${cod}</td>
-              <td class="num ${i!=null&&i>=15?"tot":"calc"}" style="${i!=null&&i>=15?"color:var(--amber)":""}">${ano||"—"}</td>
-              <td class="num calc">${i!=null?i+" anos":"—"}</td>
-              <td class="calc">${prop?"Própria":"Terceiro"}</td>
-              <td><select data-undest="${cod}">${opcoesDestino(dst)}</select></td></tr>`;}).join("")
-        }</tbody></table>
-        <div class="hint" style="margin-top:6px">Frota cadastrada como
-        <b>${espDe(m)||"—"} › ${modDe(m)||"—"}</b>. Só quem vai rodar carrega CRM: reforma vai para o
-        provisionamento da aba Reforma de Frota, e stand by não gera custo nenhum.</div>
-      </div></td></tr>`;
-    }).join("")+"</tbody>";
+  /* Necessidade de frota por MES, uma linha por atividade.
+     A tabela por tipo de maquina somava o ano inteiro e escondia justamente o
+     que decide compra e aluguel: em que mes a frota aperta. Aqui cada celula e
+     a frota daquele mes, do criterio lancado no botao mes, e o Pico fecha a
+     linha com a que precisa existir no patio. */
+  $("#t_dim_frotames").innerHTML = th([["Cod"],["Atividade / frente"],["Máquina"],
+    ...thMeses(),["Pico",1]])+"<tbody>"+
+    (()=>{
+      const linhas = R.L.filter(r=>r.total>0);
+      if(!linhas.length) return `<tr><td colspan="${NM+4}" class="calc">Sem atividade com volume lançado.</td></tr>`;
+      const porMes = Array(NM).fill(0);
+      const corpo = linhas.map(r=>{
+        const C = criterioMensal(r);
+        const F = frotaDaAtividade(r);
+        C.forEach((c,i)=>{ porMes[i] += c.n; });
+        return `<tr><td>${r.a.cod}</td><td>${r.a.nome}</td>
+          <td class="calc">${r.partes.length>1?"—":(r.maqEfetiva||"—")}</td>
+          ${tdMeses(C.map(c=>c.n), (v,i)=>v>0?fmt(v):'<span class="calc">—</span>')}
+          <td class="num tot">${fmt(F.pico)}${F.mes?` <span class="calc">${F.mes}</span>`:""}</td></tr>`;
+      }).join("");
+      return corpo + `<tr><td class="tot" colspan="3">SOMA DAS ATIVIDADES NO MÊS</td>` +
+        tdMeses(porMes, v=>fmt(v), "num tot") +
+        `<td class="num calc" title="Somar o pico de cada atividade nao da a frota da usina: atividades que picam em meses diferentes dividem a mesma maquina.">—</td></tr>`;
+    })()+"</tbody>";
 
   $("#t_apoio").innerHTML = th([["Veículo / Máquina"],["Qtd",1],["Utilização",1],["Disponib.",1],["Necessidade",1],["Atividade"]])+"<tbody>"+
     R.AP.linhas.map(a=>`<tr><td>${a.nome}</td><td class="num"><input data-apf="${a.nome}" value="${a.qtd}" inputmode="decimal"></td>
@@ -190,57 +163,7 @@ function pintarDimPessoas(R){
      <td class="num tot">${tot.contratar>0?"+"+fmt(tot.contratar):"—"}</td>
      <td class="num tot">${tot.exced>0?fmt(tot.exced):"—"}</td></tr></tbody>`;
 
-  /* base do ERP, como veio: cargo, especialidade, departamento e a funcao do plano */
-  const nomeF = f => (R.MP.custoFuncao[f]||{}).nome || "";
-  $("#t_pes_base").innerHTML = th([["Cargo no ERP"],["Especialidade"],["Departamento"],["Função no plano"],["Pessoas",1]])+"<tbody>"+
-    BASE.linhas.map(l=>`<tr><td>${l.cargo}</td><td class="calc">${l.esp}</td><td class="calc">${l.dep}</td>
-      <td>${l.afast ? '<span class="badge b-warn">afastado</span>'
-        : (l.fcod ? l.fcod+" — "+nomeF(l.fcod) : '<span class="calc">sem função no plano</span>')}</td>
-      <td class="num tot">${fmt(l.qtd)}</td></tr>`).join("")+
-    `<tr><td class="tot" colspan="4">DISPONÍVEL PARA A OPERAÇÃO</td><td class="num tot">${fmt(BASE.mapeado)}</td></tr>
-     <tr><td class="calc" colspan="4">Cargo sem função equivalente no plano</td><td class="num calc">${fmt(BASE.semFuncao)}</td></tr>
-     <tr><td class="calc" colspan="4">Afastados e desistentes</td><td class="num calc">${fmt(BASE.afastados)}</td></tr>
-     <tr><td class="tot" colspan="4">TOTAL NO ERP</td><td class="num tot">${fmt(BASE.total)}</td></tr></tbody>`;
-
-  /* Necessidade mes a mes contra o disponivel informado: e aqui que se ve em
-     qual mes falta gente, e quanta. O pico e apenas o pior desses meses. */
-  // sem nada informado no quadro, nao ha com o que comparar: a matriz nao pinta falta
-  const temQuadro = tot.ativo + tot.ferias + tot.demis > 0;
-  const faltaMes = MESES.map(()=>0);
-  const corpoMes = funcoes.map(f=>{
-    const o = PS.porFun[f], disp = disponivel[f];
-    return `<tr><td>${f} — ${(R.MP.custoFuncao[f]||{nome:f}).nome}</td>
-      <td class="num calc">${fmt(disp)}</td>` +
-      o.qtdMes.map((v,i)=>{
-        const falta = temQuadro ? v - disp : 0;
-        if(falta>0) faltaMes[i] += falta;
-        const ehPico = v>0 && v===o.pico;
-        const estilo = falta>0 ? ' style="background:var(--bad-bg);color:var(--bad);font-weight:600"' : '';
-        return `<td class="num ${falta>0?"":"calc"} ${clsMes(i)}"${estilo} title="${MESES[i]}: precisa de ${fmt(v)}, disponível ${fmt(disp)}">${
-          v>0 ? (ehPico?`<b>${fmt(v)}</b>`:fmt(v)) : "—"}</td>`;
-      }).join("") +
-      `<td class="num tot">${fmt(maxSel(o.qtdMes, SEL))}</td></tr>`;
-  }).join("");
-
-  $("#t_pes_mes").innerHTML = th([["Função"],["Disponível",1],...thMeses(),[SEL.parcial?"Pico no período":"Pico",1]])+"<tbody>"+
-    (funcoes.length ? corpoMes : `<tr><td colspan="${NM+3}" class="calc">Sem função dimensionada.</td></tr>`)+
-    `<tr><td class="tot">NECESSIDADE TOTAL</td><td class="num tot">${fmt(tot.disp)}</td>` +
-    tdMeses(PS.qtdMes, v=>fmt(v), "num tot") +
-    `<td class="num tot">${fmt(maxSel(PS.qtdMes, SEL))}</td></tr>` +
-    `<tr><td class="calc">A contratar no mês</td><td></td>` +
-    tdMeses(faltaMes, v=>v>0?`<span class="badge b-bad">+${fmt(v)}</span>`:"—", "num") +
-    `<td class="num tot">${maxSel(faltaMes, SEL)>0?"+"+fmt(maxSel(faltaMes, SEL)):"—"}</td></tr></tbody>`;
-
   const iPicoGeral = PS.qtdMes.indexOf(Math.max(...PS.qtdMes));
-  $("#k_dim_pes").innerHTML =
-    kpi("Efetivo dimensionado","",fmt(PS.qtd)+" pessoas", funcoes.length+" funções","pessoas:total") +
-    kpi("Pico de mobilização","t",fmt(PS.qtdMes[iPicoGeral]||0)+" pessoas", PS.qtd>0?MESES[iPicoGeral]:"","pessoas:pico") +
-    kpi("Quadro ativo","g",fmt(tot.ativo)+" pessoas",
-        `nas ${funcoes.length} funções dimensionadas · ${fmt(BASE.mapeado)} mapeados no ERP · ${fmt(BASE.afastados)} afastados fora`,"pessoas:total") +
-    (tot.contratar>0
-      ? kpi("A contratar","r",fmt(tot.contratar)+" pessoas","soma das funções com falta","pessoas:total")
-      : kpi("Excedente","a",fmt(tot.exced)+" pessoas","nenhuma função com falta","pessoas:total"));
-
   $("#bl_pes_sub").textContent = `${fmt(PS.qtd)} pessoas dimensionadas · pico ${fmt(PS.qtdMes[iPicoGeral]||0)}`
     + (tot.contratar>0 ? ` · faltam ${fmt(tot.contratar)}` : "");
 }
