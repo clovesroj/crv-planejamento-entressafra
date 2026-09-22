@@ -1,5 +1,57 @@
 # Histórico de mudanças
 
+## 2.32.0 — 2026-09-22 · Painel: tabelas no modelo PECEGE
+
+O Painel ganhou as duas tabelas do relatório de custos PECEGE/USP, montadas
+com os números do plano, logo abaixo dos indicadores de tratos.
+
+### Custo por hectare
+
+Colunas **Preparo · Plantio · Tratos planta · Formação do canavial · Tratos
+soca**, cada uma com R$/ha e o peso no total. Linhas como no modelo:
+Operação (Máq + mão de obra, Irrigação/Fertirrigação), Insumos (Mudas,
+Adubação corretiva, Fertilizantes, Defensivos — herbicidas, inseticidas,
+fungicidas, nematicidas —, Controle biológico, Maturador, Inibidor, Torta de
+filtro, Outros) e Administrativo (Administrativo, Royalties).
+
+Acrescentado o que o plano calcula e o modelo não mostra: **serviços
+terceirizados**, e o grupo **Outros custos (rateios)** — arrendamento,
+depreciação, diesel dos equipamentos de apoio e demais custos gerais. A linha
+**Base PECEGE** soma só operação, insumos e administrativo, para comparar com o
+relatório; o Total é o custo completo.
+
+- Formação do canavial = **preparo + plantio + tratos planta**, como no
+  modelo. (Na aba Custos, a formação continua plantio + tratos planta.)
+- Preparo, plantio e formação por hectare de plantio; tratos planta e soca pela
+  área de cada cultura — o bloco Base física dos custos, da aba Premissas.
+- Insumos pela classe agronômica do produto; os fertilizantes e corretivos sem
+  classe são reconhecidos pelo nome (fórmula NPK, ureia, KCl, calcário).
+- **Mudas**: colheita, transbordo e transporte de muda estão na etapa Colheita
+  do Plano Operacional; aqui, como no modelo, entram no plantio — custo direto
+  mais a parte delas nos rateios da colheita.
+
+### Sistema de colheita (R$/t)
+
+Colunas **Corte (C) · Transbordo (T) · C + T · Transporte (T) · Apoio + Adm (A)
+· CTTA**; linhas Operador, Diesel, Manutenção, Locação e Outros com o custo
+direto das atividades, e — acrescentado — o Apoio + Adm aberto em equipamentos
+de apoio e custos gerais, administrativo e depreciação. R$ por tonelada colhida
+(premissa de volume de colheita, ou as toneladas do corte). Colheita de muda
+fica no plantio; o arrendamento rateado à colheita aparece em nota, fora do
+CTTA.
+
+**Conferido:** cada coluna soma as suas linhas; as colunas batem com o custo
+por operação da aba Custos; formação = preparo + plantio + tratos planta; e
+plantio (com mudas) + CTTA + arrendamento da colheita = etapas Plantio +
+Colheita, no centavo.
+
+### Validação
+
+Nova pendência **Insumo usado no plano sem classe agronômica**: lista os
+produtos dos tratamentos lançados que caem em "Outros insumos" (e sem conta no
+Plano de Contas) e leva ao grupo "Outros" do cadastro de insumos, onde se
+escolhe o Grupo de cada um.
+
 ## 2.31.0 — 2026-09-22 · Validação leva direto ao ponto de correção
 
 Na aba **Validação**, cada pendência virou um botão com o nome da aba onde se

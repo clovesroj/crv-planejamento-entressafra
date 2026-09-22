@@ -679,3 +679,22 @@ tr.val-pend td{background:color-mix(in srgb,var(--bad-bg,#fdecea) 45%,var(--card
 @keyframes destaquePulso{0%{box-shadow:0 0 0 0 rgba(215,120,40,.0)}20%{box-shadow:0 0 0 4px rgba(215,120,40,.55)}100%{box-shadow:0 0 0 0 rgba(215,120,40,0)}}
 .destaque{animation:destaquePulso 1.1s ease-out 3;outline:2px solid rgba(215,120,40,.8);outline-offset:2px;border-radius:4px}
 tr.destaque td{background:color-mix(in srgb,#f5b342 22%,var(--card)) !important}
+
+/* tabelas no modelo PECEGE (Painel) */
+table.pec th{white-space:normal;line-height:1.2;vertical-align:bottom}
+table.pec th small{display:block;font-size:10.5px;font-weight:500;opacity:.8;margin-top:2px}
+table.pec th.pec-rot{text-align:left}
+table.pec th.pec-formacao,table.pec th.pec-c-ctta{background:#1f7a45;color:#fff}
+table.pec th.pec-soca{background:#1d5566;color:#fff}
+table.pec td.pec-formacao,table.pec td.pec-c-ctta{background:color-mix(in srgb,#1f7a45 9%,var(--card))}
+table.pec td.pec-soca{background:color-mix(in srgb,#1d5566 9%,var(--card))}
+table.pec td.pec-pct{color:var(--grey);font-size:12px}
+table.pec tr.pec-tot td{font-weight:700;border-bottom:1px solid var(--line-strong)}
+table.pec tr.pec-grp td{font-weight:700;background:var(--sunk)}
+table.pec tr.pec-grp td.pec-formacao{background:color-mix(in srgb,#1f7a45 18%,var(--card))}
+table.pec tr.pec-grp td.pec-soca{background:color-mix(in srgb,#1d5566 18%,var(--card))}
+table.pec tr.pec-sub td{font-style:italic;border-top:1px solid var(--line-strong)}
+table.pec tr.pec-n1 td:first-child{padding-left:22px}
+table.pec tr.pec-n2 td:first-child{padding-left:40px}
+table.pec tr.pec-n3 td:first-child{padding-left:58px}
+table.pec tr.pec-a td:first-child{font-style:italic}
