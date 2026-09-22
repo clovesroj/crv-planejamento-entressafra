@@ -189,4 +189,33 @@ $("#btn_tema_top").onclick = ()=>{
 };
 
 
-export { marcarLocal };
+/* ---------- ir direto ao ponto de correção (aba Validação) ----------
+   Abre a aba, a página dela que contém o alvo e destaca o alvo: o primeiro da
+   lista que existir na tela. A troca de página é o próprio botão do submenu,
+   que já faz aba + página + barra superior. */
+function abrirDestino(dest){
+  if(!dest || !dest.aba) return false;
+  const b = document.querySelector(`nav button[data-s="${dest.aba}"]`);
+  const secao = document.getElementById(dest.aba);
+  if(!b || !secao) return false;
+  const alvo = (dest.alvos||[]).map(sel=>{ try{ return secao.querySelector(sel); }catch(e){ return null; } }).find(Boolean) || null;
+  const bloco = alvo ? alvo.closest("details.bloco[id]") : null;
+  const blocos = [...secao.querySelectorAll(":scope > details.bloco[id]")];
+  const sub = b.nextElementSibling && b.nextElementSibling.classList.contains("subnav") ? b.nextElementSibling : null;
+  const i = bloco ? blocos.indexOf(bloco) : -1;
+  if(sub && i>=0) sub.querySelectorAll("button")[i].click();
+  else { irPara(b); marcarLocal(b); }
+  document.body.classList.remove("menu-open");
+  if(!alvo) return true;
+  // o alvo é o campo ou a linha: destaca a linha inteira quando o alvo é um campo de tabela
+  const marca = alvo.closest("tr") && /INPUT|SELECT|BUTTON/.test(alvo.tagName) ? alvo.closest("tr") : alvo;
+  // já na página certa (a troca acima é síncrona): rola, destaca e põe o foco.
+  // Sem requestAnimationFrame — o navegador o pausa com a janela em segundo plano
+  marca.scrollIntoView({block:"center", behavior:"smooth"});
+  marca.classList.remove("destaque"); void marca.offsetWidth; marca.classList.add("destaque");
+  setTimeout(()=>marca.classList.remove("destaque"), 3200);
+  if(/INPUT|SELECT|TEXTAREA/.test(alvo.tagName) && !alvo.disabled) alvo.focus({preventScroll:true});
+  return true;
+}
+
+export { abrirDestino, marcarLocal };
