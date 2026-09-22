@@ -527,7 +527,8 @@ function rastroAtividade(R, cod){
       {rot:"Diesel", val:brl(r.cDiesel),
        sub:`${fmt(r.litros)} L · preço médio ${r.litros>0?brl(r.cDiesel/r.litros,2):brl(P.diesel,2)}/L, ponderado pelos meses`},
       {rot:"Mão de obra", val:brl(r.cMDO),
-       sub:`${r.fcod} · ${r.fnome} · ${brl((R.MP.custoFuncao[r.fcod]||{}).hora||0,2)}/h × ${fmt(r.horas)} h × fator ${fmt(r.fator,2)}`},
+       sub:`${r.fcod} · ${r.fnome} · ${fmt(r.efetivo)} pessoas × ${fmt((r.mdoMes||[]).filter(x=>x>0).length)} meses com volume × ${
+         brl((R.MP.custoFuncao[r.fcod]||{}).mensal||0)}/mês (salário, encargos e benefícios)`},
       {rot:"Manutenção (CRM)", val:brl(r.cManut), sub:"taxa por hora da frota prevista, da aba Manutenção de Frota"},
       {rot:"Insumos", val:brl(r.cInsumo),
        sub:r.trat ? `tratamento ${r.trat} a ${brl(trat,2)}/ha × ${fmt(r.total)} ${un}` : "sem tratamento vinculado"},

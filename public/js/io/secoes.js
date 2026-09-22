@@ -65,9 +65,11 @@ function ativP(r){
   const vol = noPer((r.meses||[]).map(num));
   const f = tot>0 ? vol/tot : 0;
   const cDiesel = noPer(r.dieselMes);
+  // MDO: a equipe paga nos meses do período (mês cheio em cada mês com volume)
+  const cMDO = noPer(r.mdoMes);
   return {...r, total:vol, horas:r.horas*f, litros:noPer(r.litrosMes), cDiesel,
-    cMDO:r.cMDO*f, cManut:r.cManut*f, cInsumo:r.cInsumo*f, cTerc:r.cTerc*f,
-    direto:(r.direto-r.cDiesel)*f + cDiesel};
+    cMDO, cManut:r.cManut*f, cInsumo:r.cInsumo*f, cTerc:r.cTerc*f,
+    direto:(r.direto-r.cDiesel-r.cMDO)*f + cDiesel + cMDO};
 }
 
 /* Etapa no período. O total vem pronto do motor (etapaMes). O direto é o das
