@@ -1,9 +1,8 @@
 import { reforma, valorConjunto, realDe } from '../calculo/reforma.js';
-import { itensDoEquipamento } from '../calculo/gasto-real.js';
 import { REFORMA_FAMILIAS } from '../dados/reforma.js';
 import { GASTO_REFORMA_BI } from '../dados/gasto-reforma-bi.js';
 import { FROTA_UN, REF_BUSCA, REF_AG, REF_FAM, REF_FROTA, REF_PROP } from '../nucleo/estado.js';
-import { $, brl, esc, fmt } from '../nucleo/formato.js';
+import { $, brl, fmt } from '../nucleo/formato.js';
 import { kpi, th } from './componentes.js';
 import { pintarGastoReal } from './gasto-real.js';
 
@@ -122,10 +121,11 @@ function pintarReforma(){
                  return `<td class="num"><span class="ref-real" data-rastro="reformabi:${e.familia}|${l.cod}|${c}"
                    tabindex="0" role="button" title="Valor do ERP (Power BI) — não editável aqui. Clique para ver os lançamentos.">${brl(real)}</span></td>`;
                }
-               return `<td class="num"><input list="dl_ref_${esc(l.cod)}" data-ref="${l.cod}" data-c="${c}" value="${
-               l.ref[c] != null ? l.ref[c] : ""}" placeholder="—" inputmode="decimal"
-               title="Digite o valor, ou busque um lançamento do ERP deste equipamento para preencher"></td>`;}).join("")}
-             <td class="num ${l.total ? "tot" : "calc"}">${l.total ? brl(l.total) : "—"}${datalistEquipamento(l.cod)}</td></tr>`).join("")
+               return `<td class="num"><span class="ref-busca-wrap"><input data-ref="${l.cod}" data-c="${c}" value="${
+               l.ref[c] != null ? l.ref[c] : ""}" placeholder="—" inputmode="decimal" title="Digite o valor à mão">
+               <button type="button" class="ref-buscar" data-rastro="reformabi:${e.familia}|${l.cod}|${c}"
+                 tabindex="0" title="Buscar e incluir um lançamento do ERP deste equipamento">🔍</button></span></td>`;}).join("")}
+             <td class="num ${l.total ? "tot" : "calc"}">${l.total ? brl(l.total) : "—"}</td></tr>`).join("")
         ).join("")}
         <tr><td class="tot" colspan="2">TOTAL DA ESPECIALIDADE</td>
           ${cols.map(c=>{ const v = e.mods.reduce((s,m)=>s+somaConj(m,c,e.familia),0);
@@ -144,27 +144,6 @@ function somaConj(m, c, familia){
 /** Gasto real (ERP/Power BI) de uma unidade num conjunto, ja descontando o que foi desmarcado no rastro. Null sem dado. */
 function gastoRealDe(familia, cod, conjunto){
   return realDe(cod, conjunto, familia) || null;
-}
-
-/** Máximo de sugestões por equipamento na busca de lançamento (evita datalist gigante). */
-const MAX_SUGESTOES = 300;
-
-/**
- * <datalist> com os lançamentos do próprio equipamento (todo compartimento do
- * ERP, não só o mapeado pro conjunto da célula) -- pra quando não existe gasto
- * real batido automaticamente, mas o lançamento certo está lá com outra tag ou
- * fora do mapeamento. Selecionar uma opção joga o valor no campo, que segue
- * digitável e some do documento como qualquer valor digitado (mesmo caminho de
- * FROTA_UN[cod].ref[conjunto] de sempre — só ajuda a achar o número certo).
- */
-function datalistEquipamento(cod){
-  const itens = itensDoEquipamento(cod);
-  if(!itens.length) return "";
-  const ordenados = itens.slice().sort((a,b)=>b.valor-a.valor).slice(0, MAX_SUGESTOES);
-  return `<datalist id="dl_ref_${esc(cod)}">${ordenados.map(it=>
-    `<option value="${it.valor}">${esc(it.compartimento)} — ${esc(it.desc)} · ${fmtDataISO(it.data)}${
-      it.empresa ? ` · ${esc(it.empresa)}` : ""}${it.reforma==="NAO" ? " · fora da reforma" : ""} · ${brl(it.valor)}</option>`
-  ).join("")}</datalist>`;
 }
 
 /** "2026-04-01" -> "01/04/2026" */

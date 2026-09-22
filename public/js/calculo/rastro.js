@@ -10,9 +10,7 @@ import { tratCusto } from './insumos.js';
 import { comps, custoPorOperacao } from './custo-operacao.js';
 import { SEM_CONTA, contasValores, totaisContas } from './contas.js';
 import { baseEtapa, custoUnit, premissaBase, rotuloBase } from './base-fisica.js';
-import { reforma, chaveItemReforma, itensExcluidosReforma } from './reforma.js';
-import { GASTO_REFORMA_BI } from '../dados/gasto-reforma-bi.js';
-import { tagsBiDoConjunto } from '../dados/reforma-bi-map.js';
+import { reforma, itensReforma } from './reforma.js';
 
 // soma um array de NM meses respeitando o filtro de período (mesmo critério de R.PER)
 const somaPeriodo = (arr, periodo) => !arr ? 0
@@ -766,23 +764,13 @@ function rastroReforma(){
     premissas:premissasGerais()};
 }
 
-/* ---------- gasto real (ERP/Power BI) de um equipamento num conjunto ---------- */
+/* ---------- gasto real (ERP/Power BI) de um equipamento num conjunto ----------
+   Lista o que conta hoje (mapeado por tag, ou incluido a mao) com checkbox pra
+   desmarcar, e devolve buscaAdicionar pra ui/rastro.js montar a caixa de busca
+   que inclui outro lancamento deste equipamento -- de qualquer tag, nao so a
+   mapeada pro conjunto (e o caminho pra "inserir item na celula do Power BI"). */
 function rastroReformaBiItem(familia, cod, conjunto){
-  const porFrota = GASTO_REFORMA_BI.porFrota[cod] || {};
-  const tags = tagsBiDoConjunto(familia, conjunto);
-  const excl = itensExcluidosReforma(cod);
-  let total = 0;
-  const itens = [];
-  for(const tag of tags){
-    const dado = porFrota[tag];
-    if(!dado) continue;
-    for(const it of dado.itens){
-      const chave = chaveItemReforma(cod, tag, it);
-      const ligado = !excl.has(chave);
-      if(ligado) total += it.valor;
-      itens.push({...it, chave, ligado});
-    }
-  }
+  const {itens, total} = itensReforma(cod, conjunto, familia);
   itens.sort((a,b)=>b.valor-a.valor);
   return {
     titulo: conjunto,
@@ -790,11 +778,13 @@ function rastroReformaBiItem(familia, cod, conjunto){
     valor: brl(total),
     largo: true,
     blocos: [{titulo:"Lançamentos — desmarque o que não deve entrar no orçamento", linhas: itens.length ? itens.map(it=>({
-      rot: it.desc, val: brl(it.valor), sub: fmtDataCurta(it.data),
-      flag: {cod, chave: it.chave, ligado: it.ligado}}))
-      : [{rot:"Nenhum lançamento neste compartimento", val:"—"}]}],
-    nota: itens.length ? `${itens.length} lançamento${itens.length>1?"s":""} do ERP, extraídos do Power BI. `+
-      `Desmarque o que não deve contar no orçamento desta unidade — o total do conjunto e da reforma acompanham.` : "",
+      rot: it.desc, val: brl(it.valor), sub: fmtDataCurta(it.data)+(it.origem==="manual"?" · incluído à mão":""),
+      flag: {cod, conjunto, chave: it.chave, ligado: it.ligado, origem: it.origem}}))
+      : [{rot:"Nenhum lançamento neste compartimento ainda", val:"—"}]}],
+    buscaAdicionar: {cod, conjunto},
+    nota: (itens.length ? `${itens.length} lançamento${itens.length>1?"s":""} contando no orçamento desta unidade. `+
+      `Desmarque o que não deve entrar` : `Nada contando ainda nesta unidade.`)+
+      ` — busque abaixo pra incluir outro lançamento do ERP deste equipamento, mesmo de outra tag.`,
   };
 }
 function fmtDataCurta(iso){

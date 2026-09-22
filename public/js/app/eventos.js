@@ -17,7 +17,7 @@ import { exportarTabela, filtrarPorNome } from '../ui/componentes.js';
 import { alternarFam, aplicarFamIns, buscaExigeRedesenho, recolherTodas, todasRecolhidas } from '../ui/insumos.js';
 import { lerPremissas } from '../ui/premissas.js';
 import { leve, render, renderAgrofit, renderEditIns, renderFichaIns, renderRastro, renderRendMensal, renderTercDet } from './ciclo.js';
-import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarRastro, voltarRastro } from '../ui/rastro.js';
+import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarBuscaItem, filtrarRastro, voltarRastro } from '../ui/rastro.js';
 import { abrirRendMensal, aberto as rendMensalAberto, descartarRascunho, editarRascunho,
   fecharRendMensal, pendencias, salvarRascunho } from '../ui/rendmensal.js';
 import { setAPOIO, setATIV_TRAT_SEL, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setINSX_V, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
@@ -40,6 +40,9 @@ const MSG_COD_TRAT = "Código de tratamento aceita letras, números, espaço e .
 /* ---------- entrada ---------- */
 document.addEventListener("input",e=>{
   const t=e.target;
+  // busca de "incluir outro lançamento" dentro do rastro de um conjunto —
+  // so filtra a lista do proprio modal, nao mexe no plano nem salva
+  if(t.dataset.flagBusca!==undefined){ filtrarBuscaItem(t.value); return; }
   if(t.id&&t.id.startsWith("p_")){ lerPremissas(); salvar(); render(); return; }
   if(t.dataset.real!==undefined){ const c=t.dataset.real, i=+t.dataset.m;
     REAL[c] = REAL[c] || Array(NM).fill("");
@@ -219,13 +222,27 @@ document.addEventListener("change",e=>{
   const t=e.target;
   // marca/desmarca um lancamento do ERP no rastro do gasto real da reforma —
   // o total do conjunto (e da especialidade) so soma o que estiver marcado
-  // (ver realDe() em calculo/reforma.js e rastroReformaBiItem() em calculo/rastro.js)
+  // (ver itensReforma() em calculo/reforma.js). Item do mapeamento automatico
+  // (origem "auto") desmarcado vai pra lista de exclusao; item que a pessoa
+  // incluiu a mao (origem "manual") desmarcado sai da lista de inclusao — e
+  // volta a valer o mapeamento automatico dele, se houver algum.
   if(t.dataset.flagChave!==undefined){
-    const cod = t.dataset.flagCod;
+    const cod = t.dataset.flagCod, conjunto = t.dataset.flagConjunto, chave = t.dataset.flagChave;
     FROTA_UN[cod] = FROTA_UN[cod] || {};
-    const excl = new Set(FROTA_UN[cod].reformaExcl || []);
-    if(t.checked) excl.delete(t.dataset.flagChave); else excl.add(t.dataset.flagChave);
-    FROTA_UN[cod].reformaExcl = [...excl];
+    if(t.dataset.flagOrigem==="manual"){
+      const incl = new Set((FROTA_UN[cod].reformaIncl || {})[conjunto] || []);
+      if(t.checked) incl.add(chave); else incl.delete(chave);
+      FROTA_UN[cod].reformaIncl = FROTA_UN[cod].reformaIncl || {};
+      if(incl.size) FROTA_UN[cod].reformaIncl[conjunto] = [...incl];
+      else delete FROTA_UN[cod].reformaIncl[conjunto];
+      const excl = new Set(FROTA_UN[cod].reformaExcl || []);
+      excl.delete(chave); // desmarcar devolve pro mapeamento automatico, se houver
+      FROTA_UN[cod].reformaExcl = [...excl];
+    } else {
+      const excl = new Set(FROTA_UN[cod].reformaExcl || []);
+      if(t.checked) excl.delete(chave); else excl.add(chave);
+      FROTA_UN[cod].reformaExcl = [...excl];
+    }
     salvar(); render(); return; }
   // consumo por equipamento (aba Combustível): unidade, L/h, L/km, velocidade.
   // Grava no cadastro da máquina; campo vazio volta ao padrão.
@@ -419,6 +436,21 @@ function marcarPendencia(){
 }
 
 document.addEventListener("click",e=>{
+  // "incluir outro lançamento" na busca dentro do rastro de um conjunto —
+  // soma no orcamento (reformaIncl) e ja tira da exclusao, se estivesse la
+  // (ver itensReforma() em calculo/reforma.js pra regra de nao contar 2x)
+  const addItem = e.target.closest && e.target.closest("[data-flag-add-chave]");
+  if(addItem){
+    const cod = addItem.dataset.flagAddCod, conjunto = addItem.dataset.flagAddConjunto, chave = addItem.dataset.flagAddChave;
+    FROTA_UN[cod] = FROTA_UN[cod] || {};
+    FROTA_UN[cod].reformaIncl = FROTA_UN[cod].reformaIncl || {};
+    const incl = new Set(FROTA_UN[cod].reformaIncl[conjunto] || []);
+    incl.add(chave);
+    FROTA_UN[cod].reformaIncl[conjunto] = [...incl];
+    const excl = new Set(FROTA_UN[cod].reformaExcl || []);
+    excl.add(chave); // impede que o mesmo lancamento conte de novo na tag nativa dele
+    FROTA_UN[cod].reformaExcl = [...excl];
+    salvar(); render(); return; }
   // pendência da Validação: vai direto ao ponto onde se corrige
   const vi = e.target.closest && e.target.closest("[data-valir]");
   if(vi){ abrirDestino(destinoValida(vi.dataset.valir)); return; }
@@ -804,6 +836,9 @@ document.addEventListener("keydown", e=>{
   if(e.key!=="Enter" && e.key!==" ") return;
   const alvo = e.target.closest && e.target.closest("[data-rastro]");
   if(alvo && e.target.getAttribute && e.target.getAttribute("role")==="button"){
-    e.preventDefault(); abrirRastro(alvo.dataset.rastro); renderRastro();
+    e.preventDefault(); abrirRastro(alvo.dataset.rastro); renderRastro(); return;
   }
+  // mesmo gesto (Enter/espaço) pra incluir um item da busca por teclado
+  const addItem = e.target.closest && e.target.closest("[data-flag-add-chave]");
+  if(addItem){ e.preventDefault(); addItem.click(); }
 });

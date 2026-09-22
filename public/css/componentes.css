@@ -113,6 +113,15 @@ td input:focus{background:var(--card)}
   font-size:15px;font-weight:700;text-align:right;white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis;cursor:pointer;min-width:70px}
 .ref-real:hover,.ref-real:focus-visible{background:var(--leaf);color:var(--on-accent);outline:none}
+/* lupa sobre o campo digitado à mão, pra abrir o rastro e buscar/incluir um
+   lançamento do ERP deste equipamento -- mesma técnica do olho de senha
+   (.campo-senha/.olho-senha) */
+.ref-busca-wrap{position:relative;display:block}
+.ref-busca-wrap input{padding-right:24px}
+.ref-buscar{position:absolute;right:1px;top:50%;transform:translateY(-50%);width:22px;height:22px;
+  border:0;background:transparent;cursor:pointer;font-size:12px;line-height:1;display:grid;place-items:center;
+  border-radius:4px;color:var(--grey)}
+.ref-buscar:hover,.ref-buscar:focus-visible{background:var(--sunk);color:var(--leaf);outline:none}
 td select{height:28px;padding:0 8px;font-size:12.5px;min-width:110px}
 .calc{color:var(--grey)}
 .tot{font-weight:700;color:var(--ink)}
@@ -395,6 +404,14 @@ footer{display:flex;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;co
 .ra-flag-corpo{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex:1;min-width:0}
 .ra-linha-flag:has(input:not(:checked)){opacity:.5}
 .ra-linha-flag:has(input:not(:checked)) .ra-val{text-decoration:line-through}
+/* caixa "incluir outro lançamento" dentro do rastro do conjunto (busca entre
+   os lançamentos do próprio equipamento, de qualquer tag do ERP) */
+.ra-busca-item{margin:2px 0 8px}
+.ra-busca-lista{max-height:220px;overflow-y:auto}
+.ra-busca-item-linha{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  padding:7px 8px;margin:0 -8px;border-radius:6px;cursor:pointer;border-bottom:1px solid var(--line)}
+.ra-busca-item-linha:last-child{border-bottom:0}
+.ra-busca-item-linha:hover,.ra-busca-item-linha:focus-visible{background:var(--leaf-soft);outline:none}
 /* valor ou KPI que abre o rastro */
 [data-rastro]{cursor:pointer}
 tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:underline dotted;text-underline-offset:3px}

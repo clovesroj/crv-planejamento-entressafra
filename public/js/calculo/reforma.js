@@ -5,6 +5,7 @@ import { CFG } from '../dados/cfg.js';
 import { FROTA_UN } from '../nucleo/estado.js';
 import { num } from '../nucleo/formato.js';
 import { destinoDe } from './crm.js';
+import { itensDoEquipamento } from './gasto-real.js';
 
 /* ================== REFORMA DE FROTA ==================
    Provisionamento da reforma de entressafra. Orcado por unidade de frota,
@@ -28,29 +29,81 @@ function chaveItemReforma(cod, tag, it){
   return `${cod}|${tag}|${it.desc}|${it.valor}|${it.data}|${it.empresa || ""}`;
 }
 
-/** Lancamentos que o usuario desmarcou pra nao contar no orcamento da unidade. */
+/** Lancamentos que o usuario desmarcou pra nao contar no orcamento da unidade
+ *  (tira do mapeamento automatico por tag -- nao mexe no que foi incluido a mao). */
 function itensExcluidosReforma(cod){
   return new Set((FROTA_UN[cod] || {}).reformaExcl || []);
+}
+
+/** Lancamentos que o usuario incluiu a mao num conjunto especifico -- de
+ *  qualquer tag deste equipamento, nao so das que o mapeamento aponta pra ele
+ *  (ver ui/rastro.js, a busca dentro do rastro do conjunto). */
+function itensIncluidosReforma(cod, conjunto){
+  return new Set(((FROTA_UN[cod] || {}).reformaIncl || {})[conjunto] || []);
+}
+
+// cod -> Map(chave -> item), pra resolver o que foi incluido a mao (a chave
+// nao guarda o item, so identifica -- o item mora em GASTO_REFORMA_BI, sob a
+// tag onde o ERP realmente lancou, que pode ser diferente do conjunto).
+const mapaItensCache = new Map();
+function mapaItensPorChave(cod){
+  let m = mapaItensCache.get(cod);
+  if(!m){
+    m = new Map();
+    itensDoEquipamento(cod).forEach(it => m.set(chaveItemReforma(cod, it.compartimento, it), it));
+    mapaItensCache.set(cod, m);
+  }
+  return m;
+}
+
+/**
+ * Lancamentos que contam no orcamento de uma unidade num conjunto -- os que o
+ * mapeamento de tag aponta pra ele (menos os desmarcados) mais os incluidos a
+ * mao (de qualquer tag), sem repetir o mesmo lancamento duas vezes. Usada
+ * tanto pra somar (realDe) quanto pra listar no rastro do conjunto
+ * (rastroReformaBiItem, em calculo/rastro.js) -- uma conta so, uma lista so.
+ */
+function itensReforma(cod, conjunto, familia){
+  const porFrota = GASTO_REFORMA_BI.porFrota[cod] || {};
+  const tags = tagsBiDoConjunto(familia, conjunto);
+  const excl = itensExcluidosReforma(cod);
+  const incl = itensIncluidosReforma(cod, conjunto);
+  const vistos = new Set();
+  let total = 0;
+  const itens = [];
+  tags.forEach(tag=>{
+    const dado = porFrota[tag];
+    if(!dado) return;
+    dado.itens.forEach(it=>{
+      const chave = chaveItemReforma(cod, tag, it);
+      if(vistos.has(chave)) return;
+      vistos.add(chave);
+      const ligado = !excl.has(chave);
+      if(ligado) total += it.valor;
+      itens.push({...it, chave, ligado, origem:"auto"});
+    });
+  });
+  if(incl.size){
+    const porChave = mapaItensPorChave(cod);
+    incl.forEach(chave=>{
+      if(vistos.has(chave)) return; // ja contado pelo mapeamento automatico
+      const it = porChave.get(chave);
+      if(!it) return;
+      vistos.add(chave);
+      total += it.valor;
+      itens.push({...it, chave, ligado:true, origem:"manual"});
+    });
+  }
+  return {itens, total};
 }
 
 /**
  * Gasto real (ERP, via Power BI) de uma unidade num conjunto -- soma item a
  * item (nao o total pronto da extracao) pra respeitar o que o usuario
- * desmarcou no rastro do conjunto (ver rastroReformaBiItem() em calculo/rastro.js).
- * 0 sem extracao pra ele, ou se tudo que bateu foi desmarcado.
+ * desmarcou ou incluiu a mao no rastro do conjunto. 0 sem nada contando.
  */
 function realDe(cod, conjunto, familia){
-  const porFrota = GASTO_REFORMA_BI.porFrota[cod];
-  if(!porFrota) return 0;
-  const tags = tagsBiDoConjunto(familia, conjunto);
-  const excl = itensExcluidosReforma(cod);
-  let soma = 0;
-  tags.forEach(tag=>{
-    const dado = porFrota[tag];
-    if(!dado) return;
-    dado.itens.forEach(it=>{ if(!excl.has(chaveItemReforma(cod, tag, it))) soma += it.valor; });
-  });
-  return soma;
+  return itensReforma(cod, conjunto, familia).total;
 }
 
 /**
@@ -121,4 +174,5 @@ function reforma(){
           media: unidades ? total/unidades : 0};
 }
 
-export { reforma, refDe, totalUnidade, valorConjunto, realDe, chaveItemReforma, itensExcluidosReforma };
+export { reforma, refDe, totalUnidade, valorConjunto, realDe, chaveItemReforma,
+  itensExcluidosReforma, itensIncluidosReforma, itensReforma };
