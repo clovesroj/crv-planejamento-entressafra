@@ -1,6 +1,6 @@
 import { FROTA_ESP, SEP_MOD, chaveDoModelo, destinoDe, espDe, modDe, opcoesDestino,
          unidadesDoModelo } from '../calculo/crm.js';
-import { DIM, FROTA_ABERTO, QUADRO } from '../nucleo/estado.js';
+import { DIM, DIM_DET, FROTA_ABERTO, QUADRO } from '../nucleo/estado.js';
 import { $, brl, fmt, num, pct } from '../nucleo/formato.js';
 import { MESES, NM, clsMes } from '../nucleo/calendario.js';
 import { kpi, maxSel, tdMeses, th, thMeses } from './componentes.js';
@@ -36,78 +36,50 @@ function pintarDim(R){
     kpi("Efetivo das atividades","g",fmt(R.L.reduce((s,r)=>s+r.efetivo,0))+" pessoas",
         "operadores das frentes · apoio e indiretos ficam em Pessoas","pessoas:total");
 
-  /* UMA tabela para os tres dimensionamentos. Atividade, frota e pessoas nao
-     sao tres assuntos: sao a mesma conta lida de tres angulos, e o numero de um
-     so faz sentido ao lado do outro -- a frota sai do rendimento, e o efetivo
-     sai da frota. Ver os tres exigia trocar de pagina e guardar numero de
-     cabeca, entao eles viram colunas vizinhas da mesma linha. */
-  const BASE = quadroBase();
-  $("#t_dim").innerHTML = th([["Cod"],["Atividade / frente"],["Etapa"],["Modo"],
-    ["Área/Volume",1],["Rend. (un/h)",1],["Utiliz.",1],["Horas",1],
-    ["Frota",1],["Máquina"],["Implemento"],
-    ["Função"],["Escala"],["Turnos"],["Fator",1],["Efetivo (pessoas)",1],["Ativos da função",1],
-    ["Diesel",1],["Manutenção",1]])+"<tbody>"+
-    // a coluna Frota aceita edicao: preenchida, inverte o dimensionamento
+  /* A tabela ficou com o essencial, e o detalhe foi para o modal.
+     As tres leituras continuam na mesma tela, mas 19 colunas nao se leem: modo,
+     utilizacao, horas, maquina, implemento, funcao, escala, turnos, fator,
+     quadro, diesel e manutencao sao detalhe de UMA atividade, nao comparacao
+     entre atividades. Comparar pede coluna; ajustar pede modal.
+
+     Ficam as sete que se compara de uma linha para outra, e tres delas abrem o
+     detalhe no ponto certo: rendimento abre Operacao, frota abre Frota e
+     efetivo abre Pessoas. */
+  $("#t_dim").innerHTML = th([["Cod"],["Atividade / frente"],["Etapa"],
+    ["Área/Volume",1],["Rend. (un/h)",1],["Frota",1],["Efetivo (pessoas)",1]])+"<tbody>"+
     R.L.map(r=>{
       const multi = r.partes.length>1;
       const un = r.a.un.split("/")[0];
-      let h = `<tr><td>${r.a.cod}</td><td>${r.a.nome}</td>
+      return `<tr><td>${r.a.cod}</td><td>${r.a.nome}</td>
         <td class="calc">${r.a.etapa}</td>
-        <td class="calc">${multi?`<span class="badge b-warn">${r.partes.length} frentes</span>`:(r.a.modoOn?"padrão":"—")}</td>
         <td class="num calc">${fmt(r.total)} <span style="font-size:10px">${un}</span></td>
         <td class="num">${multi?`<span class="calc">${fmt(r.rend,2)} ${un}/h</span>`
           : r.frotaAlvo
-          // com a frota fixada o rendimento e resultado, nao premissa: vira
-          // numero calculado para nao parecer que da para editar os dois lados.
-          // O botao de mes fica, porque o criterio mensal continua ajustavel.
           ? `<div class="rend-cel"><span class="tot" title="Rendimento que a frota fixada exige">${fmt(r.rend,2)}</span>
-              <span class="calc">${un}/h</span><span class="badge b-ok">da frota</span>
-              ${btnMes(r.a.cod)}</div>`
+              <span class="calc">${un}/h</span><span class="badge b-ok">da frota</span></div>`
           :`<div class="rend-cel">
               <input data-r="${r.a.cod}" value="${r.rend}" inputmode="decimal">
               <span class="calc">${un}/h</span>
-              ${btnMes(r.a.cod)}
               ${r.frotaAlvoSuspensa ? `<span class="badge b-warn"
-                title="A frota de ${fmt(r.frotaAlvoSuspensa)} lançada aqui está suspensa: há critério lançado por mês, e é ele que vale. Limpe os meses para voltar a usá-la.">frota do mês manda</span>` : ""}
-            </div>`}</td>
-        <td class="num"><input data-u="${r.a.cod}" value="${Math.round(r.util*100)}" inputmode="decimal"></td>
-        <td class="num calc">${fmt(r.horas)}</td>
+                title="A frota de ${fmt(r.frotaAlvoSuspensa)} lançada aqui está suspensa: há critério lançado por mês, e é ele que vale.">frota do mês manda</span>` : ""}
+            </div>`}
+          <div class="dim-btns">${btnMes(r.a.cod)}
+            <button class="btn xs" data-dimdet="${r.a.cod}" data-aba="oper"
+              title="Modo, utilização e horas desta atividade">operação</button></div></td>
         <td class="num">${multi
           ? `<span class="tot">${r.frotaR||"—"}</span>`
           : `<input data-fr="${r.a.cod}" value="${r.frotaAlvo||""}" placeholder="${r.frotaR||"—"}"
-                    inputmode="decimal" title="Em branco, a frota sai do rendimento. Preenchida, ela fixa a frota e o rendimento passa a ser o que ela exige.">`}</td>
-        <td class="calc">${multi?"—":r.maqEfetiva}</td><td class="calc">${multi?"—":r.impEfetivo}</td>
-        <td class="calc">${multi?"—":r.fcod+" — "+r.fnome}</td>
-        <td><select data-esc="${r.a.cod}">${escOpts(r.escala)}</select></td>
-        <td><select data-tur="${r.a.cod}">${turOpts(r.turnosOv)}</select></td>
-        <td class="num calc">${fmt(r.fator,2)}</td>
-        <td class="num tot">${r.efetivo||"—"}</td>
-        <td class="num calc">${ativoDe(r.fcod, BASE)||"—"}</td>
-        <td class="num calc">${r.cDiesel?brl(r.cDiesel):"—"}</td>
-        <td class="num calc">${r.cManut?brl(r.cManut):"—"}</td></tr>`;
-      if(multi) r.partes.forEach(p=>{
-        h += `<tr class="sub"><td></td><td class="calc">↳ ${p.modo}</td><td></td>
-          <td class="num calc">${fmt(p.pct*100,0)}%</td>
-          <td class="num calc">${fmt(p.area)} <span style="font-size:9.5px">${un}</span></td>
-          <td class="num calc">${fmt(p.rend,2)} ${un}/h</td><td class="calc"></td>
-          <td class="num calc">${p.terc?"—":fmt(p.horas)}</td>
-          <td class="num calc">${p.terc?"—":p.frotaR}</td>
-          <td class="calc">${p.maq}</td><td class="calc">${p.imp}</td>
-          <td class="calc">${p.terc?'<span class="badge b-warn">terceiro</span>':p.fcod+" — "+p.fnome}</td>
-          <td colspan="2"></td>
-          <td class="num calc">${p.terc?"—":p.turnosEf+"t"}</td>
-          <td class="num calc">${p.terc?"—":p.efetivo}</td>
-          <td colspan="3"></td></tr>`;});
-      return h;}).join("")+
-    // o rodape fecha as tres leituras de uma vez
-    `<tr><td class="tot" colspan="7">TOTAL DAS ATIVIDADES</td>
-     <td class="num tot">${fmt(R.L.reduce((s,r)=>s+r.horas,0))}</td>
+                    inputmode="decimal" title="Em branco, a frota sai do rendimento. Preenchida, ela fixa a frota e o rendimento passa a ser o que ela exige.">`}
+          <button class="btn xs" data-dimdet="${r.a.cod}" data-aba="frota"
+            title="Máquina, implemento, diesel e manutenção">frota ›</button></td>
+        <td class="num"><span class="tot">${r.efetivo||"—"}</span>
+          <button class="btn xs" data-dimdet="${r.a.cod}" data-aba="pessoas"
+            title="Função, escala, turnos e quadro ativo — ajuste aqui">pessoas ›</button></td></tr>`;
+    }).join("")+
+    `<tr><td class="tot" colspan="4">TOTAL DAS ATIVIDADES</td>
+     <td class="num tot">${fmt(R.L.reduce((s,r)=>s+r.horas,0))} h</td>
      <td class="num tot">${fmt(R.L.reduce((s,r)=>s+r.frotaR,0))}</td>
-     <td colspan="6"></td>
-     <td class="num tot">${fmt(R.L.reduce((s,r)=>s+r.efetivo,0))}</td>
-     <td></td>
-     <td class="num tot">${brl(R.L.reduce((s,r)=>s+r.cDiesel,0))}</td>
-     <td class="num tot">${brl(R.L.reduce((s,r)=>s+r.cManut,0))}</td></tr></tbody>`;
+     <td class="num tot">${fmt(R.L.reduce((s,r)=>s+r.efetivo,0))}</td></tr></tbody>`;
 
   const fr={};
   R.L.forEach(r=>r.partes.forEach(p=>{
@@ -272,4 +244,109 @@ function pintarDimPessoas(R){
     + (tot.contratar>0 ? ` · faltam ${fmt(tot.contratar)}` : "");
 }
 
-export { pintarDim, pintarDimPessoas };
+/* ---------- DETALHE DO DIMENSIONAMENTO, EM MODAL ----------
+   Tres blocos, um por leitura, com as abas na ordem em que a conta anda:
+   a operacao define as horas, as horas definem a frota, a frota define a gente.
+   Abre direto no bloco de onde se clicou, mas mostra os tres -- quem abre a
+   frota costuma querer conferir o efetivo logo em seguida, e voltar a tabela
+   para clicar de novo seria o mesmo vai e volta que tirou as colunas daqui. */
+const ABAS_DET = [["oper","Operação"],["frota","Frota"],["pessoas","Pessoas"]];
+
+function pintarDimDetalhe(R){
+  const cont = $("#dimdet"), fundo = $("#dimdet_fundo");
+  if(!cont) return;
+  const r = DIM_DET ? R.L.find(x=>x.a.cod===DIM_DET.cod) : null;
+  if(!r){ cont.hidden = true; fundo.hidden = true; return; }
+
+  const un = r.a.un.split("/")[0];
+  const multi = r.partes.length>1;
+  const BASE = quadroBase();
+  const aba = DIM_DET.aba || "oper";
+  const linha = (rot, val, dica) => `<div class="dd-linha"${dica?` title="${dica}"`:""}>
+    <span>${rot}</span><b>${val}</b></div>`;
+
+  const oper = `
+    <div class="dd-bloco" id="dd_oper">
+      <div class="dd-tit">Operação</div>
+      <div class="dd-grade">
+        ${linha("Área ou volume", fmt(r.total)+" "+un)}
+        ${linha("Rendimento", fmt(r.rend,2)+" "+un+"/h", "Editável na tabela e, mês a mês, no botão mês")}
+        ${linha("Horas de máquina", fmt(r.horas)+" h", un+" ÷ rendimento")}
+        ${linha("Janela", r.janela.fonte==="datas" ? r.janela.ini+" a "+r.janela.fim
+                                                   : fmt(r.janela.meses,1)+" meses")}
+        <div class="dd-campo"><label for="dd_util">Utilização (%)</label>
+          <input id="dd_util" data-u="${r.a.cod}" value="${Math.round(r.util*100)}" inputmode="decimal">
+          <span class="calc">quanto do tempo disponível vai para esta atividade</span></div>
+        ${linha("Modo de execução", multi ? r.partes.length+" frentes" : (r.a.modoOn?"padrão":"—"))}
+      </div>
+      ${multi ? `<div class="tblwrap ra-tbl"><table>${th([["Frente"],["%",1],["Área",1],["Rend.",1],["Horas",1]])}
+        <tbody>${r.partes.map(p=>`<tr><td>${p.modo}${p.terc?' <span class="badge b-warn">terceiro</span>':""}</td>
+          <td class="num calc">${fmt(p.pct*100,0)}%</td><td class="num calc">${fmt(p.area)} ${un}</td>
+          <td class="num calc">${fmt(p.rend,2)}</td>
+          <td class="num calc">${p.terc?"—":fmt(p.horas)}</td></tr>`).join("")}</tbody></table></div>` : ""}
+    </div>`;
+
+  const frota = `
+    <div class="dd-bloco" id="dd_frota">
+      <div class="dd-tit">Frota</div>
+      <div class="dd-grade">
+        ${linha("Frota necessária", (r.frotaR||"—")+(r.frotaAlvo?" (fixada)":""))}
+        ${linha("Máquina", multi?"—":(r.maqEfetiva||"—"))}
+        ${linha("Implemento", multi?"—":(r.impEfetivo||"—"))}
+        ${linha("Capacidade por equipamento", r.capMes?fmt(r.capMes)+" h/mês":"—",
+                "dias efetivos × jornada × disponibilidade × utilização")}
+        ${linha("Diesel", r.cDiesel?brl(r.cDiesel):"—")}
+        ${linha("Manutenção (CRM)", r.cManut?brl(r.cManut):"—")}
+      </div>
+      ${multi ? `<div class="tblwrap ra-tbl"><table>${th([["Frente"],["Frota",1],["Máquina"],["Implemento"]])}
+        <tbody>${r.partes.map(p=>`<tr><td>${p.modo}</td>
+          <td class="num calc">${p.terc?"—":p.frotaR}</td>
+          <td class="calc">${p.maq}</td><td class="calc">${p.imp}</td></tr>`).join("")}</tbody></table></div>` : ""}
+    </div>`;
+
+  const pessoas = `
+    <div class="dd-bloco" id="dd_pessoas">
+      <div class="dd-tit">Pessoas</div>
+      <div class="dd-grade">
+        ${linha("Efetivo desta atividade", (r.efetivo||"—")+" pessoas",
+                "frota × operadores × turnos × fator de escala")}
+        ${linha("Função", multi?"—":(r.fcod+" — "+r.fnome))}
+        ${linha("Quadro ativo da função", ativoDe(r.fcod, BASE)||"—",
+                "pessoas dessa função no ERP, já com o ajuste da aba Pessoas")}
+        ${linha("Fator de escala", fmt(r.fator,2))}
+        <div class="dd-campo"><label for="dd_esc">Escala</label>
+          <select id="dd_esc" data-esc="${r.a.cod}">${escOpts(r.escala)}</select>
+          <span class="calc">muda o fator, e com ele o efetivo</span></div>
+        <div class="dd-campo"><label for="dd_tur">Turnos</label>
+          <select id="dd_tur" data-tur="${r.a.cod}">${turOpts(r.turnosOv)}</select>
+          <span class="calc">quantas equipes por dia na mesma máquina</span></div>
+      </div>
+      ${multi ? `<div class="tblwrap ra-tbl"><table>${th([["Frente"],["Função"],["Turnos",1],["Pessoas",1]])}
+        <tbody>${r.partes.map(p=>`<tr><td>${p.modo}</td>
+          <td class="calc">${p.terc?"terceiro":p.fcod+" — "+p.fnome}</td>
+          <td class="num calc">${p.terc?"—":p.turnosEf+"t"}</td>
+          <td class="num calc">${p.terc?"—":p.efetivo}</td></tr>`).join("")}</tbody></table></div>` : ""}
+    </div>`;
+
+  const corpo = {oper, frota, pessoas};
+  cont.innerHTML = `
+    <div class="ra-modal dd-modal pop-in">
+    <div class="ra-topo">
+      <div class="ra-nav"><div></div>
+        <button class="ghost-btn" id="dd_fechar" title="Fechar" aria-label="Fechar">✕</button></div>
+      <div class="ra-tit">${r.a.cod} · ${r.a.nome}</div>
+      <div class="ra-subtit">${r.a.etapa} · ${fmt(r.total)} ${un} · ${fmt(r.horas)} h ·
+        ${r.frotaR||0} equip. · ${r.efetivo||0} pessoas</div>
+      <div class="dd-abas">${ABAS_DET.map(([k,n])=>
+        `<button class="${k===aba?"on":""}" data-ddaba="${k}">${n}</button>`).join("")}</div>
+    </div>
+    <div class="ra-corpo">${ABAS_DET.map(([k])=>corpo[k]).join("")}</div>
+    </div>`;
+  cont.hidden = false;
+  fundo.hidden = false;
+  // abre mostrando os tres, mas rola ate o bloco de onde veio o clique
+  const alvo = cont.querySelector("#dd_"+aba);
+  if(alvo) alvo.scrollIntoView({block:"start"});
+}
+
+export { pintarDimDetalhe, pintarDim, pintarDimPessoas };

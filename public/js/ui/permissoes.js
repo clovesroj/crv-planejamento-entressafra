@@ -33,6 +33,7 @@ const VISUAIS = [
   '#ref_busca', '#sel_ref_ag', '#sel_ref_fam', '#ref_frota', '#sel_ref_prop',
   '#gr_inicio', '#gr_fim', '#sel_gr_empresa', '#sel_gr_esp', '#sel_gr_ag', '#sel_gr_comp', '#gr_frota', '#sel_gr_prop', '#sel_gr_reforma',
   '#sel_ins_fam', '#btn_ins_recolher', '[data-fam]',
+  '[data-dimdet]', '[data-ddaba]', '#dd_fechar',
   '#btn_export', '#btn_theme',
   '#sel_anp_semana', '#busca_anp_mun', '#sel_anp_mun', '#sel_anp_prod',
 ].join(',');
@@ -46,6 +47,7 @@ const CONTROLES = 'input, select, textarea, button';
 function areaDe(el) {
   if (!el || !el.closest) return null;
   if (el.closest('#rendm')) return 'dimens';
+  if (el.closest('#dimdet')) return 'dimens';   // detalhe do dimensionamento grava utilizacao, escala e turnos
   // Cadastro de Insumos, Grupos de Insumos (Configurações), o modal de busca
   // na Agrofit e o de editar produto gravam chaves da área 'insumos' no
   // servidor — as telas usam a mesma permissão, sem um toggle à parte no

@@ -500,6 +500,40 @@ tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:under
 #rendm_fundo[hidden]{display:none}
 #rendm{position:fixed;inset:0;z-index:95;display:flex;align-items:center;justify-content:center;padding:24px}
 #rendm[hidden]{display:none}
+/* Detalhe do dimensionamento: tres blocos, um por leitura da mesma atividade.
+   O que era coluna de tabela virou par rotulo/valor, que e como se le detalhe
+   de um registro so -- coluna serve para comparar registros, nao para abrir um. */
+#dimdet_fundo{position:fixed;inset:0;z-index:90;background:rgba(10,17,12,.5);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);animation:raFundoIn .2s ease-out}
+#dimdet_fundo[hidden]{display:none}
+#dimdet{position:fixed;inset:0;z-index:95;display:flex;align-items:center;justify-content:center;padding:24px}
+#dimdet[hidden]{display:none}
+.dd-modal{width:min(980px,100%)}
+.dd-abas{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+.dd-abas button{border:1px solid var(--line);background:var(--card);color:var(--grey);
+  font:600 12px var(--f-body);padding:6px 14px;border-radius:999px;cursor:pointer}
+.dd-abas button:hover{background:var(--leaf-soft);color:var(--ink)}
+.dd-abas button.on{background:var(--leaf);border-color:var(--leaf);color:var(--on-accent)}
+.dd-bloco{border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;margin-bottom:14px;background:var(--card)}
+.dd-bloco:last-child{margin-bottom:0}
+.dd-tit{font-family:var(--f-display);font-size:16px;font-weight:600;color:var(--ink);margin-bottom:10px}
+.dd-grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:9px 20px}
+.dd-linha{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+  padding:5px 0;border-bottom:1px dashed var(--line);font-size:12.5px;color:var(--grey);min-width:0}
+.dd-linha b{color:var(--ink);font-weight:700;text-align:right;overflow-wrap:anywhere}
+/* campo editavel dentro do modal: rotulo em cima, como no resto do app */
+.dd-campo{display:flex;flex-direction:column;gap:3px;padding:5px 0}
+.dd-campo label{font-size:11px;color:var(--grey);font-weight:600;margin:0}
+.dd-campo .calc{font-size:10.5px;line-height:1.35}
+.dd-bloco .ra-tbl{margin-top:12px}
+@media (max-width:640px){#dimdet{padding:0}
+  .dd-modal{width:100%;height:100%;max-height:100%;border-radius:0}
+  .dd-grade{grid-template-columns:1fr}}
+@media print{#dimdet,#dimdet_fundo{display:none!important}}
+
+/* botoes que abrem o detalhe, na celula da tabela */
+.dim-btns{display:flex;gap:4px;justify-content:flex-end;margin-top:4px;flex-wrap:wrap}
+
 .rm-modal{width:min(1180px,100%)}
 /* barra de acao do modal de criterio: digitar nao grava, o botao e que grava */
 .rm-acoes{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}

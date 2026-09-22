@@ -29,6 +29,7 @@ import { pintarPessoas } from '../ui/pessoas.js';
 import { pintarPlano, pintarTercDet } from '../ui/plano.js';
 import { pintarRastro } from '../ui/rastro.js';
 import { pintarRendMensal } from '../ui/rendmensal.js';
+import { pintarDimDetalhe } from '../ui/dimensionamento.js';
 import { pintarFichaIns, pintarEditIns } from '../ui/insumos.js';
 import { pintarResumoFrota } from '../ui/resumo-frota.js';
 import { pintarTPess } from '../ui/transporte-pessoal.js';
@@ -147,7 +148,7 @@ function render(){
   esconderMeses(R.SEL.meses);
   pintarCapa(R); pintarMDO(R); pintarPlano(R); pintarDim(R); pintarTransp(R); pintarApoio(R); pintarCRM(R); pintarReforma(); pintarTPess(R);
   pintarIrrig(R); pintarInsumos(R); pintarFito(R); pintarArrend(R); pintarForn(R); pintarAdm(R); pintarCustos(R); pintarContas(R); pintarCombustivel(R); pintarResumoFrota(R); pintarPessoas(R);
-  pintarPainel(R); pintarValida(R); pintarAcomp(R); pintarRastro(R); pintarRendMensal(R); pintarConfig(); pintarAtividadesCad(); pintarFichaIns(); pintarEditIns(); pintarAgrofitModal(); pintarTercDet();
+  pintarPainel(R); pintarValida(R); pintarAcomp(R); pintarRastro(R); pintarRendMensal(R); pintarDimDetalhe(R); pintarConfig(); pintarAtividadesCad(); pintarFichaIns(); pintarEditIns(); pintarAgrofitModal(); pintarTercDet();
   // depois dos pintores: eles recriam a tabela do zero a cada render(), entao busca
   // e ordem de coluna (que vivem so no DOM) precisam ser reaplicadas por cima; a
   // trava de perfil roda por ultimo porque precisa valer sobre os controles novos
@@ -162,6 +163,9 @@ function renderRendMensal(){ pintarRendMensal(calcularCompleto()); aplicarPermis
 /* A ficha nao muda numero nenhum: abrir e fechar so pinta o modal, em vez de
    refazer as 24 abas -- o mesmo criterio do rastro e do rendimento mensal. */
 function renderFichaIns(){ pintarFichaIns(); aplicarPermissoes(); }
+/* Abrir, trocar de bloco e fechar o detalhe nao mudam numero nenhum: redesenha
+   so o modal, nao as 24 abas. Mesmo criterio do rastro e do rendimento mensal. */
+function renderDimDet(){ pintarDimDetalhe(calcularCompleto()); aplicarPermissoes(); }
 /* Abrir/fechar o modal de editar produto nao muda nenhum numero do plano, mas
    precisa repintar a aba Insumos tambem (nao so o modal): e a propria tabela
    quem trava a linha do produto em edicao (mesmo data-in/data-ie/data-ip do
@@ -210,4 +214,4 @@ function leve(){
 }
 
 
-export { calcularCompleto, leve, leveTimer, render, renderAgrofit, renderEditIns, renderFichaIns, renderRastro, renderRendMensal, renderTercDet };
+export { calcularCompleto, leve, leveTimer, render, renderAgrofit, renderDimDet, renderEditIns, renderFichaIns, renderRastro, renderRendMensal, renderTercDet };
