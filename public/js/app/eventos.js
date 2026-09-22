@@ -258,23 +258,23 @@ document.addEventListener("change",e=>{
   // esta atividade — atividade criada pelo usuário nascia sem isso, e sem
   // controle na tela não dava pra ligar depois
   if(t.dataset.atmodo!==undefined){ atividadesLista()[+t.dataset.atmodo].modoOn = t.checked;
-    salvar(true); render(); return; }
+    salvar(); render(); return; }
   // ativa/inativa a atividade — some das buscas de vinculo novo (ver
   // buscaTratAtiv em ui/insumos.js), sem mexer no que ja esta lancado
   if(t.dataset.atativo!==undefined){ atividadesLista()[+t.dataset.atativo].ativo = t.checked;
-    salvar(true); render(); return; }
+    salvar(); render(); return; }
   // ativa/inativa o produto — some da busca de adicionar numa composicao NOVA
   // (ver buscaProd em ui/insumos.js), sem mexer no que ja esta lancado
   if(t.dataset.inativo!==undefined){ insLista()[+t.dataset.inativo].ativo = t.checked;
-    salvar(true); render(); return; }
+    salvar(); render(); return; }
   // ativa/inativa o tratamento — some das buscas de vincular a uma atividade
   // nova ou como extra (ver sel_trat_extra e o select do Plano Operacional)
   if(t.dataset.tra!==undefined){ TRAT_ATIVO[t.dataset.tra] = t.checked;
-    salvar(true); render(); return; }
+    salvar(); render(); return; }
   if(t.dataset.grpclasse!==undefined){
     const r = setClasseGrupo(t.dataset.grpclasse, t.value);
     if(!r.ok){ alert(r.erro); render(); return; }
-    salvar(true); render(); return; }
+    salvar(); render(); return; }
   // unidade da dose de uma linha da composicao: so muda em que unidade a
   // pessoa lancou o numero, o motor converte pra unidade do cadastro na hora
   // de custear (calculo/insumos.js, doseBase) -- o custo/ha nao muda sozinho
@@ -283,9 +283,9 @@ document.addEventListener("change",e=>{
   // liga/desliga e tipo do frete de uma linha — muda o que a celula mostra
   // (valor unico vs valor+quantidade), por isso redesenha (render), nao leve()
   if(t.dataset.tfrete!==undefined){ const c=destravar(TRAT_SEL), l=c[+t.dataset.tfrete];
-    l.frete = l.frete || {tipo:"unit"}; l.frete.on = t.checked; salvar(true); render(); return; }
+    l.frete = l.frete || {tipo:"unit"}; l.frete.on = t.checked; salvar(); render(); return; }
   if(t.dataset.tfretetipo!==undefined){ const c=destravar(TRAT_SEL), l=c[+t.dataset.tfretetipo];
-    l.frete = l.frete || {}; l.frete.tipo = t.value; salvar(true); render(); return; }
+    l.frete = l.frete || {}; l.frete.tipo = t.value; salvar(); render(); return; }
   // codigo do tratamento: leva composicao, nome, etapas e as atividades que o usam
   if(t.dataset.trc!==undefined || t.id==="in_trat_cod"){
     const de = t.dataset.trc!==undefined ? t.dataset.trc : TRAT_SEL;
@@ -300,7 +300,7 @@ document.addEventListener("change",e=>{
       if(TRAT_SEL===de) setTRAT_SEL(para);
       if(usos.length) avisoPlano(usos, "renomeado");
     }
-    salvar(true); render(); return; }
+    salvar(); render(); return; }
   // etapa em que o tratamento e usado
   if(t.dataset.tre!==undefined){
     marcarEtapa(t.dataset.tre, t.dataset.e, t.checked); salvar(); render(); return; }
@@ -569,7 +569,7 @@ document.addEventListener("click",e=>{
     i.agrofit_titular = p.titular_registro;
     i.bula_url = bula.url;
     setAGROFIT_BUSCA(null);
-    salvar(true); render();
+    salvar(); render();
     return;
   }
   const ab = e.target.closest && e.target.closest("[data-abrefrota]");
@@ -598,14 +598,14 @@ document.addEventListener("click",e=>{
     PLANO[cod] = PLANO[cod] || {m:Array(NM).fill(0), trat:""};
     PLANO[cod].trats = Array.isArray(PLANO[cod].trats) ? PLANO[cod].trats : [];
     PLANO[cod].trats.push({trat, m:Array(NM).fill(0)});
-    salvar(true); render(); return;
+    salvar(); render(); return;
   }
   const txrm = e.target.closest && e.target.closest("[data-txrm]");
   if(txrm){ const cod = txrm.dataset.txrm, i = +txrm.dataset.txi;
     const trats = PLANO[cod] && PLANO[cod].trats;
     if(!trats || !trats[i]) return;
     if(!confirm(`Remover o tratamento extra "${trats[i].trat}" desta atividade? A área lançada mês a mês se perde.`)) return;
-    trats.splice(i,1); salvar(true); render(); return;
+    trats.splice(i,1); salvar(); render(); return;
   }
   const t=e.target;
   if(t.dataset.rm!==undefined){ ESPOR.splice(+t.dataset.rm,1); salvar(); render(); return; }
@@ -625,7 +625,7 @@ document.addEventListener("click",e=>{
     if(!codigoTratValido(novo.trim())){ alert(MSG_COD_TRAT); return; }
     if(!duplicarTrat(de, novo.trim())){ alert(`Já existe um tratamento com o código "${novo.trim()}".`); return; }
     setTRAT_SEL(novo.trim());
-    salvar(true); render(); return; }
+    salvar(); render(); return; }
   if(t.dataset.trrm!==undefined){ const cod=t.dataset.trrm, usos=usosTrat(cod);
     if(!confirm(usos.length
       ? `Remover o tratamento "${cod}"? As atividades ${usos.join(", ")} ficam sem tratamento.`
@@ -633,7 +633,7 @@ document.addEventListener("click",e=>{
     removerTrat(cod);
     if(TRAT_SEL===cod) setTRAT_SEL(null);
     if(usos.length) avisoPlano(usos, "removido");
-    salvar(true); render(); return; }
+    salvar(); render(); return; }
   if(t.dataset.aprm!==undefined){ apoioLista().splice(+t.dataset.aprm,1); salvar(); render(); return; }
   if(t.dataset.mtrm!==undefined){ matLista().splice(+t.dataset.mtrm,1); salvar(); render(); return; }
   if(t.dataset.tprm!==undefined){ tpessLista().splice(+t.dataset.tprm,1); salvar(); render(); return; }
@@ -645,27 +645,27 @@ document.addEventListener("click",e=>{
   if(t.dataset.grprm!==undefined){
     const r = removerGrupoInsumo(t.dataset.grprm);
     if(!r.ok){ alert(r.erro); return; }
-    salvar(true); render(); return; }
+    salvar(); render(); return; }
   if(t.dataset.atrm!==undefined){
     const cod = t.dataset.atrm, p = PLANO[cod];
     const emUso = p && (p.trat || (p.m||[]).some(v=>num(v)>0));
     if(emUso && !confirm(`"${cod}" tem área/tonelada ou tratamento lançado no Plano Operacional. Remover assim mesmo?`)) return;
     if(!removerAtividade(cod)){ alert("Essa atividade não pode ser removida aqui."); return; }
-    salvar(true); render(); return; }
+    salvar(); render(); return; }
   if(t.dataset.grpren!==undefined){
     const id = t.dataset.grpren, g = todasFamilias().find(x=>x.id===id);
     const nome = prompt("Novo nome do grupo:", g ? g.nome : "");
     if(!nome || (g && nome.trim()===g.nome)) return;
     const r = renomearGrupoInsumo(id, nome);
     if(!r.ok){ alert(r.erro); return; }
-    salvar(true); render(); return; }
+    salvar(); render(); return; }
 });
 
 $("#btn_grp_add").onclick=()=>{
   const r = criarGrupoInsumo($("#in_grp_novo").value);
   if(!r.ok){ alert(r.erro); return; }
   $("#in_grp_novo").value="";
-  salvar(true); render();
+  salvar(); render();
 };
 
 $("#btn_ativ_add").onclick=()=>{
@@ -674,7 +674,7 @@ $("#btn_ativ_add").onclick=()=>{
   if(!codigoAtividadeValido(cod)){ alert("Código inválido: use letras, números, espaço, ponto, hífen, barra, +, %, vírgula ou parênteses."); return; }
   if(!criarAtividade(cod)){ alert(`Já existe uma atividade com o código "${cod}".`); return; }
   $("#in_ativ_novo").value="";
-  salvar(true); render();
+  salvar(); render();
 };
 
 $("#btn_trat_add").onclick=()=>{
@@ -683,7 +683,7 @@ $("#btn_trat_add").onclick=()=>{
   if(!codigoTratValido(cod)){ alert(MSG_COD_TRAT); return; }
   if(!criarTrat(cod)){ alert(`Já existe um tratamento com o código "${cod}".`); return; }
   setTRAT_SEL(cod); $("#in_trat_novo").value="";
-  salvar(true); render();
+  salvar(); render();
 };
 
 $("#btn_add_prod").onclick=()=>{
@@ -719,7 +719,7 @@ $("#btn_ins_add").onclick=()=>{
 $("#btn_ins_sinc").onclick=()=>{
   const r = mesclarBaseInsumos();
   setINSX_V(CFG.insumos_v);
-  salvar(true); render();
+  salvar(); render();
   alert(r.novos || r.completados
     ? `Cadastro atualizado: ${r.novos} produto(s) novo(s) e ${r.completados} com a classificação técnica `+
       `completada. São ${r.total} produtos no cadastro.`
@@ -746,7 +746,7 @@ $("#btn_crm_reset").onclick=()=>{
   if(!sujos){ alert("Este agrupamento já está com os valores padrão."); return; }
   if(!confirm("Restaurar os valores padrão de "+CAT_SEL+"? Isso apaga as taxas por especialidade e por modelo deste agrupamento.")) return;
   itens.forEach(m=>delete CRM[m]); esps.forEach(e=>delete CRM_ESP[e]);
-  salvar(true); render();
+  salvar(); render();
 };
 
 $("#btn_ap_add").onclick=()=>{
@@ -765,20 +765,20 @@ $("#btn_ap_reset").onclick=()=>{
 $("#btn_niv_reset").onclick=()=>{
   if(!GRAT[FUN_SEL]){ alert("Este cargo não tem gratificação lançada."); return; }
   if(!confirm("Restaurar níveis e gratificação de "+FUN_SEL+"?")) return;
-  delete GRAT[FUN_SEL]; salvar(true); render();
+  delete GRAT[FUN_SEL]; salvar(); render();
 };
 
 $("#btn_mdo_reset").onclick=()=>{
   if(!Object.keys(ENC).length && !Object.keys(BEN).length){
     alert("Encargos e benefícios já estão com os valores originais."); return; }
   if(!confirm("Restaurar encargos e benefícios aos valores originais?")) return;
-  setENC({}); setBEN({}); salvar(true); render();
+  setENC({}); setBEN({}); salvar(); render();
 };
 
 $("#btn_trat_reset").onclick=()=>{
   if(!TRATC[TRAT_SEL]){ alert("Este tratamento já está com a composição original."); return; }
   if(!confirm("Restaurar a composição original de "+TRAT_SEL+"?")) return;
-  delete TRATC[TRAT_SEL]; salvar(true); render();
+  delete TRATC[TRAT_SEL]; salvar(); render();
 };
 $("#btn_diesel_reaj").onclick=()=>{
   const r = num($("#in_diesel_reaj").value)/100;

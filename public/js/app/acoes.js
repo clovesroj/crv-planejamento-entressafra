@@ -16,7 +16,7 @@ import { setP } from '../nucleo/estado.js';
 
 /* ---------- ações ---------- */
 $("#btn_reset").onclick=()=>{ if(!confirm("Restaurar premissas aos valores padrão? O plano é mantido.")) return;
-  setP({...PADRAO}); pintarPremissas(); salvar(true); render(); };
+  setP({...PADRAO}); pintarPremissas(); salvar(); render(); };
 $("#btn_theme").onclick=()=>{ const c=document.documentElement.getAttribute("data-theme");
   document.documentElement.setAttribute("data-theme",c==="dark"?"light":"dark"); };
 $("#btn_esp").onclick=()=>{ ESPOR.push({mes:MESES[0],desc:"",cc:CFG.cc_list[0],valor:0,status:"Provisão"});
