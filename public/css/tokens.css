@@ -19,11 +19,11 @@
   --pop-shadow:0 12px 32px rgba(15,25,18,.20);
   --focus:0 0 0 3px rgba(45,106,58,.24);
 
-  /* menu lateral: fundo escuro no azul da logo (#2A57A0 na marca), no lugar
-     do verde. Item selecionado sobe pro claro do mesmo azul, em gradiente —
-     cascata de tom, do fundo escuro até o item ativo. */
-  --side:#0F2035; --side-ink:#DCE6D8; --side-mute:#8DA1B8; --side-hover:rgba(255,255,255,.06);
-  --side-on:#3E72AC; --side-on-light:#6FA0D8;
+  /* menu lateral: fundo verde bem escuro. Item selecionado sobe pro claro do
+     mesmo verde (--leaf-strong/--leaf), em gradiente — cascata de tom, do
+     fundo escuro até o item ativo. */
+  --side:#0F2418; --side-ink:#DCE6D8; --side-mute:#8DA1B8; --side-hover:rgba(255,255,255,.06);
+  --side-on:var(--leaf-strong); --side-on-light:var(--leaf);
 
   /* nomes antigos — ainda usados pelo JavaScript e por estilos inline */
   --navy:var(--side); --navy2:var(--leaf-strong); --blue:var(--leaf); --accent:var(--leaf);
@@ -55,7 +55,7 @@
     --ok-bg:rgba(93,187,114,.16); --warn-bg:rgba(224,168,62,.16); --bad-bg:rgba(224,112,95,.16); --info-bg:rgba(111,163,216,.14);
     --pop-shadow:0 12px 32px rgba(0,0,0,.55);
     --focus:0 0 0 3px rgba(111,174,110,.32);
-    --side:#081420; --side-on:#25507F; --side-on-light:#3E72AC;
+    --side:#081A10; --side-on:var(--leaf-strong); --side-on-light:var(--leaf);
     color-scheme:dark;
   }
 }
@@ -73,7 +73,7 @@
   --ok-bg:rgba(93,187,114,.16); --warn-bg:rgba(224,168,62,.16); --bad-bg:rgba(224,112,95,.16); --info-bg:rgba(111,163,216,.14);
   --pop-shadow:0 12px 32px rgba(0,0,0,.55);
   --focus:0 0 0 3px rgba(111,174,110,.32);
-  --side:#081420; --side-on:#25507F; --side-on-light:#3E72AC;
+  --side:#081A10; --side-on:var(--leaf-strong); --side-on-light:var(--leaf);
   color-scheme:dark;
 }
 

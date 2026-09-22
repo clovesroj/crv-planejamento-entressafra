@@ -8,9 +8,13 @@
     "node": ">=20"
   },
   "scripts": {
-    "start": "node server/index.js"
+    "start": "node server/index.js",
+    "gasto-reforma-bi": "node scripts/gasto-reforma-bi.mjs"
   },
   "dependencies": {
     "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
   }
 }

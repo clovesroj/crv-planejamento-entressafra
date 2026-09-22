@@ -6,8 +6,12 @@
  * equipamento -- uma colhedora tem corte de base e extrator, um caminhao tem
  * embreagem e diferencial.
  *
- * Nomenclatura e ordem vieram da planilha de orcamento de reforma da safra,
- * abas "Base Diversos" (frota geral) e "Base Colhedora" (colhedora e esteira).
+ * Frota geral: nomenclatura e ordem vieram da planilha de orcamento de
+ * reforma da safra, aba "Base Diversos".
+ *
+ * Colhedora: os nomes SAO as tags *COMPARTIMENTO* do ERP (ver comentario
+ * abaixo) -- trocado da planilha original pra bater com o gasto real vindo
+ * do Power BI sem ambiguidade.
  *
  * Aqui so mora a ESTRUTURA. Valor nenhum e pre-preenchido: o orcamento e
  * digitado na aba Reforma de Frota, unidade por unidade.
@@ -22,15 +26,22 @@ const CONJ_GERAL = [
   "CHICOTE ELÉTRICO", "PARTE ELÉTRICA", "AR CONDICIONADO",
 ];
 
-// Colhedora de cana e trator de esteira: conjuntos proprios da maquina de corte
+// Colhedora de cana e trator de esteira: mesmos nomes (e grafia) das tags
+// *COMPARTIMENTO* que o ERP grava no fim da Descricao Produto, vistas de
+// verdade numa extracao real (scripts/gasto-reforma-bi.mjs, 2026-09-22,
+// Especialidade=COLHEDORA-CANA). Antes essa lista vinha da planilha de
+// orcamento e tinha nomenclatura propria (ex.: duas colunas de hidraulica);
+// como o ERP so tem UMA tag "*HIDRAULICA*", manter dois nomes so causava
+// ambiguidade na hora de cruzar com o gasto real -- por isso a lista agora
+// segue o ERP: um conjunto, uma tag, sem tradução no meio.
 const CONJ_COLHEDORA = [
-  "CHASSI", "EXTRATOR 1°", "EXTRATOR 2°", "ELEVADOR", "ELÉTRICA",
-  "SIST. HIDRÁULICO MANGUEIRAS", "SIST. HIDR. BOMBAS / MOTORES",
-  "SISTEMA ARREFECIMENTO", "AR CONDICIONADO", "MOTOR", "CABINE",
-  "PAINEL INSTRUMENTOS", "CORTE BASE", "CORTE DE PONTA", "DIVISOR DE LINHA",
-  "ROLOS ALIMENTADORES", "ROLOS PICADORES", "COMANDOS", "CAIXA PICADOR",
-  "MESA DE GIRO", "CAIXA 4 FUROS", "KIT ANTI INCÊNDIO", "ROLETES",
-  "REDUÇÃO FINAL", "TRUCK", "RODA GUIA / MOTRIZ", "ESTEIRA", "SAPATAS",
+  "ADMISSAO", "ARREFECIMENTO", "CABINE", "CAMBIO", "CARROCERIA", "CHASSI",
+  "COMPRESSOR", "CORTADOR", "CORTE BASE", "DIRECAO", "DIVISOR LINHA",
+  "ELETRICA", "ELEVADOR", "ESCAPE", "EXT PRIMARIO", "EXT SECUNDARIO", "FREIO",
+  "HIDRAULICA", "IMPLEMENTO", "MANUT BASICA", "MEC DEDICADO", "MESA GIRO",
+  "MOTOR", "PICADOR", "PNEU", "PNEUMATICA", "RADIO", "REFRIGERACAO",
+  "RODANTE", "ROLO ALIMENTACAO", "ROLO PRE TOMBADOR", "SIST COMB",
+  "SUSPENSAO", "TRANSMISSAO", "TREM FORCA", "TRUCK",
 ];
 
 // Especialidades que usam a lista da colhedora; o resto cai na geral

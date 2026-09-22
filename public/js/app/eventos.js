@@ -7,7 +7,8 @@ import { CFG } from '../dados/cfg.js';
 import { buscarAgrofit, bulaDoProduto } from '../io/agrofit.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
-import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TERC_SUB, TERC_DET, setTERC_DET, TPESS, TRATC, TRAT_NOME, TRAT_OBS, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, atividadesLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE } from '../nucleo/estado.js';
+import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TERC_SUB, TERC_DET, setTERC_DET, TPESS, TRATC, TRAT_NOME, TRAT_OBS, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, atividadesLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE, setREF_BUSCA, setREF_AG, setREF_FAM, setREF_FROTA, setREF_PROP,
+  setGR_INICIO, setGR_FIM, setGR_EMPRESA, setGR_ESP, setGR_AG, setGR_COMP, setGR_FROTA, setGR_PROP, setGR_REFORMA } from '../nucleo/estado.js';
 import { AGROFIT_BUSCA, FITO_ABERTO, PLANO_ABERTO, FROTA_ABERTO, FROTA_UN, INS_EDIT, INS_FICHA, MAQ, setAGROFIT_BUSCA, setFROTA_DEST, setFROTA_ORIG, setINS_EDIT, setINS_FICHA } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { filtrarPorNome } from '../ui/componentes.js';
@@ -208,6 +209,12 @@ document.addEventListener("input",e=>{
     // nada, entao a dobra precisa sair do caminho antes
     if(buscaExigeRedesenho(t.dataset.alvo, t.value)) render();
     return; }
+  // busca por especialidade na Reforma de Frota: filtra ANTES de montar os
+  // paineis (cada especialidade e um <div>, nao <tr> — filtrarPorNome nao
+  // serve aqui), entao precisa de render() mesmo, nao so esconder linha
+  if(t.id==="ref_busca"){ setREF_BUSCA(t.value); render(); return; }
+  if(t.id==="ref_frota"){ setREF_FROTA(t.value); render(); return; }
+  if(t.id==="gr_frota"){ setGR_FROTA(t.value); render(); return; }
 });
 document.addEventListener("change",e=>{
   const t=e.target;
@@ -341,6 +348,17 @@ document.addEventListener("change",e=>{
   if(t.id==="sel_ins_fam"){ aplicarFamIns(t.value); render(); return; }
   if(t.id==="sel_crit_ger"){ setCRIT_GER(t.value); render(); return; }
   if(t.id==="sel_crit_cabe"){ setCRIT_CABE(t.value); render(); return; }
+  if(t.id==="sel_ref_ag"){ setREF_AG(t.value); render(); return; }
+  if(t.id==="sel_ref_fam"){ setREF_FAM(t.value); render(); return; }
+  if(t.id==="sel_ref_prop"){ setREF_PROP(t.value); render(); return; }
+  if(t.id==="gr_inicio"){ setGR_INICIO(t.value); render(); return; }
+  if(t.id==="gr_fim"){ setGR_FIM(t.value); render(); return; }
+  if(t.id==="sel_gr_empresa"){ setGR_EMPRESA(t.value); render(); return; }
+  if(t.id==="sel_gr_esp"){ setGR_ESP(t.value); render(); return; }
+  if(t.id==="sel_gr_ag"){ setGR_AG(t.value); render(); return; }
+  if(t.id==="sel_gr_comp"){ setGR_COMP(t.value); render(); return; }
+  if(t.id==="sel_gr_prop"){ setGR_PROP(t.value); render(); return; }
+  if(t.id==="sel_gr_reforma"){ setGR_REFORMA(t.value); render(); return; }
   if(t.id==="sel_grat_tipo"){ GRAT[FUN_SEL]={tipo:t.value, valor:num($("#in_grat").value)}; salvar(); render(); return; }
 });
 /* ---------- SELETOR DE MESES ----------

@@ -98,6 +98,17 @@ td.num{text-align:right}
 td input{height:28px;padding:0 8px;font-size:13px;text-align:right;min-width:70px;
   background:var(--edit-bg);border-color:var(--edit-line);color:var(--edit-ink)}
 td input:focus{background:var(--card)}
+
+/* Célula com gasto real (ERP/Power BI): troca o campo de orçamento por um
+   valor grande e travado -- não tem mais o que editar, o número já veio de
+   fora. Clicável (abre o rastro com os lançamentos), mesma cor de destaque
+   dos totais calculados (.tot) só que com fundo próprio pra não confundir
+   com uma célula de soma comum. */
+.ref-real{display:block;height:28px;line-height:26px;padding:0 10px;border-radius:var(--r-sm);
+  border:1px solid var(--leaf); background:var(--leaf-soft); color:var(--leaf-strong);
+  font-size:15px;font-weight:700;text-align:right;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;cursor:pointer;min-width:70px}
+.ref-real:hover,.ref-real:focus-visible{background:var(--leaf);color:var(--on-accent);outline:none}
 td select{height:28px;padding:0 8px;font-size:12.5px;min-width:110px}
 .calc{color:var(--grey)}
 .tot{font-weight:700;color:var(--ink)}

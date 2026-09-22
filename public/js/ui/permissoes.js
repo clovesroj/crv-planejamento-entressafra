@@ -30,6 +30,8 @@ const VISUAIS = [
   '[data-abrefrota]', '[data-fitoabre]', '[data-planoabre]', '[data-infx]', '[data-rendmes]', '#rm_fechar', '[data-tercdet]', '#td_fechar',
   '#sel_fun', '#busca_fun', '#sel_cat', '#sel_orig', '#sel_dest', '#sel_trat', '#busca_trat', '#sel_acomp_mes',
   '#sel_crit_ger', '#sel_crit_cabe', '.tbl-busca',
+  '#ref_busca', '#sel_ref_ag', '#sel_ref_fam', '#ref_frota', '#sel_ref_prop',
+  '#gr_inicio', '#gr_fim', '#sel_gr_empresa', '#sel_gr_esp', '#sel_gr_ag', '#sel_gr_comp', '#gr_frota', '#sel_gr_prop', '#sel_gr_reforma',
   '#sel_ins_fam', '#btn_ins_recolher', '[data-fam]',
   '#btn_export', '#btn_theme',
   '#sel_anp_semana', '#busca_anp_mun', '#sel_anp_mun', '#sel_anp_prod',

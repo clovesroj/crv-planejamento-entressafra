@@ -51,6 +51,23 @@ let INS_FICHA = null;    // produto com a ficha técnica aberta no modal, ou nul
 let INS_EDIT = null;     // produto em edição no modal (Cadastro de Insumos), ou null
 let FROTA_ORIG = "todos"; // filtro próprio/terceiro das abas de frota (não é salvo: é visão, não dado)
 let CRIT_GER = "";       // filtro de gerência do critério por mês (visão, não dado)
+let REF_BUSCA = "";      // busca por especialidade na aba Reforma de Frota (visão, não dado)
+let REF_AG = "";         // filtro de agrupamento na aba Reforma de Frota (visão, não dado)
+let REF_FAM = "";        // filtro de família (colhedora/geral) na aba Reforma de Frota (visão, não dado)
+let REF_FROTA = "";      // busca por código de frota ou modelo na aba Reforma de Frota (visão, não dado)
+let REF_PROP = "";       // filtro próprio/terceiro na aba Reforma de Frota (visão, não dado) -- "" | "proprio" | "terceiro"
+
+// Filtros do painel "Análise do Gasto Real (ERP)" -- mesmos eixos do
+// relatório de origem (BI), aplicados sobre GASTO_REFORMA_BI. Visão, não dado.
+let GR_INICIO = "";      // AAAA-MM-DD ou "" (sem piso)
+let GR_FIM = "";         // AAAA-MM-DD ou "" (sem teto)
+let GR_EMPRESA = "";
+let GR_ESP = "";
+let GR_AG = "";
+let GR_COMP = "";
+let GR_FROTA = "";
+let GR_PROP = "";
+let GR_REFORMA = "";     // "" | "SIM" | "NAO"
 let CRIT_CABE = "";      // "" todos os meses | "apertado" só os que não cabem
 let APOIO_FIXO = {};     // nome do item -> qtd ajustada (frota de apoio de utilização fixa)
 let TRAT_NOME = {};      // cod do tratamento -> nome descritivo editável
@@ -86,7 +103,7 @@ let AGROFIT_BUSCA = null;
 
 export {
   P, PLANO, DIM, INSUMO, ESPOR, TRATC, NIV, GRAT, APOIO, TERC_TAR, TERC_SUB, TERC_DET, CRM, MATX,
-  INSX, INSX_V, ATVX, ATVX_V, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, CRIT_GER, CRIT_CABE, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, FITO_ABERTO, PLANO_ABERTO, INS_FICHA, APOIO_FIXO, TRAT_NOME, TRAT_OBS, TRAT_ETAPA, TRAT_DEL, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
+  INSX, INSX_V, ATVX, ATVX_V, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, CRIT_GER, CRIT_CABE, REF_BUSCA, REF_AG, REF_FAM, REF_FROTA, REF_PROP, GR_INICIO, GR_FIM, GR_EMPRESA, GR_ESP, GR_AG, GR_COMP, GR_FROTA, GR_PROP, GR_REFORMA, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, FITO_ABERTO, PLANO_ABERTO, INS_FICHA, APOIO_FIXO, TRAT_NOME, TRAT_OBS, TRAT_ETAPA, TRAT_DEL, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
   TPESS, QUADRO, ADM, ADM_RAT, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL, ATIV_TRAT_SEL, GRUPOS_INS, FAM_NOME, FAM_CLASSE, AGROFIT_BUSCA, INS_EDIT,
 };
 
@@ -113,6 +130,20 @@ export const setCRM_ESP    = v => { CRM_ESP = v; };
 export const setMAQ        = v => { MAQ = v; };
 export const setFROTA_ORIG = v => { FROTA_ORIG = v; };
 export const setCRIT_GER   = v => { CRIT_GER = v; };
+export const setREF_BUSCA  = v => { REF_BUSCA = v; };
+export const setREF_AG     = v => { REF_AG = v; };
+export const setREF_FAM    = v => { REF_FAM = v; };
+export const setREF_FROTA  = v => { REF_FROTA = v; };
+export const setREF_PROP   = v => { REF_PROP = v; };
+export const setGR_INICIO  = v => { GR_INICIO = v; };
+export const setGR_FIM     = v => { GR_FIM = v; };
+export const setGR_EMPRESA = v => { GR_EMPRESA = v; };
+export const setGR_ESP     = v => { GR_ESP = v; };
+export const setGR_AG      = v => { GR_AG = v; };
+export const setGR_COMP    = v => { GR_COMP = v; };
+export const setGR_FROTA   = v => { GR_FROTA = v; };
+export const setGR_PROP    = v => { GR_PROP = v; };
+export const setGR_REFORMA = v => { GR_REFORMA = v; };
 export const setCRIT_CABE  = v => { CRIT_CABE = v; };
 export const setFROTA_ABERTO = v => { FROTA_ABERTO = v; };
 export const setINS_FICHA    = v => { INS_FICHA = v; };

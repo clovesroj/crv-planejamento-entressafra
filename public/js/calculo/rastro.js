@@ -11,6 +11,8 @@ import { comps, custoPorOperacao } from './custo-operacao.js';
 import { SEM_CONTA, contasValores, totaisContas } from './contas.js';
 import { baseEtapa, custoUnit, premissaBase, rotuloBase } from './base-fisica.js';
 import { reforma } from './reforma.js';
+import { GASTO_REFORMA_BI } from '../dados/gasto-reforma-bi.js';
+import { tagsBiDoConjunto } from '../dados/reforma-bi-map.js';
 
 // soma um array de NM meses respeitando o filtro de período (mesmo critério de R.PER)
 const somaPeriodo = (arr, periodo) => !arr ? 0
@@ -749,6 +751,35 @@ function rastroReforma(){
     premissas:premissasGerais()};
 }
 
+/* ---------- gasto real (ERP/Power BI) de um equipamento num conjunto ---------- */
+function rastroReformaBiItem(familia, cod, conjunto){
+  const porFrota = GASTO_REFORMA_BI.porFrota[cod] || {};
+  const tags = tagsBiDoConjunto(familia, conjunto);
+  let total = 0;
+  const itens = [];
+  for(const tag of tags){
+    const dado = porFrota[tag];
+    if(!dado) continue;
+    total += dado.total;
+    itens.push(...dado.itens);
+  }
+  itens.sort((a,b)=>b.valor-a.valor);
+  return {
+    titulo: conjunto,
+    subtitulo: `Gasto real no ERP — equipamento ${cod}`,
+    valor: brl(total),
+    largo: true,
+    blocos: [{titulo:"Lançamentos", linhas: itens.length ? itens.map(it=>({
+      rot: it.desc, val: brl(it.valor), sub: fmtDataCurta(it.data)}))
+      : [{rot:"Nenhum lançamento neste compartimento", val:"—"}]}],
+    nota: itens.length ? `${itens.length} lançamento${itens.length>1?"s":""} do ERP, extraídos do Power BI.` : "",
+  };
+}
+function fmtDataCurta(iso){
+  const [a,m,d] = String(iso||"").split("-");
+  return a ? `${d}/${m}/${a}` : "";
+}
+
 /* ---------- diesel ---------- */
 function rastroDiesel(R, periodo){
   const CB = R.CB;
@@ -847,6 +878,10 @@ function rastro(R, chave, periodo){
     if(arg==="crm") return rastroCRM(R);
     if(arg==="crmexced") return rastroCRMExced(R);
     if(arg==="reforma") return rastroReforma();
+  }
+  if(tipo==="reformabi"){
+    const [familia, cod, conjunto] = arg.split("|");
+    return rastroReformaBiItem(familia, cod, conjunto);
   }
   if(tipo==="diesel") return rastroDiesel(R, p);
   if(tipo==="insumos") return rastroInsumos(R);
