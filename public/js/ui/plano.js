@@ -3,7 +3,7 @@ import { tratListaTodos } from '../calculo/insumos.js';
 import { CFG } from '../dados/cfg.js';
 import { TERC_MODOS } from '../dados/modos.js';
 import { NM } from '../nucleo/calendario.js';
-import { DIM, PLANO_ABERTO, TERC_DET, TERC_SUB, TRAT_NOME, atividadesLista } from '../nucleo/estado.js';
+import { DIM, PLANO_ABERTO, TERC_DET, TERC_SUB, TRAT_ATIVO, TRAT_NOME, atividadesLista } from '../nucleo/estado.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
 import { th } from './componentes.js';
 import { MESES, PERIODO_MESES, clsMes } from '../nucleo/calendario.js';
@@ -118,7 +118,10 @@ function pintarPlano(R){
   R.L.forEach(r=>{
     const grupo = grupoPlano(r.a);
     if(grupo!==et){et=grupo; h+=`<tr class="stage"><td colspan="${SEL.meses.length+10}"><span>${et}</span></td></tr>`;}
-    const opts=['<option value="">—</option>'].concat(TL.map(t=>
+    // tratamento inativo some da lista, exceto o que a linha já usa — senão o
+    // select perderia a opção selecionada pra atividade que já está lançada
+    const optsTL = TL.filter(t=>TRAT_ATIVO[t.cod]!==false || t.cod===r.trat);
+    const opts=['<option value="">—</option>'].concat(optsTL.map(t=>
       `<option value="${t.cod}" ${t.cod===r.trat?"selected":""}>${t.cod}${TRAT_NOME[t.cod]?" — "+esc(TRAT_NOME[t.cod]):""} · ${brl(t.custo_ha,0)}/ha</option>`)).join("");
     const auto = r.a.tipo==="transp";
     // janela de datas: define em que meses a atividade pode ser lancada

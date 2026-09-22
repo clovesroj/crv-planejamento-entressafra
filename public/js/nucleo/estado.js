@@ -57,6 +57,7 @@ let TRAT_NOME = {};      // cod do tratamento -> nome descritivo editável
 let TRAT_OBS = {};       // cod do tratamento -> observação livre (recomendação, instrução de uso)
 let TRAT_ETAPA = {};     // cod do tratamento -> etapas em que é usado (preparo, plantio, planta, soca...)
 let TRAT_DEL = {};       // cod do tratamento -> true quando foi removido do cadastro base
+let TRAT_ATIVO = {};     // cod do tratamento -> false quando inativo (ausente = ativo); some das buscas de vínculo novo
 let DIESEL_MES = {};     // índice do mês -> preço projetado do diesel (R$/L); vazio = preço base
 let ARREND = null;       // [{faz, grupo, area, forma, qtd, pag, mes}] fazendas ou grupos arrendados
 let ARR_PAR = {};        // parâmetros de pagamento do arrendamento (ATR, preços, critério)
@@ -86,7 +87,7 @@ let AGROFIT_BUSCA = null;
 
 export {
   P, PLANO, DIM, INSUMO, ESPOR, TRATC, NIV, GRAT, APOIO, TERC_TAR, TERC_SUB, TERC_DET, CRM, MATX,
-  INSX, INSX_V, ATVX, ATVX_V, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, CRIT_GER, CRIT_CABE, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, FITO_ABERTO, PLANO_ABERTO, INS_FICHA, APOIO_FIXO, TRAT_NOME, TRAT_OBS, TRAT_ETAPA, TRAT_DEL, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
+  INSX, INSX_V, ATVX, ATVX_V, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, CRIT_GER, CRIT_CABE, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, FITO_ABERTO, PLANO_ABERTO, INS_FICHA, APOIO_FIXO, TRAT_NOME, TRAT_OBS, TRAT_ETAPA, TRAT_DEL, TRAT_ATIVO, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
   TPESS, QUADRO, ADM, ADM_RAT, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL, ATIV_TRAT_SEL, GRUPOS_INS, FAM_NOME, FAM_CLASSE, AGROFIT_BUSCA, INS_EDIT,
 };
 
@@ -128,6 +129,7 @@ export const setTRAT_NOME  = v => { TRAT_NOME = v; };
 export const setTRAT_OBS   = v => { TRAT_OBS = v; };
 export const setTRAT_ETAPA = v => { TRAT_ETAPA = v; };
 export const setTRAT_DEL   = v => { TRAT_DEL = v; };
+export const setTRAT_ATIVO = v => { TRAT_ATIVO = v; };
 export const setDIESEL_MES = v => { DIESEL_MES = v; };
 export const setARREND     = v => { ARREND = v; };
 export const setARR_PAR    = v => { ARR_PAR = v; };
