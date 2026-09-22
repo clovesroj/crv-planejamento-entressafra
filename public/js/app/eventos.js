@@ -219,6 +219,11 @@ document.addEventListener("change",e=>{
     salvar(); render(); return; }
   if(t.dataset.at!==undefined && t.tagName==="SELECT"){ atividadesLista()[+t.dataset.at][t.dataset.f]=t.value;
     salvar(); render(); return; }
+  // libera/tranca o mix de modos (M/T/U/D/Q/3º) no Plano Operacional para
+  // esta atividade — atividade criada pelo usuário nascia sem isso, e sem
+  // controle na tela não dava pra ligar depois
+  if(t.dataset.atmodo!==undefined){ atividadesLista()[+t.dataset.atmodo].modoOn = t.checked;
+    salvar(true); render(); return; }
   if(t.dataset.grpclasse!==undefined){
     const r = setClasseGrupo(t.dataset.grpclasse, t.value);
     if(!r.ok){ alert(r.erro); render(); return; }

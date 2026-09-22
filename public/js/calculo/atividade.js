@@ -431,8 +431,11 @@ function criarAtividade(cod){
   const c = String(cod||"").trim();
   const lista = atividadesLista();
   if(!codigoAtividadeValido(c) || lista.some(a=>a.cod===c)) return false;
+  // modoOn:true libera o mix de modos (M/T/U/D/Q/3º) no Plano Operacional —
+  // sem isso a atividade nova nascia sem nenhuma forma de marcar o modo de
+  // execução, diferente da maioria do catálogo base
   lista.push({cod:c, etapa:"TRATOS CULTURAIS", nome:"Nova atividade", un:"ha/mês",
-              rend:1, maq:"", imp:"", ops:1, turnos:1, util:0.8});
+              rend:1, maq:"", imp:"", ops:1, turnos:1, util:0.8, modoOn:true});
   return true;
 }
 // atividade do cadastro base nao se remove aqui (outras telas e o proprio
