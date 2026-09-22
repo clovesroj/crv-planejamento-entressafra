@@ -32,6 +32,26 @@ function estado(){
 }
 function setStatus(t,c){ $("#stxt").textContent=t; $("#sdot").className="dot "+(c||""); }
 
+// Toast de confirmação: o chip "Salvo no servidor" no topo é discreto demais
+// pra quem quer ter certeza de que aquela gravação específica chegou no
+// banco -- aparece um instante e some sozinho, sem interromper nada. Só pra
+// gravação de verdade no servidor (não pro rascunho no localStorage nem pro
+// "sem permissão", que já tem aviso persistente próprio).
+const MAX_TOASTS = 4;
+function mostrarToast(texto){
+  const cont = $("#toasts");
+  if(!cont) return;
+  while(cont.children.length >= MAX_TOASTS) cont.firstElementChild.remove();
+  const el = document.createElement("div");
+  el.className = "toast";
+  el.innerHTML = `<span class="dot"></span><span>${texto}</span>`;
+  cont.appendChild(el);
+  setTimeout(()=>{
+    el.classList.add("toast-saindo");
+    el.addEventListener("animationend", ()=>el.remove(), {once:true});
+  }, 2600);
+}
+
 /* Base de gravação — o estado logo depois da primeira pintura com o plano
    carregado, e reajustada a cada gravação aceita (ver atualizarBaseComEnviado).
    Ao abrir, o app cria ou normaliza listas (arrendamentos, fornecedores,
@@ -332,7 +352,9 @@ async function gravar(){
           +(ignorados.length>3?"…":""), "warn");
         return;
       }
-      statusRemoto("Salvo no servidor"); return;
+      statusRemoto("Salvo no servidor");
+      mostrarToast(REMOTO.duravel ? "Salvo no banco de dados" : "Salvo no servidor (temporário)");
+      return;
     }catch(err){
       // O rascunho local acima já segurou a alteração; dizer que está tudo salvo
       // esconderia do usuário que os outros ainda não estão vendo o que ele digitou.

@@ -128,6 +128,19 @@ header.topbar{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(
 .dot.off{background:var(--muted);box-shadow:none}
 #print_report{display:none}
 
+/* ---------- toast de gravação ---------- */
+/* canto inferior direito, longe do menu e da barra superior; empilha se mais
+   de uma gravação confirmar em sequência (ver mostrarToast(), io/persistencia.js) */
+.toasts{position:fixed;right:20px;bottom:20px;z-index:90;display:flex;flex-direction:column;gap:8px;
+  max-width:min(320px,calc(100vw - 40px))}
+.toast{display:flex;align-items:center;gap:9px;padding:11px 16px;border-radius:var(--r);
+  background:var(--card);border:1px solid var(--line);box-shadow:var(--pop-shadow);
+  font-size:13px;color:var(--ink);animation:toastEntra .25s ease-out}
+.toast .dot{flex:none}
+.toast-saindo{animation:toastSai .22s ease-in forwards}
+@keyframes toastEntra{from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)}}
+@keyframes toastSai{from{opacity:1;transform:translateY(0)} to{opacity:0;transform:translateY(6px)}}
+
 /* ---------- área de conteúdo ---------- */
 main{width:100%;max-width:1440px;margin:0 auto;padding:26px 28px 64px}
 section{display:none}
