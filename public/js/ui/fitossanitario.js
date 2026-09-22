@@ -62,14 +62,30 @@ function linhasModo(r){
   return linhas;
 }
 
-// volume físico de cada produto do tratamento, na área do ano da atividade
-// (mesma dose × área de resumoInsumos, só que por linha em vez de somado)
+// tratamentos que a atividade usa, cada um com a area propria dele — cobre o
+// caso de dois tratamentos na mesma atividade (ver PLANO[cod].trats em
+// calculo/atividade.js: tratsDetalhe traz principal + extras, cada um com
+// area exclusiva). Sem extras, cai no unico tratamento de sempre.
+function tratsDe(r){
+  if(Array.isArray(r.tratsDetalhe))
+    return r.tratsDetalhe.filter(d=>d.trat).map(d=>({trat:d.trat, area:d.area}));
+  return r.trat ? [{trat:r.trat, area:r.total}] : [];
+}
+
+// volume físico de cada produto usado pela atividade, somado entre os
+// tratamentos dela (principal e extras, cada um com a área própria) — antes
+// so olhava r.trat/r.total e um produto que so existisse num tratamento
+// extra sumia do "Volume de insumo" e do Resumo de Insumos
 function volumeInsumo(r){
-  if(!r.trat) return [];
-  return composicao(r.trat).map(l => {
-    const reg = insLista().find(i => i.prod === l.prod) || {};
-    return {prod: l.prod, un: reg.un || "", vol: doseBase(l) * r.total};
+  const porProduto = {};
+  tratsDe(r).forEach(({trat, area}) => {
+    composicao(trat).forEach(l => {
+      const reg = insLista().find(i => i.prod === l.prod) || {};
+      if(!(l.prod in porProduto)) porProduto[l.prod] = {prod: l.prod, un: reg.un || "", vol: 0};
+      porProduto[l.prod].vol += doseBase(l) * area;
+    });
   });
+  return Object.values(porProduto);
 }
 const fmtVolume = vs => vs.length
   ? vs.map(v => `${fmt(v.vol, 2)} ${esc(v.un)} ${esc(v.prod)}`).join(" · ")
@@ -111,12 +127,13 @@ function tabelaOndas(linhas){
 function resumoInsumos(linhas){
   const porProduto = {};
   linhas.forEach(r => {
-    if(!r.trat) return;
-    composicao(r.trat).forEach(l => {
-      const vol = doseBase(l) * r.total;
-      if(!(l.prod in porProduto)) porProduto[l.prod] = {vol:0, area:0};
-      porProduto[l.prod].vol += vol;
-      porProduto[l.prod].area += r.total;
+    tratsDe(r).forEach(({trat, area}) => {
+      composicao(trat).forEach(l => {
+        const vol = doseBase(l) * area;
+        if(!(l.prod in porProduto)) porProduto[l.prod] = {vol:0, area:0};
+        porProduto[l.prod].vol += vol;
+        porProduto[l.prod].area += area;
+      });
     });
   });
   return Object.entries(porProduto).map(([prod, {vol, area}]) => {
