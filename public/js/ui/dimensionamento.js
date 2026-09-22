@@ -43,17 +43,16 @@ function pintarDim(R){
       const F = frotaDaAtividade(r);
       return `<tr><td>${r.a.cod}</td><td>${r.a.nome}</td>
         <td class="calc">${r.a.etapa}</td>
-        <td class="num calc">${fmt(r.total)} <span style="font-size:10px">${un}</span></td>
-        <td class="num">
+        <td><div class="dim-cel"><span class="dim-val calc">${fmt(r.total)}</span>
+          <span class="dim-un">${un}</span></div></td>
+        <td>
           <div class="dim-cel">
-            ${multi
-              ? `<span class="dim-val calc">${fmt(r.rend,2)}</span>`
-              : `<input data-r="${r.a.cod}" value="${r.rend}" inputmode="decimal" class="dim-inp">`}
+            <span class="dim-val">${fmt(r.rend,2)}</span>
             <span class="dim-un">${un}/h</span>
             ${btnMes(r.a.cod)}
             <button class="btn xs" data-dimdet="${r.a.cod}" data-aba="oper">detalhe ›</button>
           </div></td>
-        <td class="num">
+        <td>
           <div class="dim-cel">
             <span class="dim-val" title="${F.difere
               ? `Frota do mês que mais pede (${F.mes}): ${fmt(F.pico)}. Na média da janela dá ${fmt(F.media)}, mas média não estaciona no pátio — quem tem de existir é a do mês cheio. Ajuste mês a mês no botão mês.`
@@ -61,16 +60,16 @@ function pintarDim(R){
             ${F.difere ? `<span class="badge b-warn" title="A média da janela é ${fmt(F.media)}">pico ${F.mes}</span>` : ""}
             <button class="btn xs" data-dimdet="${r.a.cod}" data-aba="frota">detalhe ›</button>
           </div></td>
-        <td class="num">
+        <td>
           <div class="dim-cel">
             <span class="dim-val">${r.efetivo||"—"}</span>
             <button class="btn xs" data-dimdet="${r.a.cod}" data-aba="pessoas">detalhe ›</button>
           </div></td></tr>`;
     }).join("")+
     `<tr><td class="tot" colspan="4">TOTAL DAS ATIVIDADES</td>
-     <td class="num tot">${fmt(R.L.reduce((s,r)=>s+r.horas,0))} h</td>
-     <td class="num calc" title="Somar o pico de cada atividade nao da a frota da usina: atividades que picam em meses diferentes dividem a mesma maquina. O total esta no cartao Frota operacional, no topo.">ver cartão</td>
-     <td class="num tot">${fmt(R.L.reduce((s,r)=>s+r.efetivo,0))}</td></tr></tbody>`;
+     <td class="tot">${fmt(R.L.reduce((s,r)=>s+r.horas,0))} h</td>
+     <td class="calc" title="Somar o pico de cada atividade nao da a frota da usina: atividades que picam em meses diferentes dividem a mesma maquina.">—</td>
+     <td class="tot">${fmt(R.L.reduce((s,r)=>s+r.efetivo,0))}</td></tr></tbody>`;
 
   /* Necessidade de frota por MES, uma linha por atividade.
      A tabela por tipo de maquina somava o ano inteiro e escondia justamente o
@@ -195,10 +194,14 @@ function pintarDimDetalhe(R){
       <div class="dd-tit">Operação</div>
       <div class="dd-grade">
         ${linha("Área ou volume", fmt(r.total)+" "+un)}
-        ${linha("Rendimento", fmt(r.rend,2)+" "+un+"/h", "Editável na tabela e, mês a mês, no botão mês")}
+        ${multi ? linha("Rendimento", fmt(r.rend,2)+" "+un+"/h") : ""}
         ${linha("Horas de máquina", fmt(r.horas)+" h", un+" ÷ rendimento")}
         ${linha("Janela", r.janela.fonte==="datas" ? r.janela.ini+" a "+r.janela.fim
                                                    : fmt(r.janela.meses,1)+" meses")}
+        ${multi ? "" : `<div class="dd-campo"><label for="dd_rend">Rendimento padrão (${un}/h)</label>
+          <input id="dd_rend" data-r="${r.a.cod}" value="${r.rend}" inputmode="decimal">
+          <span class="calc">Vale para todo mês que não tiver rendimento próprio. O mês que foge dele
+          se lança no botão <b>mês</b>.</span></div>`}
         <div class="dd-campo"><label for="dd_util">Utilização (%)</label>
           <input id="dd_util" data-u="${r.a.cod}" value="${Math.round(r.util*100)}" inputmode="decimal">
           <span class="calc">quanto do tempo disponível vai para esta atividade</span></div>

@@ -541,11 +541,17 @@ tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:under
 .h-secao{font-family:var(--f-display);font-size:19px;font-weight:600;letter-spacing:.2px;
   color:var(--ink);margin:0 0 12px}
 
-.dim-cel{display:flex;align-items:center;justify-content:flex-end;gap:7px;white-space:nowrap}
+/* Cabecalho e dado na mesma posicao. O th do app e centralizado e a celula
+   numerica era alinhada a direita: o rotulo flutuava no meio da coluna e o
+   numero encostava na borda, e era isso que saia do lugar. Aqui as duas
+   primeiras colunas sao texto e vao a esquerda, as outras vao ao centro --
+   cabecalho e conteudo pelo mesmo eixo. */
+#t_dim th:nth-child(-n+3),#t_dim td:nth-child(-n+3){text-align:left}
+#t_dim th:nth-child(n+4),#t_dim td:nth-child(n+4){text-align:center}
+.dim-cel{display:flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap}
 .dim-val{font-weight:700;color:var(--ink);font-size:14px}
 .dim-val.calc{font-weight:600;color:var(--grey)}
 .dim-un{font-size:10.5px;color:var(--muted);letter-spacing:.2px}
-.dim-inp{width:82px;min-width:0;text-align:right}
 /* acao da celula: discreta em repouso, visivel no hover da linha — ela nao
    compete com o numero, que e o que se le primeiro */
 .dim-cel .btn.xs{opacity:.55;transition:opacity .12s,border-color .12s,background-color .12s}
