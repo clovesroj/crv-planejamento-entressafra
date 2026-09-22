@@ -86,39 +86,54 @@ function rastroTotal(R){
    O cartão mostra custo total ÷ área de plantio; o rastro tem de explicar essa
    divisão, e não o custo total — era o que abria antes. Segue o filtro de
    período da barra de cima, como o cartão. */
+// custo das atividades de muda (colheita, transbordo e transporte), com a parte
+// delas nos rateios da colheita — o mesmo critério da tabela do modelo PECEGE
+function custoDaMuda(R){
+  const ehMuda = a => a.cod==="A02" || a.src==="A02";
+  const colh = custoPorOperacao(R).principais.find(l=>l.id==="colheita");
+  const dirMuda = R.L.filter(r=>r.a.etapa==="COLHEITA" && ehMuda(r.a)).reduce((s,r)=>s+r.direto,0);
+  const dirColh = R.L.filter(r=>r.a.etapa==="COLHEITA").reduce((s,r)=>s+r.direto,0);
+  const rat = colh ? colh.rateio.apoio+colh.rateio.admin+colh.rateio.deprec+colh.rateio.gerais : 0;
+  return dirMuda + (dirColh>0 ? rat*dirMuda/dirColh : 0);
+}
 function rastroCustoHa(R){
-  const ha = num(P.plantio), S = R.SEL, tot = S.total;
+  const ha = num(P.plantio);
+  const C = custoPorOperacao(R);
+  const F = C.formacao;
+  const partes = C.principais.filter(l=>l.formacao);
   const porHa = v => ha>0 ? brl(v/ha)+"/ha" : "—";
-  const etapas = Object.entries(R.etapas)
-    .map(([e,d])=>[e, S.parcial && S.etapa ? (S.etapa[e]||0) : d.total])
-    .filter(([,v])=>v>0.5).sort((a,b)=>b[1]-a[1]);
-  const cats = Object.keys(CAT_LBL)
-    .map(k=>[k, S.parcial && S.cat ? (S.cat[k]||0) : (R.mesesCat[k]||[]).reduce((s,v)=>s+v,0)])
-    .filter(([,v])=>v>0.5).sort((a,b)=>b[1]-a[1]);
-  const F = custoPorOperacao(R).formacao;
+  const tot = F ? F.contabil : 0;
+  const S = R.SEL;
   const blocos = [
     {titulo:"A conta", linhas:[
-      {rot:"Custo total"+(S.parcial?" — "+S.rotulo:""), val:brl(tot), ir:"total",
-       sub:"todo o plano: operações, rateios, administrativo, depreciação"},
+      {rot:"Formação do canavial", val:brl(tot), ir:"op:formacao",
+       sub:"preparo de solo + plantio + tratos culturais de cana planta"},
       {rot:"Área de plantio", val:fmt(ha)+" ha", sub:"premissa, aba Premissas"},
-      {rot:"Custo por hectare plantado", val:porHa(tot), sub:"custo total ÷ área de plantio"},
+      {rot:"Custo por hectare plantado", val:porHa(tot), sub:"formação do canavial ÷ área de plantio"},
     ]},
-    {titulo:"Quanto cada etapa pesa no hectare plantado", linhas: etapas.map(([e,v])=>({
-      rot:e, val:porHa(v), ir:"etapa:"+e,
-      sub:brl(v)+" ÷ "+fmt(ha)+" ha · "+fmt(tot>0?v/tot*100:0,1)+"% do custo"}))},
-    {titulo:"Por grande conta", linhas: cats.map(([k,v])=>({
-      rot:CAT_LBL[k], val:porHa(v), sub:brl(v)}))},
+    {titulo:"As etapas que formam o canavial", linhas: partes.map(l=>({
+      rot:l.nome, val:porHa(l.contabil), ir:"op:"+l.id,
+      sub:brl(l.contabil)+" · "+fmt(tot>0?l.contabil/tot*100:0,1)+"% da formação"}))},
+    {titulo:"O que entra no hectare plantado", linhas: F ? [
+      {rot:"Operação — máquinas, mão de obra e insumos", val:porHa(F.oper.total), sub:brl(F.oper.total)},
+      {rot:"Rateios — apoio, arrendamento, administrativo, depreciação e gerais",
+       val:porHa(F.rateio.total), sub:brl(F.rateio.total)},
+    ] : []},
+    /* O que a cana soca, a colheita e o apoio custam não forma canavial: fica
+       fora deste indicador, e aparece aqui para a conta do plano fechar. A muda
+       é o caso de fronteira: no Plano Operacional a colheita e o transporte de
+       muda estão na etapa Colheita, e é lá que este indicador os deixa; a
+       tabela do modelo PECEGE, no Painel, os conta como insumo do plantio. */
+    {titulo:"Fora do hectare plantado (o resto do plano)", linhas: C.principais.concat(C.outras)
+      .filter(l=>!l.formacao).map(l=>({rot:l.nome, val:brl(l.contabil), ir:"op:"+l.id}))
+      .concat(custoDaMuda(R)>0.5 ? [{rot:"↳ dentro da colheita: mudas (colheita, transbordo e transporte)",
+        val:brl(custoDaMuda(R)), sub:(ha>0?brl(custoDaMuda(R)/ha)+"/ha · ":"")+"na tabela do modelo PECEGE entra no plantio"}] : [])
+      .concat([{rot:"Custo total do plano"+(S.parcial?" — "+S.rotulo:""), val:brl(S.total), ir:"total",
+        sub:ha>0 ? brl(S.total/ha)+"/ha de plantio, com o plano inteiro" : ""}])},
   ];
-  // a formação do canavial é a parte do hectare plantado que põe o canavial de pé
-  if(F && !S.parcial) blocos.push({titulo:"Formação do canavial (plantio + tratos de cana planta)", linhas:[
-    {rot:"Custo operacional", val:porHa(F.oper.total), sub:brl(F.oper.total)},
-    {rot:"Rateios", val:porHa(F.rateio.total),
-     sub:"apoio, arrendamento, administrativo, depreciação e custos gerais · "+brl(F.rateio.total)},
-    {rot:"Custo contábil da formação", val:porHa(F.contabil), sub:brl(F.contabil)+" ÷ "+fmt(ha)+" ha", ir:"op:formacao"},
-  ]});
   return {
     titulo:"Custo por hectare plantado",
-    subtitulo:(S.parcial ? S.rotulo+" · " : "")+"custo total do plano ÷ área de plantio",
+    subtitulo:"formação do canavial ÷ área de plantio",
     valor: porHa(tot),
     blocos,
     premissas:[{rot:"Área de plantio", val:fmt(ha)+" ha"}].concat(premissasGerais()),
@@ -173,7 +188,7 @@ function rastroOperacao(R, id, modo){
     sub: b.fonte==="premissa" ? "premissa, bloco Base física dos custos" : "premissa em branco — soma das atividades"}];
   return {
     titulo: l.nome,
-    subtitulo: id==="formacao" ? "plantio + tratos culturais de cana planta · por hectare plantado"
+    subtitulo: id==="formacao" ? "preparo de solo + plantio + tratos de cana planta · por hectare plantado"
                                : "custo operacional e rateios · base "+rotBase,
     // o número de cabeça é o do cartão que abriu: custo operacional, custo
     // contábil ou o custo contábil por unidade (Painel)

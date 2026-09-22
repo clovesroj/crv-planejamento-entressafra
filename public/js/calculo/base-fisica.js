@@ -50,7 +50,8 @@ function baseOperacao(id, estimado){
 function baseEtapa(R, etapa){
   const d = R.etapas[etapa] || {};
   const est = d.ha>0 ? {q:d.ha, un:"ha", rot:"ha operados"} : {q:d.ton||0, un:"t", rot:"t"};
-  if(etapa==="PLANTIO")  return baseOperacao("plantio", est);
+  // preparo de solo acontece na área que vai ser plantada
+  if(etapa==="PREPARO DE SOLO" || etapa==="PLANTIO") return baseOperacao("plantio", est);
   if(etapa==="COLHEITA") return comAlternativa(baseOperacao("colheita", est));
   if(etapa==="TRATOS CULTURAIS"){
     const pl = baseOperacao("planta", {}), so = premissaBase("soca");

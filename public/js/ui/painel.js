@@ -1,5 +1,5 @@
 import { linha } from '../calculo/atividade.js';
-import { custoPorOperacao } from '../calculo/custo-operacao.js';
+import { custoHaPlantado, custoPorOperacao } from '../calculo/custo-operacao.js';
 import { tabelaColheita, tabelaHa } from '../calculo/modelo-pecege.js';
 import { baseEtapa, custoUnit, premissaBase, rotuloBase } from '../calculo/base-fisica.js';
 import { CRM_COMP } from '../calculo/crm.js';
@@ -27,7 +27,7 @@ function pintarPainel(R){
   const bColh = baseEtapa(R, "COLHEITA");
   $("#k_painel").innerHTML =
     kpi("Custo total","",brl(R.SEL.total), R.SEL.parcial?R.SEL.rotulo:"","total") +
-    kpi("Custo / ha plantado","t",brl(R.SEL.total/ha), R.SEL.parcial?R.SEL.rotulo:"","custoha") +
+    kpi("Custo / ha plantado","t",brl(custoHaPlantado(R).valor), custoHaPlantado(R).nota+(R.SEL.parcial?" · ano todo":""),"custoha") +
     kpi("Custo de colheita","g",custoUnit(corteTotal, baseCorte),"só corte (A01+A02), sem transporte · "+rotuloBase(baseCorte),"corte") +
     kpi("Efetivo total","a",fmt(R.efetivoTotal)+" pessoas","","pessoas:total") +
     kpi("Custo na safra","g",brl(R.PER.safra.total),"abr a nov · "+R.PER.safra.meses.length+" meses no orçamento","periodo:safra") +
@@ -40,7 +40,7 @@ function pintarPainel(R){
   const soca = op("soca"), planta = op("planta"), F = OP.formacao;
   $("#k_tratos").innerHTML =
     (F ? kpi("Formação do canavial","g",unitHa(F),
-        brl(F.contabil)+" · plantio + tratos de cana planta ÷ "+rotuloBase(F.base),"op:formacao") : "") +
+        brl(F.contabil)+" · preparo + plantio + tratos de cana planta ÷ "+rotuloBase(F.base),"op:formacao") : "") +
     kpi("Tratos — cana soca","t",unitHa(soca),
         soca ? brl(soca.contabil)+" · "+rotuloBase(soca.base) : "—","op:soca") +
     kpi("Tratos — cana planta","g",unitHa(planta),
@@ -132,8 +132,10 @@ function pintarModeloPecege(R){
     }).join("")+`</tr>`;
   });
   $("#t_pec_ha").innerHTML = h+"</tbody>";
+  const haPl = (H.cols.find(c=>c.id==="formacao")||{}).base;
   $("#pec_ha_nota").textContent = H.custoMuda>0.5
-    ? `Mudas: o custo da colheita, do transbordo e do transporte de muda (${brl(H.custoMuda)}, com a parte delas nos rateios da colheita) está na etapa Colheita do Plano Operacional; aqui, como no modelo PECEGE, entra no plantio como insumo — e sai do CTTA.`
+    ? `Mudas: o custo da colheita, do transbordo e do transporte de muda (${brl(H.custoMuda)}, com a parte delas nos rateios da colheita) está na etapa Colheita do Plano Operacional; aqui, como no modelo PECEGE, entra no plantio como insumo — e sai do CTTA. `
+      + (haPl && haPl.q>0 ? `É por isso que a coluna Formação fica ${brl(H.custoMuda/haPl.q)}/ha acima do cartão "Custo / ha plantado" do topo, que conta só as três etapas do plano.` : "")
     : "";
 
   const C = tabelaColheita(R), b = C.base, q = b.q>0 ? b.q : 0;

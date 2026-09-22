@@ -1,5 +1,49 @@
 # Histórico de mudanças
 
+## 2.33.0 — 2026-09-22 · Custo por hectare plantado: só o que forma o canavial
+
+O indicador **Custo por ha plantado** dividia o custo do plano inteiro pela área
+de plantio: colheita, tratos de cana soca e apoio entravam na conta do hectare
+que foi plantado. Agora ele é a **formação do canavial ÷ área de plantio**, e a
+formação é o que o modelo PECEGE chama de formação: **preparo de solo + plantio
++ tratos culturais de cana planta**.
+
+No plano de referência o indicador sai de R$ 20.163/ha (custo total ÷ 2.400 ha)
+para R$ 29.971/ha (R$ 71.931.300 de formação ÷ 2.400 ha).
+
+### O que mudou
+
+- **Preparo de solo entrou na formação.** Antes a formação era plantio + tratos
+  de cana planta. O preparo acontece na área que vai ser plantada e é custo de
+  formação; agora conta, e a base física do preparo passou a ser a área de
+  plantio (antes era a soma das passadas das atividades, que contava o mesmo
+  talhão uma vez por operação).
+- **Cartões iguais nas três telas.** Painel, Capa e Custos mostram o mesmo
+  número, com a nota "preparo + plantio + tratos de cana planta".
+- **Relatórios.** O Resumo Executivo e os Indicadores trazem duas linhas
+  separadas: *Custo por hectare plantado (formação do canavial)* e *Custo do
+  plano por hectare de plantio*, que é a conta antiga — útil, mas outra coisa.
+- **Rastro reescrito.** Abre a conta ("Formação do canavial ÷ área de plantio"),
+  as três etapas que formam o canavial com o peso de cada uma, o que entra
+  (operação e rateios) e o que fica fora — cana soca, colheita e apoio —,
+  fechando com o custo total do plano.
+
+### Mudas
+
+A colheita, o transbordo e o transporte de muda estão na etapa Colheita do Plano
+Operacional, e é lá que este indicador os deixa. A tabela do modelo PECEGE, no
+Painel, os conta como insumo do plantio — é a diferença de R$ 736/ha entre a
+coluna Formação daquela tabela e o cartão. As duas telas agora dizem isso: o
+rastro mostra a linha da muda dentro da colheita e a nota da tabela explica a
+diferença.
+
+### Auditoria
+
+45 invariantes do motor sem falha, 29 abas e 124 rastros sem NaN, undefined ou
+Infinity, e os 126 relatórios (21 × 2 níveis × 3 períodos) sem resíduo. A soma
+das três etapas da formação fecha com as etapas PREPARO DE SOLO e PLANTIO mais
+a operação de tratos de cana planta, com diferença zero.
+
 ## 2.32.0 — 2026-09-22 · Painel: tabelas no modelo PECEGE
 
 O Painel ganhou as duas tabelas do relatório de custos PECEGE/USP, montadas
