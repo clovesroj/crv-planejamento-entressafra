@@ -105,25 +105,27 @@ function tabelaOndas(linhas){
     }).join("") + "</tbody>";
 }
 
-// soma, por produto, o volume usado nas atividades da lista (dose já na
-// unidade do cadastro × área do ano de cada atividade que usa o produto)
+// soma, por produto, o volume e a área usados nas atividades da lista (dose já
+// na unidade do cadastro × área do ano de cada atividade que usa o produto —
+// mesma área que gera o volume, por isso soma junto)
 function resumoInsumos(linhas){
   const porProduto = {};
   linhas.forEach(r => {
     if(!r.trat) return;
     composicao(r.trat).forEach(l => {
       const vol = doseBase(l) * r.total;
-      if(!(l.prod in porProduto)) porProduto[l.prod] = 0;
-      porProduto[l.prod] += vol;
+      if(!(l.prod in porProduto)) porProduto[l.prod] = {vol:0, area:0};
+      porProduto[l.prod].vol += vol;
+      porProduto[l.prod].area += r.total;
     });
   });
-  return Object.entries(porProduto).map(([prod, vol]) => {
+  return Object.entries(porProduto).map(([prod, {vol, area}]) => {
     const reg = insLista().find(i => i.prod === prod) || {};
     const preco = precoInsumo(prod);
     const valor = vol * preco;
     const estoque = reg.est || 0;
     const comprar = Math.max(0, vol - estoque);
-    return {prod, un: reg.un || "", vol, preco, valor, estoque, comprar, valorInvestir: comprar * preco};
+    return {prod, un: reg.un || "", vol, area, preco, valor, estoque, comprar, valorInvestir: comprar * preco};
   }).sort((a, b) => b.valor - a.valor);
 }
 
@@ -132,18 +134,19 @@ function tabelaResumo(linhas){
   if(!dados.length) return '<p class="calc">Nenhum tratamento lançado ainda.</p>';
   const totalValor = dados.reduce((s, d) => s + d.valor, 0);
   const totalInvestir = dados.reduce((s, d) => s + d.valorInvestir, 0);
-  return th([["Produto"],["Un."],["Volume necessário",1],["Preço unit.",1],["Valor total (R$)",1],
+  return th([["Produto"],["Un."],["Área/ano (ha)",1],["Volume necessário",1],["Preço unit.",1],["Valor total (R$)",1],
     ["Estoque",1],["Volume a comprar",1],["Valor a investir (R$)",1]]) +
     "<tbody>" + dados.map(d => `<tr>
       <td>${esc(d.prod)}</td>
       <td class="calc">${esc(d.un)}</td>
+      <td class="num calc">${fmt(d.area)}</td>
       <td class="num">${fmt(d.vol, 2)}</td>
       <td class="num calc">${d.preco > 0 ? brl(d.preco, 2) : '<span class="badge b-warn">sem preço</span>'}</td>
       <td class="num tot">${brl(d.valor)}</td>
       <td class="num calc">${fmt(d.estoque, 2)}</td>
       <td class="num">${fmt(d.comprar, 2)}</td>
       <td class="num tot">${brl(d.valorInvestir)}</td></tr>`).join("") +
-    `<tr><td class="tot" colspan="4">TOTAL</td><td class="num tot">${brl(totalValor)}</td>
+    `<tr><td class="tot" colspan="5">TOTAL</td><td class="num tot">${brl(totalValor)}</td>
       <td></td><td></td><td class="num tot">${brl(totalInvestir)}</td></tr></tbody>`;
 }
 
