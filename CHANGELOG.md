@@ -1,5 +1,33 @@
 # Histórico de mudanças
 
+## 2.29.0 — 2026-09-22 · Mão de obra direta pelo efetivo, mês cheio
+
+Decisão da auditoria 2.28.0. A mão de obra das atividades era cobrada por
+**hora de máquina**: salário mensal ÷ 403 h (24 dias × 16,8 h da máquina) ×
+horas × operadores × fator de escala. Os **turnos não entravam**, então cada
+máquina pagava um operador onde o efetivo conta dois ou três. No plano de teste
+isso dava R$ 7,4 mi de MDO direta para um efetivo que, pelos meses em que
+trabalha, custa R$ 27,4 mi — e o Resumo de Pessoas mostrava R$ 2.840 por
+pessoa/mês, abaixo do custo de qualquer função.
+
+Agora a equipe de cada frente — **frota × operadores × turnos × fator de
+escala**, o mesmo efetivo do Dimensionamento e do Resumo de Pessoas — é paga o
+**mês cheio em todo mês em que a atividade tem volume**, ao custo mensal da
+função (salário, encargos e benefícios).
+
+- Na colheita do plano de teste: 112 pessoas × 4 meses × R$ 8.196/mês =
+  R$ 3.671.904, R$ 917.976 em cada mês de safra. Antes eram R$ 948.636.
+- Custo mensal, grandes contas e etapas mês a mês usam a equipe de cada mês,
+  não mais a divisão pelo volume: mês com pouco volume paga a equipe inteira.
+- O Resumo de Pessoas passa a R$ 5.432 por pessoa/mês no teste.
+- O detalhamento da atividade mostra a conta: pessoas × meses com volume ×
+  custo mensal da função.
+- O relatório por período e o custo operacional acompanham.
+
+**O custo total do plano sobe.** No plano de teste, de R$ 217,8 mi para
+R$ 237,8 mi (+R$ 20,0 mi, todo em MDO direta). As 45 conferências da auditoria
+seguem fechando no centavo, e as da aba Validação ficam verdes.
+
 ## 2.28.0 — 2026-09-21 · Auditoria do cálculo
 
 Auditoria de toda a parte de cálculo, com um plano de teste completo: todas as

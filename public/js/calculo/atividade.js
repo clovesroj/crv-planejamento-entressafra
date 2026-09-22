@@ -304,7 +304,7 @@ function linha(a, MP){
       // dessas tarifas. Sem detalhamento, vale a tarifa única de sempre.
       const cTerc = area * tarifaTercDe(a.cod);
       return {...f, area, horas:0, capMes:0, frota:0, frotaR:0, litros:0,
-              fcod:"—", fnome:"Prestador", cDiesel:0, cManut:0, cMDO:0, cTerc,
+              fcod:"—", fnome:"Prestador", cDiesel:0, cManut:0, cMDO:0, mdoMes:Array(NM).fill(0), cTerc,
               efetivo:0, direto:cTerc};
     }
     let horas, capMes, frota;
@@ -362,13 +362,21 @@ function linha(a, MP){
     const litros  = cons.litros;
     const cDiesel = litros*precoMed;
     const cManut  = 0;   // alocado adiante, a partir do CRM da frota prevista
-    const cMDO    = horas*cf.hora*f.ops*fator;
+    /* Mão de obra pelo efetivo, mês cheio: a equipe da frente (frota ×
+       operadores × turnos × fator de escala) é paga o mês inteiro em todo mês
+       em que a atividade tem volume, ao custo mensal da função (salário,
+       encargos e benefícios). É como a folha é paga, e fecha com o Resumo de
+       Pessoas. Antes era por hora de máquina (salário ÷ 403 h), sem os turnos:
+       cobrava um operador por máquina onde o efetivo conta três. */
+    const efetivo = Math.ceil(Math.ceil(frota)*f.ops*(turnosOv>0?turnosOv:f.turnos)*fator);
+    const mdoMes  = meses.map(q => num(q)>0 ? efetivo*cf.mensal : 0);
+    const cMDO    = mdoMes.reduce((s,x)=>s+x, 0);
     return {...f, area, horas, capMes, frota, frotaR:Math.ceil(frota), cTerc:0, litros, consumoLh:cons.lh,
             consumoUn:cons.un, consumoLkm:cons.lkm, km:cons.km, fonteKm:cons.fonteKm,
             rend: rendAlvo!=null ? rendAlvo : f.rend, rendAlvo,
-            fcod:fc, fnome:cf.nome, cDiesel, cManut, cMDO,
+            fcod:fc, fnome:cf.nome, cDiesel, cManut, cMDO, mdoMes, custoMensal:cf.mensal,
             turnosEf: turnosOv>0 ? turnosOv : f.turnos,
-            efetivo: Math.ceil(Math.ceil(frota)*f.ops*(turnosOv>0?turnosOv:f.turnos)*fator),
+            efetivo,
             direto: cDiesel+cManut+cMDO};
   });
 
@@ -401,6 +409,7 @@ function linha(a, MP){
           horas:soma("horas"), capMes:partes[0].capMes, frota:soma("frota"),
           frotaR:partes.reduce((s,x)=>s+x.frotaR,0),
           cDiesel:soma("cDiesel"), cManut:soma("cManut"), cMDO:soma("cMDO"), cTerc:soma("cTerc"), cInsumo, tratsDetalhe,
+          mdoMes: MESES.map((m,i)=>partes.reduce((s,x)=>s+((x.mdoMes||[])[i]||0),0)),
           fcod, fnome:partes[0].fnome, efetivo:soma("efetivo"),
           modo: M ? "mix" : "", maqEfetiva: partes.map(x=>x.maq).join(" + "),
           impEfetivo: partes.map(x=>x.imp).join(" + "),

@@ -112,8 +112,9 @@ function calcular(){
   const pesoMes = i => haTotReal>0 ? haMes[i]/haTotReal : 1/NM;
   L.forEach(r=>{
     const tot = r.total||0;
-    // diesel entra pelo litro e preço de cada mês; o restante do custo direto, pela quantidade
-    r.meses.forEach((q,i)=>{ if(tot>0) meses[i] += (r.direto-r.cDiesel)*(num(q)/tot) + r.dieselMes[i]; });
+    // diesel entra pelo litro e preço de cada mês; a MDO, pela equipe paga em cada
+    // mês com volume; o restante do custo direto, pela quantidade
+    r.meses.forEach((q,i)=>{ if(tot>0) meses[i] += (r.direto-r.cDiesel-r.cMDO)*(num(q)/tot) + r.dieselMes[i] + r.mdoMes[i]; });
   });
   const outros = (AE.total-AE.diesel) + IR.total + MT.total + TC.total + EM.total + mdoIndirT + TP.total + crmExtra;
   for(let i=0;i<NM;i++){ meses[i] += outros*pesoMes(i) + fixoMes + AE.dieselMes[i] + AR.mes[i]; }
@@ -125,7 +126,7 @@ function calcular(){
   L.forEach(r=>{
     const tot=r.total||0; if(tot<=0) return;
     r.meses.forEach((q,i)=>{ const f=num(q)/tot;
-      mesesCat.mdo[i]+=r.cMDO*f; mesesCat.manut[i]+=r.cManut*f;
+      mesesCat.mdo[i]+=r.mdoMes[i]; mesesCat.manut[i]+=r.cManut*f;
       mesesCat.diesel[i]+=r.dieselMes[i]; mesesCat.insumo[i]+=r.cInsumo*f; mesesCat.terc[i]+=r.cTerc*f; });
   });
   const indiretoMdo = AE.mdo+mdoIndirT+EM.total, indiretoManut = AE.manut+crmExtra+MT.total,
@@ -199,7 +200,7 @@ function calcular(){
   L.forEach(r=>{
     const tot = r.total||0; if(tot<=0) return;
     const em = etapaMes[r.a.etapa];
-    r.meses.forEach((q,i)=>{ em[i] += (r.direto-r.cDiesel)*(num(q)/tot) + r.dieselMes[i]; });
+    r.meses.forEach((q,i)=>{ em[i] += (r.direto-r.cDiesel-r.cMDO)*(num(q)/tot) + r.dieselMes[i] + r.mdoMes[i]; });
   });
   const litrosTotEt = litrosDir + AE.litros;
   Object.entries(etapas).forEach(([e,d])=>{

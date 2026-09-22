@@ -21,7 +21,7 @@ function pessoasCalc(R){
     r.partes.forEach(p=>{
       if(p.terc || !(p.efetivo>0)) return;
       add(r.a.etapa, p.fcod, r.a.nome, p.efetivo,
-          r.meses.map(q=>num(q)>0 ? p.efetivo : 0), r.meses.map(q=>p.cMDO*num(q)/tot));
+          r.meses.map(q=>num(q)>0 ? p.efetivo : 0), (p.mdoMes||[]).slice());
     });
   });
   // reserva do transporte de cana que o efetivo total soma à parte (sem custo de MDO próprio no modelo)
