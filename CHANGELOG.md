@@ -1,5 +1,33 @@
 # Histórico de mudanças
 
+## 2.31.0 — 2026-09-22 · Validação leva direto ao ponto de correção
+
+Na aba **Validação**, cada pendência virou um botão com o nome da aba onde se
+corrige ("Premissas →", "Plano Operacional →"…). O clique:
+
+- abre a aba e, quando ela tem páginas, a página certa;
+- rola até o ponto exato e o destaca por alguns segundos — o campo da
+  premissa, a linha do contrato, a linha da atividade, a linha do benefício;
+- põe o cursor no campo, quando o ponto é um campo.
+
+As pendências aparecem **no topo da lista**, antes das verificações que estão
+OK. O detalhe da pendência também ficou mais útil onde era só um número:
+"Atividade em ha sem tratamento" e "Atividade com mais de 12 equipamentos"
+passam a listar os códigos, e rendimento zerado, utilização fora da faixa e
+salário não preenchido dizem qual atividade ou função.
+
+Exemplos de destino: diesel, horas por dia, disponibilidade, bases físicas →
+campo em Premissas; velocidades e capacidade → aba Transporte; contrato sem
+valor ou sem pagamento → a linha na aba Arrendamentos; atividade sem
+tratamento → o seletor de tratamento dela no Plano Operacional; frota acima de
+12 → a atividade no Dimensionamento; benefício de transporte em dobro → a
+linha do benefício em Mão de Obra; custo sem conta → a linha "Sem conta" do
+Plano de Contas; área própria → o campo em Fornecedores de Cana.
+
+Das 51 verificações, 49 têm destino; as outras duas são informativas e nunca
+ficam pendentes. Quando a linha exata não está na tela (grupo recolhido, por
+exemplo), o destaque cai na tabela onde ela fica.
+
 ## 2.30.0 — 2026-09-22 · Mês de alocação dos materiais de manutenção
 
 Na aba Insumos, a tabela **Materiais de manutenção** ganhou a coluna **Mês de

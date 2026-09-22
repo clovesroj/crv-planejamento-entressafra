@@ -1,3 +1,5 @@
+import { abrirDestino } from '../ui/navegacao.js';
+import { destinoValida } from '../ui/validacao.js';
 import { ETAPAS_ORD, PAG_LIVRE, mesesPag } from '../calculo/arrendamento.js';
 import { AG_SEM_FROTA, FROTA_AG, FROTA_ESP, SEP_MOD, crmDe, espDe } from '../calculo/crm.js';
 import { codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, duplicarTrat, marcarEtapa, mesclarBaseInsumos, removerGrupoInsumo, removerTrat,
@@ -379,6 +381,9 @@ function pintarMeses(){
 }
 
 document.addEventListener("click",e=>{
+  // pendência da Validação: vai direto ao ponto onde se corrige
+  const vi = e.target.closest && e.target.closest("[data-valir]");
+  if(vi){ abrirDestino(destinoValida(vi.dataset.valir)); return; }
   // exportar tabela (CSV/Excel/PDF) — botao generico plantado por
   // reaplicarExportar() (ui/componentes.js) antes de toda <table id>
   const botaoExp = e.target.closest && e.target.closest("[data-exportar]");
