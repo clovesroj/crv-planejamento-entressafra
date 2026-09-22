@@ -39,7 +39,7 @@ function pintarCombustivel(R){
   if(C.litrosIrrig>0)
     tm += linhaTab("Irrigação com motobomba a diesel (L) — custo em Irrigação", C.litrosIrrigMes, v=>fmt(v));
   $("#t_comb_mes").innerHTML = tm + "</tbody>";
-  barras($("#ch_comb"), MESES.map((m,i)=>({l:m, v:litrosMes[i]})), "#B98A3E", "L");
+  barras($("#ch_comb"), MESES.map((m,i)=>({l:m, v:litrosMes[i]})), "#2A57A0", "L");
 
   const et = Object.entries(R.etapas).filter(([,d])=>d.litros>0).sort((a,b)=>b[1].litros-a[1].litros);
   const lEt = et.reduce((s,[,d])=>s+d.litros,0), cEt = et.reduce((s,[,d])=>s+d.diesel,0);

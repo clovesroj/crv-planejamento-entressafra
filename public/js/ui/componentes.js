@@ -360,7 +360,12 @@ function barras(el,dados,cor,un){
 }
 function barrasH(el,dados){
   // paleta do campo: folha, palha, céu, latossolo e tons intermediários
-  const cores=["#2D6A3A","#C9A45C","#3E7CB1","#A5503A","#7E9C6B","#5C6F7B","#8A8F3C","#2F8C83","#B98A3E","#6B8FB5","#9C6B4E","#A3AE9C"];
+  /* Rampa do azul da marca, do escuro ao claro. A barra e ordenada da maior
+     para a menor e cada uma tem o rotulo ao lado: quem identifica a categoria
+     e o texto, nao a cor — entao a cor pode ordenar em vez de distinguir, e o
+     grafico fica na mesma identidade do resto do app. */
+  const cores=["#12315C","#1B3C6E","#22497F","#2A57A0","#3A69B4","#4E7DC4","#6290D0","#77A2DA",
+               "#8DB3E3","#A3C3EB","#B9D2F1","#CFE0F7"];
   const tot=dados.reduce((s,d)=>s+d.v,0)||1, W=760,rh=24,H=dados.length*rh+10,ml=185;
   let s=`<svg viewBox="0 0 ${W} ${H}" class="chart">`;
   dados.forEach((d,i)=>{const y=i*rh+5,w=(W-ml-105)*(d.v/tot);

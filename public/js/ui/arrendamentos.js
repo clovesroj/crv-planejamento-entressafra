@@ -110,7 +110,7 @@ function pintarArrend(R){
     `<tr><td class="tot">TOTAL</td>`+tdMeses(A.mes, v=>brl(v), "num tot")+
     `<td class="num tot">${A.linhas.reduce((s,l)=>s+l.nParc,0)}</td>
      <td class="num tot">${brl(somaSel(A.mes, SEL))}</td></tr></tbody>`;
-  barras($("#ch_arr"), MESES.map((m,i)=>({l:m, v:A.mes[i]})), "#A5503A");
+  barras($("#ch_arr"), MESES.map((m,i)=>({l:m, v:A.mes[i]})), "#2A57A0");
 }
 
 
