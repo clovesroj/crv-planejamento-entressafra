@@ -234,6 +234,115 @@ function habilitarReordenacao(tabelaId, fixas=0){
   });
 }
 
+/* ---------- EXPORTAR TABELA (CSV, Excel, PDF) ----------
+   Generico para qualquer tabela do app pintada por th()+innerHTML — nao pede
+   nada novo em cada tela, so escaneia toda <table id> do documento (mesmo
+   criterio de reaplicarBuscas/habilitarReordenacao) e planta um botao antes
+   dela, uma vez so (ver o guard por id "exp_"+id — o botao nao muda entre
+   renders, so a tabela por baixo dele). Sem biblioteca nenhuma:
+     · CSV é nativo do navegador (Blob + <a download>).
+     · "Excel" é uma tabela HTML baixada com extensão .xls — o Excel abre
+       normal (é um formato que ele reconhece de longa data), sem gerar o
+       binário real de .xlsx.
+     · PDF abre a janela de impressão do próprio navegador, numa aba nova só
+       com a tabela — a pessoa escolhe "Salvar como PDF" no destino.
+   Le sempre o que esta VISIVEL na hora do clique (offsetParent!==null cobre
+   tanto a linha escondida pela busca [hidden] quanto a coluna escondida pelo
+   filtro de período [display:none em .mN]) — exporta o que a tela mostra,
+   não o documento inteiro por baixo. */
+function celulaVisivel(el){ return el.offsetParent !== null; }
+function textoCelula(td){
+  // mesmo criterio de textoDaLinha(): input/select valem pelo valor/opção
+  // marcada, não pelo texto solto — uma célula de tabela editável não tem
+  // texto nenhum fora do controle
+  const campos = [...td.querySelectorAll("input,select")];
+  if(campos.length){
+    return campos.map(el =>
+      el.tagName === "SELECT" ? (el.selectedOptions[0] ? el.selectedOptions[0].textContent : "")
+      : (el.type === "checkbox" ? (el.checked ? "sim" : "não") : el.value)
+    ).filter(v=>v!=="").join(" ");
+  }
+  return td.textContent.replace(/\s+/g," ").trim();
+}
+function linhasParaExportar(tab){
+  const cab = [...tab.querySelectorAll("thead th")].filter(celulaVisivel).map(th=>th.textContent.replace(/\s+/g," ").trim());
+  const linhas = [...tab.querySelectorAll("tbody tr")].filter(celulaVisivel)
+    .map(tr => [...tr.children].filter(celulaVisivel).map(textoCelula));
+  return {cab, linhas};
+}
+function baixarArquivo(nome, conteudo, mime){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([conteudo], {type: mime}));
+  a.download = nome;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+}
+function celulaCSV(v){
+  const s = String(v ?? "");
+  return /[",;\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+}
+// ponto e virgula: e o separador que o Excel em portugues espera sem passar
+// por assistente de importacao (a virgula ali e separador decimal)
+function exportarCSV(tab, nome){
+  const {cab, linhas} = linhasParaExportar(tab);
+  const texto = [cab, ...linhas].map(l=>l.map(celulaCSV).join(";")).join("\r\n");
+  baixarArquivo(nome+".csv", "﻿"+texto, "text/csv;charset=utf-8");
+}
+function exportarExcel(tab, nome){
+  const {cab, linhas} = linhasParaExportar(tab);
+  const html = `<html><head><meta charset="utf-8"></head><body><table border="1">`+
+    `<thead><tr>${cab.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>`+
+    linhas.map(l=>`<tr>${l.map(c=>`<td>${esc(c)}</td>`).join("")}</tr>`).join("")+
+    `</tbody></table></body></html>`;
+  baixarArquivo(nome+".xls", html, "application/vnd.ms-excel;charset=utf-8");
+}
+function exportarPDF(tab, nome){
+  const {cab, linhas} = linhasParaExportar(tab);
+  const jan = window.open("", "_blank");
+  if(!jan){ alert("O navegador bloqueou a janela de impressão. Permita pop-ups para exportar em PDF."); return; }
+  jan.document.write(`<html><head><title>${esc(nome)}</title><meta charset="utf-8"><style>
+    body{font-family:Arial,sans-serif;font-size:11px;color:#222}
+    h1{font-size:15px;margin:0 0 10px}
+    table{border-collapse:collapse;width:100%}
+    th,td{border:1px solid #999;padding:4px 7px;text-align:left}
+    th{background:#eee}
+    @page{size:landscape;margin:12mm}
+  </style></head><body>
+  <h1>${esc(nome)}</h1>
+  <table><thead><tr>${cab.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead>
+  <tbody>${linhas.map(l=>`<tr>${l.map(c=>`<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table>
+  <script>window.onload=function(){window.print();}<\/script>
+  </body></html>`);
+  jan.document.close();
+}
+function exportarTabela(tabelaId, formato, nome){
+  const tab = $(tabelaId);
+  if(!tab) return;
+  const arq = nome || tabelaId.replace(/^#/,"");
+  if(formato==="csv") exportarCSV(tab, arq);
+  else if(formato==="xls") exportarExcel(tab, arq);
+  else if(formato==="pdf") exportarPDF(tab, arq);
+}
+/* Planta o botao de exportar antes de cada <table id>, uma vez so por id —
+   chamado no fim de reaplicarTabelas() (app/ciclo.js), depois que os
+   pintores ja recriaram todas as tabelas do zero. */
+function reaplicarExportar(){
+  document.querySelectorAll("table[id]").forEach(tab=>{
+    if(!tab.querySelector("thead th")) return;         // tabela ainda vazia
+    const barId = "exp_"+tab.id;
+    if(document.getElementById(barId)) return;          // ja montado — botao nao muda entre renders
+    const host = tab.closest(".tblwrap") || tab;
+    if(!host.parentNode) return;
+    const bar = document.createElement("div");
+    bar.id = barId; bar.className = "tbl-export";
+    const alvo = "#"+tab.id;
+    bar.innerHTML = ["csv","xls","pdf"].map(f=>
+      `<button type="button" class="btn xs" data-exportar="${f}" data-alvo="${alvo}"
+         title="Baixar esta tabela em ${f==="csv"?"CSV":f==="xls"?"Excel":"PDF"}">${f.toUpperCase()}</button>`).join("");
+    host.parentNode.insertBefore(bar, host);
+  });
+}
+
 /* ---------- GRÁFICOS ---------- */
 function barras(el,dados,cor,un){
   const W=760,H=210,ml=64,mb=34,mt=12,mr=10;
@@ -262,5 +371,5 @@ function barrasH(el,dados){
 }
 
 
-export { barras, barrasH, filtrarPorNome, habilitarReordenacao, kpi, ligarBuscaSelect, maxSel,
-         reaplicarBuscas, somaSel, tdMeses, th, thMeses };
+export { barras, barrasH, exportarTabela, filtrarPorNome, habilitarReordenacao, kpi, ligarBuscaSelect, maxSel,
+         reaplicarBuscas, reaplicarExportar, somaSel, tdMeses, th, thMeses };

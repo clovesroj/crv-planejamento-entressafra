@@ -36,7 +36,7 @@ import { pintarTransp } from '../ui/transporte.js';
 import { pintarValida } from '../ui/validacao.js';
 import { pintarAcomp } from '../ui/acompanhamento.js';
 import { aplicarPermissoes } from '../ui/permissoes.js';
-import { habilitarReordenacao, reaplicarBuscas } from '../ui/componentes.js';
+import { habilitarReordenacao, reaplicarBuscas, reaplicarExportar } from '../ui/componentes.js';
 
 /* Toda tabela que ganha busca por nome (ui/*.js, via .tbl-busca no index.html)
    tambem ganha coluna arrastavel — mesmo criterio, mesmo lugar. Fora daqui só
@@ -60,6 +60,9 @@ const TABELAS_REORDENAVEIS = [
 function reaplicarTabelas(){
   reaplicarBuscas();
   TABELAS_REORDENAVEIS.forEach(([id,fixas])=>habilitarReordenacao(id,fixas));
+  // botao de exportar (CSV/Excel/PDF): generico, sem lista curada — pega toda
+  // <table id> do documento, mesmo criterio de reaplicarBuscas() acima
+  reaplicarExportar();
 }
 
 /* Recorte do periodo escolhido na barra superior.
