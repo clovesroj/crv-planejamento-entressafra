@@ -178,6 +178,8 @@ function pintarRendMensal(R){
           <b>${fmt(c.qDiaCorrido,1)} ${un}</b> <span class="calc">÷ ${fmt(c.diasCorridos)} dias</span></span>
         <span title="${fmt(c.qDia,1)} ${un}/dia ÷ ${fmt(c.n)} equipamento(s)">Por equip./dia
           <b>${fmt(c.qDiaEquip,1)} ${un}</b></span>
+        <span title="${fmt(c.n)} equipamento(s) × operadores × turnos × fator de escala. Muda junto com a frota do mês.">Pessoas
+          <b>${fmt(c.pessoas)}</b></span>
         <span title="${fmt(c.q)} ${un} ÷ ${fmt(c.rend,2)} ${un}/h">Horas <b>${fmt(c.horas)} h</b></span>
       </div>`}
       <div class="rm-campos">

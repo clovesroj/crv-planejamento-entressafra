@@ -190,6 +190,19 @@ function diasDoMes(i, jan){
    reuniao teria duas metas para o mesmo mes. */
 function criterioMensal(r){
   const hDia = num(P.hdia);
+  /* Pessoas do mes: a mesma conta do efetivo da atividade
+     (frota x operadores x turnos x fator de escala), so que sobre a frota
+     daquele mes. Quem muda a frota de dezembro precisa ver quanta gente
+     dezembro passa a pedir -- frota sem efetivo e meia resposta.
+     Com mix de modos nao ha uma frente so para ler operadores e turnos: ali o
+     efetivo do mes e o da atividade na proporcao da frota. */
+  const p0 = r.partes && r.partes.length === 1 ? r.partes[0] : null;
+  const fator = num(r.fator) || 1;
+  const pessoasDe = n => {
+    if(!(n > 0)) return 0;
+    if(p0) return Math.ceil(n * num(p0.ops) * (num(p0.turnosEf) || 1) * fator);
+    return r.frotaR > 0 ? Math.ceil(num(r.efetivo) * n / r.frotaR) : 0;
+  };
   const nPad = r.frotaR || 0;
   // mix de modos e transporte nao tem rendimento de premissa unico -- ali a
   // media do periodo e o unico numero que representa a atividade
@@ -223,6 +236,7 @@ function criterioMensal(r){
       dias: diasMes, diasCorridos: D.corridos, parcial: D.parcial, diasCheios: D.cheio,
       qDia: diasMes > 0 ? q/diasMes : 0,
       qDiaCorrido: D.corridos > 0 ? q/D.corridos : 0,
+      pessoas: pessoasDe(n),
       qDiaEquip: n > 0 && diasMes > 0 ? q/n/diasMes : 0,
       hDiaEquip: n > 0 && diasMes > 0 ? horas/n/diasMes : 0,
       hDispEquip, cap,

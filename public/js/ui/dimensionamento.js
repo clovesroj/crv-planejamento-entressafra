@@ -20,10 +20,14 @@ function pintarDim(R){
     kpi("Horas-máquina","",fmt(R.horasT),"","frota:horas") +
     kpi("Frota operacional","t",fmt(R.frotaT)+" un","","frota:oper") +
     kpi("Frota de apoio","g",fmt(Math.ceil(R.AP.total))+" un","","frota:apoiofixo") +
-    kpi("Transbordos","a",fmt(R.TR.frota)+" un","","frota:transbordo");
+    kpi("Transbordos","a",fmt(R.TR.frota)+" un","","frota:transbordo") +
+    // o bloco tinha hora e frota, mas nenhum cartao de gente: o efetivo das
+    // atividades so aparecia coluna a coluna, sem o total na frente
+    kpi("Efetivo das atividades","g",fmt(R.L.reduce((s,r)=>s+r.efetivo,0))+" pessoas",
+        "operadores das frentes · apoio e indiretos ficam em Pessoas","pessoas:total");
 
   $("#t_dim").innerHTML = th([["Cod"],["Atividade / frente"],["Modo"],["Área/Volume",1],["Rend. (un/h)",1],["Utiliz.",1],
-    ["Horas",1],["Frota",1],["Efetivo",1],["Função"],["Máquina"],["Implemento"]])+"<tbody>"+
+    ["Horas",1],["Frota",1],["Efetivo (pessoas)",1],["Função"],["Máquina"],["Implemento"]])+"<tbody>"+
     // a coluna Frota aceita edicao: preenchida, inverte o dimensionamento
     R.L.map(r=>{
       const multi = r.partes.length>1;
