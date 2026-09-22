@@ -608,8 +608,11 @@ function rastroNatureza(R, nat){
 /* ---------- mês ---------- */
 function rastroMes(R, i){
   const idx = +i;
-  const itens = R.L.map(r=>({r, v:(r.direto-r.cDiesel)*(r.total>0?num(r.meses[idx])/r.total:0)+r.dieselMes[idx]}))
+  // mesmo critério do motor: MDO pela equipe do mês, diesel pelo litro do mês, o resto pelo volume
+  const itens = R.L.map(r=>({r, v:(r.direto-r.cDiesel-r.cMDO)*(r.total>0?num(r.meses[idx])/r.total:0)
+      + r.dieselMes[idx] + ((r.mdoMes||[])[idx]||0)}))
     .filter(x=>x.v>0).sort((a,b)=>b.v-a.v);
+  const matMes = (R.MT.linhas||[]).filter(l=>l.mes===idx && l.total>0);
   return {titulo:MESES[idx], subtitulo:"Custo do mês", valor:brl(R.meses[idx]),
     blocos:[
       {titulo:"Grandes contas do mês", linhas:Object.entries(R.mesesCat)
@@ -618,7 +621,9 @@ function rastroMes(R, i){
         ? itens.map(x=>({rot:`${x.r.a.cod} · ${x.r.a.nome}`, val:brl(x.v), ir:"ativ:"+x.r.a.cod,
             sub:`${fmt(num(x.r.meses[idx]))} ${x.r.a.un.split("/")[0]} no mês`}))
         : [{rot:"Nenhuma atividade lançada neste mês", val:"—"}]},
-    ],
+    ].concat(matMes.length || (R.MT.mes && R.MT.mes[idx]>0.5) ? [{titulo:"Materiais de manutenção no mês", linhas:
+        matMes.map(l=>({rot:l.cat+" · "+l.item, val:brl(l.total), sub:"alocado neste mês"}))
+        .concat(R.MT.distribuido>0.5 ? [{rot:"Materiais sem mês, pela área operada", val:brl(R.MT.mes[idx]-matMes.reduce((s,l)=>s+l.total,0))}] : [])}] : []),
     premissas:premissasGerais(), voltar:"total"};
 }
 

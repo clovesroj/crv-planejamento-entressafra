@@ -265,7 +265,10 @@ function pintarInsumos(R){
     "</tbody>";
 
   // --- 4. materiais ---
-  $("#t_mat").innerHTML = th([["Categoria"],["Item"],["Un."],["Preço",1],["Qtd",1],["Total",1],[""]])+"<tbody>"+
+  // mês de alocação do recurso: sem mês, o valor se distribui pela área operada
+  const opcMes = sel => `<option value=""${sel==null?" selected":""}>Distribuído no ano</option>`+
+    MESES.map((m,j)=>`<option value="${j}"${sel===j?" selected":""}>${m}</option>`).join("");
+  $("#t_mat").innerHTML = th([["Categoria"],["Item"],["Un."],["Preço",1],["Qtd",1],["Total",1],["Mês de alocação"],[""]])+"<tbody>"+
     R.MT.linhas.map((m,i)=>`<tr>
       <td><input data-mt="${i}" data-f="cat" value="${esc(m.cat)}" style="text-align:left;min-width:130px"></td>
       <td><input data-mt="${i}" data-f="item" value="${esc(m.item)}" style="text-align:left;min-width:190px"></td>
@@ -273,8 +276,14 @@ function pintarInsumos(R){
       <td class="num"><input data-mt="${i}" data-f="preco" value="${m.preco}" inputmode="decimal"></td>
       <td class="num"><input data-mt="${i}" data-f="qtd" value="${m.qtd}" inputmode="decimal"></td>
       <td class="num tot">${brl(m.total)}</td>
+      <td><select data-mt="${i}" data-f="mes" style="min-width:150px"
+            title="Mês em que o recurso financeiro é alocado">${opcMes(m.mes)}</select></td>
       <td><button class="btn d" data-mtrm="${i}">Remover</button></td></tr>`).join("")+
-    `<tr><td class="tot" colspan="5">TOTAL</td><td class="num tot">${brl(R.MT.total)}</td><td></td></tr></tbody>`;
+    `<tr><td class="tot" colspan="5">TOTAL</td><td class="num tot">${brl(R.MT.total)}</td>
+      <td class="calc">${R.MT.distribuido>0.5 ? brl(R.MT.distribuido)+" distribuído" : "todo com mês"}</td><td></td></tr>`+
+    // alocação mês a mês, para conferir onde o recurso cai
+    `<tr class="sub"><td colspan="8"><div class="hint" style="margin:0">Alocação por mês: ${
+      MESES.map((m,j)=>R.MT.mes && R.MT.mes[j]>0.5 ? `<b>${m}</b> ${brl(R.MT.mes[j])}` : "").filter(Boolean).join(" · ") || "—"}</div></td></tr></tbody>`;
 }
 
 /* Atividade e período do tratamento selecionado (aba Insumos, painel 2).
