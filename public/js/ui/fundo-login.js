@@ -9,14 +9,14 @@
  * elástico) — sem dependência nova, mesmo padrão do resto do app.
  *
  * Cores na paleta do app: ponto em repouso no verde escuro do gradiente do
- * .hero, esquentando para o dourado (#D6B46E) perto do cursor — o mesmo tom
+ * .hero, clareando para o azul claro (#6FA0D8) perto do cursor — o mesmo tom
  * já usado no marcador do menu e no eyebrow da Capa.
  */
 const DOT = 3.4, GAP = 25;
 const PROXIMIDADE = 130, RAIO_CHOQUE = 210, FORCA_CHOQUE = 480;
 const RIGIDEZ = 170, AMORT = 15;          // spring: aceleração = -RIGIDEZ*offset - AMORT*vel
-const BASE = { r: 45, g: 90, b: 58 };     // ~ #2D5A3A, verde do gradiente do hero
-const ATIVO = { r: 214, g: 180, b: 110 }; // #D6B46E, dourado da marca
+const BASE = { r: 42, g: 87, b: 160 };    // #2A57A0, azul da logo no gradiente do hero
+const ATIVO = { r: 111, g: 160, b: 216 }; // #6FA0D8, azul claro do menu
 
 let canvas = null, ctx = null, wrapper = null, pontos = [], raf = null, ro = null;
 let ultimoT = 0, ponteiro = { x: -9999, y: -9999 };

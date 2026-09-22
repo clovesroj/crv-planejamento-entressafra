@@ -1,9 +1,9 @@
 import { CFG } from '../dados/cfg.js';
-import { APOIO, APOIO_FIXO, ARREND, ARR_PAR, ARR_RAT, ATVX, ATVX_V, BEN, CRM, DIESEL_MES, DIM, EDITADO, ENC, ESPOR, FAM_NOME, FAM_CLASSE, FORN, FORN_PAR, FROTA, CRM_ESP, MAQ, FROTA_UN, REAL, GRAT, GRUPOS_INS, INSUMO, INSX, INSX_V, MATX, NIV, P, PLANO, QUADRO, ADM, ADM_RAT, TERC_TAR, TERC_SUB, TPESS, TRATC, TRAT_DEL, TRAT_ETAPA, TRAT_NOME, TRAT_OBS } from '../nucleo/estado.js';
+import { APOIO, APOIO_FIXO, ARREND, ARR_PAR, ARR_RAT, ATVX, ATVX_V, BEN, CRM, DIESEL_MES, DIM, EDITADO, ENC, ESPOR, FAM_NOME, FAM_CLASSE, FORN, FORN_PAR, FROTA, CRM_ESP, MAQ, FROTA_UN, REAL, GRAT, GRUPOS_INS, INSUMO, INSX, INSX_V, MATX, NIV, P, PLANO, QUADRO, ADM, ADM_RAT, TERC_TAR, TERC_SUB, TPESS, TRATC, TRAT_ATIVO, TRAT_DEL, TRAT_ETAPA, TRAT_NOME, TRAT_OBS } from '../nucleo/estado.js';
 import { setAPOIO, setAPOIO_FIXO, setARREND, setARR_PAR, setARR_RAT, setATVX, setATVX_V, setBEN, setCRM,
          setDIESEL_MES, setDIM, setEDITADO, setFAM_NOME, setFAM_CLASSE, setFORN, setFORN_PAR, setENC, setESPOR, setFROTA, setCRM_ESP, setMAQ, setFROTA_UN, setREAL, setGRAT, setGRUPOS_INS, setINSUMO,
          setINSX, setMATX, setNIV, setP, setPLANO, setQUADRO, setADM, setADM_RAT, setTERC_TAR, setTERC_SUB, setTPESS, setTRATC,
-         setTRAT_DEL, setTRAT_ETAPA, setTRAT_NOME, setTRAT_OBS, setINSX_V } from '../nucleo/estado.js';
+         setTRAT_ATIVO, setTRAT_DEL, setTRAT_ETAPA, setTRAT_NOME, setTRAT_OBS, setINSX_V } from '../nucleo/estado.js';
 import { mesclarBaseInsumos } from '../calculo/insumos.js';
 import { mesclarBaseAtividades } from '../calculo/atividade.js';
 import { $, num } from '../nucleo/formato.js';
@@ -16,7 +16,7 @@ import { PADRAO } from '../dados/padroes.js';
 let REMOTO = null, saveTimer = null;
 /* ---------- persistência ---------- */
 function estado(){
-  const s = {P,PLANO,DIM,INSUMO,ESPOR,TRATC,TRAT_NOME,TRAT_OBS,TRAT_ETAPA,TRAT_DEL,DIESEL_MES,ARREND,ARR_PAR,ARR_RAT,FORN,FORN_PAR,ENC,BEN,NIV,GRAT,APOIO,APOIO_FIXO,
+  const s = {P,PLANO,DIM,INSUMO,ESPOR,TRATC,TRAT_NOME,TRAT_OBS,TRAT_ETAPA,TRAT_DEL,TRAT_ATIVO,DIESEL_MES,ARREND,ARR_PAR,ARR_RAT,FORN,FORN_PAR,ENC,BEN,NIV,GRAT,APOIO,APOIO_FIXO,
              TERC_TAR,TERC_SUB,CRM,CRM_ESP,MAQ,FROTA_UN,REAL,MATX,INSX,INSX_V,ATVX,ATVX_V,FROTA,TPESS,QUADRO,ADM,ADM_RAT,GRUPOS_INS,FAM_NOME,FAM_CLASSE,FUN:CFG.funcoes.map(f=>f.sal),v:10};
   // Campos que esta sessão nunca tocou ficam nulos ou vazios em memória. Enviá-los
   // apagava no servidor o que outra sessão já tinha preenchido — por isso são omitidos.
@@ -143,6 +143,7 @@ function aplicar(d){
   if(d.TRAT_OBS) setTRAT_OBS(d.TRAT_OBS);
   if(d.TRAT_ETAPA) setTRAT_ETAPA(d.TRAT_ETAPA);
   if(d.TRAT_DEL) setTRAT_DEL(d.TRAT_DEL);
+  if(d.TRAT_ATIVO) setTRAT_ATIVO(d.TRAT_ATIVO);
   if(d.DIESEL_MES) setDIESEL_MES(d.DIESEL_MES);
   if(d.ARREND) setARREND(d.ARREND);
   if(d.ARR_PAR) setARR_PAR(d.ARR_PAR);

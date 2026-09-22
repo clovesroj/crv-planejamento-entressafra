@@ -56,7 +56,11 @@ input.bad{border-color:var(--bad);background:var(--bad-bg)}
 .kpi .l{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:600;text-transform:uppercase;
   letter-spacing:.8px;color:var(--grey)}
 .kpi .l::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--leaf);flex:none}
-.kpi.t .l::before{background:var(--sky)}
+/* "t" e decorativo como o padrao, e vai no azul escuro — com o acento ja azul,
+   var(--sky) repetiria a cor do padrao. Ja g/a/r continuam sendo status ("em
+   dia", "atencao", "critico"): a aba de Acompanhamento escolhe entre eles pelo
+   numero, e em azul o cartao perderia o aviso que existe para dar. */
+.kpi.t .l::before{background:var(--leaf-strong)}
 .kpi.g .l::before{background:var(--ok)}
 .kpi.a .l::before{background:var(--straw)}
 .kpi.r .l::before{background:var(--bad)}
@@ -212,6 +216,12 @@ th small{display:block;font-size:9.5px;font-weight:500;letter-spacing:.3px;opaci
 .btn.d{color:var(--bad);background:transparent;border-color:transparent}
 .btn.d:hover{background:var(--bad-bg);border-color:var(--bad-bg)}
 td .btn{height:28px;padding:0 10px;font-size:12px}
+.btn.xs{height:24px;padding:0 9px;font-size:10.5px;font-weight:700;letter-spacing:.02em}
+
+/* ---------- exportar tabela (CSV/Excel/PDF) ----------
+   Barra plantada por reaplicarExportar() (ui/componentes.js) antes de toda
+   <table id> do app — sem marcação nova em cada tela. */
+.tbl-export{display:flex;justify-content:flex-end;gap:6px;margin-bottom:6px}
 
 /* ---------- miscelânea ---------- */
 .chart{width:100%;height:auto;display:block}
@@ -253,42 +263,42 @@ footer{display:flex;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;co
 
 /* ---------- capa ---------- */
 .hero{position:relative;overflow:hidden;border-radius:var(--r);padding:26px 28px;display:flex;align-items:center;
-  gap:22px;flex-wrap:wrap;color:#EEF3EA;background:linear-gradient(115deg,#132117 0%,#1F3A26 58%,#2D5A33 100%);
+  gap:22px;flex-wrap:wrap;color:#E9EFF8;background:linear-gradient(115deg,#0F2035 0%,#1B3C6E 58%,#2A57A0 100%);
   --glow-x:50%;--glow-y:50%;--glow-o:0;transition:--glow-o .5s ease}
 /* brilho que segue o cursor — só spotlight, sem tilt (banner, não é card) */
 .hero::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
   background:radial-gradient(480px circle at var(--glow-x) var(--glow-y),
-    rgba(214,180,110,.22) 0%, rgba(111,174,110,.10) 40%, transparent 70%);
+    rgba(111,160,216,.26) 0%, rgba(42,87,160,.12) 40%, transparent 70%);
   opacity:var(--glow-o)}
 /* linhas de plantio vistas do alto, esmaecendo para a esquerda */
 .hero::after{content:"";position:absolute;inset:0 0 0 42%;pointer-events:none;
-  background:repeating-linear-gradient(-62deg,rgba(214,180,110,.17) 0 2px,transparent 2px 13px);
+  background:repeating-linear-gradient(-62deg,rgba(111,160,216,.16) 0 2px,transparent 2px 13px);
   -webkit-mask-image:linear-gradient(90deg,transparent,#000 65%);mask-image:linear-gradient(90deg,transparent,#000 65%)}
 .hero img,.hero .ht{position:relative;z-index:1}
 .hero img{height:52px;width:auto;background:#fff;padding:8px 13px;border-radius:7px;position:relative;z-index:1}
 .hero img[data-variante="branco"]{height:58px;background:none;padding:0;border-radius:0}
 .hero .ht{position:relative;z-index:1;min-width:0}
-.hero .eyebrow{font-size:11.5px;text-transform:uppercase;letter-spacing:1.4px;color:#D6B46E;font-weight:600;margin-bottom:3px}
+.hero .eyebrow{font-size:11.5px;text-transform:uppercase;letter-spacing:1.4px;color:var(--side-on-light);font-weight:600;margin-bottom:3px}
 .hero h1{font-family:var(--f-display);font-size:36px;font-weight:600;line-height:1.05;margin:0 0 6px;letter-spacing:-.3px;
   color:#fff;text-wrap:balance}
-.hero p{margin:0;color:#B7C7B3;font-size:13.5px}
+.hero p{margin:0;color:#B0C2DA;font-size:13.5px}
 
 /* ---------- login ---------- */
 /* mesmo gradiente do .hero — é a mesma identidade, tela de entrada */
 .tela-login{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(115deg,#132117 0%,#1F3A26 58%,#2D5A33 100%);overflow:hidden}
+  background:linear-gradient(115deg,#0F2035 0%,#1B3C6E 58%,#2A57A0 100%);overflow:hidden}
 /* especificidade de .tela-login empataria com [hidden] do navegador, e regra
    de autor vence a do UA — sem isto, hidden=true não escondia a tela */
 .tela-login[hidden]{display:none}
 .tela-login canvas{position:absolute;inset:0;width:100%;height:100%}
 .login-card{position:relative;z-index:1;width:100%;max-width:360px;margin:0 18px;padding:30px 28px 26px;
-  border-radius:var(--r);background:rgba(19,33,23,.72);border:1px solid rgba(255,255,255,.1);
+  border-radius:var(--r);background:rgba(15,32,53,.74);border:1px solid rgba(255,255,255,.1);
   box-shadow:0 24px 60px -12px rgba(0,0,0,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 .login-card img{height:40px;width:auto;background:#fff;padding:7px 11px;border-radius:7px;margin-bottom:16px}
 .login-card img[data-variante="branco"]{height:44px;background:none;padding:0;border-radius:0}
-.login-card .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:1.3px;color:#D6B46E;font-weight:600;margin-bottom:4px}
+.login-card .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:1.3px;color:var(--side-on-light);font-weight:600;margin-bottom:4px}
 .login-card h1{font-family:var(--f-display);font-size:24px;font-weight:600;line-height:1.15;margin:0 0 20px;color:#fff}
-.login-card label{color:#B7C7B3;margin-top:12px}
+.login-card label{color:#B0C2DA;margin-top:12px}
 .login-card label:first-of-type{margin-top:0}
 .login-card input{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.16);color:#fff}
 .login-card input:focus{background:rgba(255,255,255,.1)}
@@ -304,7 +314,7 @@ footer{display:flex;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;co
 #t_plano td.mes-entressafra{background:color-mix(in srgb,var(--straw-soft) 55%,var(--card))}
 #t_plano tbody tr:hover td.mes-safra{background:var(--leaf-soft)}
 #t_plano tbody tr:hover td.mes-entressafra{background:var(--straw-soft)}
-#t_plano td.mes-safra input{border-color:#B9CDB6}
+#t_plano td.mes-safra input{border-color:#AEC2DF}
 #t_plano td.mes-entressafra input{border-color:var(--edit-line)}
 /* o filtro apenas esconde as colunas do outro período */
 /* O filtro de periodo da barra superior esconde as colunas dos meses de fora.

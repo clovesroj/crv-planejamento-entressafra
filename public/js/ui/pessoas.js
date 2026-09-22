@@ -76,7 +76,7 @@ function pintarPessoas(R){
     `<td class="num tot">${brl(somaSel(S.custoMes, SEL))}</td></tr>`+
     `<tr><td class="calc">Acumulado</td>`+tdMeses(acum, v=>v==null?"—":brl(v))+`<td></td></tr>`+
     `<tr><td class="calc">Pessoas no mês</td>`+tdMeses(S.qtdMes, v=>fmt(v))+`<td></td></tr></tbody>`;
-  barras($("#ch_pes"), MESES.map((m,i)=>({l:m, v:S.custoMes[i]})), "#3E7CB1");
+  barras($("#ch_pes"), MESES.map((m,i)=>({l:m, v:S.custoMes[i]})), "#2A57A0");
 
   const det = [...S.itens].sort((a,b)=>deptIdx(a.dept)-deptIdx(b.dept) || b.qtd-a.qtd);
   $("#t_pes_det").innerHTML = th([["Departamento"],["Origem"],["Função"],["Efetivo",1],["Meses mobilizado",1],["Custo MDO",1]])+"<tbody>"+

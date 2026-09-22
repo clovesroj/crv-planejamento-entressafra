@@ -1,6 +1,6 @@
 import { composicao, doseBase, etapasNoPlano, familiaDe, freteEfetivo, insumosPorFamilia, precoInsumo, todasFamilias, tratCodigos, tratEtapas, tratListaTodos, usosTrat } from '../calculo/insumos.js';
 import { TRAT_ETAPAS } from '../dados/insumos.js';
-import { ATIV_TRAT_SEL, DIM, INSUMO, INS_EDIT, INS_FICHA, P, PLANO, TRATC, TRAT_NOME, TRAT_OBS, TRAT_SEL, atividadesLista, insLista } from '../nucleo/estado.js';
+import { ATIV_TRAT_SEL, DIM, INSUMO, INS_EDIT, INS_FICHA, P, PLANO, TRATC, TRAT_ATIVO, TRAT_NOME, TRAT_OBS, TRAT_SEL, atividadesLista, insLista } from '../nucleo/estado.js';
 import { $, brl, esc, fmt, num, urlWeb } from '../nucleo/formato.js';
 import { unidadesDaFamilia } from '../nucleo/unidades.js';
 import { kpi, ligarBuscaSelect, th } from './componentes.js';
@@ -61,7 +61,10 @@ function buscaExigeRedesenho(alvo, valor){
 // "Adicionar produto": os 159+ produtos do cadastro num select nativo eram uma
 // lista sem busca pra rolar inteira -- vira combobox pesquisável, ligado uma
 // vez só (os elementos são fixos no HTML, só o conteúdo da lista muda a cada tecla).
-const buscaProd = ligarBuscaSelect("#busca_prod", "#lista_prod", "#sel_prod", insLista,
+// produto inativo some daqui (adicionar linha NOVA na composição) — continua
+// valendo normalmente onde já estiver lançado, então nada além da busca muda
+const buscaProd = ligarBuscaSelect("#busca_prod", "#lista_prod", "#sel_prod",
+  () => insLista().filter(i => i.ativo!==false),
   i => i.prod + (i.pa ? " — " + i.pa : ""), i => i.prod);
 // "Tratamento" e persistente (mostra qual esta selecionado, nao some depois de
 // um clique) -- por isso usa definir(), sincronizado a cada render, em vez de limpar().
@@ -71,7 +74,11 @@ const buscaTrat = ligarBuscaSelect("#busca_trat", "#lista_trat", "#sel_trat", tr
 // atividades num select nativo tambem pedia rolar tudo pra achar uma. Rotulo
 // recalcula usosTrat(TRAT_SEL) a cada tecla (nao guarda a lista, ela muda de
 // tratamento pra tratamento) pra marcar "(vinculada)" sempre certo.
-const buscaTratAtiv = ligarBuscaSelect("#busca_trat_ativ", "#lista_trat_ativ", "#sel_trat_ativ", atividadesLista,
+// atividade inativa some daqui (vincular a um tratamento NOVO) — exceto a que já
+// usa o tratamento selecionado, senão a caixa ficaria em branco pra um vínculo
+// que já existe e ficou inativo depois
+const buscaTratAtiv = ligarBuscaSelect("#busca_trat_ativ", "#lista_trat_ativ", "#sel_trat_ativ",
+  () => atividadesLista().filter(a => a.ativo!==false || usosTrat(TRAT_SEL).includes(a.cod)),
   a => `${a.cod} — ${a.nome}${usosTrat(TRAT_SEL).includes(a.cod) ? " (vinculada)" : ""}`, a => a.cod);
 
 function pintarInsumos(R){
@@ -101,18 +108,18 @@ function pintarInsumos(R){
   // classificacao tecnica fica na ficha, que abre por linha
   // colgroup fixa a largura de cada coluna: com table-layout:fixed, recolher um
   // grupo deixa de mexer na largura das outras (ver componentes.css)
-  const COLS = [90,190,190,70,110,140,150,90,85,85,100,90,115,80,130,75,80,90];
+  const COLS = [90,190,190,70,110,140,150,90,85,85,100,90,115,80,60,130,75,80,90];
   $("#t_ins").innerHTML =
     `<colgroup>${COLS.map(w=>`<col style="width:${w}px">`).join("")}</colgroup>` +
     th([["Código"],["Nome comercial"],["Princípio ativo"],["Un."],
     ["Concentração"],["Classe agronômica"],["Grupo"],["Volume dem.",1],["Estoque",1],["Preço base",1],
-    ["Preço corrigido",1],["Necessidade",1],["Custo de aquisição",1],["Usado em"],["Bula"],[""],[""],[""]])+"<tbody>"+
+    ["Preço corrigido",1],["Necessidade",1],["Custo de aquisição",1],["Usado em"],["Ativo",1],["Bula"],[""],[""],[""]])+"<tbody>"+
     // quebra por família e, dentro dela, ordem alfabética de princípio ativo.
     // O `ix` que vai na linha é a posição original em insLista() — é por ele que
     // a edição acha o produto, então reordenar a tela não pode reordenar o índice.
     todasFams.filter(fam => !FAM_SEL || fam.id === FAM_SEL).map(fam=>
       `<tr class="stage" data-fam="${fam.id}" role="button" tabindex="0"
-           title="Clique para ${dobrada(fam.id)?"abrir":"recolher"} este grupo"><td colspan="18">
+           title="Clique para ${dobrada(fam.id)?"abrir":"recolher"} este grupo"><td colspan="19">
         <span style="display:inline-block;width:14px">${dobrada(fam.id)?"▸":"▾"}</span>${fam.nome}
         <span style="font-weight:400;opacity:.75"> · ${fam.itens.length} produto${
           fam.itens.length>1?"s":""}${dobrada(fam.id)?" · recolhido":""}</span></td></tr>` +
@@ -157,6 +164,9 @@ function pintarInsumos(R){
         <td class="num calc">${brl(corr,2)}</td><td class="num calc">${fmt(nec,1)}</td>
         <td class="num ${preco>0?"tot":"calc"}">${preco>0?brl(nec*corr):'<span class="badge b-warn">sem preço</span>'}</td>
         <td class="num calc">${usos?usos+" trat.":"—"}</td>
+        <td class="num">${editando?`<span class="calc">${i.ativo===false?"não":"sim"}</span>`
+          :`<input type="checkbox" data-inativo="${ix}" ${i.ativo===false?"":"checked"}
+             title="Inativo some das buscas para adicionar numa composição nova, mas continua valendo onde já está lançado">`}</td>
         <td>${urlWeb(i.bula_url)
           ? `<a href="${esc(urlWeb(i.bula_url))}" target="_blank" rel="noopener">Ver bula</a>
              <button class="btn" data-agrobusca="${ix}" title="Buscar de novo na Agrofit">↻</button>`
@@ -244,7 +254,7 @@ function pintarInsumos(R){
 
   // --- 3. cadastro dos tratamentos: código, nome e etapa de uso ---
   $("#t_trat").innerHTML = th([["Cod_Trat"],["Nome"],["Observação"],["Etapas em que é usado"],["Produtos",1],
-    ["Custo/ha",1],["Composição"],["Atividades que usam"],["Custo no plano",1],[""]])+"<tbody>"+
+    ["Custo/ha",1],["Composição"],["Atividades que usam"],["Custo no plano",1],["Ativo",1],[""]])+"<tbody>"+
     TL.map(t=>{
       const usos = R.L.filter(r=>r.trat===t.cod);
       const areaT = usos.reduce((s,u)=>s+u.total,0);
@@ -260,6 +270,8 @@ function pintarInsumos(R){
         <td>${TRATC[t.cod]?'<span class="badge b-warn">ajustado</span>':'<span class="badge b-ok">original</span>'}</td>
         <td class="calc">${usos.length?usos.map(u=>u.a.cod).join(", "):"—"}</td>
         <td class="num ${areaT?"tot":"calc"}">${areaT?brl(areaT*t.custo_ha):"—"}</td>
+        <td class="num"><input type="checkbox" data-tra="${esc(t.cod)}" ${TRAT_ATIVO[t.cod]===false?"":"checked"}
+            title="Inativo some das buscas para vincular a uma atividade NOVA ou como tratamento extra, mas continua valendo onde já está lançado"></td>
         <td><button class="btn" data-trdup="${esc(t.cod)}" title="Criar uma cópia deste tratamento para ajustar">Duplicar</button>
             <button class="btn d" data-trrm="${esc(t.cod)}">Remover</button></td></tr>`;}).join("")+
     "</tbody>";
@@ -378,7 +390,7 @@ function pintarTratExtras(cod, p, linha){
   $("#t_trat_extras").innerHTML = h + "</tbody>";
 
   const usados = new Set([p.trat, ...extras.map(e=>e.trat)].filter(Boolean));
-  const disponiveis = tratListaTodos().filter(t=>!usados.has(t.cod));
+  const disponiveis = tratListaTodos().filter(t=>!usados.has(t.cod) && TRAT_ATIVO[t.cod]!==false);
   const selExtra = $("#sel_trat_extra");
   if(selExtra) selExtra.innerHTML = disponiveis.length
     ? disponiveis.map(t=>`<option value="${esc(t.cod)}">${rotulo(t.cod)}</option>`).join("")
@@ -487,6 +499,8 @@ function pintarEditIns(){
         </select>`)}
         ${campo("Estoque", `<input data-ie="${esc(i.prod)}" value="${est}" inputmode="decimal">`)}
         ${campo("Preço base", `<input data-ip="${esc(i.prod)}" value="${preco}" inputmode="decimal">`)}
+        ${campo("Ativo", `<input type="checkbox" data-inativo="${ix}" ${i.ativo===false?"":"checked"}
+          title="Inativo some das buscas para adicionar numa composição nova, mas continua valendo onde já está lançado">`)}
       </div>
     </div>
     </div>`;

@@ -7,11 +7,11 @@ import { CFG } from '../dados/cfg.js';
 import { buscarAgrofit, bulaDoProduto } from '../io/agrofit.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
-import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TERC_SUB, TERC_DET, setTERC_DET, TPESS, TRATC, TRAT_NOME, TRAT_OBS, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, atividadesLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE, setREF_BUSCA, setREF_AG, setREF_FAM, setREF_FROTA, setREF_PROP,
+import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TERC_SUB, TERC_DET, setTERC_DET, TPESS, TRATC, TRAT_ATIVO, TRAT_NOME, TRAT_OBS, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, atividadesLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE, setREF_BUSCA, setREF_AG, setREF_FAM, setREF_FROTA, setREF_PROP,
   setGR_INICIO, setGR_FIM, setGR_EMPRESA, setGR_ESP, setGR_AG, setGR_COMP, setGR_FROTA, setGR_PROP, setGR_REFORMA } from '../nucleo/estado.js';
 import { AGROFIT_BUSCA, FITO_ABERTO, PLANO_ABERTO, FROTA_ABERTO, FROTA_UN, INS_EDIT, INS_FICHA, MAQ, setAGROFIT_BUSCA, setFROTA_DEST, setFROTA_ORIG, setINS_EDIT, setINS_FICHA } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
-import { filtrarPorNome } from '../ui/componentes.js';
+import { exportarTabela, filtrarPorNome } from '../ui/componentes.js';
 import { alternarFam, aplicarFamIns, buscaExigeRedesenho, recolherTodas, todasRecolhidas } from '../ui/insumos.js';
 import { lerPremissas } from '../ui/premissas.js';
 import { leve, render, renderAgrofit, renderEditIns, renderFichaIns, renderRastro, renderRendMensal, renderTercDet } from './ciclo.js';
@@ -233,6 +233,18 @@ document.addEventListener("change",e=>{
   // controle na tela não dava pra ligar depois
   if(t.dataset.atmodo!==undefined){ atividadesLista()[+t.dataset.atmodo].modoOn = t.checked;
     salvar(true); render(); return; }
+  // ativa/inativa a atividade — some das buscas de vinculo novo (ver
+  // buscaTratAtiv em ui/insumos.js), sem mexer no que ja esta lancado
+  if(t.dataset.atativo!==undefined){ atividadesLista()[+t.dataset.atativo].ativo = t.checked;
+    salvar(true); render(); return; }
+  // ativa/inativa o produto — some da busca de adicionar numa composicao NOVA
+  // (ver buscaProd em ui/insumos.js), sem mexer no que ja esta lancado
+  if(t.dataset.inativo!==undefined){ insLista()[+t.dataset.inativo].ativo = t.checked;
+    salvar(true); render(); return; }
+  // ativa/inativa o tratamento — some das buscas de vincular a uma atividade
+  // nova ou como extra (ver sel_trat_extra e o select do Plano Operacional)
+  if(t.dataset.tra!==undefined){ TRAT_ATIVO[t.dataset.tra] = t.checked;
+    salvar(true); render(); return; }
   if(t.dataset.grpclasse!==undefined){
     const r = setClasseGrupo(t.dataset.grpclasse, t.value);
     if(!r.ok){ alert(r.erro); render(); return; }
@@ -385,6 +397,10 @@ function pintarMeses(){
 }
 
 document.addEventListener("click",e=>{
+  // exportar tabela (CSV/Excel/PDF) — botao generico plantado por
+  // reaplicarExportar() (ui/componentes.js) antes de toda <table id>
+  const botaoExp = e.target.closest && e.target.closest("[data-exportar]");
+  if(botaoExp){ exportarTabela(botaoExp.dataset.alvo, botaoExp.dataset.exportar); return; }
   // dobra de grupo no cadastro de insumos. A faixa inteira e o alvo: e o titulo
   // do bloco, entao clicar nela para recolher e o gesto esperado.
   const faixa = e.target.closest && e.target.closest("#t_ins tr.stage[data-fam]");

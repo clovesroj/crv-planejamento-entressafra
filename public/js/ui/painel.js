@@ -50,7 +50,7 @@ function pintarPainel(R){
         brl(R.dieselT)+(R.CB.litrosT>0?" · "+brl(R.dieselT/R.CB.litrosT,2)+"/L":""),"diesel:total") +
     kpi("Arrendamento","a",R.AR.area>0?brl(R.AR.anual/R.AR.area,0)+"/ha/ano":"—",
         brl(R.arrT)+" no orçamento · "+fmt(R.AR.area)+" ha","nat:arrend");
-  barras($("#ch_mes"),MESES.map((m,i)=>({l:m,v:R.meses[i]})),"#2D6A3A");
+  barras($("#ch_mes"),MESES.map((m,i)=>({l:m,v:R.meses[i]})),"#2A57A0");
 
   const catLbl = {mdo:"Mão de obra",manut:"Manutenção (CRM)",diesel:"Diesel",insumo:"Insumos + irrigação",
     terc:"Terceirização + transporte",arrend:"Arrendamento",fixo:"Fixos (adm./deprec.)",espor:"Esporádicos"};
