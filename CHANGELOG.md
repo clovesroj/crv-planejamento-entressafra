@@ -1,5 +1,24 @@
 # Histórico de mudanças
 
+## 2.33.1 — 2026-09-22 · Nome da referência fora das telas
+
+Nenhuma tela, rastro ou relatório cita mais "PECEGE" ou "modelo PECEGE". O
+método não mudou: só o rótulo.
+
+- **Painel** — "Custo por hectare — modelo PECEGE" virou **Custo por hectare —
+  visão por operação**; "Sistema de colheita (R$/t) — modelo PECEGE" virou
+  **Sistema de colheita (R$/t)**; a linha "Base PECEGE" virou **Base de
+  comparação**; "Aderência PECEGE/USP" virou **Aderência à referência
+  setorial**.
+- **Arrendamentos e Custos** — "referência PECEGE/USP" virou **referência
+  setorial**, e "relatório de custos PECEGE/USP" virou **relatório de custos de
+  referência**.
+- **Rastros** — o percentual de rateio do arrendamento e a nota da muda passaram
+  a falar em referência setorial e na tabela de custo por hectare do Painel.
+
+Conferido com o plano montado: 29 abas, 124 rastros e os 126 relatórios sem
+nenhuma ocorrência do nome, e a auditoria segue com 45 invariantes sem falha.
+
 ## 2.33.0 — 2026-09-22 · Custo por hectare plantado: só o que forma o canavial
 
 O indicador **Custo por ha plantado** dividia o custo do plano inteiro pela área

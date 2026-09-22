@@ -115,7 +115,7 @@ const LINHAS_HA = [
   ["deprec","Depreciação",2],
   ["apoio","Diesel dos equipamentos de apoio",2],
   ["gerais","Demais custos gerais",2],
-  ["pecege","Base PECEGE (operação + insumos + administrativo)",0,"sub"],
+  ["pecege","Base de comparação (operação + insumos + administrativo)",0,"sub"],
 ];
 function pintarModeloPecege(R){
   const H = tabelaHa(R);
@@ -134,7 +134,7 @@ function pintarModeloPecege(R){
   $("#t_pec_ha").innerHTML = h+"</tbody>";
   const haPl = (H.cols.find(c=>c.id==="formacao")||{}).base;
   $("#pec_ha_nota").textContent = H.custoMuda>0.5
-    ? `Mudas: o custo da colheita, do transbordo e do transporte de muda (${brl(H.custoMuda)}, com a parte delas nos rateios da colheita) está na etapa Colheita do Plano Operacional; aqui, como no modelo PECEGE, entra no plantio como insumo — e sai do CTTA. `
+    ? `Mudas: o custo da colheita, do transbordo e do transporte de muda (${brl(H.custoMuda)}, com a parte delas nos rateios da colheita) está na etapa Colheita do Plano Operacional; aqui, como na referência setorial, entra no plantio como insumo — e sai do CTTA. `
       + (haPl && haPl.q>0 ? `É por isso que a coluna Formação fica ${brl(H.custoMuda/haPl.q)}/ha acima do cartão "Custo / ha plantado" do topo, que conta só as três etapas do plano.` : "")
     : "";
 

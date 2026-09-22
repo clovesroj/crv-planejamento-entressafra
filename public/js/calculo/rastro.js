@@ -127,7 +127,7 @@ function rastroCustoHa(R){
     {titulo:"Fora do hectare plantado (o resto do plano)", linhas: C.principais.concat(C.outras)
       .filter(l=>!l.formacao).map(l=>({rot:l.nome, val:brl(l.contabil), ir:"op:"+l.id}))
       .concat(custoDaMuda(R)>0.5 ? [{rot:"↳ dentro da colheita: mudas (colheita, transbordo e transporte)",
-        val:brl(custoDaMuda(R)), sub:(ha>0?brl(custoDaMuda(R)/ha)+"/ha · ":"")+"na tabela do modelo PECEGE entra no plantio"}] : [])
+        val:brl(custoDaMuda(R)), sub:(ha>0?brl(custoDaMuda(R)/ha)+"/ha · ":"")+"na tabela de custo por hectare do Painel entra no plantio"}] : [])
       .concat([{rot:"Custo total do plano"+(S.parcial?" — "+S.rotulo:""), val:brl(S.total), ir:"total",
         sub:ha>0 ? brl(S.total/ha)+"/ha de plantio, com o plano inteiro" : ""}])},
   ];
@@ -156,7 +156,7 @@ function rastroOperacao(R, id, modo){
   const OPER = [["diesel","Diesel das máquinas da operação"],["mdo","Mão de obra"],["manut","Manutenção (CRM)"],
                 ["insumo","Insumos"],["irrig","Irrigação (energia, água, materiais)"],["terc","Terceirização"]];
   const RAT = [["apoio","Diesel dos equipamentos de apoio","pelos litros da operação"],
-               ["arrend","Arrendamento","percentual PECEGE/USP da aba Arrendamentos"],
+               ["arrend","Arrendamento","percentual de referência da aba Arrendamentos"],
                ["admin","Administrativo","critério de cada linha, aba Custos Administrativos"],
                ["deprec","Depreciação","pelo custo direto da operação"],
                ["gerais","Demais custos gerais","apoio, estrutura indireta, manutenção, transporte de pessoal…"]];
@@ -322,7 +322,7 @@ function rastroEtapa(R, etapa){
     ]},
     {titulo:"Rateios que a etapa recebe", linhas:[
       {rot:"Arrendamento", val:brl(d.arrend||0),
-       sub:somaPct>0 ? `${fmt(arrRat(etapa)/somaPct*100,1)}% do arrendamento, pela referência PECEGE/USP` : "sem percentual informado"},
+       sub:somaPct>0 ? `${fmt(arrRat(etapa)/somaPct*100,1)}% do arrendamento, pela referência setorial` : "sem percentual informado"},
       {rot:"Administrativo", val:brl(d.admin||0),
        sub:admLinhas.length ? admLinhas.length+" linha(s) administrativa(s) rateada(s)" : "nada rateado"},
       {rot:"Indireto do plano", val:brl(d.indireto||0),
