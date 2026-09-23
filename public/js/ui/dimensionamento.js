@@ -1,11 +1,12 @@
 import { FROTA_ESP, SEP_MOD, chaveDoModelo, destinoDe, espDe, modDe, opcoesDestino,
          unidadesDoModelo } from '../calculo/crm.js';
 import { DIM, DIM_DET, FROTA_ABERTO, QUADRO } from '../nucleo/estado.js';
-import { $, brl, fmt, num, pct } from '../nucleo/formato.js';
+import { $, brl, esc, fmt, num, pct } from '../nucleo/formato.js';
 import { MESES, NM, clsMes } from '../nucleo/calendario.js';
 import { maxSel, ordenarPorEtapa, tdMeses, th, thMeses } from './componentes.js';
 import { ESCALAS } from '../dados/escalas.js';
 import { quadroBase } from '../calculo/quadro.js';
+import { necessidadePorAtividade } from '../calculo/pessoas.js';
 import { criterioMensal, frotaDaAtividade, pessoasDaAtividade, temCriterioMensal } from '../calculo/atividade.js';
 
 /* ---------- DIMENSIONAMENTO ---------- */
@@ -182,9 +183,86 @@ function pintarDimPessoas(R){
      <td class="num tot">${tot.contratar>0?"+"+fmt(tot.contratar):"—"}</td>
      <td class="num tot">${tot.exced>0?fmt(tot.exced):"—"}</td></tr></tbody>`;
 
+  /* Necessidade mes a mes contra o disponivel de cada funcao.
+     Celula vermelha e mes em que a funcao pede mais gente do que ha; o mes de
+     pico vem em negrito, porque e ele que decide a contratacao. A linha "a
+     contratar no mes" soma so o que falta, funcao por funcao -- excedente de
+     uma funcao nao cobre falta de outra. */
+  const temQuadro = tot.ativo + tot.ferias + tot.demis > 0;
+  const faltaMes = MESES.map(()=>0);
+  const corpoMes = funcoes.map(f=>{
+    const o = PS.porFun[f], disp = disponivel[f];
+    return `<tr><td>${f} — ${esc((R.MP.custoFuncao[f]||{nome:f}).nome)}</td>
+      <td class="num calc">${fmt(disp)}</td>` +
+      o.qtdMes.map((v,i)=>{
+        const falta = temQuadro ? v - disp : 0;
+        if(falta>0) faltaMes[i] += falta;
+        const ehPico = v>0 && v===o.pico;
+        const estilo = falta>0 ? ' style="background:var(--bad-bg);color:var(--bad);font-weight:600"' : '';
+        return `<td class="num ${falta>0?"":"calc"} ${clsMes(i)}"${estilo} title="${MESES[i]}: precisa de ${fmt(v)}, disponível ${fmt(disp)}">${
+          v>0 ? (ehPico?`<b>${fmt(v)}</b>`:fmt(v)) : "—"}</td>`;
+      }).join("") +
+      `<td class="num tot">${fmt(maxSel(o.qtdMes, SEL))}</td></tr>`;
+  }).join("");
+
+  $("#t_pes_mes").innerHTML = th([["Função"],["Disponível",1],...thMeses(),[SEL.parcial?"Pico no período":"Pico",1]])+"<tbody>"+
+    (funcoes.length ? corpoMes : `<tr><td colspan="${NM+3}" class="calc">Sem função dimensionada.</td></tr>`)+
+    `<tr><td class="tot">NECESSIDADE TOTAL</td><td class="num tot">${fmt(tot.disp)}</td>` +
+    tdMeses(PS.qtdMes, v=>fmt(v), "num tot") +
+    `<td class="num tot">${fmt(maxSel(PS.qtdMes, SEL))}</td></tr>` +
+    `<tr><td class="calc">A contratar no mês</td><td></td>` +
+    tdMeses(faltaMes, v=>v>0?`<span class="badge b-bad">+${fmt(v)}</span>`:"—", "num") +
+    `<td class="num tot">${maxSel(faltaMes, SEL)>0?"+"+fmt(maxSel(faltaMes, SEL)):"—"}</td></tr></tbody>`;
+
+  pintarPessoasAtividade(R, SEL);
+
   const iPicoGeral = PS.qtdMes.indexOf(Math.max(...PS.qtdMes));
   $("#bl_pes_sub").textContent = `${fmt(PS.qtd)} pessoas dimensionadas · pico ${fmt(PS.qtdMes[iPicoGeral]||0)}`
     + (tot.contratar>0 ? ` · faltam ${fmt(tot.contratar)}` : "");
+}
+
+/* ---------- NECESSIDADE POR ETAPA, ATIVIDADE E FUNCAO ----------
+   O quadro por funcao responde "quantos motoristas eu preciso ter". Esta
+   tabela responde a pergunta que vem logo depois, e que e a que monta escala:
+   de onde vem cada um deles -- em que etapa, em que atividade, em que mes.
+
+   Uma linha por atividade e funcao, faixa por etapa. Mes sem volume lancado no
+   Plano Operacional vem vazio, porque a frente nao opera. A soma das linhas
+   fecha, mes a mes, com a necessidade total da tabela de cima: sai dos mesmos
+   itens que somam o custo de mao de obra, sem recalculo. */
+function pintarPessoasAtividade(R, SEL){
+  const alvo = $("#t_pes_ativ");
+  if(!alvo) return;
+  const linhas = necessidadePorAtividade(R.PS);
+  const nCols = NM + 4;
+  const cab = th([["Cod"],["Atividade / origem"],["Função"],...thMeses(),
+                  [SEL.parcial?"Pico no período":"Pico",1]]);
+  if(!linhas.length){
+    alvo.innerHTML = cab + `<tbody><tr><td colspan="${nCols}" class="calc">Sem pessoas dimensionadas: lance quantidade no Plano Operacional.</td></tr></tbody>`;
+    return;
+  }
+  let etapa = "", corpo = "";
+  linhas.forEach(l=>{
+    if(l.dept !== etapa){
+      etapa = l.dept;
+      // o pico da etapa e o mes em que ela pede mais gente, somando as suas
+      // atividades -- nao a soma dos picos de cada uma, que se dao em meses
+      // diferentes
+      const daEtapa = linhas.filter(x=>x.dept===etapa);
+      const porMes = MESES.map((m,i)=>daEtapa.reduce((s,x)=>s+x.qtdMes[i],0));
+      corpo += `<tr class="stage"><td colspan="${nCols}"><span>${esc(etapa)} · pico ${fmt(maxSel(porMes, SEL))} pessoas</span></td></tr>`;
+    }
+    corpo += `<tr><td>${esc(l.cod||"—")}</td><td>${esc(l.origem)}</td>
+      <td class="calc">${esc(l.fcod)} — ${esc(l.fnome)}</td>` +
+      tdMeses(l.qtdMes, (v,i)=> v>0
+        ? (v===l.pico ? `<b>${fmt(v)}</b>` : fmt(v))
+        : '<span class="calc">—</span>', "num") +
+      `<td class="num tot">${fmt(maxSel(l.qtdMes, SEL))}</td></tr>`;
+  });
+  alvo.innerHTML = cab + "<tbody>" + corpo +
+    `<tr><td class="tot" colspan="3">NECESSIDADE TOTAL NO MÊS</td>` +
+    tdMeses(R.PS.qtdMes, v=>fmt(v), "num tot") +
+    `<td class="num tot">${fmt(maxSel(R.PS.qtdMes, SEL))}</td></tr></tbody>`;
 }
 
 /* ---------- DETALHE DO DIMENSIONAMENTO, EM MODAL ----------

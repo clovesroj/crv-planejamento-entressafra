@@ -3,7 +3,7 @@ import { agDeLinha, contaOrigem, rotuloItem } from '../calculo/crm.js';
 import { ADM_CRITERIOS, ADM_GRUPOS } from '../dados/administrativo.js';
 import { ARR_FORMAS, ETAPAS_ORD, arrRat } from '../calculo/arrendamento.js';
 import { FORN_MODALIDADES } from '../dados/fornecedores.js';
-import { deptIdx } from '../calculo/pessoas.js';
+import { deptIdx, necessidadePorAtividade } from '../calculo/pessoas.js';
 import { GERENCIAS, criterioPorMes, excecoes, execucao, metasDeFrota, metasPorAtividade, porGerencia } from '../calculo/acompanhamento.js';
 import { CFG } from '../dados/cfg.js';
 import { CAT_LBL, MESES, NM, PERIODOS, periodoMes } from '../nucleo/calendario.js';
@@ -283,6 +283,19 @@ const pessoasDept = R => secP("Pessoas por depto","Pessoas por departamento",
   R.PS ? Object.entries(R.PS.porDept).sort((a,b)=>deptIdx(a[0])-deptIdx(b[0]))
     .map(([d,o])=>[d, fmt(o.qtd), fmt(picoP(o.qtdMes)), brl(noPer(o.custoMes))])
     .concat([["TOTAL", fmt(R.PS.qtd), fmt(picoP(R.PS.qtdMes)), brl(noPer(R.PS.custoMes))]]) : []);
+/* Necessidade de gente por etapa, atividade e funcao, mes a mes.
+   O quadro por funcao diz quantos; esta folha diz de onde vem cada um e em que
+   mes -- e a folha com que se monta escala e se justifica contratacao. Sai de
+   necessidadePorAtividade(), a mesma fonte da tabela da tela: a reuniao nao
+   pode ter uma conta impressa e outra na tela. */
+const pessoasAtividade = R => secP("Pessoas por atividade",
+  "Necessidade de pessoas — etapa, atividade e função, mês a mês",
+  ["Etapa","Cod","Atividade ou origem","Cod função","Função",
+   ...REC.meses.map(i=>MESES[i]), REC.parcial?"Pico no período":"Pico","Custo MDO no período"],
+  R.PS ? necessidadePorAtividade(R.PS).map(l=>[l.dept, l.cod||"—", l.origem, l.fcod, l.fnome,
+      ...REC.meses.map(i=>fmt(l.qtdMes[i])), fmt(picoP(l.qtdMes)), brl(noPer(l.custoMes))])
+    .concat([["TOTAL","","","","", ...REC.meses.map(i=>fmt(R.PS.qtdMes[i])),
+      fmt(picoP(R.PS.qtdMes)), brl(noPer(R.PS.custoMes))]]) : []);
 const fluxoMdo = R => secP("Fluxo MDO","Fluxo mensal — pessoas e custo de mão de obra",
   ["Mês","Período","Pessoas","Custo MDO","Acumulado"],
   R.PS ? (()=>{ let ac=0; return REC.meses.map(i=>{ ac+=R.PS.custoMes[i];
@@ -668,7 +681,7 @@ const SECOES = {
   tratos:  porEtapa("Tratos","Orçamento de tratos culturais","TRATOS CULTURAIS"),
   colheita:porEtapa("Colheita","Orçamento de colheita","COLHEITA"),
   apoioEtapa: porEtapa("Apoio e Conservação","Orçamento de apoio e conservação","APOIO E CONSERVAÇÃO"),
-  transporte, frota, frotaBase, modelos, manutencao, maoDeObra, pessoasDept, fluxoMdo, insumos,
+  transporte, frota, frotaBase, modelos, manutencao, maoDeObra, pessoasDept, pessoasAtividade, fluxoMdo, insumos,
   tratamentos,
   arrendamentos, fornecedores, administracao, custoEtapa, natureza, mensal, periodos,
   contas, fluxo, cenarios, validacao, porFazenda, porCentroCusto, porAtividade,
@@ -796,7 +809,8 @@ const RELATORIOS = [
   {id:"colheita",nome:"Orçamento de Colheita",        secoes:["colheita","transporte","combustivel","dimensionamento"]},
   {id:"log",     nome:"Orçamento de Logística",       secoes:["logistica","transporte","combustivel"]},
   {id:"frota",   nome:"Orçamento de Frota",           secoes:["frota","frotaBase","manutencao","apoio","combustivel"]},
-  {id:"mdo",     nome:"Orçamento de Mão de Obra",     secoes:["maoDeObra","pessoasDept","fluxoMdo"]},
+  {id:"mdo",     nome:"Orçamento de Mão de Obra",     secoes:["maoDeObra","pessoasDept","pessoasAtividade","fluxoMdo"]},
+  {id:"pessoas", nome:"Necessidade de Pessoas",        secoes:["pessoasAtividade","pessoasDept","maoDeObra","fluxoMdo","dimensionamento"]},
   {id:"arrend",  nome:"Orçamento de Arrendamentos",   secoes:["arrendamentos","porFazenda"]},
   {id:"forn",    nome:"Orçamento de Fornecedores",    secoes:["fornecedores","producao","logistica"]},
   {id:"caixa",   nome:"Fluxo de Caixa Agrícola",      secoes:["fluxo","mensal","periodos"]},
@@ -810,7 +824,7 @@ const RELATORIOS = [
 
 /* Seções extras que só saem no nível detalhado do relatório anual. */
 const DETALHE = ["custoOperacional","custoContabil","planoOperacional","dimensionamento","porAtividade","porCentroCusto","porFazenda",
-  "mensal","periodos","natureza","combustivel","apoio","irrigacao","pessoasDept","fluxoMdo",
+  "mensal","periodos","natureza","combustivel","apoio","irrigacao","pessoasDept","pessoasAtividade","fluxoMdo",
   "logistica","indicadores","frotaBase","modelos","preparo","apoioEtapa","tratamentos"];
 
 function montarSecoes(R, relId, nivel, periodo){

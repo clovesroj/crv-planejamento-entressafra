@@ -13,8 +13,12 @@ function pessoasCalc(R){
   const MP = R.MP, itens = [];
   const nomeF = c => (MP.custoFuncao[c]||{nome:c}).nome;
   const fixo = v => Array(NM).fill(v);
-  const add = (dept, fcod, origem, qtd, qtdMes, custoMes) => itens.push({dept, fcod, fnome:nomeF(fcod), origem,
-    qtd, qtdMes, custoMes, custo:custoMes.reduce((s,x)=>s+x,0)});
+  // `cod` e o codigo da atividade, quando a origem e uma atividade do plano --
+  // e por ele que a necessidade de gente volta a conversar com o Plano
+  // Operacional e com o Dimensionamento. Apoio, manutencao e estrutura nao tem
+  // atividade, e ficam sem codigo.
+  const add = (dept, fcod, origem, qtd, qtdMes, custoMes, cod) => itens.push({dept, fcod, fnome:nomeF(fcod), origem,
+    cod: cod || "", qtd, qtdMes, custoMes, custo:custoMes.reduce((s,x)=>s+x,0)});
 
   // atividades do plano: a equipe conta nos meses com quantidade; o custo segue a quantidade do mês
   R.L.forEach(r=>{
@@ -30,7 +34,7 @@ function pessoasCalc(R){
     r.partes.forEach(p=>{
       if(p.terc || !(p.efetivo>0)) return;
       add(r.a.etapa, p.fcod, r.a.nome, p.efetivo,
-          r.meses.map((q,i)=>num(q)>0 ? Math.ceil(p.efetivo*fatorMes(i)) : 0), (p.mdoMes||[]).slice());
+          r.meses.map((q,i)=>num(q)>0 ? Math.ceil(p.efetivo*fatorMes(i)) : 0), (p.mdoMes||[]).slice(), r.a.cod);
     });
   });
   // reserva do transporte de cana que o efetivo total soma à parte (sem custo de MDO próprio no modelo)
@@ -39,9 +43,9 @@ function pessoasCalc(R){
   const extraCam = Math.min(extraTot, Math.ceil(((TR.camSafra.frotaR||0)+(TR.camMuda.frotaR||0))*fe));
   const ativos = cods => MESES.map((m,i)=>cods.some(c=>{ const r=R.L.find(x=>x.a.cod===c); return r && num(r.meses[i])>0; }));
   if(extraCam>0){ const at=ativos(["TR1","TR2"]);
-    add("COLHEITA","902","Transporte de cana — reserva do efetivo", extraCam, at.map(b=>b?extraCam:0), fixo(0)); }
+    add("COLHEITA","902","Transporte de cana — reserva do efetivo", extraCam, at.map(b=>b?extraCam:0), fixo(0), "TR1/TR2"); }
   if(extraTot-extraCam>0){ const n=extraTot-extraCam, at=ativos(["TR3","TR4"]);
-    add("COLHEITA","918","Transbordo — reserva do efetivo", n, at.map(b=>b?n:0), fixo(0)); }
+    add("COLHEITA","918","Transbordo — reserva do efetivo", n, at.map(b=>b?n:0), fixo(0), "TR3/TR4"); }
   // equipamentos de apoio: mesmo efetivo e custo em todos os meses
   R.AE.linhas.forEach(l=>{ if(l.efetivo>0)
     add("APOIO E CONSERVAÇÃO", l.fcod, l.nome, l.efetivo, fixo(l.efetivo), fixo(l.mdo/NM)); });
@@ -70,4 +74,32 @@ function pessoasCalc(R){
 }
 
 
-export { DEPTS_ORD, deptIdx, pessoasCalc };
+/* ===== Necessidade de gente por etapa, atividade e funcao =====
+   O quadro por funcao responde "quantos motoristas preciso ter"; esta lista
+   responde a pergunta que vem logo depois, e que e a que monta escala:
+   "em que atividade, e em que mes". A funcao aparece dentro da atividade
+   porque e assim que a frente e formada -- 4 operadores de colhedora em
+   outubro nao sao os mesmos 4 de dezembro se a colheita parou.
+
+   Nao recalcula nada: agrupa os itens que pessoasCalc ja montou, que sao os
+   mesmos que somam o custo de mao de obra. Por isso a soma das linhas fecha,
+   mes a mes, com a necessidade total do quadro. */
+function necessidadePorAtividade(PS){
+  if(!PS || !PS.itens) return [];
+  const g = {};
+  PS.itens.forEach(it=>{
+    const k = [it.dept, it.cod, it.origem, it.fcod].join("|");
+    const o = g[k] = g[k] || {dept:it.dept, cod:it.cod, origem:it.origem, fcod:it.fcod, fnome:it.fnome,
+                              qtd:0, qtdMes:Array(NM).fill(0), custoMes:Array(NM).fill(0)};
+    o.qtd += it.qtd;
+    it.qtdMes.forEach((v,i)=>{ o.qtdMes[i] += v; o.custoMes[i] += it.custoMes[i]; });
+  });
+  return Object.values(g)
+    .map(o=>({...o, pico: Math.max(...o.qtdMes), custo: o.custoMes.reduce((s,x)=>s+x,0)}))
+    .sort((a,b)=> deptIdx(a.dept) - deptIdx(b.dept)
+               || a.cod.localeCompare(b.cod)
+               || a.origem.localeCompare(b.origem)
+               || a.fcod.localeCompare(b.fcod));
+}
+
+export { DEPTS_ORD, deptIdx, necessidadePorAtividade, pessoasCalc };
