@@ -233,7 +233,9 @@ function validar(R){
   const frotaAlta = R.L.filter(r=>r.frotaR>12);
   add(frotaAlta.length===0,"Atividade exigindo mais de 12 equipamentos",
       frotaAlta.length ? frotaAlta.length+": "+frotaAlta.slice(0,5).map(r=>r.a.cod+" ("+r.frotaR+")").join(", ")+(frotaAlta.length>5?"…":"") : "0",
-      ir("dimens", frotaAlta.length ? `#t_dim [data-fr="${frotaAlta[0].a.cod}"]` : null, frotaAlta.length ? `#t_dim [data-r="${frotaAlta[0].a.cod}"]` : null, "#t_dim"));
+      // o alvo e o botao "mes" da atividade: e la que a frota se ajusta desde que
+      // o campo de frota fixa saiu do modal (data-fr nao existe mais)
+      ir("dimens", frotaAlta.length ? `#t_dim [data-rendmes="${frotaAlta[0].a.cod}"]` : null, "#t_dim"));
   add(R.TP.lugares>=R.efetivoTotal,"Transporte de pessoal cobre o efetivo total",
       fmt(R.TP.lugares)+" lugares para "+fmt(R.efetivoTotal)+" colaboradores", ir("tpess","#t_tp"));
   const mixRuim = R.L.filter(r=>r.mixSoma>0 && Math.abs(r.mixSoma-100)>0.01);
