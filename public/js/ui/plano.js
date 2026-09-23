@@ -1,6 +1,7 @@
 import { MODOS_ORD, frotaDaAtividade, modoLiberado, modosDe, temDetalheTerc } from '../calculo/atividade.js';
 import { tratListaTodos } from '../calculo/insumos.js';
 import { CFG } from '../dados/cfg.js';
+import { erpDe } from '../dados/atividades-erp.js';
 import { TERC_MODOS } from '../dados/modos.js';
 import { NM } from '../nucleo/calendario.js';
 import { DIM, PLANO_ABERTO, TERC_DET, TERC_SUB, TRAT_ATIVO, TRAT_NOME, atividadesLista } from '../nucleo/estado.js';
@@ -193,6 +194,20 @@ function linhaAcoplada(r, SEL, opts){
       ${celulasCusto(r, SEL)}</tr>` +
     (aberto ? subLinhasTrat(r, SEL) : "");
 }
+/* Atividades do ERP que compoem a frente, abertas embaixo da atividade.
+   A Plataforma Controladoria aponta por equipamento: o plantio mecanizado, que
+   aqui e uma linha, la sao dez — trator e implemento da plantadeira, carrego de
+   adubo, pipa, area de vivencia, auxiliar rural, transporte de pessoal. Sao so
+   leitura: o custo dessa gente e dessas maquinas ja esta na frente. Servem para
+   conferir o plano com o apontamento sem abrir planilha ao lado. */
+function subLinhasErp(r, SEL){
+  const {nucleo, apoio} = erpDe(r.a.cod);
+  if(!nucleo.length && !apoio.length) return "";
+  const linha = (e, tipo) => `<tr class="sub"><td class="calc">${esc(e.cod)}</td>
+    <td class="calc">${esc(e.nome)} <span class="badge ${tipo==="núcleo"?"b-ok":"b-warn"}">${tipo}</span></td>
+    <td class="calc" colspan="99">${e.esp.length ? "especialidade "+e.esp.map(esc).join(", ") : ""}</td></tr>`;
+  return nucleo.map(e=>linha(e,"núcleo")).join("") + apoio.map(e=>linha(e,"apoio")).join("");
+}
 function pintarPlano(R){
   const TL = tratListaTodos();
   const SEL = R.SEL;
@@ -225,9 +240,12 @@ function pintarPlano(R){
     const dentro = j => !jIdx || jIdx.includes(j);
     const d = DIM[r.a.cod] || {};
     const temExtras = !!r.tratsDetalhe;
-    const aberto = temExtras && !!PLANO_ABERTO[r.a.cod];
-    h+=`<tr><td>${r.a.cod}</td><td>${temExtras?`<button type="button" class="mini-seta" data-planoabre="${r.a.cod}"
-          title="Área por tratamento">${aberto?"▾":"▸"}</button>`:""}${r.a.nome}${auto?' <span class="badge b-ok">auto</span>':''}${
+    const E = erpDe(r.a.cod);
+    const temErp = !!(E.nucleo.length || E.apoio.length);
+    const aberto = (temExtras || temErp) && !!PLANO_ABERTO[r.a.cod];
+    h+=`<tr><td>${r.a.cod}</td><td>${temExtras||temErp?`<button type="button" class="mini-seta" data-planoabre="${r.a.cod}"
+          title="${temExtras?"Área por tratamento e atividades do ERP que compõem a frente"
+                            :"Atividades do ERP que compõem a frente"}">${aberto?"▾":"▸"}</button>`:""}${r.a.nome}${auto?' <span class="badge b-ok">auto</span>':''}${
           levaJunto.length?` <span class="calc" title="${esc(levaJunto.join(" e ")+" vão na mesma passada: a mecanização é uma só, a desta linha")}">+ ${levaJunto.join(", ")}</span>`:""}</td>
         <td><input type="date" data-dt="${r.a.cod}" data-f="ini" value="${r.janela.ini||""}" max="${d.fim||""}" title="Início da execução"></td>
         <td><input type="date" data-dt="${r.a.cod}" data-f="fim" value="${r.janela.fim||""}" min="${d.ini||""}" title="Fim da execução"></td>
@@ -245,7 +263,7 @@ function pintarPlano(R){
        ${celFrota(r)}
        <td><select data-t="${r.a.cod}" ${r.ehHa?"":"disabled"}>${opts}</select></td>
        ${celulasCusto(r, SEL)}</tr>`;
-    if(aberto) h += subLinhasTrat(r, SEL);
+    if(aberto) h += subLinhasTrat(r, SEL) + subLinhasErp(r, SEL);
   });
   $("#t_plano").innerHTML = h+"</tbody>";
   // O resumo segue o filtro. Horas e insumos de uma atividade são lineares na
