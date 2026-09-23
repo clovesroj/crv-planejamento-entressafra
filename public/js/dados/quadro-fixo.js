@@ -15,12 +15,13 @@
  * null = a função não aparece naquele mês. Quantidade fracionada é como a
  * planilha a traz (pessoa em parte do mês ou rateada entre departamentos).
  *
- * Os meses de abr/26 a out/26 não estão nas planilhas: o motor repete neles o
- * mês de referência (QUADRO_MES_REF, fev/27 -- o mês de referência do Painel
- * das planilhas e do Resumo de MDO). Ver calculo/quadro-fixo.js.
+ * O quadro entra no plano só de dez/26 a mar/27 (QUADRO_MESES_LANC, a
+ * entressafra): nos demais meses o ADM agrícola e a oficina não têm custo
+ * no plano. Novembro fica guardado como veio da planilha, sem ser lançado.
+ * Ver calculo/quadro-fixo.js.
  */
-export const QUADRO_MES0 = 7;      // Nov/26
-export const QUADRO_MES_REF = 10;  // Fev/27
+export const QUADRO_MES0 = 7;      // Nov/26: primeiro mês guardado das planilhas
+export const QUADRO_MESES_LANC = [8, 9, 10, 11];   // Dez/26 a Mar/27: os meses lançados no plano
 export const QUADRO_FONTE = {
   adm:     {nome:"ADM agrícola",          arquivo:"Justificativa_Folha_ADM_Agricola_1.xlsx", revisao:"21/09/2026", conta:"200-15"},
   oficina: {nome:"Oficina (manutenção)",  arquivo:"Justificativa_Folha_Manutenção.xlsx",     revisao:"21/09/2026", conta:"200-16"},

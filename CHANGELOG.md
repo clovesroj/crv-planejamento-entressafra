@@ -1,5 +1,24 @@
 # Histórico de mudanças
 
+## 2.44.1 — 2026-09-23 · Quadro ADM e oficina lançado só de dezembro a março
+
+O quadro previsto da controladoria (ADM agrícola e oficina) passa a entrar no
+plano **só de dez/26 a mar/27**. Antes entrava de nov/26 a mar/27 com o que
+veio das planilhas e repetia fev/27 de abril a outubro. Agora, fora de
+dezembro a março, o ADM agrícola e a oficina não têm pessoa nem custo no plano.
+
+- `dados/quadro-fixo.js`: `QUADRO_MESES_LANC = [dez, jan, fev, mar]` é o único
+  lugar que diz em que meses o quadro é lançado. Novembro continua guardado como
+  veio da planilha, sem ser lançado; sai o mês de referência que era repetido.
+- A página "Quadro ADM e oficina" (aba Mão de Obra) e o relatório do quadro
+  mostram dez/26 a mar/27; a média mensal é desses quatro meses.
+
+Efeito no custo: plano vazio R$ 68.246.103,41 → **R$ 46.353.393,26** (ADM
+R$ 12,00 mi → R$ 3,79 mi; oficina R$ 19,90 mi → R$ 6,22 mi). Dez/26: 304
+pessoas e R$ 2.318.983 (folha R$ 1.360.052 × 1,368 + 304 × R$ 1.508 de
+benefícios). 54 invariantes sem falha; 29 abas, 312 rastros e os relatórios sem
+erro.
+
 ## 2.44.0 — 2026-09-23 · Quadro ADM e oficina da controladoria, e pessoas no padrão das planilhas
 
 ### O quadro ADM agrícola e o da oficina entram pelo previsto da controladoria

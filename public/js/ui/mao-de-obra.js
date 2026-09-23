@@ -128,9 +128,9 @@ const CAB_QF = [["Qtde AA",1],["Qtde Prev.",1],["Δ Qtde",1],["Sal. méd. AA",1]
 function pintarQuadro(R){
   const QF = R.QF; if(!QF) return;
   const C = comparativoQuadro(QF, QF_GRUPO, QF_MES);
-  const nomeMes = QF_MES==="media" ? "média nov/26–mar/27" : MESES[QF_MES];
+  const nomeMes = QF_MES==="media" ? "média dez/26–mar/27" : MESES[QF_MES];
   $("#sel_qf_mes").innerHTML = C.meses.map(i=>`<option value="${i}"${i===QF_MES?" selected":""}>${MESES[i]}</option>`).join("")
-    + `<option value="media"${QF_MES==="media"?" selected":""}>Média nov/26–mar/27</option>`;
+    + `<option value="media"${QF_MES==="media"?" selected":""}>Média dez/26–mar/27</option>`;
   $("#sel_qf_grupo").value = QF_GRUPO;
   $("#qf_fonte").textContent = "Fonte: "+Object.values(QUADRO_FONTE).map(f=>f.arquivo+" (revisão "+f.revisao+")").join(" · ");
   const T = C.total;

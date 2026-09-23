@@ -21,7 +21,7 @@ const CRIT = {
   fixo:    "o mesmo valor em todos os meses",
   pag:     "no mês de pagamento de cada contrato",
   lanc:    "no mês em que foi lançado",
-  folha:   "pela folha prevista de cada mês (abr a out repetem fev/27)",
+  folha:   "pela folha prevista de cada mês, só de dez/26 a mar/27",
 };
 
 function fontesDaConta(R, k){
