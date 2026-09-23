@@ -25,10 +25,13 @@
         Plano Inseticida — 58 atividades no total
      3  A02, TR2 e TR4 (muda) passam de COLHEITA para PLANTIO — ver
         CORRECOES_ATIVIDADE abaixo
-   Remover atividade daqui NAO sobe a versao e nao tira ela do documento ja
-   salvo (ATVX): ela so deixa de ser "do sistema" e ganha o botao Remover na
-   aba Cadastro de Atividades. Foi o caso da A22 (Dessecacao, duplicava A03). */
-export const ATIVIDADES_V = 3;
+     4  A22 (Dessecacao, duplicava a A03) sai tambem do documento ja salvo —
+        ver REMOCOES_ATIVIDADE abaixo
+   So tirar atividade daqui nao a tira do documento ja salvo (ATVX): ela
+   deixa de ser "do sistema" e ganha o botao Remover na aba Cadastro de
+   Atividades. Para ela sumir de todo plano gravado, entra tambem em
+   REMOCOES_ATIVIDADE e a versao sobe. */
+export const ATIVIDADES_V = 4;
 
 /* Correcao de campo de atividade que JA existe no documento salvo.
    O merge da base so acrescenta atividade nova; nunca mexe em atividade que ja
@@ -45,6 +48,16 @@ export const CORRECOES_ATIVIDADE = [
   {cod:"TR2", campo:"etapa", de:"COLHEITA", para:"PLANTIO"},
   {cod:"TR4", campo:"etapa", de:"COLHEITA", para:"PLANTIO"},
 ];
+
+/* Atividade que saiu do cadastro base e tem de sair tambem do documento ja
+   salvo, com o que estiver lancado nela (Plano Operacional, Dimensionamento,
+   tarifa de terceiro, realizado) — o mesmo que o botao Remover da aba
+   Cadastro de Atividades faz, aplicado na leitura do documento.
+
+   A22 era a Dessecacao em duplicata da A03: mesmo nome, mesma maquina (Uniport
+   3030 / Drone), mesma barra de 24 m e o mesmo 1,65 ha/h. A dessecacao do plano
+   e a A03. */
+export const REMOCOES_ATIVIDADE = ["A22"];
 
 export const ATIVIDADES = [
   {"cod":"A01","etapa":"COLHEITA","nome":"Colheita safra 2026","un":"ton/mês","rend":45,"maq":"Colhedora CH570 / John Deere","imp":"Transbordo 2 eixos","ops":1,"turnos":3,"util":1},

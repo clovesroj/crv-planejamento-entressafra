@@ -5,7 +5,7 @@ import { setAPOIO, setAPOIO_FIXO, setARREND, setARR_PAR, setARR_RAT, setATVX, se
          setINSX, setMATX, setNIV, setP, setPLANO, setQUADRO, setADM, setADM_RAT, setTERC_TAR, setTERC_SUB, setTPESS, setTRATC,
          setTRAT_ATIVO, setTRAT_DEL, setTRAT_ETAPA, setTRAT_NOME, setTRAT_OBS, setINSX_V } from '../nucleo/estado.js';
 import { mesclarBaseInsumos } from '../calculo/insumos.js';
-import { mesclarBaseAtividades } from '../calculo/atividade.js';
+import { mesclarBaseAtividades, removerAtividadesRetiradas } from '../calculo/atividade.js';
 import { $, num } from '../nucleo/formato.js';
 import { MESES, NM } from '../nucleo/calendario.js';
 import { claudeUse } from './arquivo.js';
@@ -263,9 +263,9 @@ function aplicar(d){
   if(d.ATVX && ATVX_V < CFG.atividades_v){
     const r = mesclarBaseAtividades();
     setATVX_V(CFG.atividades_v);
-    if(r.novas || r.corrigidas)
-      console.info(`cadastro de atividades atualizado: +${r.novas} atividade(s), ${r.corrigidas} corrigida(s), ${r.total} no total`);
-  } else if(!d.ATVX) setATVX_V(CFG.atividades_v);
+    if(r.novas || r.corrigidas || r.removidas)
+      console.info(`cadastro de atividades atualizado: +${r.novas} atividade(s), ${r.corrigidas} corrigida(s), -${r.removidas} retirada(s), ${r.total} no total`);
+  } else if(!d.ATVX){ setATVX_V(CFG.atividades_v); removerAtividadesRetiradas(); }
   if(d.GRUPOS_INS) setGRUPOS_INS(d.GRUPOS_INS);
   if(d.FAM_NOME) setFAM_NOME(d.FAM_NOME);
   if(d.FAM_CLASSE) setFAM_CLASSE(d.FAM_CLASSE);

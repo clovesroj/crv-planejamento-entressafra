@@ -1,5 +1,31 @@
 # Histórico de mudanças
 
+## 2.37.1 — 2026-09-23 · A22 (Dessecação) sai também do plano já salvo
+
+A A22 era a Dessecação em duplicata da A03: mesmo nome, mesma máquina (Uniport
+3030 / Drone), mesma barra de 24 m, 1,65 ha/h. Ela já tinha saído do cadastro
+base, mas isso não a tirava do documento gravado: o plano em uso continuava com
+ela, agora com o botão Remover na aba Cadastro de Atividades.
+
+Agora ela sai sozinha na leitura do documento, uma vez, com o que estiver
+lançado nela — Plano Operacional, Dimensionamento, tarifa e subtarefa de
+terceiro e realizado —, o mesmo que o botão Remover faz. A dessecação do plano
+fica na A03.
+
+- `dados/atividades.js` ganha `REMOCOES_ATIVIDADE` (hoje só `A22`), e
+  `ATIVIDADES_V` sobe para 4: é a versão que faz o documento gravado antes
+  receber a remoção.
+- Vale também para documento sem cadastro próprio de atividades: lançamento
+  órfão da A22 no `PLANO` sai do que é gravado.
+- **Área ou tratamento lançado na A22 sai do plano.** Se a dessecação estava
+  lançada nela e não na A03, lance na A03.
+
+Plano vazio segue 39.270.751,842344. Testado com um documento gravado na versão
+3 com a A22 lançada (600 ha): depois da leitura ela não está no cadastro, no
+Plano, no Dimensionamento, no realizado nem no motor; a A03 fica; e o total é
+idêntico ao do mesmo documento sem a A22. Auditoria com 45 invariantes sem
+falha, 29 abas e 132 relatórios sem erro, nenhuma "A22" na tela.
+
 ## 2.37.0 — 2026-09-23 · A função da atividade passa a ser um campo
 
 - **Função editável no detalhe da atividade.** Era só leitura, e quando o código
