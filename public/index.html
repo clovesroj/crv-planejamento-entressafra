@@ -592,8 +592,11 @@
         área de nenhum outro. O total (acima) continua dimensionando frota e horas, independente disto.</p>
       <div class="tblwrap"><table id="t_trat_extras"></table></div>
       <div class="row" style="margin-top:12px">
-        <div style="min-width:260px"><label for="sel_trat_extra">Adicionar outro tratamento a esta atividade</label>
-          <select id="sel_trat_extra"></select></div>
+        <div style="min-width:260px;position:relative"><label for="busca_trat_extra">Adicionar outro tratamento a esta atividade</label>
+          <input type="text" id="busca_trat_extra" autocomplete="off" placeholder="Buscar tratamento..."
+                 role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="lista_trat_extra">
+          <input type="hidden" id="sel_trat_extra">
+          <div class="lista-select" id="lista_trat_extra" role="listbox" hidden></div></div>
         <div style="align-self:flex-end"><button class="btn p" id="btn_trat_extra_add">Adicionar tratamento extra</button></div>
       </div>
     </div>

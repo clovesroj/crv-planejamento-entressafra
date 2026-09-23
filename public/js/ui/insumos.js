@@ -201,6 +201,17 @@ const buscaTrat = ligarBuscaSelect("#busca_trat", "#lista_trat", "#sel_trat", tr
 const buscaTratAtiv = ligarBuscaSelect("#busca_trat_ativ", "#lista_trat_ativ", "#sel_trat_ativ",
   () => atividadesLista().filter(a => a.ativo!==false || usosTrat(TRAT_SEL).includes(a.cod)),
   a => `${a.cod} — ${a.nome}${usosTrat(TRAT_SEL).includes(a.cod) ? " (vinculada)" : ""}`, a => a.cod);
+// mesmo criterio de pintarTratExtras() -- recalcula a atividade exibida e os
+// tratamentos ja usados por ela a cada tecla, em vez de guardar lista parada
+function tratExtraDisponiveis(){
+  const vinculadas = usosTrat(TRAT_SEL);
+  const exibindo = vinculadas.includes(ATIV_TRAT_SEL) ? ATIV_TRAT_SEL : (vinculadas[0] || "");
+  const p = PLANO[exibindo] || {trat:""};
+  const usados = new Set([p.trat, ...(Array.isArray(p.trats) ? p.trats : []).map(e=>e.trat)].filter(Boolean));
+  return tratListaTodos().filter(t => !usados.has(t.cod) && TRAT_ATIVO[t.cod]!==false);
+}
+const buscaTratExtra = ligarBuscaSelect("#busca_trat_extra", "#lista_trat_extra", "#sel_trat_extra",
+  tratExtraDisponiveis, t => t.cod + (TRAT_NOME[t.cod] ? " — " + TRAT_NOME[t.cod] : ""), t => t.cod);
 
 function barraRascunho(sujo, idBotao){
   return `<div class="rasc-acoes">
@@ -536,14 +547,9 @@ function pintarTratExtras(cod, p, linha){
   });
   $("#t_trat_extras").innerHTML = h + "</tbody>";
 
-  const usados = new Set([p.trat, ...extras.map(e=>e.trat)].filter(Boolean));
-  const disponiveis = tratListaTodos().filter(t=>!usados.has(t.cod) && TRAT_ATIVO[t.cod]!==false);
-  const selExtra = $("#sel_trat_extra");
-  if(selExtra) selExtra.innerHTML = disponiveis.length
-    ? disponiveis.map(t=>`<option value="${esc(t.cod)}">${rotulo(t.cod)}</option>`).join("")
-    : `<option value="">— todos os tratamentos já estão vinculados —</option>`;
+  buscaTratExtra && buscaTratExtra.limpar();
   const btnAdd = $("#btn_trat_extra_add");
-  if(btnAdd) btnAdd.disabled = !disponiveis.length;
+  if(btnAdd) btnAdd.disabled = !tratExtraDisponiveis().length;
 }
 
 /* Célula de marcação da etapa: uma caixa por etapa do plano. Sem marca, mostra
