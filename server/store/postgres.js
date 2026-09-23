@@ -59,12 +59,21 @@ function storePostgres(url) {
     // O operador || concatena jsonb, ou seja, mescla no primeiro nível — que é
     // exatamente o recorte que o app envia. Resolvido dentro do próprio UPDATE,
     // e não em ler-alterar-gravar, duas sessões salvando junto não se apagam.
+    // P (premissas) é a exceção: vem só com os campos que a sessão mudou, e é
+    // fundido campo a campo no P gravado — senão uma sessão que mexeu no diesel
+    // regravaria a área de tratos que outra acabou de salvar.
     async mesclar(doc) {
       await garantirTabela();
       return linha(await pool.query(
         `INSERT INTO plano (id, data) VALUES ($1, $2::jsonb)
            ON CONFLICT (id) DO UPDATE
-           SET data = plano.data || EXCLUDED.data, updated_at = now()
+           SET data = plano.data || EXCLUDED.data
+                   || CASE WHEN jsonb_typeof(EXCLUDED.data->'P') = 'object'
+                           THEN jsonb_build_object('P',
+                                  (CASE WHEN jsonb_typeof(plano.data->'P') = 'object' THEN plano.data->'P' ELSE '{}'::jsonb END)
+                                  || (EXCLUDED.data->'P'))
+                           ELSE '{}'::jsonb END,
+               updated_at = now()
          RETURNING data, updated_at`,
         [DOC_ID, JSON.stringify(doc)]));
     },

@@ -143,6 +143,16 @@ header.topbar{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(
 
 /* ---------- área de conteúdo ---------- */
 main{width:100%;max-width:1440px;margin:0 auto;padding:26px 28px 64px}
+/* Telas de tabela larga usam a janela inteira: com doze colunas de mes mais a
+   identificacao, 1440 px viravam rolagem horizontal em monitor que tinha espaco
+   de sobra. Quem esta na tela e a section com a classe .on (ver logo abaixo), e
+   nao o atributo hidden. O limite de leitura continua valendo para texto: .lead
+   fica em 80ch. */
+main:has(> section#dimens.on),
+main:has(> section#plano.on),
+main:has(> section#pessoas.on),
+main:has(> section#resumofrota.on),
+main:has(> section#acomp.on){max-width:2200px;padding-left:20px;padding-right:20px}
 section{display:none}
 section.on{display:block;animation:entra .18s ease-out}
 @keyframes entra{from{opacity:.5;transform:translateY(3px)}to{opacity:1;transform:none}}
