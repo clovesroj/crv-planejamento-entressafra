@@ -81,20 +81,32 @@ function filtrarPorNome(tabelaId, termo){
   const tab = $(tabelaId);
   if(!tab) return;
   const t = (termo||"").trim().toLowerCase();
-  let grupo = null, grupoTemMatch = false;
-  // sem termo, nada se esconde: grupo recolhido nao tem linha dentro, e esconder
-  // a faixa por isso tiraria da tela justamente o que se clica para reabrir
-  const fecharGrupo = () => { if(grupo) grupo.hidden = t ? !grupoTemMatch : false; };
+  /* Pilha de faixas abertas: a do grupo (.stage) e, dentro dela, a do subgrupo
+     (.stage2 — o tipo de gente dentro da etapa, no Resumo de Pessoas). Faixa
+     some quando nada dentro dela bateu, e o que bate no subgrupo conta para o
+     grupo de fora, senao a etapa sumiria levando junto o que o usuario achou.
+     Sem termo, nada se esconde: grupo recolhido nao tem linha dentro, e
+     esconder a faixa por isso tiraria da tela justamente o que se clica para
+     reabrir. */
+  const pilha = [];
+  const fechar = ate => {
+    while(pilha.length > ate){
+      const g = pilha.pop();
+      g.tr.hidden = t ? !g.bate : false;
+      if(pilha.length && g.bate) pilha[pilha.length-1].bate = true;
+    }
+  };
   [...tab.querySelectorAll("tbody tr")].forEach(tr=>{
-    if(tr.classList.contains("stage")){ fecharGrupo(); grupo = tr; grupoTemMatch = false; return; }
+    const nivel = tr.classList.contains("stage") ? 1 : tr.classList.contains("stage2") ? 2 : 0;
+    if(nivel){ fechar(nivel-1); pilha.push({tr, bate:false}); return; }
     if(tr.children[0] && tr.children[0].classList.contains("tot")){ tr.hidden = false; return; }
     const detalhe = tr.classList.contains("sub") || (tr.children.length===1 && tr.children[0].hasAttribute("colspan"));
     if(detalhe){ const mae = tr.previousElementSibling; tr.hidden = mae ? mae.hidden : false; return; }
     const bate = !t || textoDaLinha(tr).toLowerCase().includes(t);
     tr.hidden = !bate;
-    if(bate) grupoTemMatch = true;
+    if(bate && pilha.length) pilha[pilha.length-1].bate = true;
   });
-  fecharGrupo();
+  fechar(0);
 }
 /* Acha toda caixa de busca já na tela (marcada com a classe, aponta a tabela
    pelo data-alvo) e reaplica o termo que já estava digitado nela. Chamado uma

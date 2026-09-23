@@ -3,7 +3,7 @@ import { agDeLinha, contaOrigem, rotuloItem } from '../calculo/crm.js';
 import { ADM_CRITERIOS, ADM_GRUPOS } from '../dados/administrativo.js';
 import { ARR_FORMAS, ETAPAS_ORD, arrRat } from '../calculo/arrendamento.js';
 import { FORN_MODALIDADES } from '../dados/fornecedores.js';
-import { deptIdx, necessidadePorAtividade } from '../calculo/pessoas.js';
+import { deptIdx, janelaDaLinha, necessidadePorAtividade } from '../calculo/pessoas.js';
 import { GERENCIAS, criterioPorMes, excecoes, execucao, metasDeFrota, metasPorAtividade, porGerencia } from '../calculo/acompanhamento.js';
 import { CFG } from '../dados/cfg.js';
 import { CAT_LBL, MESES, NM, PERIODOS, periodoMes } from '../nucleo/calendario.js';
@@ -290,11 +290,12 @@ const pessoasDept = R => secP("Pessoas por depto","Pessoas por departamento",
    pode ter uma conta impressa e outra na tela. */
 const pessoasAtividade = R => secP("Pessoas por atividade",
   "Necessidade de pessoas — etapa, atividade e função, mês a mês",
-  ["Etapa","Cod","Atividade ou origem","Cod função","Função",
+  ["Etapa","Tipo de gente","Cod","Atividade ou origem","Cod função","Função","Início","Fim",
    ...REC.meses.map(i=>MESES[i]), REC.parcial?"Pico no período":"Pico","Custo MDO no período"],
-  R.PS ? necessidadePorAtividade(R.PS).map(l=>[l.dept, l.cod||"—", l.origem, l.fcod, l.fnome,
-      ...REC.meses.map(i=>fmt(l.qtdMes[i])), fmt(picoP(l.qtdMes)), brl(noPer(l.custoMes))])
-    .concat([["TOTAL","","","","", ...REC.meses.map(i=>fmt(R.PS.qtdMes[i])),
+  R.PS ? necessidadePorAtividade(R.PS).map(l=>{ const j = janelaDaLinha(l);
+      return [l.dept, l.categoria, l.cod||"—", l.origem, l.fcod, l.fnome, j.ini, j.fim,
+        ...REC.meses.map(i=>fmt(l.qtdMes[i])), fmt(picoP(l.qtdMes)), brl(noPer(l.custoMes))]; })
+    .concat([["TOTAL","","","","","","","", ...REC.meses.map(i=>fmt(R.PS.qtdMes[i])),
       fmt(picoP(R.PS.qtdMes)), brl(noPer(R.PS.custoMes))]]) : []);
 const fluxoMdo = R => secP("Fluxo MDO","Fluxo mensal — pessoas e custo de mão de obra",
   ["Mês","Período","Pessoas","Custo MDO","Acumulado"],

@@ -1,5 +1,6 @@
 import { criterioMensal } from './atividade.js';
 import { CFG } from '../dados/cfg.js';
+import { CATEGORIAS_FUNCAO, CATEGORIA_OUTRAS } from '../dados/mao-de-obra.js';
 import { MESES, NM } from '../nucleo/calendario.js';
 import { num } from '../nucleo/formato.js';
 import { ETAPAS_ORD } from './arrendamento.js';
@@ -9,6 +10,15 @@ const DEPTS_ORD = [...ETAPAS_ORD, "MANUTENÇÃO", "ESTRUTURA AGRÍCOLA"];
 function deptIdx(d){ const i = DEPTS_ORD.indexOf(d); return i<0 ? 99 : i; }
 // Reúne cada fonte de efetivo do plano numa lista única (departamento, função, pessoas e custo por mês).
 // Usa os mesmos números das abas de origem, para o total conferir com a mão de obra da aba Custos.
+/* Categoria operacional de uma funcao, pelo nome do cargo. Sem acento e em
+   maiuscula para a comparacao nao depender de como o ERP escreveu. */
+function categoriaDaFuncao(nome){
+  const n = String(nome||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toUpperCase();
+  const c = CATEGORIAS_FUNCAO.find(c => c.tem.some(t => n.includes(t)));
+  return c ? c.nome : CATEGORIA_OUTRAS;
+}
+const ordemCategoria = c => { const i = CATEGORIAS_FUNCAO.findIndex(x=>x.nome===c); return i<0 ? CATEGORIAS_FUNCAO.length : i; };
+
 function pessoasCalc(R){
   const MP = R.MP, itens = [];
   const nomeF = c => (MP.custoFuncao[c]||{nome:c}).nome;
@@ -17,8 +27,9 @@ function pessoasCalc(R){
   // e por ele que a necessidade de gente volta a conversar com o Plano
   // Operacional e com o Dimensionamento. Apoio, manutencao e estrutura nao tem
   // atividade, e ficam sem codigo.
-  const add = (dept, fcod, origem, qtd, qtdMes, custoMes, cod) => itens.push({dept, fcod, fnome:nomeF(fcod), origem,
-    cod: cod || "", qtd, qtdMes, custoMes, custo:custoMes.reduce((s,x)=>s+x,0)});
+  const add = (dept, fcod, origem, qtd, qtdMes, custoMes, cod, janela) => itens.push({dept, fcod, fnome:nomeF(fcod), origem,
+    cod: cod || "", janela: janela || null, categoria: categoriaDaFuncao(nomeF(fcod)),
+    qtd, qtdMes, custoMes, custo:custoMes.reduce((s,x)=>s+x,0)});
 
   // atividades do plano: a equipe conta nos meses com quantidade; o custo segue a quantidade do mês
   R.L.forEach(r=>{
@@ -34,7 +45,10 @@ function pessoasCalc(R){
     r.partes.forEach(p=>{
       if(p.terc || !(p.efetivo>0)) return;
       add(r.a.etapa, p.fcod, r.a.nome, p.efetivo,
-          r.meses.map((q,i)=>num(q)>0 ? Math.ceil(p.efetivo*fatorMes(i)) : 0), (p.mdoMes||[]).slice(), r.a.cod);
+          r.meses.map((q,i)=>num(q)>0 ? Math.ceil(p.efetivo*fatorMes(i)) : 0), (p.mdoMes||[]).slice(), r.a.cod,
+          // a janela diz quando a frente comeca e termina: sem ela, uma coluna
+          // cheia de gente parece mes inteiro ocupado (ver ui/pessoas.js)
+          r.janela ? {fonte:r.janela.fonte, ini:r.janela.ini||"", fim:r.janela.fim||""} : null);
     });
   });
   // reserva do transporte de cana que o efetivo total soma à parte (sem custo de MDO próprio no modelo)
@@ -90,16 +104,34 @@ function necessidadePorAtividade(PS){
   PS.itens.forEach(it=>{
     const k = [it.dept, it.cod, it.origem, it.fcod].join("|");
     const o = g[k] = g[k] || {dept:it.dept, cod:it.cod, origem:it.origem, fcod:it.fcod, fnome:it.fnome,
+                              categoria:it.categoria, janela:it.janela,
                               qtd:0, qtdMes:Array(NM).fill(0), custoMes:Array(NM).fill(0)};
     o.qtd += it.qtd;
     it.qtdMes.forEach((v,i)=>{ o.qtdMes[i] += v; o.custoMes[i] += it.custoMes[i]; });
   });
   return Object.values(g)
     .map(o=>({...o, pico: Math.max(...o.qtdMes), custo: o.custoMes.reduce((s,x)=>s+x,0)}))
+    // etapa, depois TIPO de gente (operador, motorista, ...), depois a atividade:
+    // e assim que a escala e montada, e nao pela ordem do cadastro
     .sort((a,b)=> deptIdx(a.dept) - deptIdx(b.dept)
+               || ordemCategoria(a.categoria) - ordemCategoria(b.categoria)
                || a.cod.localeCompare(b.cod)
                || a.origem.localeCompare(b.origem)
                || a.fcod.localeCompare(b.fcod));
 }
 
-export { DEPTS_ORD, deptIdx, necessidadePorAtividade, pessoasCalc };
+/* Quando a frente comeca e termina, em texto. Data lancada na atividade manda
+   (e ela que diz "acaba no dia 12"); sem data, valem o primeiro e o ultimo mes
+   com gente. Mora aqui porque a tela e o relatorio impresso mostram a mesma
+   coisa -- duas contas dariam duas respostas para a mesma pergunta. */
+function janelaDaLinha(l){
+  const d = iso => { const p = String(iso||"").split("-"); return p.length===3 ? `${p[2]}/${p[1]}/${p[0].slice(2)}` : ""; };
+  if(l.janela && l.janela.fonte === "datas" && l.janela.ini && l.janela.fim)
+    return {ini: d(l.janela.ini), fim: d(l.janela.fim), dica: "datas lançadas na atividade"};
+  const com = l.qtdMes.map((v,i)=>v>0?i:-1).filter(i=>i>=0);
+  if(!com.length) return {ini:"—", fim:"—", dica:""};
+  return {ini: MESES[com[0]], fim: MESES[com[com.length-1]],
+          dica: "meses com gente; a atividade não tem data lançada"};
+}
+
+export { DEPTS_ORD, categoriaDaFuncao, deptIdx, janelaDaLinha, necessidadePorAtividade, pessoasCalc };

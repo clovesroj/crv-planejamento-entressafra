@@ -103,6 +103,17 @@ tbody tr:has(> td.tot:first-child) td{background:var(--sunk);border-top:1px soli
 tr.stage td{background:var(--leaf-strong);color:#fff;font-family:var(--f-display);font-weight:600;font-size:13px;
   text-transform:uppercase;letter-spacing:.9px;padding:7px 12px}
 tbody tr.stage:hover td{background:var(--leaf-strong)}
+/* Faixa de subgrupo: um nivel abaixo da faixa de etapa, dentro dela. Mais clara
+   e recuada, para o olho ler "isto esta dentro daquilo" sem precisar contar
+   linha. Usada no Resumo de Pessoas para separar operador de motorista dentro
+   da mesma etapa. */
+tr.stage2 td{background:var(--leaf-soft);color:var(--leaf-strong);font-weight:700;font-size:11.5px;
+  text-transform:uppercase;letter-spacing:.6px;padding:5px 12px;
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+tbody tr.stage2:hover td{background:var(--leaf-soft)}
+tr.stage2 td:first-child{padding-left:26px}
+/* marca de mes parcial: a janela da atividade cobre so parte do mes */
+.parc{color:var(--warn);font-size:9px;margin-left:3px;vertical-align:super;cursor:help}
 /* faixa que dobra o grupo: o cursor avisa que ela e clicavel */
 tr.stage[data-fam] td{cursor:pointer;user-select:none}
 tr.stage[data-fam]:focus-visible td{outline:2px solid #fff;outline-offset:-3px}

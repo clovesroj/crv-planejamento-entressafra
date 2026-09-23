@@ -1,4 +1,5 @@
-import { deptIdx, necessidadePorAtividade } from '../calculo/pessoas.js';
+import { deptIdx, janelaDaLinha, necessidadePorAtividade } from '../calculo/pessoas.js';
+import { diasDoMes } from '../calculo/atividade.js';
 import { ajusteQuadro, ativoDe, quadroBase } from '../calculo/quadro.js';
 import { CFG } from '../dados/cfg.js';
 import { QUADRO } from '../nucleo/estado.js';
@@ -170,40 +171,59 @@ function pintarPessoas(R){
     `<tr><td class="calc">Pessoas no mês</td>`+tdMeses(S.qtdMes, v=>fmt(v))+`<td></td></tr></tbody>`;
   barras($("#ch_pes"), MESES.map((m,i)=>({l:m, v:S.custoMes[i]})), "#2A57A0");
 
-  /* ---------- NECESSIDADE POR ETAPA, ORIGEM E FUNCAO, MES A MES ----------
+  /* ---------- NECESSIDADE POR ETAPA, TIPO DE GENTE, ORIGEM E FUNCAO ----------
      O quadro por funcao responde "quantos motoristas preciso ter". Esta tabela
      responde a que vem logo depois, e que e a que monta escala: de onde vem
-     cada um -- em que etapa, em que atividade, em que mes.
+     cada um -- em que etapa, que tipo de gente, em que atividade, em que mes.
 
-     A faixa da etapa E o subtotal dela: nome a esquerda e o total da etapa em
-     cada mes, na mesma coluna das linhas de baixo. Subtotal em linha propria
-     no fim do grupo ficaria longe do nome e, com busca por nome, apareceria
-     sozinho sem as linhas que soma.
+     Dois niveis de faixa, e cada uma e o subtotal dela: a etapa por fora e o
+     TIPO DE GENTE por dentro (operador, motorista, manutencao...). Operador e
+     motorista sao quadros diferentes -- habilitacao, treinamento e escala nao
+     se misturam --, e somados na mesma etapa nao respondiam nada.
 
-     Sem custo: o custo de mao de obra tem tabela propria no Fluxo mensal, e
-     aqui a pergunta e de gente, nao de dinheiro. */
+     Inicio e fim dizem quando a frente comeca e termina. Sem eles, uma coluna
+     de mes cheia de gente parece mes inteiro ocupado, e nao e: uma atividade
+     acaba no dia 12 e a seguinte comeca no 13, com a mesma turma. Mes que a
+     janela corta no meio vem marcado. */
   const det = necessidadePorAtividade(S);
-  const nCols = NM + 4;
-  let etapa = "", corpoDet = "";
+  const nCols = NM + 6;
+  const celMes = (l, v, i) => {
+    if(!(v>0)) return '<span class="calc">—</span>';
+    const D = l.janela && l.janela.fonte==="datas" ? diasDoMes(i, l.janela) : null;
+    return D && D.parcial
+      ? `${fmt(v)}<span class="parc" title="${MESES[i]}: a janela cobre ${fmt(D.corridos)} dos ${fmt(D.cheio)} dias. A turma não fica o mês inteiro nesta frente.">◗</span>`
+      : fmt(v);
+  };
+  const linhaFaixa = (classe, rotulo, porMes, colspan) =>
+    `<tr class="${classe}"><td colspan="${colspan}"><span>${esc(rotulo)}</span></td>` +
+    tdMeses(porMes, v=>v?fmt(v):"—", "num") +
+    `<td class="num">${fmt(maxSel(porMes, SEL))}</td></tr>`;
+  const somaMes = lista => MESES.map((m,i)=>lista.reduce((acc,x)=>acc+x.qtdMes[i],0));
+
+  let etapa = "", categoria = "", corpoDet = "";
   det.forEach(l=>{
     if(l.dept !== etapa){
-      etapa = l.dept;
-      const daEtapa = det.filter(x=>x.dept===etapa);
-      const porMes = MESES.map((m,i)=>daEtapa.reduce((s,x)=>s+x.qtdMes[i],0));
-      corpoDet += `<tr class="stage"><td colspan="3"><span>${esc(etapa)}</span></td>` +
-        tdMeses(porMes, v=>v?fmt(v):"—", "num") +
-        `<td class="num">${fmt(maxSel(porMes, SEL))}</td></tr>`;
+      etapa = l.dept; categoria = "";
+      corpoDet += linhaFaixa("stage", etapa, somaMes(det.filter(x=>x.dept===etapa)), 5);
     }
+    if(l.categoria !== categoria){
+      categoria = l.categoria;
+      corpoDet += linhaFaixa("stage2", categoria,
+        somaMes(det.filter(x=>x.dept===etapa && x.categoria===categoria)), 5);
+    }
+    const {ini, fim, dica} = janelaDaLinha(l);
     corpoDet += `<tr><td class="calc">${esc(l.cod||"—")}</td><td>${esc(l.origem)}</td>
-      <td class="calc">${esc(l.fcod)} — ${esc(l.fnome)}</td>` +
-      tdMeses(l.qtdMes, v=> v>0 ? fmt(v) : '<span class="calc">—</span>', "num") +
+      <td class="calc">${esc(l.fcod)} — ${esc(l.fnome)}</td>
+      <td class="calc"${dica?` title="${esc(dica)}"`:""}>${esc(ini)}</td>
+      <td class="calc"${dica?` title="${esc(dica)}"`:""}>${esc(fim)}</td>` +
+      tdMeses(l.qtdMes, (v,i)=>celMes(l, v, i), "num") +
       `<td class="num tot">${fmt(maxSel(l.qtdMes, SEL))}</td></tr>`;
   });
-  $("#t_pes_det").innerHTML = th([["Cod"],["Origem"],["Função"],...thMeses(),
+  $("#t_pes_det").innerHTML = th([["Cod"],["Origem"],["Função"],["Início",1],["Fim",1],...thMeses(),
       [SEL.parcial?"Pico no período":"Pico",1]])+"<tbody>"+
     (det.length ? corpoDet
       : `<tr><td colspan="${nCols}" class="calc">Sem efetivo: lance quantidades no Plano Operacional.</td></tr>`)+
-    `<tr><td class="tot" colspan="3">NECESSIDADE TOTAL NO MÊS</td>` +
+    `<tr><td class="tot" colspan="5">NECESSIDADE TOTAL NO MÊS</td>` +
     tdMeses(S.qtdMes, v=>fmt(v), "num tot") +
     `<td class="num tot">${fmt(maxSel(S.qtdMes, SEL))}</td></tr></tbody>`;
 }
