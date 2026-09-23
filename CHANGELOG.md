@@ -27,7 +27,7 @@ Agora A39 e A19 vão **junto da A10**:
   leva junto.
 - **Aba Insumos** — ao abrir o tratamento da A39 ou da A19, a área e as datas
   aparecem só para leitura (são as da A10), sem editor de modo de execução.
-- **Modo de execução** — liberado para toda atividade na 2.37 (as 6 opções), não
+- **Modo de execução** — liberado para toda atividade hoje (as 6 opções, `93554aa`), não
   aparece na A39 nem na A19: a máquina é a da A10.
 - **ha-operação** — A39 e A19 não somam de novo o hectare que a A10 já contou.
 - **Rastro** da A39 e da A19 — mostra a área, o tratamento e aponta para a A10
