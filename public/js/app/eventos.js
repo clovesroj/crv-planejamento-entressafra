@@ -6,6 +6,7 @@ import { codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, d
   renomearGrupoInsumo, renomearTrat, setClasseGrupo, todasFamilias, tratCodigos, usosTrat } from '../calculo/insumos.js';
 import { codigoAtividadeValido, criarAtividade, removerAtividade } from '../calculo/atividade.js';
 import { CFG } from '../dados/cfg.js';
+import { ATIVIDADES_ERP } from '../dados/atividades-erp.js';
 import { buscarAgrofit, bulaDoProduto } from '../io/agrofit.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
@@ -309,11 +310,20 @@ document.addEventListener("change",e=>{
      de pessoal. Guarda a marcacao explicita (true/false) para nao depender do
      padrao da especialidade depois que alguem decidiu na tela. */
   // acrescentar uma atividade do ERP ao plano
-  if(t.dataset.apadd!==undefined){ const c=t.dataset.apadd, k=t.value;
-    if(k){ DIM[c]=DIM[c]||{}; DIM[c].apoioX=DIM[c].apoioX||[];
+  if(t.dataset.apadd!==undefined){ const c=t.dataset.apadd;
+    // o campo e de consulta: aceita o codigo, ou "codigo — nome" colado
+    const k = String(t.value||"").trim().split(/[^0-9]/)[0];
+    if(!k || !ATIVIDADES_ERP.some(a=>a.cod===k)){ return; }
+    DIM[c]=DIM[c]||{};
+    // trazer de volta o que tinha sido tirado; senao, entra como acrescentada
+    if(Array.isArray(DIM[c].apoioOff) && DIM[c].apoioOff.includes(k)){
+      DIM[c].apoioOff = DIM[c].apoioOff.filter(x=>x!==k);
+      if(!DIM[c].apoioOff.length) delete DIM[c].apoioOff;
+    }else{
+      DIM[c].apoioX = DIM[c].apoioX || [];
       if(!DIM[c].apoioX.includes(k)) DIM[c].apoioX.push(k);
-      salvar(); render(); }
-    return; }
+    }
+    t.value = ""; salvar(); render(); return; }
   if(t.dataset.apsp!==undefined){ const c=t.dataset.apsp, k=t.dataset.erp;
     DIM[c]=DIM[c]||{}; DIM[c].apoioSP=DIM[c].apoioSP||{};
     DIM[c].apoioSP[k]=t.checked;
@@ -606,15 +616,24 @@ document.addEventListener("click",e=>{
   if((e.target.closest && e.target.closest("#am_fechar")) || e.target.id==="apoiomes_fundo"){
     setAPOIO_DET(null); renderApoioMes(); return; }
   // tirar do plano uma atividade acrescentada na tela
+  /* Tirar do plano qualquer atividade de apoio — a do catalogo do ERP tambem.
+     A acrescentada na tela some da lista de extras; a do catalogo entra na
+     lista de tiradas (apoioOff), que e o que a faz sumir do plano sem mexer no
+     catalogo. Nos dois casos a quantidade, o mes e a marcacao dela vao junto. */
   const arm = e.target.closest && e.target.closest("[data-aprm]");
   if(arm){ const c=arm.dataset.aprm, k=arm.dataset.erp;
-    if(DIM[c] && Array.isArray(DIM[c].apoioX)){
+    DIM[c]=DIM[c]||{};
+    const extra = Array.isArray(DIM[c].apoioX) && DIM[c].apoioX.includes(k);
+    if(extra){
       DIM[c].apoioX = DIM[c].apoioX.filter(x=>x!==k);
       if(!DIM[c].apoioX.length) delete DIM[c].apoioX;
-      if(DIM[c].apoio) delete DIM[c].apoio[k];
-      if(DIM[c].apoioSP) delete DIM[c].apoioSP[k];
-      if(DIM[c].apoioM) delete DIM[c].apoioM[k];
+    }else{
+      DIM[c].apoioOff = DIM[c].apoioOff || [];
+      if(!DIM[c].apoioOff.includes(k)) DIM[c].apoioOff.push(k);
     }
+    if(DIM[c].apoio) delete DIM[c].apoio[k];
+    if(DIM[c].apoioSP) delete DIM[c].apoioSP[k];
+    if(DIM[c].apoioM) delete DIM[c].apoioM[k];
     salvar(); render(); return; }
   const dd = e.target.closest && e.target.closest("[data-dimdet]");
   if(dd){ setDIM_DET({cod: dd.dataset.dimdet, aba: dd.dataset.aba || "oper"});

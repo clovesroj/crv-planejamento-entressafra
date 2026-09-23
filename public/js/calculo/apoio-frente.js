@@ -44,14 +44,18 @@ const FUNCAO_POR_ESP = {
 const tipoDaEsp = esp =>
   ESP_PESSOA.includes(esp) ? "pessoa" : ESP_ESTRUTURA.includes(esp) ? "estrutura" : "maquina";
 
-/* Apoio que o plano usa: o do catalogo do ERP mais o que a pessoa acrescentou
-   na tela (DIM[cod].apoioX). O ERP diz o que costuma compor a frente; quem
-   monta o plano sabe o que aquela frente vai usar de verdade. */
+/* Apoio que o plano usa: o do catalogo do ERP, mais o que a pessoa acrescentou
+   (apoioX), menos o que ela tirou (apoioOff). O ERP diz o que COSTUMA compor a
+   frente; quem monta o plano decide o que aquela frente vai usar — inclusive
+   tirar do plano um item que o catalogo traz. A atividade que faz a operacao
+   (o nucleo) nao sai: sem ela nao ha frente. */
 const PorCodErp = Object.fromEntries(ATIVIDADES_ERP.map(a=>[a.cod, a]));
 function apoioDoPlano(cod){
-  const base = erpDe(cod).apoio;
-  const extras = ((DIM[cod] || {}).apoioX || [])
-    .filter(c => !base.some(e=>e.cod===c))
+  const d = DIM[cod] || {};
+  const fora = new Set(d.apoioOff || []);   // tirada do plano pela tela
+  const base = erpDe(cod).apoio.filter(e => !fora.has(e.cod));
+  const extras = (d.apoioX || [])
+    .filter(c => !base.some(e=>e.cod===c) && !fora.has(c))
     .map(c => PorCodErp[c]).filter(Boolean);
   return base.concat(extras);
 }
