@@ -1,5 +1,27 @@
 # Histórico de mudanças
 
+## 2.39.0 — 2026-09-23 · Quando a frente começa e termina, e motorista longe de operador
+
+Na tabela de necessidade por origem, duas coisas que a coluna de mês não contava.
+
+- **Início e fim.** Uma coluna cheia de gente dava a entender mês inteiro
+  ocupado, e não é: uma atividade acaba no dia 12 e a seguinte começa no 13, com
+  a mesma turma. Entraram duas colunas com o começo e o fim da frente — a data
+  lançada na atividade quando há; sem data, o primeiro e o último mês com gente.
+  E o mês que a janela corta no meio vem **marcado**, com o título dizendo
+  quantos dos dias do mês a frente cobre.
+- **Motorista não é operador.** Dentro da etapa, uma segunda faixa separa por
+  **tipo de gente**, com subtotal próprio: operadores de máquina, motoristas,
+  manutenção, equipe de campo, liderança e apoio técnico. São quadros diferentes
+  — habilitação, treinamento, escala e negociação não se misturam —, e a
+  contratação se faz por um ou por outro, nunca pela soma. Na colheita do
+  cenário de teste: 332 operadores e 112 motoristas, que antes eram só 444.
+- A categoria sai do nome do cargo do ERP, por palavra: "MOTORISTA LIDER" cai em
+  Motoristas e "OP. DE MAQUINAS AGRICOLAS LIDER" em Operadores. Cargo que não
+  casar com nenhuma aparece em "Outras funções", em vez de sumir.
+- A busca por nome aprendeu o segundo nível, e o relatório **Necessidade de
+  Pessoas** ganhou as mesmas colunas.
+
 ## 2.38.0 — 2026-09-23 · Adubação de fundação e inseticida do plantio vão na plantadora
 
 A plantadora faz três coisas na mesma passada: planta (A10), aduba o sulco (A39,
