@@ -1,5 +1,28 @@
 # Histórico de mudanças
 
+## 2.40.0 — 2026-09-23 · A plantadora é de um operador
+
+Uma frente de 10 conjuntos de plantio, três turnos, escala 5x1 com folguista,
+mostrava **72 operadores onde precisa de 36** — e pagava os 72 na folha. A conta
+é `frota × operadores por equipamento × turnos × fator de escala`, e o
+"operadores por equipamento" da A10 estava **2** no cadastro base.
+
+- **Cadastro corrigido**: A10 (Plantio) passa de 2 para 1 operador. Como o merge
+  da base só acrescenta atividade nova, entra também na lista de correções, com a
+  versão subindo — só assim o plano já gravado recebe o conserto. Quem tiver
+  ajustado à mão para outro valor fica como está.
+- **A conta aparece no modal**: *"Como se chega ao efetivo: 10 × 1 × 3 × 1,20 =
+  36"*. O número saía de quatro fatores e nenhum deles estava na tela.
+- **Operadores por equipamento vira ajuste da atividade**, ao lado de escala e
+  turnos: em branco vale o do cadastro, preenchido vale o da frente — o mesmo
+  desenho de rendimento e utilização.
+
+**Impacto em custo:** no plano vazio nada muda (39.270.751,842344 antes e depois
+— sem volume, a frente não é paga). Num plano de teste com volume em toda
+atividade, o efetivo da A10 cai de 10 para 5, a mão de obra dela de R$ 292.018
+para R$ 146.009, e o total do plano cai o mesmo valor. No plano de verdade o
+efeito é proporcional à frota e aos turnos lançados no plantio.
+
 ## 2.39.0 — 2026-09-23 · Quando a frente começa e termina, e motorista longe de operador
 
 Na tabela de necessidade por origem, duas coisas que a coluna de mês não contava.
