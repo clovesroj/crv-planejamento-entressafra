@@ -169,30 +169,71 @@ function opcoesFuncao(sel){
    tem gente. */
 function temFrente(r){ const E = erpDe(r.a.cod); return !!(E.nucleo.length || E.apoio.length); }
 
+/* Mes a mes de um item da frente, aberto na propria linha dele — o mesmo chip
+   do mes da atividade, com a quantidade daquele item em cada mes. */
+const FRENTE_MES = {};
+function alternarMesItem(chave){ if(FRENTE_MES[chave]) delete FRENTE_MES[chave]; else FRENTE_MES[chave]=true; }
+
+/* Tudo o que a atividade precisa para acontecer, em LINHA, nas mesmas colunas
+   da atividade: o NUCLEO (a maquina que faz, com a frota que o dimensionamento
+   calculou) e o APOIO (pipa, area de vivencia, onibus, auxiliar), com a
+   quantidade lancada na coluna Frota e o efetivo saindo dela.
+
+   Em linha, e nao em cartao, porque e assim que se preenche uma tabela: a
+   coluna Frota e a mesma da atividade, o botao de mes abre os meses do item, e
+   o olho desce a coluna em vez de caçar campo dentro de cartao.
+
+   Item de gente (auxiliar rural) conta por TURNO: dois auxiliares numa frente
+   de tres turnos sao seis pessoas. "sem gente" tira o item da conta de pessoal
+   sem tirar o equipamento — area de vivencia e gerador ja nascem assim. */
 function linhaDaFrente(r){
   const E = erpDe(r.a.cod);
   const AP = apoioDaAtividade(r);
   const porErp = Object.fromEntries(AP.map(x=>[x.erp, x]));
+  const dim = DIM[r.a.cod] || {};
   const semVolume = !(r.total > 0);
-  const item = (e, nucleo) => {
+  const linhaItem = (e, nucleo) => {
     const x = porErp[e.cod];
-    const lanc = ((DIM[r.a.cod]||{}).apoio||{})[e.cod];
-    const corpo = nucleo
-      ? `<span class="calc">${fmt(frotaDaAtividade(r).pico)} equip. · do dimensionamento</span>`
+    const chave = r.a.cod+"|"+e.cod;
+    const lanc = (dim.apoio||{})[e.cod];
+    const meses = x ? x.qtdMes : [];
+    const temMes = meses.some(v=>v>0);
+    const frota = nucleo
+      ? `<span class="dim-val calc" title="Vem do dimensionamento da atividade">${fmt(frotaDaAtividade(r).pico)}</span>`
       : `<input data-apfr="${esc(r.a.cod)}" data-erp="${esc(e.cod)}" value="${lanc||""}"
-           placeholder="1" inputmode="decimal" title="${x && x.tipo==="pessoa"
-             ? "Pessoas por turno nesta frente" : "Equipamentos desta frente"}">
-         <span class="calc">${x ? (x.tipo==="pessoa" ? fmt(x.pessoas)+" pessoas"
-            : x.tipo==="estrutura" ? fmt(x.frota)+" un., sem gente"
-            : fmt(x.frota)+" equip. · "+fmt(x.pessoas)+" pessoas") : ""}</span>`;
-    return `<span class="dim-frente${nucleo?" nucleo":""}">
-      <b>${esc(e.nome)}</b>
-      <span class="calc">${esc(e.cod)}${e.esp.length?" · esp. "+e.esp.map(esc).join(", "):""}</span>
-      <span class="dim-cel">${corpo}</span></span>`;
+           placeholder="1" inputmode="decimal"
+           title="${x && x.tipo==="pessoa" ? "Pessoas por turno nesta frente" : "Equipamentos desta frente"}">`;
+    const efetivo = nucleo
+      ? `<span class="dim-val calc">${fmt(pessoasDaAtividade(r).pico)}</span>`
+      : `<span class="dim-val ${x && x.pessoas ? "" : "calc"}">${x ? fmt(x.pessoas) : "—"}</span>
+         <label class="dim-sp" title="Equipamento sem gente escalada — continua contando como frota e sai da conta de pessoal">
+           <input type="checkbox" data-apsp="${esc(r.a.cod)}" data-erp="${esc(e.cod)}"
+             ${x && !x.temGente ? "checked" : ""}> sem gente</label>`;
+    return `<tr class="sub frente-linha">
+      <td class="calc">${esc(e.cod)}</td>
+      <td class="calc">${nucleo?"":"↳ "}${esc(e.nome)}
+        <span class="badge ${nucleo?"b-ok":"b-warn"}">${nucleo?"núcleo":"apoio"}</span></td>
+      <td class="calc">${e.esp.length?"esp. "+e.esp.map(esc).join(", "):"—"}</td>
+      <td class="calc">—</td>
+      <td><div class="dim-cel">${temMes
+        ? `<button class="btn xs" data-apmes="${esc(chave)}" aria-expanded="${FRENTE_MES[chave]?"true":"false"}"
+             title="Mês a mês deste item, na janela da frente">mês ${FRENTE_MES[chave]?"▴":"▾"}</button>`
+        : '<span class="calc">—</span>'}</div></td>
+      <td><div class="dim-cel">${frota}</div></td>
+      <td><div class="dim-cel">${efetivo}</div></td></tr>`
+      + (FRENTE_MES[chave] && x ? mesesDoItem(x) : "");
   };
-  const corpo = E.nucleo.map(e=>item(e,true)).join("") + E.apoio.map(e=>item(e,false)).join("");
-  return `<tr class="sub"><td colspan="7"><div class="dim-meses">${corpo}</div>${
-    semVolume ? '<div class="calc" style="margin-top:6px">Sem volume lançado: a frente só passa a contar quando a atividade tiver quantidade no Plano Operacional.</div>' : ""}</td></tr>`;
+  const cabeca = `<tr class="sub frente-cab"><td colspan="7"><b>A frente de ${esc(r.a.nome)}</b>
+    <span class="calc">— o que ela usa para acontecer. Quantidade em branco vale 1.${
+      semVolume ? " Sem volume lançado no Plano Operacional, a frente ainda não conta." : ""}</span></td></tr>`;
+  return cabeca + E.nucleo.map(e=>linhaItem(e,true)).join("") + E.apoio.map(e=>linhaItem(e,false)).join("");
+}
+
+function mesesDoItem(x){
+  const chips = x.qtdMes.map((v,i)=> v>0
+    ? `<span class="dim-mes"><b>${MESES[i]}</b><span>${fmt(v)} ${x.tipo==="pessoa"?"por turno":"equip."}</span>
+       <span class="calc">${x.pessoasMes[i]?fmt(x.pessoasMes[i])+" pessoas":"sem gente"}</span></span>` : "").join("");
+  return `<tr class="sub"><td colspan="7"><div class="dim-meses">${chips || '<span class="calc">Sem mês com volume na frente.</span>'}</div></td></tr>`;
 }
 
 /* Um chip por mes com lancamento: mes, volume, frota e pessoas daquele mes.
@@ -341,4 +382,4 @@ function pintarDimDetalhe(R){
   if(alvo) alvo.scrollIntoView({block:"start"});
 }
 
-export { alternarFrenteLinha, alternarMesLinha, pintarDimDetalhe, pintarDim };
+export { alternarFrenteLinha, alternarMesItem, alternarMesLinha, pintarDimDetalhe, pintarDim };

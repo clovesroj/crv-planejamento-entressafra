@@ -54,6 +54,12 @@ function apoioDaAtividade(r){
   const meses = (r.meses || []).map(q => num(q) > 0 ? 1 : 0);
   const ativo = meses.some(v => v > 0);
   const lancado = (DIM[r.a.cod] || {}).apoio || {};
+  /* Equipamento que nao leva gente escalada: a area de vivencia e o gerador sao
+     assim por natureza (a especialidade ja diz), mas a marcacao e por ITEM
+     porque a frente decide — uma pipa que fica parada no ponto de apoio nao tem
+     motorista dedicado. Marcado aqui, o item continua contando como frota e
+     para de contar como pessoa. */
+  const semPessoa = (DIM[r.a.cod] || {}).apoioSP || {};
   return apoio.map(e=>{
     const esp = (e.esp && e.esp[0]) || "";
     const tipo = tipoDaEsp(esp);
@@ -63,8 +69,10 @@ function apoioDaAtividade(r){
     const q = num(lancado[e.cod]);
     const qtd = ativo ? (q > 0 ? q : 1) : 0;
     const fcod = tipo === "pessoa" ? "596" : (FUNCAO_POR_ESP[esp] || "596");
-    const pessoas = tipo === "estrutura" ? 0 : Math.ceil(qtd * turnos * fator);
-    return {erp:e.cod, nome:e.nome, esp, tipo, fcod, qtd, pessoas, turnos,
+    const marcado = semPessoa[e.cod];
+    const temGente = marcado != null ? !marcado : tipo !== "estrutura";
+    const pessoas = temGente ? Math.ceil(qtd * turnos * fator) : 0;
+    return {erp:e.cod, nome:e.nome, esp, tipo, fcod, qtd, pessoas, turnos, temGente,
             frota: tipo === "pessoa" ? 0 : qtd,
             qtdMes: meses.map(v => v * (tipo === "pessoa" ? 0 : qtd)),
             pessoasMes: meses.map(v => v * pessoas)};

@@ -17,7 +17,7 @@ import { exportarTabela, filtrarPorNome } from '../ui/componentes.js';
 import { marcarAtivNovo, marcarAtivRemovido, marcarAtivSujo, salvarAtiv } from '../ui/atividades-cad.js';
 import { alternarFam, aplicarFamIns, buscaExigeRedesenho, marcarInsSujo, marcarInsNovo, marcarInsRemovido,
   marcarTratSujo, marcarTratNovo, marcarTratRenomeado, marcarTratRemovido, recolherTodas, salvarIns, salvarTrat, todasRecolhidas } from '../ui/insumos.js';
-import { alternarFrenteLinha, alternarMesLinha } from '../ui/dimensionamento.js';
+import { alternarFrenteLinha, alternarMesItem, alternarMesLinha } from '../ui/dimensionamento.js';
 import { lerPremissas } from '../ui/premissas.js';
 import { leve, render, renderAgrofit, renderDimDet, renderEditIns, renderFichaIns, renderRastro, renderRendMensal, renderTercDet } from './ciclo.js';
 import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarBuscaItem, filtrarRastro, voltarRastro } from '../ui/rastro.js';
@@ -291,6 +291,13 @@ document.addEventListener("change",e=>{
     marcarAtivSujo(a); render(); return; }
   // ativa/inativa a atividade — some das buscas de vinculo novo (ver
   // buscaTratAtiv em ui/insumos.js), sem mexer no que ja esta lancado
+  /* Equipamento sem gente escalada: continua contando como frota e sai da conta
+     de pessoal. Guarda a marcacao explicita (true/false) para nao depender do
+     padrao da especialidade depois que alguem decidiu na tela. */
+  if(t.dataset.apsp!==undefined){ const c=t.dataset.apsp, k=t.dataset.erp;
+    DIM[c]=DIM[c]||{}; DIM[c].apoioSP=DIM[c].apoioSP||{};
+    DIM[c].apoioSP[k]=t.checked;
+    salvar(); render(); return; }
   if(t.dataset.atativo!==undefined){ const a=atividadesLista()[+t.dataset.atativo]; a.ativo = t.checked;
     marcarAtivSujo(a); render(); return; }
   // ativa/inativa o produto — some da busca de adicionar numa composicao NOVA
@@ -566,6 +573,9 @@ document.addEventListener("click",e=>{
   // abre a frente inteira (nucleo + apoio) na linha da atividade
   const df = e.target.closest && e.target.closest("[data-dimfrente]");
   if(df){ alternarFrenteLinha(df.dataset.dimfrente); render(); return; }
+  // meses de um item da frente, na propria linha dele
+  const am = e.target.closest && e.target.closest("[data-apmes]");
+  if(am){ alternarMesItem(am.dataset.apmes); render(); return; }
   const dd = e.target.closest && e.target.closest("[data-dimdet]");
   if(dd){ setDIM_DET({cod: dd.dataset.dimdet, aba: dd.dataset.aba || "oper"});
     renderDimDet(); return; }
