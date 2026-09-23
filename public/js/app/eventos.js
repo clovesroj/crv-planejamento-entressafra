@@ -15,7 +15,7 @@ import { AGROFIT_BUSCA, DIM_DET, FITO_ABERTO, PLANO_ABERTO, FROTA_ABERTO, FROTA_
 import { $, num } from '../nucleo/formato.js';
 import { exportarTabela, filtrarPorNome } from '../ui/componentes.js';
 import { marcarAtivNovo, marcarAtivRemovido, marcarAtivSujo, salvarAtiv } from '../ui/atividades-cad.js';
-import { alternarFam, aplicarFamIns, buscaExigeRedesenho, marcarInsSujo, marcarInsNovo, marcarInsRemovido,
+import { alternarFam, alternarUsos, aplicarFamIns, buscaExigeRedesenho, marcarInsSujo, marcarInsNovo, marcarInsRemovido,
   marcarTratSujo, marcarTratNovo, marcarTratRenomeado, marcarTratRemovido, recolherTodas, salvarIns, salvarTrat, todasRecolhidas } from '../ui/insumos.js';
 import { alternarFrenteLinha, alternarMesItem, alternarMesLinha } from '../ui/dimensionamento.js';
 import { lerPremissas } from '../ui/premissas.js';
@@ -501,6 +501,13 @@ document.addEventListener("click",e=>{
   const faixa = e.target.closest && e.target.closest("#t_ins tr.stage[data-fam]");
   if(faixa){ alternarFam(faixa.dataset.fam); render(); return; }
   if(e.target.id === "btn_ins_recolher"){ recolherTodas(!todasRecolhidas()); render(); return; }
+  // cadastro de insumos: "N trat." abre embaixo da linha os tratamentos que usam
+  // o produto, e cada um leva a composicao dele na aba Insumos
+  const usosBtn = e.target.closest && e.target.closest("[data-inusos]");
+  if(usosBtn){ alternarUsos(usosBtn.dataset.inusos); render(); return; }
+  const abreTrat = e.target.closest && e.target.closest("[data-abretrat]");
+  if(abreTrat){ setTRAT_SEL(abreTrat.dataset.abretrat); render();
+    abrirDestino({aba:"insumos", alvos:["#t_comp"]}); return; }
   // filtro de periodo do rastro (ano todo / safra / entressafra) — checa antes do
   // data-rastro geral, pois os botoes do filtro moram dentro do proprio modal
   // filtro global de periodo, na barra superior

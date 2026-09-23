@@ -147,6 +147,23 @@ function termoBuscaIns(){
   const inp = document.querySelector('.tbl-busca[data-alvo="#t_ins"]');
   return inp ? inp.value.trim() : "";
 }
+/* Tratamentos que usam o produto, abertos embaixo da linha dele no cadastro
+   ("5 trat." vira botao). Um produto aberto por vez; e visao, como a dobra
+   acima. Cada tratamento leva a composicao dele na aba Insumos. */
+let USOS_ABERTO = null;
+function alternarUsos(prod){ USOS_ABERTO = USOS_ABERTO===prod ? null : prod; }
+function linhaUsos(prod, usos){
+  const fmtDose = l => `${num(l.dose).toLocaleString("pt-BR",{maximumFractionDigits:4})} ${esc(l.un||"")}`;
+  return `<tr class="sub"><td colspan="19" class="usos-cel"><div class="usos-ins">
+    <span class="calc">Tratamentos com ${esc(prod)}:</span>` +
+    usos.map(c=>{
+      const l = composicao(c).find(x=>x.prod===prod) || {};
+      const inativo = TRAT_ATIVO[c]===false;
+      return `<button type="button" class="btn xs" data-abretrat="${esc(c)}"
+          title="Abrir a composição deste tratamento na aba Insumos">${esc(c)}${
+          TRAT_NOME[c]?" — "+esc(TRAT_NOME[c]):""} · ${fmtDose(l)}${inativo?" · inativo":""}</button>`;
+    }).join("") + `</div></td></tr>`;
+}
 /* Procurar e para achar: com termo de busca a dobra sai do caminho, senao o
    grupo recolhido esconderia justamente o produto procurado. Como a linha
    recolhida nem esta no DOM, filtrar nao basta -- precisa redesenhar, e quem
@@ -222,7 +239,7 @@ function pintarInsumos(R){
   // classificacao tecnica fica na ficha, que abre por linha
   // colgroup fixa a largura de cada coluna: com table-layout:fixed, recolher um
   // grupo deixa de mexer na largura das outras (ver componentes.css)
-  const COLS = [90,190,190,70,110,140,150,90,85,85,100,90,115,80,60,130,75,80,90];
+  const COLS = [90,190,190,70,110,140,150,90,85,85,100,90,115,100,60,130,75,80,90];
   $("#t_ins").innerHTML =
     `<colgroup>${COLS.map(w=>`<col style="width:${w}px">`).join("")}</colgroup>` +
     th([["Código"],["Nome comercial"],["Princípio ativo"],["Un."],
@@ -244,7 +261,7 @@ function pintarInsumos(R){
       const corr  = preco*(1+P.ipreco/100);
       const vol   = R.volDem[i.prod]||0;
       const nec   = Math.max(0,vol-est);
-      const usos  = tratCodigos().filter(c=>composicao(c).some(l=>l.prod===i.prod)).length;
+      const usos  = tratCodigos().filter(c=>composicao(c).some(l=>l.prod===i.prod));
       const ficha = FICHA.filter(([k])=>i[k]);
       // enquanto o produto esta aberto no modal de edicao, a linha vira texto
       // (sem os mesmos data-in/data-ie/data-ip do modal) -- dois inputs com o
@@ -277,7 +294,10 @@ function pintarInsumos(R){
           :`<input data-ip="${esc(i.prod)}" value="${preco}" inputmode="decimal">`}</td>
         <td class="num calc">${brl(corr,2)}</td><td class="num calc">${fmt(nec,1)}</td>
         <td class="num ${preco>0?"tot":"calc"}">${preco>0?brl(nec*corr):'<span class="badge b-warn">sem preço</span>'}</td>
-        <td class="num calc">${usos?usos+" trat.":"—"}</td>
+        <td class="num">${usos.length
+          ? `<button type="button" class="btn xs" data-inusos="${esc(i.prod)}" aria-expanded="${USOS_ABERTO===i.prod}"
+               title="${esc(usos.join(", "))}">${usos.length} trat. ${USOS_ABERTO===i.prod?"▴":"▾"}</button>`
+          : '<span class="calc">—</span>'}</td>
         <td class="num">${editando?`<span class="calc">${i.ativo===false?"não":"sim"}</span>`
           :`<input type="checkbox" data-inativo="${ix}" ${i.ativo===false?"":"checked"}
              title="Inativo some das buscas para adicionar numa composição nova, mas continua valendo onde já está lançado">`}</td>
@@ -288,7 +308,8 @@ function pintarInsumos(R){
         <td>${ficha.length?`<button class="btn" data-infx="${esc(i.prod)}"
           title="Classificação técnica do produto">Ficha</button>`:'<span class="calc">—</span>'}</td>
         <td><button class="btn" data-inedit="${esc(i.prod)}" title="Editar em uma tela maior">Editar</button></td>
-        <td><button class="btn d" data-inrm="${ix}">Remover</button></td></tr>`;
+        <td><button class="btn d" data-inrm="${ix}">Remover</button></td></tr>` +
+        (USOS_ABERTO===i.prod ? linhaUsos(i.prod, usos) : "");
     }).join(""))).join("")+"</tbody>";
 
   // O bloco "Outros" é o que pede trabalho, não um erro: é produto sem classe
@@ -635,6 +656,6 @@ function pintarEditIns(){
   fundo.hidden = false;
 }
 
-export { pintarInsumos, pintarFichaIns, pintarEditIns, alternarFam, aplicarFamIns, buscaExigeRedesenho,
+export { pintarInsumos, pintarFichaIns, pintarEditIns, alternarFam, alternarUsos, aplicarFamIns, buscaExigeRedesenho,
   recolherTodas, todasRecolhidas, marcarInsSujo, marcarInsNovo, marcarInsRemovido,
   marcarTratSujo, marcarTratNovo, marcarTratRenomeado, marcarTratRemovido, salvarIns, salvarTrat };

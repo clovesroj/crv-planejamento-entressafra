@@ -293,6 +293,15 @@ td .btn{height:28px;padding:0 10px;font-size:12px}
    <table id> do app — sem marcação nova em cada tela. */
 .tbl-export{display:flex;justify-content:flex-end;gap:6px;margin-bottom:6px}
 
+/* tratamentos que usam o produto, abertos embaixo da linha no Cadastro de Insumos */
+.usos-ins{display:flex;flex-wrap:wrap;align-items:center;gap:6px;white-space:normal;
+  /* a celula ocupa a tabela inteira, e o botao que abre fica la na direita: sem
+     o sticky a lista nascia na ponta esquerda, fora da area rolada a vista */
+  position:sticky;left:12px;max-width:min(860px,calc(100vw - 140px))}
+/* celula da tabela de coluna fixa corta o excesso (overflow:hidden), e isso
+   prenderia o sticky a ela em vez da area rolada */
+#t_ins td.usos-cel{overflow:visible}
+
 /* ---------- miscelânea ---------- */
 .chart{width:100%;height:auto;display:block}
 .note{background:var(--info-bg);border-left:3px solid var(--info);padding:10px 14px;border-radius:0 var(--r-sm) var(--r-sm) 0;
