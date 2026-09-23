@@ -10,7 +10,9 @@ import { tratCusto } from './insumos.js';
 import { comps, custoCorte, custoPorOperacao } from './custo-operacao.js';
 import { SEM_CONTA, contasValores, totaisContas } from './contas.js';
 import { baseEtapa, custoUnit, premissaBase, rotuloBase } from './base-fisica.js';
-import { reforma, itensReforma } from './reforma.js';
+import { reforma, itensReforma, orcamentoProdutos, qtdProdutos } from './reforma.js';
+import { desdeUltimoAno, produtosDoEquipamento } from './gasto-real.js';
+import { tagsBiDoConjunto } from '../dados/reforma-bi-map.js';
 import { fontesDaConta } from './fontes.js';
 import { codExibir } from '../nucleo/codigo-atividade.js';
 
@@ -916,17 +918,43 @@ function rastroReforma(){
 function rastroReformaBiItem(familia, cod, conjunto){
   const {itens, total} = itensReforma(cod, conjunto, familia);
   itens.sort((a,b)=>b.valor-a.valor);
+  /* Produtos deste SISTEMA no ultimo ano, classificados pelo produto e nao pela
+     tag do ERP: a mangueira hidraulica lancada em ADMISSAO aparece aqui, no
+     compartimento de hidraulica, que e onde ela vai ser orcada. Cada um com a
+     quantidade que a proxima reforma vai usar; quantidade x valor medio do ano
+     e o orcamento daquele produto. */
+  const desde = desdeUltimoAno();
+  const sistemas = [conjunto].concat(tagsBiDoConjunto(familia, conjunto) || []);
+  const prods = produtosDoEquipamento(cod, {desde, sistemas});
+  const q = qtdProdutos(cod, conjunto);
+  const orc = orcamentoProdutos(cod, conjunto, familia);
+  const linhasProd = prods.map(p=>({
+    rot: p.produto,
+    val: brl(p.media),
+    sub: `${p.vezes}× no último ano · ${brl(p.total)} no total · ${p.porProduto
+      ? "classificado pelo produto" : "pela tag do ERP ("+p.tags.join(", ")+")"}`,
+    qtd: {cod, conjunto, produto: p.produto, valor: num(q[p.produto]) || "", media: p.media},
+  }));
   return {
     titulo: conjunto,
     subtitulo: `Gasto real no ERP — equipamento ${cod}`,
-    valor: brl(total),
+    valor: brl(orc.total || total),
     largo: true,
-    blocos: [{titulo:"Lançamentos — desmarque o que não deve entrar no orçamento", linhas: itens.length ? itens.map(it=>({
-      rot: it.desc, val: brl(it.valor), sub: fmtDataCurta(it.data)+(it.origem==="manual"?" · incluído à mão":""),
-      flag: {cod, conjunto, chave: it.chave, ligado: it.ligado, origem: it.origem}}))
-      : [{rot:"Nenhum lançamento neste compartimento ainda", val:"—"}]}],
+    blocos: [
+      {titulo:"Lançamentos — desmarque o que não deve entrar no orçamento", linhas: itens.length ? itens.map(it=>({
+        rot: it.desc, val: brl(it.valor), sub: fmtDataCurta(it.data)+(it.origem==="manual"?" · incluído à mão":""),
+        flag: {cod, conjunto, chave: it.chave, ligado: it.ligado, origem: it.origem}}))
+        : [{rot:"Nenhum lançamento neste compartimento ainda", val:"—"}]},
+      {titulo:`Produtos deste sistema no último ano — quantidade que a reforma vai usar${
+        desde ? " (desde "+fmtDataCurta(desde)+")" : ""}`,
+       linhas: linhasProd.length ? linhasProd
+        : [{rot:"Nenhum produto deste sistema no período extraído", val:"—"}]},
+    ],
     buscaAdicionar: {cod, conjunto},
-    nota: (itens.length ? `${itens.length} lançamento${itens.length>1?"s":""} contando no orçamento desta unidade. `+
+    nota: (orc.total
+      ? `Orçamento por produto: ${brl(orc.total)} em ${orc.itens.length} produto(s) — é ele que vale para esta unidade, no lugar do gasto real. `
+      : "")
+      + (itens.length ? `${itens.length} lançamento${itens.length>1?"s":""} de gasto real neste compartimento. `+
       `Desmarque o que não deve entrar` : `Nada contando ainda nesta unidade.`)+
       ` — busque abaixo pra incluir outro lançamento do ERP deste equipamento, mesmo de outra tag.`,
   };

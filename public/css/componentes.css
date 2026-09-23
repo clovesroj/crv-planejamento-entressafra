@@ -653,6 +653,10 @@ tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:under
 .dim-sp input{width:13px;height:13px;min-width:0;margin:0}
 /* campo de consulta para acrescentar atividade ao plano */
 .add-erp{width:340px;min-width:0;height:28px;font-size:12.5px;text-align:left}
+/* linha de produto com quantidade, no rastro do compartimento */
+.ra-linha-qtd{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.ra-qtd-cel{display:flex;align-items:center;gap:10px;white-space:nowrap}
+.ra-qtd{width:74px;min-width:0;height:28px;text-align:right;font-size:13px}
 .dim-mes .calc{font-size:10.5px}
 #t_dim tr.sub td{text-align:left}
 .dim-val{font-weight:700;color:var(--ink);font-size:14px}

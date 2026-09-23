@@ -297,6 +297,19 @@ document.addEventListener("change",e=>{
       FROTA_UN[cod].reformaExcl = [...excl];
     }
     salvar(); render(); return; }
+  /* Quantidade de um PRODUTO na reforma daquele conjunto: e o orcamento por
+     sistema e produto (quantidade x valor medio do ultimo ano). Em branco ou
+     zero sai da lista — orcamento vazio volta a valer o gasto real. */
+  if(t.dataset.qtdProduto!==undefined){
+    const cod = t.dataset.qtdCod, conjunto = t.dataset.qtdConjunto, prod = t.dataset.qtdProduto;
+    FROTA_UN[cod] = FROTA_UN[cod] || {};
+    FROTA_UN[cod].refQtd = FROTA_UN[cod].refQtd || {};
+    const m = FROTA_UN[cod].refQtd[conjunto] = FROTA_UN[cod].refQtd[conjunto] || {};
+    const v = num(t.value);
+    if(v > 0) m[prod] = v; else delete m[prod];
+    if(!Object.keys(m).length) delete FROTA_UN[cod].refQtd[conjunto];
+    if(!Object.keys(FROTA_UN[cod].refQtd).length) delete FROTA_UN[cod].refQtd;
+    salvar(); renderRastro(); return; }
   // consumo por equipamento (aba Combustível): unidade, L/h, L/km, velocidade.
   // Grava no cadastro da máquina; campo vazio volta ao padrão.
   if(t.dataset.cmaq!==undefined){ const m=t.dataset.cmaq, k=t.dataset.ck;
