@@ -618,6 +618,17 @@ tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:under
   border:1px solid var(--line);border-left:3px solid var(--leaf);border-radius:var(--r-sm);
   padding:6px 10px;background:var(--card);font-size:11.5px;line-height:1.35}
 .dim-mes b{font-size:12px;color:var(--ink)}
+/* Item da frente aberta no Dimensionamento: nome, codigo do ERP e a quantidade
+   que a frente usa. Reaproveita a caixa do chip de mes, com largura maior
+   porque aqui o nome vem do ERP e e comprido. */
+.dim-frente{display:flex;flex-direction:column;gap:2px;min-width:250px;max-width:320px;
+  border:1px solid var(--line);border-left:3px solid var(--warn);border-radius:var(--r-sm);
+  padding:6px 10px;background:var(--card);font-size:11.5px;line-height:1.3}
+.dim-frente.nucleo{border-left-color:var(--leaf)}
+.dim-frente b{font-size:11.5px;color:var(--ink)}
+.dim-frente .calc{font-size:10px}
+.dim-frente .dim-cel{justify-content:flex-start;gap:6px;margin-top:2px}
+.dim-frente input{width:62px;height:24px;padding:0 6px;font-size:12px;min-width:0}
 .dim-mes .calc{font-size:10.5px}
 #t_dim tr.sub td{text-align:left}
 .dim-val{font-weight:700;color:var(--ink);font-size:14px}

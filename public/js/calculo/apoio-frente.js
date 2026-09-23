@@ -1,6 +1,6 @@
 import { CATEGORIAS_FUNCAO } from '../dados/mao-de-obra.js';
 import { erpDe } from '../dados/atividades-erp.js';
-import { NM } from '../nucleo/calendario.js';
+import { DIM } from '../nucleo/estado.js';
 import { num } from '../nucleo/formato.js';
 
 /* ================== APOIO DA FRENTE ==================
@@ -53,11 +53,15 @@ function apoioDaAtividade(r){
   const fator = num(r.fator) || 1;
   const meses = (r.meses || []).map(q => num(q) > 0 ? 1 : 0);
   const ativo = meses.some(v => v > 0);
+  const lancado = (DIM[r.a.cod] || {}).apoio || {};
   return apoio.map(e=>{
     const esp = (e.esp && e.esp[0]) || "";
     const tipo = tipoDaEsp(esp);
-    // um por frente; a pessoa e uma por turno, que e como a frente se cobre
-    const qtd = ativo ? 1 : 0;
+    /* Quantidade lancada no Dimensionamento da atividade; em branco, um por
+       frente. Em item de gente (auxiliar rural) a quantidade e por TURNO: dois
+       auxiliares em tres turnos sao seis pessoas, que e como a frente se cobre. */
+    const q = num(lancado[e.cod]);
+    const qtd = ativo ? (q > 0 ? q : 1) : 0;
     const fcod = tipo === "pessoa" ? "596" : (FUNCAO_POR_ESP[esp] || "596");
     const pessoas = tipo === "estrutura" ? 0 : Math.ceil(qtd * turnos * fator);
     return {erp:e.cod, nome:e.nome, esp, tipo, fcod, qtd, pessoas, turnos,

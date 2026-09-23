@@ -17,7 +17,7 @@ import { exportarTabela, filtrarPorNome } from '../ui/componentes.js';
 import { marcarAtivNovo, marcarAtivRemovido, marcarAtivSujo, salvarAtiv } from '../ui/atividades-cad.js';
 import { alternarFam, aplicarFamIns, buscaExigeRedesenho, marcarInsSujo, marcarInsNovo, marcarInsRemovido,
   marcarTratSujo, marcarTratNovo, marcarTratRenomeado, marcarTratRemovido, recolherTodas, salvarIns, salvarTrat, todasRecolhidas } from '../ui/insumos.js';
-import { alternarMesLinha } from '../ui/dimensionamento.js';
+import { alternarFrenteLinha, alternarMesLinha } from '../ui/dimensionamento.js';
 import { lerPremissas } from '../ui/premissas.js';
 import { leve, render, renderAgrofit, renderDimDet, renderEditIns, renderFichaIns, renderRastro, renderRendMensal, renderTercDet } from './ciclo.js';
 import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarBuscaItem, filtrarRastro, voltarRastro } from '../ui/rastro.js';
@@ -97,6 +97,13 @@ document.addEventListener("input",e=>{
   // operadores por equipamento, ajustado na atividade; em branco volta ao cadastro.
   // leve() em vez de render(): render() reconstroi a tabela e derruba o foco de
   // quem esta digitando no modal
+  /* Quantas estruturas de apoio a frente usa: equipamentos, ou pessoas por
+     turno em item de gente. Em branco vale uma, que e o padrao da frente. */
+  if(t.dataset.apfr!==undefined){ const c=t.dataset.apfr, k=t.dataset.erp;
+    DIM[c]=DIM[c]||{}; DIM[c].apoio=DIM[c].apoio||{};
+    const v=num(t.value); if(v>0) DIM[c].apoio[k]=v; else delete DIM[c].apoio[k];
+    if(!Object.keys(DIM[c].apoio).length) delete DIM[c].apoio;
+    salvar(); leve(); return; }
   if(t.dataset.ops!==undefined){ const c=t.dataset.ops; DIM[c]=DIM[c]||{};
     const v=num(t.value); if(v>0) DIM[c].ops=v; else delete DIM[c].ops;
     salvar(); leve(); return; }
@@ -556,6 +563,9 @@ document.addEventListener("click",e=>{
   // abrir a linha de meses e visao: nao grava e nao mexe em numero nenhum
   const dm = e.target.closest && e.target.closest("[data-dimmes]");
   if(dm){ alternarMesLinha(dm.dataset.dimmes); render(); return; }
+  // abre a frente inteira (nucleo + apoio) na linha da atividade
+  const df = e.target.closest && e.target.closest("[data-dimfrente]");
+  if(df){ alternarFrenteLinha(df.dataset.dimfrente); render(); return; }
   const dd = e.target.closest && e.target.closest("[data-dimdet]");
   if(dd){ setDIM_DET({cod: dd.dataset.dimdet, aba: dd.dataset.aba || "oper"});
     renderDimDet(); return; }
