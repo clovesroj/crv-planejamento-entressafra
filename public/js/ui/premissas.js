@@ -5,7 +5,7 @@ import { $, fmt, num } from '../nucleo/formato.js';
 const CAMPOS = ["dens","tch","plantio","haTratosPlanta","haTratosSoca","haColheita","tonColheita","arr_ha","hdia","disp","efic","dias","diasOper","diasTrab","hTurno",
 "diesel","arr","imob","dep","ipreco","densCarga","volTransb","velC","velV","tCarga",
 "tDesc","hDiaTr","dispTr","consTr","manutTr","raioSafra","raioMuda","perdaCarga","desnivel","rendBomba",
-"kwh","fonte","hPorMec","eqPorAjud","colPorLider","tercAereaTar","tercSistTar","tercSistHa","tercOutros"];
+"kwh","fonte","tercAereaTar","tercSistTar","tercSistHa","tercOutros"];
 
 function pintarPremissas(){ CAMPOS.forEach(k=>{const e=$("#p_"+k); if(e) e.value=P[k];}); }
 // campo travado pelo perfil (data-travado) não é relido: lerPremissas() roda a cada

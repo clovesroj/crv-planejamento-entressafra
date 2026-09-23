@@ -1,5 +1,87 @@
 # Histórico de mudanças
 
+## 2.44.0 — 2026-09-23 · Quadro ADM e oficina da controladoria, e pessoas no padrão das planilhas
+
+### O quadro ADM agrícola e o da oficina entram pelo previsto da controladoria
+
+O administrativo agrícola e a oficina passam a vir das planilhas de justificativa
+da folha da controladoria (Justificativa_Folha_ADM_Agricola_1.xlsx e
+Justificativa_Folha_Manutenção.xlsx, revisão de 21/09/2026): **210 linhas de
+departamento × cargo**, com pessoas e folha previstas de nov/26 a mar/27 e o
+realizado do ano anterior. Os dados estão em `dados/quadro-fixo.js`, tirados da
+aba `Base_Calculo` — a mesma que monta o Painel das planilhas; os totais de cada
+mês fecham com ele no centavo (fev/27: ADM 128 pessoas e R$ 605.343,08;
+oficina 212 pessoas e R$ 987.106,21). Departamento e cargo com o código do ERP.
+
+**O que sai:** a "estrutura agrícola indireta" (quatro linhas genéricas, doze
+meses iguais) e a equipe de manutenção estimada pelas horas de frota (mecânicos
+por horas-máquina, ajudantes por equipamento, líderes por colaborador). As três
+premissas dessa estimativa saem da aba Premissas. **O que fica:** motoristas,
+operadores e rurais continuam saindo das atividades do plano.
+
+**Custo de cada mês** (`calculo/quadro-fixo.js`) = folha prevista × (1 +
+INSS patronal, RAT, Terceiros e FGTS) + pessoas × benefícios. A folha da
+planilha são os proventos do mês — 13º e férias caem no mês em que são pagos
+(dezembro dobra) —, por isso aqui não entram as provisões de 13º, férias e
+rescisão que o custo das funções de atividade carrega: seria contar o 13º duas
+vezes. O custo cai no mês da folha, não mais espalhado pela área operada.
+
+**Abril a outubro de 2026 não estão nas planilhas.** O plano repete neles o mês
+de referência, fev/27 (o mês de referência do Painel das planilhas e do Resumo
+de MDO), e marca os meses como estimados. Isso é cerca de 7/12 do custo do
+quadro no ano — a confirmar com a controladoria.
+
+Plano de Contas: a folha do ADM na 200-15 e a da oficina na 200-16; as
+contribuições na 200-35 e 200-36; os benefícios nas suas contas. Efetivo total
+(Capa e Painel): o quadro entra pelo mês que mais pede.
+
+**Efeito no custo.** Plano vazio: R$ 39.270.751,84 → **R$ 68.246.103,41**
+(ADM R$ 2,18 mi → R$ 12,00 mi; oficina R$ 0,75 mi → R$ 19,90 mi). No plano da
+auditoria, R$ 241,57 mi → R$ 259,07 mi. É a troca de uma estimativa pelo
+previsto da controladoria.
+
+### Aba Mão de Obra: página "Quadro ADM e oficina"
+
+No lugar da "Estrutura indireta", o desenho do Painel das planilhas: mês e
+quadro escolhidos em cima (como as células amarelas), os indicadores do mês, a
+**evolução mensal**, o **departamento com as funções embaixo (↳)** e as
+**funções ordenadas pela maior diferença em R$** — com Qtde AA × Prev., salário
+médio, Realizado AA × Previsto, Δ R$ e Δ %, **Ef. Qtde** e **Ef. Salário** pelo
+mesmo método da planilha, fator principal e o **custo no plano** de cada linha
+(`calculo/quadro-comparativo.js`). Conferido com o Painel: SUPERVISÃO CCT fev/27
+17 → 23 pessoas, Ef. Qtde R$ 30.447,36 — igual.
+
+### Resumo de Pessoas e relatórios no padrão das planilhas
+
+Como no Resumo de MDO da controladoria, as pessoas se dividem em **Operacional**
+(atividades do plano, por etapa), **ADM agrícola** e **Oficina** (quadro
+previsto, por departamento) e **FAT**. Com a mesma agregação na tela e no
+relatório (`visaoPlanilha`, em `calculo/pessoas.js`), no recorte da barra do
+topo:
+
+- **Por departamento, com as funções (↳)**: quadro → departamento → função, com
+  quantidade (média do período), pico, salário médio, folha, custo e % do custo.
+- **Por função, ordenado pelo maior custo.**
+- **Função × quadro** no lugar de função × departamento.
+- **Evolução mensal**, um mês por linha, com pessoas e custo de cada quadro, o
+  salário médio, o acumulado e a linha de média mensal.
+- Relatórios "Orçamento de Mão de Obra" e "Necessidade de Pessoas": as seções
+  de mão de obra, pessoas por departamento e fluxo mensal seguem o mesmo
+  desenho; o de mão de obra ganha o quadro ADM e oficina, previsto × realizado
+  AA, por departamento e mês a mês.
+- **O detalhe por origem não mudou** — nem a tabela da tela nem o relatório de
+  necessidade por etapa, atividade e função.
+
+Corrigido de passagem: o Resumo de Pessoas dividia o custo dos operadores dos
+equipamentos de apoio igual pelos doze meses, e o motor, pela área operada —
+no ano fechava, num recorte não (a entressafra saía R$ 236.570 acima da aba
+Custos). Agora segue o motor.
+
+Conferido: 54 invariantes sem falha (três novos: pessoas = mão de obra mês a
+mês; quadro no Resumo = quadro no motor; fontes = conta); 29 abas, 312 rastros e
+132 relatórios sem erro; tela e relatório de pessoas fechando com o motor no ano,
+na safra e na entressafra.
+
 ## 2.43.1 — 2026-09-23 · Premissa que "não salvava", e auditoria do Painel e de Custos
 
 ### Premissas voltando ao valor antigo

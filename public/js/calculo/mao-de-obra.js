@@ -51,18 +51,6 @@ function mdoParams(){
   Object.values(custoFuncao).forEach(c=> c.hora = hMes>0 ? c.mensal/hMes : 0);
   return {encTot, benTot, fatorEscala, custoFuncao, hMes};
 }
-/* ================== EQUIPE DE MANUTENÇÃO ================== */
-function equipeManut(horasFrota, frotaTotal, MP){
-  const hMes = horasFrota/NM;
-  const mec   = Math.ceil(hMes/(P.hPorMec||1));
-  const ajud  = Math.ceil(frotaTotal/(P.eqPorAjud||1));
-  const lider = Math.ceil((mec+ajud)/(P.colPorLider||1));
-  const cM = (MP.custoFuncao["F09"]||{mensal:0}).mensal;
-  const cA = (MP.custoFuncao["F14"]||{mensal:0}).mensal;
-  const cL = (MP.custoFuncao["F13"]||{mensal:0}).mensal;
-  const mensal = mec*cM + ajud*cA + lider*cL;
-  return {mec, ajud, lider, efetivo:mec+ajud+lider, mensal, total: mensal*NM};
-}
 
 /* ================== FAT E APOIO OPERACIONAL ==================
    Duas listas de gente que nao sai de atividade nenhuma, cada uma com os
@@ -109,4 +97,4 @@ function apoioOperCalc(MP){
   return {linhas, mes, qtdMes, total: mes.reduce((s,x)=>s+x,0), pico: Math.max(0,...qtdMes)};
 }
 
-export { apoioOperCalc, benVal, custoDaFuncao, encPct, equipeManut, fatCalc, gratif, mdoParams };
+export { apoioOperCalc, benVal, custoDaFuncao, encPct, fatCalc, gratif, mdoParams };

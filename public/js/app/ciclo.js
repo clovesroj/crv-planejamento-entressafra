@@ -118,7 +118,7 @@ function calcularCompleto(){
   // o apoio operacional (Dimensionamento) opera e usa o transporte de pessoal:
   // entra pelo mes que mais pede. O FAT nao: fica fora da operacao.
   R.efetivoTotal = R.L.reduce((s,r)=>s+r.efetivo,0)
-    + CFG.indiretos.reduce((s,i)=>s+i.qtd,0) + R.EM.efetivo
+    + Math.ceil(R.QF ? R.QF.pico : 0)   // quadro ADM agricola + oficina (previsto da controladoria)
     + Math.ceil(R.TR.frota*R.MP.fatorEscala)
     + (R.MOA ? R.MOA.pico : 0);
   R.SEL = recorteDoPeriodo(R);

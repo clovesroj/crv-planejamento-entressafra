@@ -3,7 +3,9 @@ import { agDeLinha, contaOrigem, rotuloItem } from '../calculo/crm.js';
 import { ADM_CRITERIOS, ADM_GRUPOS } from '../dados/administrativo.js';
 import { ARR_FORMAS, ETAPAS_ORD, arrRat } from '../calculo/arrendamento.js';
 import { FORN_MODALIDADES } from '../dados/fornecedores.js';
-import { deptIdx, janelaDaLinha, necessidadePorAtividade } from '../calculo/pessoas.js';
+import { GRUPOS_ORD, deptIdx, janelaDaLinha, necessidadePorAtividade, visaoPlanilha } from '../calculo/pessoas.js';
+import { comparativoQuadro } from '../calculo/quadro-comparativo.js';
+import { QUADRO_FONTE } from '../dados/quadro-fixo.js';
 import { GERENCIAS, criterioPorMes, excecoes, execucao, metasDeFrota, metasPorAtividade, porGerencia } from '../calculo/acompanhamento.js';
 import { CFG } from '../dados/cfg.js';
 import { CAT_LBL, MESES, NM, PERIODOS, periodoMes } from '../nucleo/calendario.js';
@@ -262,31 +264,50 @@ const manutencao = R => sec("Manutenção","Manutenção de frota — CRM",
     .map(l=>[agDeLinha(l), l.esp||"—", rotuloItem(l.item), brl(l.rh,2)+"/"+l.unidade,
              fmt(l.qtd), fmt(l.baseUso)+" "+l.unidade, brl(l.total)])
     .concat([["","","TOTAL DO CRM","","","", brl(R.crmTotal)],
-             ["","","Equipe de manutenção","","", R.EM.efetivo+" pessoas", brl(R.EM.total)],
+             ["","","Quadro da oficina (previsto)","","", R.EM.efetivo+" pessoas no pico", brl(R.EM.total)],
              ["","","Materiais de manutenção","","","", brl(R.MT.total)]]));
 
 /* ---------- 11. mão de obra ---------- */
 // pico mensal dentro do período
 const picoP = arr => Math.max(0, ...REC.meses.map(i=>+arr[i]||0));
+/* Pessoas no padrão das planilhas da controladoria (Painel das justificativas
+   de folha e Resumo de MDO): por função ordenado pelo custo, grupo ->
+   departamento -> função (↳), e a evolução mensal com a média. A agregação é a
+   da tela (calculo/pessoas.js, visaoPlanilha) -- a folha impressa e a tela dão
+   o mesmo número. O detalhe por origem (pessoasAtividade) fica como estava. */
+const NOME_GRUPO_REL = {"OPERACIONAL":"Operacional (atividades do plano)", "ADM AGRÍCOLA":"ADM agrícola (quadro previsto)",
+  "OFICINA":"Oficina — manutenção (quadro previsto)", "FAT":"FAT (fora da operação)"};
+const CURTO_GRUPO_REL = {"OPERACIONAL":"Operacional", "ADM AGRÍCOLA":"ADM agrícola", "OFICINA":"Oficina", "FAT":"FAT"};
+const q1 = v => fmt(v, v<10 ? 1 : 0);
+const contaDaFuncao = (fcod, grupos) => { const f = CFG.funcoes.find(x=>x.cod===fcod); if(f) return f.conta;
+  return grupos.includes("OFICINA") ? QUADRO_FONTE.oficina.conta : grupos.includes("ADM AGRÍCOLA") ? QUADRO_FONTE.adm.conta : "—"; };
 const maoDeObra = R => {
-  const PS = R.PS;
-  return secP("Mão de Obra","Mão de obra — cargos, efetivo e quadro",
-    ["Cod","Cargo","Conta","Salário","Custo mensal","Custo/hora","Efetivo dimensionado","Pico mensal","Custo no período"],
-    CFG.funcoes.map(f=>{ const c=R.MP.custoFuncao[f.cod]||{}, o=(PS&&PS.porFun[f.cod])||{};
-      const pico = o.qtdMes ? picoP(o.qtdMes) : 0, custo = o.custoMes ? noPer(o.custoMes) : 0;
-      return [f.cod, f.nome, f.conta, brl(f.sal,2), brl(c.mensal||0,2), brl(c.hora||0,2),
-        o.qtd?fmt(o.qtd):"—", pico?fmt(pico):"—", custo?brl(custo):"—"];})
-    // FAT: conta no efetivo e no custo, fora da necessidade de cada cargo acima
-    .concat(PS && PS.fat && PS.fat.qtd ? [["","FAT — contrato suspenso, fora da operação","","","","",
-      fmt(PS.fat.qtd), fmt(picoP(PS.fat.qtdMes)), brl(noPer(PS.fat.custoMes))]] : [])
-    .concat([["","TOTAL","","","","", PS?fmt(PS.qtd):"—", PS?fmt(picoP(PS.qtdMes)):"—",
-      PS?brl(noPer(PS.custoMes)):brl(R.mdoTotal*REC.fracMeses)]]));
+  if(!R.PS) return secP("Mão de Obra","Mão de obra — por função", ["Função"], []);
+  const V = visaoPlanilha(R.PS, REC.meses), T = V.total;
+  const pc = v => T.custo>0 ? fmt(v/T.custo*100,1)+"%" : "—";
+  return secP("Mão de Obra","Mão de obra — por função, ordenado pelo maior custo",
+    ["#","Cod","Função","Quadro","Conta","Qtde (média)","Pico","Sal. médio","Folha no período","Custo MDO no período","% do custo"],
+    V.funcoes.map((f,k)=>[k+1, f.fcod, f.fnome, f.grupos.map(g=>CURTO_GRUPO_REL[g]||g).join(", "), contaDaFuncao(f.fcod, f.grupos),
+        q1(f.qtd), q1(f.pico), f.salMed?brl(f.salMed,2):"—", f.folha?brl(f.folha):"—", brl(f.custo), pc(f.custo)])
+      .concat([["","","TOTAL","","", fmt(T.qtd,0), fmt(T.pico,0), T.salMed?brl(T.salMed,2):"—", brl(T.folha), brl(T.custo), "100,0%"]]));
 };
-const pessoasDept = R => secP("Pessoas por depto","Pessoas por departamento",
-  ["Departamento","Efetivo","Pico mensal","Custo MDO"],
-  R.PS ? Object.entries(R.PS.porDept).sort((a,b)=>deptIdx(a[0])-deptIdx(b[0]))
-    .map(([d,o])=>[d, fmt(o.qtd), fmt(picoP(o.qtdMes)), brl(noPer(o.custoMes))])
-    .concat([["TOTAL", fmt(R.PS.qtd), fmt(picoP(R.PS.qtdMes)), brl(noPer(R.PS.custoMes))]]) : []);
+const pessoasDept = R => {
+  if(!R.PS) return secP("Pessoas por depto","Pessoas por departamento e função", ["Departamento / Função"], []);
+  const V = visaoPlanilha(R.PS, REC.meses), T = V.total;
+  const pc = v => T.custo>0 ? fmt(v/T.custo*100,1)+"%" : "—";
+  const lin = (nivel, rot, o) => [nivel, rot, q1(o.qtd), q1(o.pico), o.salMed?brl(o.salMed,2):"—", o.folha?brl(o.folha):"—", brl(o.custo), pc(o.custo)];
+  const linhas = [];
+  V.grupos.forEach(g=>{
+    linhas.push(lin("Quadro", NOME_GRUPO_REL[g.grupo]||g.grupo, g));
+    g.depts.forEach(d=>{
+      linhas.push(lin("Departamento", "  "+d.dept+(d.dcod?" ("+d.dcod+")":""), d));
+      d.funcs.forEach(f=>linhas.push(lin("Função", "      ↳ "+f.fnome+" ["+f.fcod+"]", f)));
+    });
+  });
+  linhas.push(lin("", "TOTAL", T));
+  return secP("Pessoas por depto","Pessoas por departamento e função (↳)",
+    ["Nível","Quadro / Departamento / Função","Qtde (média)","Pico","Sal. médio","Folha no período","Custo MDO no período","% do custo"], linhas);
+};
 /* Necessidade de gente por etapa, atividade e funcao, mes a mes.
    O quadro por funcao diz quantos; esta folha diz de onde vem cada um e em que
    mes -- e a folha com que se monta escala e se justifica contratacao. Sai de
@@ -304,11 +325,50 @@ const pessoasAtividade = R => secP("Pessoas por atividade",
       ...REC.meses.map(i=>fmt(R.PS.fat.qtdMes[i])), fmt(picoP(R.PS.fat.qtdMes)), brl(noPer(R.PS.fat.custoMes))]] : [])
     .concat([["TOTAL","","","","","","","", ...REC.meses.map(i=>fmt(R.PS.qtdMes[i])),
       fmt(picoP(R.PS.qtdMes)), brl(noPer(R.PS.custoMes))]]) : []);
-const fluxoMdo = R => secP("Fluxo MDO","Fluxo mensal — pessoas e custo de mão de obra",
-  ["Mês","Período","Pessoas na operação","No FAT","Custo MDO","Acumulado"],
-  R.PS ? (()=>{ let ac=0; return REC.meses.map(i=>{ ac+=R.PS.custoMes[i];
-    return [MESES[i], periodoMes(i)==="safra"?"Safra":"Entressafra", fmt(R.PS.qtdMes[i]),
-            fmt(R.PS.fat ? R.PS.fat.qtdMes[i] : 0), brl(R.PS.custoMes[i]), brl(ac)]; }); })() : []);
+const fluxoMdo = R => {
+  if(!R.PS) return secP("Fluxo MDO","Evolução mensal — pessoas e custo de mão de obra", ["Mês"], []);
+  const V = visaoPlanilha(R.PS, REC.meses), T = V.total;
+  const gs = GRUPOS_ORD.filter(g=>V.grupos.some(x=>x.grupo===g));
+  let ac = 0;
+  return secP("Fluxo MDO","Evolução mensal — pessoas e custo de mão de obra",
+    ["Mês","Período", ...gs.map(g=>"Pessoas — "+(CURTO_GRUPO_REL[g]||g)), "Total de pessoas","Sal. médio",
+     ...gs.map(g=>"Custo — "+(CURTO_GRUPO_REL[g]||g)), "Custo MDO","Acumulado"],
+    V.evolucao.map(e=>{ ac += e.custo;
+      return [MESES[e.i], periodoMes(e.i)==="safra"?"Safra":"Entressafra",
+        ...gs.map(g=>fmt((e.porGrupo[g]||{qtd:0}).qtd,0)), fmt(e.qtd,0), e.salMed?brl(e.salMed,2):"—",
+        ...gs.map(g=>brl((e.porGrupo[g]||{custo:0}).custo)), brl(e.custo), brl(ac)]; })
+    .concat([["Média mensal","", ...gs.map(g=>fmt(V.media.porGrupo[g].qtd,0)), fmt(V.media.qtd,0), V.media.salMed?brl(V.media.salMed,2):"—",
+        ...gs.map(g=>brl(V.media.porGrupo[g].custo)), brl(V.media.custo), ""],
+      ["TOTAL","", ...gs.map(()=>""), "", "", ...gs.map(g=>brl((V.grupos.find(x=>x.grupo===g)||{custo:0}).custo)), brl(T.custo), ""]]));
+};
+
+/* Quadro ADM e oficina, previsto × realizado AA -- o Painel das planilhas de
+   justificativa da folha, pela média de nov/26 a mar/27 (os meses delas) e
+   mês a mês. Sai de calculo/quadro-comparativo.js, o mesmo da aba Mão de Obra. */
+const CAB_QF_REL = ["Qtde AA","Qtde Prev.","Δ Qtde","Sal. méd. AA","Sal. méd. Prev.","Δ Sal. méd.",
+  "Realizado AA","Previsto","Δ R$","Δ %","Ef. Qtde (R$)","Ef. Salário (R$)","Fator principal","Custo no plano"];
+const colsQF = o => [fmt(o.qa,1), fmt(o.qp,1), fmt(o.dq,1), o.sa?brl(o.sa,2):"—", o.sp?brl(o.sp,2):"—",
+  o.dsal?fmt(o.dsal*100,1)+"%":"—", brl(o.va), brl(o.vp), brl(o.dv), o.va?fmt(o.pct*100,1)+"%":"—",
+  brl(o.efQ), brl(o.efS), o.fator||"", brl(o.cp)];
+const quadroAdmOficina = R => {
+  if(!R.QF) return sec("Quadro ADM e oficina","Quadro ADM e oficina", ["Departamento"], []);
+  const C = comparativoQuadro(R.QF, "todos", "media");
+  const linhas = [];
+  C.departamentos.forEach(d=>{
+    linhas.push(["Departamento", d.nome+" ("+d.dcod+")", d.grupo==="adm"?"ADM agrícola":"Oficina", ...colsQF(d)]);
+    d.filhas.forEach(f=>linhas.push(["Função", "      ↳ "+f.nome+" ["+f.fcod+"]", "", ...colsQF(f)]));
+  });
+  linhas.push(["", "TOTAL", "", ...colsQF(C.total)]);
+  return sec("Quadro ADM e oficina","Quadro ADM agrícola e oficina — previsto × realizado AA, média mensal nov/26–mar/27",
+    ["Nível","Departamento / Função","Quadro", ...CAB_QF_REL], linhas);
+};
+const quadroAdmOficinaMes = R => {
+  if(!R.QF) return sec("Quadro — evolução","Quadro ADM e oficina — evolução mensal", ["Mês"], []);
+  const C = comparativoQuadro(R.QF, "todos", "media");
+  return sec("Quadro — evolução","Quadro ADM agrícola e oficina — evolução mensal",
+    ["Mês", ...CAB_QF_REL],
+    C.evolucao.map(e=>[e.mes, ...colsQF(e)]).concat([["Média mensal", ...colsQF(C.media)]]));
+};
 
 /* ---------- 12. insumos ---------- */
 const insumos = R => sec("Insumos","Insumos — cadastro, classificação técnica e necessidade",
@@ -691,6 +751,7 @@ const SECOES = {
   colheita:porEtapa("Colheita","Orçamento de colheita","COLHEITA"),
   apoioEtapa: porEtapa("Apoio e Conservação","Orçamento de apoio e conservação","APOIO E CONSERVAÇÃO"),
   transporte, frota, frotaBase, modelos, manutencao, maoDeObra, pessoasDept, pessoasAtividade, fluxoMdo, insumos,
+  quadroAdmOficina, quadroAdmOficinaMes,
   tratamentos,
   arrendamentos, fornecedores, administracao, custoEtapa, natureza, mensal, periodos,
   contas, fluxo, cenarios, validacao, porFazenda, porCentroCusto, porAtividade,
@@ -818,7 +879,7 @@ const RELATORIOS = [
   {id:"colheita",nome:"Orçamento de Colheita",        secoes:["colheita","transporte","combustivel","dimensionamento"]},
   {id:"log",     nome:"Orçamento de Logística",       secoes:["logistica","transporte","combustivel"]},
   {id:"frota",   nome:"Orçamento de Frota",           secoes:["frota","frotaBase","manutencao","apoio","combustivel"]},
-  {id:"mdo",     nome:"Orçamento de Mão de Obra",     secoes:["maoDeObra","pessoasDept","pessoasAtividade","fluxoMdo"]},
+  {id:"mdo",     nome:"Orçamento de Mão de Obra",     secoes:["maoDeObra","pessoasDept","quadroAdmOficinaMes","quadroAdmOficina","pessoasAtividade","fluxoMdo"]},
   {id:"pessoas", nome:"Necessidade de Pessoas",        secoes:["pessoasAtividade","pessoasDept","maoDeObra","fluxoMdo","dimensionamento"]},
   {id:"arrend",  nome:"Orçamento de Arrendamentos",   secoes:["arrendamentos","porFazenda"]},
   {id:"forn",    nome:"Orçamento de Fornecedores",    secoes:["fornecedores","producao","logistica"]},

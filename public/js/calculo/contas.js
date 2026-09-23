@@ -71,13 +71,17 @@ function contasValores(R){
   });
   // equipamentos de apoio: motoristas e operadores
   R.AE.linhas.forEach(l=>abrirMDO(num(l.mdo), l.fcod, "200-17"));
-  // estrutura agrícola indireta
-  CFG.indiretos.forEach(i=>{ const cf = MP.custoFuncao[i.fcod];
-    if(cf) abrirMDO(cf.mensal*num(i.qtd)*NM, i.fcod, "200-15"); });
-  // equipe de manutenção (oficina)
-  const EM = R.EM || {};
-  [["F09",EM.mec],["F14",EM.ajud],["F13",EM.lider]].forEach(([f,n])=>{ const cf = MP.custoFuncao[f];
-    if(cf && n>0) abrirMDO(cf.mensal*n*NM, f, "200-16"); });
+  /* quadro ADM agrícola (200-15) e oficina (200-16), da controladoria: a folha
+     prevista vai inteira na conta de salário do grupo (já traz 13º e férias no
+     mês em que são pagos); INSS, RAT, Terceiros e FGTS sobre ela, nas suas
+     contas; benefícios por pessoa prevista, na conta de cada benefício */
+  const QF = R.QF;
+  if(QF) [QF.adm, QF.oficina].forEach(G=>{
+    add(G.conta, G.folha);
+    QF.contrib.forEach(e=>{ const k = contaEncargo(e.nome); add(k || G.conta, G.folha*e.pct); });
+    const pessoasMes = G.qtdMes.reduce((s,x)=>s+x,0);
+    CFG.beneficios.forEach((b,i)=>{ add(contaBeneficio(b) || G.conta, benVal(i)*pessoasMes); });
+  });
   // apoio operacional do Dimensionamento: custo cheio da função, como o operador
   ((R.MOA||{}).linhas||[]).forEach(l=>abrirMDO(num(l.total), l.fcod, "200-17"));
   // FAT: não há salário nem encargo no período, só o benefício lançado — que

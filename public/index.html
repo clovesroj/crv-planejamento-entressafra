@@ -195,10 +195,10 @@
     <div><label>Depreciação anual (%)</label><input type="number" id="p_dep" step="1"></div>
     <div><label>Atualização de preço de insumos (%)</label><input type="number" id="p_ipreco" step="1"></div>
   </div></div>
-  <div class="panel"><h3>Manutenção e terceirização</h3><div class="grid g4">
-    <div><label>Horas-máquina por mecânico/mês</label><input type="number" id="p_hPorMec" step="10"></div>
-    <div><label>Equipamentos por ajudante</label><input type="number" id="p_eqPorAjud" step="1"></div>
-    <div><label>Colaboradores por líder</label><input type="number" id="p_colPorLider" step="1"></div>
+  <div class="panel"><h3>Terceirização</h3>
+    <div class="hint" style="margin:-4px 0 10px">A equipe da oficina deixou de ser estimada por horas-máquina por mecânico,
+    equipamentos por ajudante e colaboradores por líder: vem do quadro previsto da controladoria, na aba
+    Mão de Obra (página "Quadro ADM e oficina").</div><div class="grid g4">
     <div><label>Aplicação aérea (R$/ha)</label><input type="number" id="p_tercAereaTar" step="5"></div>
     <div><label>Sistematização terceiro (R$/ha)</label><input type="number" id="p_tercSistTar" step="50"></div>
     <div><label>Sistematização (ha)</label><input type="number" id="p_tercSistHa" step="50"></div>
@@ -269,11 +269,32 @@
   </details>
 
   <details class="bloco" id="bl_mdo_indireta">
-    <summary><span class="bl-tit">Estrutura indireta</span></summary>
+    <summary><span class="bl-tit">Quadro ADM e oficina</span><span class="bl-sub" id="bl_qf_sub"></span></summary>
     <div class="bloco-corpo">
-      <div class="panel"><h3>Estrutura indireta e equipe de manutenção</h3>
-        <input type="search" class="tbl-busca" data-alvo="#t_ind" placeholder="Buscar função...">
-        <div class="tblwrap"><table id="t_ind"></table></div></div>
+      <div class="panel"><h3>Quadro previsto da controladoria — ADM agrícola e oficina</h3>
+        <div class="row" style="margin-bottom:12px;align-items:flex-end">
+          <div style="min-width:170px"><label for="sel_qf_mes">Mês</label><select id="sel_qf_mes"></select></div>
+          <div style="min-width:200px"><label for="sel_qf_grupo">Quadro</label>
+            <select id="sel_qf_grupo"><option value="todos">ADM agrícola + oficina</option>
+              <option value="adm">ADM agrícola</option><option value="oficina">Oficina (manutenção)</option></select></div>
+          <div class="hint" id="qf_fonte" style="flex:1;margin:0"></div>
+        </div>
+        <div class="grid g4" id="k_qf" style="margin-bottom:14px"></div>
+        <h3>Evolução mensal</h3>
+        <div class="tblwrap"><table id="t_qf_evol" class="qf"></table></div>
+        <h3 style="margin-top:16px">Por departamento, com as funções (↳)</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_qf_dep" placeholder="Buscar departamento ou função...">
+        <div class="tblwrap"><table id="t_qf_dep" class="qf"></table></div>
+        <h3 style="margin-top:16px">Por função — ordenado pela maior diferença em R$</h3>
+        <div class="tblwrap"><table id="t_qf_fun" class="qf"></table></div>
+        <div class="hint" style="margin-top:9px">O administrativo agrícola e a oficina entram no plano por este quadro,
+        departamento a departamento e cargo a cargo; motoristas, operadores e rurais saem das atividades do plano.
+        <b>Previsto</b> é a folha prevista pela controladoria (proventos do mês: 13º e férias caem no mês em que são pagos);
+        <b>AA</b>, o realizado do mesmo mês no ano anterior. <b>Ef. Qtde</b> = (Qtde Prev − Qtde AA) × Sal. médio AA da
+        função; <b>Ef. Salário</b> = (Sal. médio Prev − Sal. médio AA) × Qtde Prev — os dois somam o Δ R$, como no Painel
+        da planilha. <b>Custo no plano</b> = folha prevista + INSS patronal, RAT, Terceiros e FGTS sobre ela + benefícios
+        por pessoa (sem as provisões de 13º e férias, que já estão na folha do mês). De abr/26 a out/26 a planilha não tem
+        previsto: o plano repete fev/27 nesses meses.</div></div>
     </div>
   </details>
 
@@ -945,7 +966,7 @@
         equipamentos de apoio, rateados pelos litros de cada operação. <b>Arrendamento</b>: percentuais de referência
         setorial da aba Arrendamentos; dentro de tratos, pela área tratada de cada cultura. <b>Administrativo</b>:
         cada linha pelo seu critério, na aba Custos Administrativos. <b>Depreciação</b> e <b>demais custos gerais</b>
-        (equipamentos de apoio, estrutura indireta, equipe de manutenção, transporte de pessoal, terceirizações por
+        (equipamentos de apoio, quadro ADM agrícola e da oficina, transporte de pessoal, terceirizações por
         contrato, esporádicos): rateados pelo custo direto de cada operação. A soma de todas as operações é o custo
         total do plano. <span id="contabil_nota"></span></div></div>
     </div>
@@ -1147,8 +1168,9 @@
 <section id="pessoas">
   <h2>Resumo de Pessoas</h2>
   <p class="lead">Efetivo dimensionado pelo plano: o confronto com o quadro ativo, o recorte por departamento e
-  por função, e de onde vem cada pessoa, mês a mês. Departamento = etapa das atividades, mais as equipes de
-  manutenção e a estrutura agrícola indireta. Quatro páginas — use o menu ao lado para trocar.</p>
+  por função, e de onde vem cada pessoa, mês a mês. O operacional (motoristas, operadores e rurais) sai das
+  atividades do plano, por etapa; o ADM agrícola e a oficina, do quadro previsto da controladoria, por departamento;
+  e o FAT, fora da operação. Quatro páginas — use o menu ao lado para trocar.</p>
   <div class="grid g4" id="k_pes" style="margin-bottom:16px"></div>
 
   <details class="bloco" id="bl_pes_quadro" open>
@@ -1171,27 +1193,28 @@
   <details class="bloco" id="bl_pes_depto">
     <summary><span class="bl-tit">Por departamento e função</span></summary>
     <div class="bloco-corpo">
-      <div class="panel"><h3>Pessoas por departamento</h3>
-        <input type="search" class="tbl-busca" data-alvo="#t_pes_dept" placeholder="Buscar departamento...">
+      <div class="panel"><h3>Por departamento, com as funções (↳)</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_pes_dept" placeholder="Buscar departamento ou função...">
         <div class="tblwrap"><table id="t_pes_dept"></table></div>
         <div class="hint" style="margin-top:9px" id="pes_conc"></div></div>
-      <div class="panel"><h3>Pessoas por função</h3>
+      <div class="panel"><h3>Por função — ordenado pelo maior custo</h3>
         <input type="search" class="tbl-busca" data-alvo="#t_pes_fun" placeholder="Buscar função...">
         <div class="tblwrap"><table id="t_pes_fun"></table></div></div>
-      <div class="panel"><h3>Função × departamento (efetivo)</h3><div class="tblwrap"><table id="t_pes_matriz"></table></div></div>
+      <div class="panel"><h3>Função × quadro (média de pessoas no período)</h3><div class="tblwrap"><table id="t_pes_matriz"></table></div></div>
     </div>
   </details>
 
   <details class="bloco" id="bl_pes_fluxo">
-    <summary><span class="bl-tit">Fluxo mensal</span></summary>
+    <summary><span class="bl-tit">Evolução mensal</span></summary>
     <div class="bloco-corpo">
-      <div class="panel"><h3>Fluxo mensal — pessoas mobilizadas</h3><div class="tblwrap"><table id="t_pes_mes_qtd"></table></div>
+      <div class="panel"><h3>Evolução mensal — pessoas</h3><div class="tblwrap"><table id="t_pes_mes_qtd"></table></div>
         <div class="hint" style="margin-top:9px">Uma equipe de atividade conta nos meses em que a atividade tem quantidade
-        programada no Plano Operacional. Apoio, manutenção e estrutura contam em todos os meses.</div></div>
-      <div class="panel"><h3>Fluxo mensal — custo de mão de obra</h3><div class="tblwrap"><table id="t_pes_mes_custo"></table></div>
+        programada no Plano Operacional. O ADM agrícola e a oficina seguem o quadro previsto de cada mês (abr a out repetem
+        fev/27). <b>Na operação</b> é o total sem o FAT.</div></div>
+      <div class="panel"><h3>Evolução mensal — custo de mão de obra</h3><div class="tblwrap"><table id="t_pes_mes_custo"></table></div>
         <div id="ch_pes" style="margin-top:14px"></div>
-        <div class="hint" style="margin-top:9px">O custo das atividades segue a quantidade programada em cada mês; apoio,
-        manutenção e estrutura têm custo mensal constante.</div></div>
+        <div class="hint" style="margin-top:9px">O custo das atividades segue a quantidade programada em cada mês; o do
+        quadro ADM e da oficina, a folha prevista de cada mês (dezembro traz o 13º); o apoio tem custo mensal constante.</div></div>
     </div>
   </details>
 

@@ -169,7 +169,7 @@ function rastroOperacao(R, id, modo){
                ["arrend","Arrendamento","percentual de referência da aba Arrendamentos"],
                ["admin","Administrativo","critério de cada linha, aba Custos Administrativos"],
                ["deprec","Depreciação","pelo custo direto da operação"],
-               ["gerais","Demais custos gerais","apoio, estrutura indireta, manutenção, transporte de pessoal…"]];
+               ["gerais","Demais custos gerais","apoio, quadro ADM e oficina, transporte de pessoal…"]];
   const blocos = [
     {titulo:"A conta", linhas:[
       {rot:"Custo operacional", val:brl(o.total), sub:porUn(o.total)+" · o que custa fazer a operação"},
@@ -722,8 +722,8 @@ function rastroNatureza(R, nat){
       MESES.map((m,i)=>({rot:m, val:brl(R.CB.preco[i],2)+"/L"}))});
     if(nat==="mdo") blocos.push({titulo:"Fora das atividades", linhas:[
       {rot:"Equipamentos de apoio", val:brl(R.mdoApoio)},
-      {rot:"Estrutura indireta", val:brl(R.mdoIndirT)},
-      {rot:"Equipe de manutenção", val:brl(R.mdoManut)},
+      {rot:"Quadro ADM agrícola", val:brl(R.mdoIndirT), sub:"previsto da controladoria, folha + contribuições + benefícios"},
+      {rot:"Quadro da oficina", val:brl(R.mdoManut), sub:"previsto da controladoria, folha + contribuições + benefícios"},
       {rot:"Apoio operacional", val:brl(R.mdoApoioOper||0), sub:"lançado no Dimensionamento, nos meses marcados"},
       {rot:"FAT — contrato suspenso", val:brl(R.mdoFat||0), sub:"benefício por pessoa nos meses marcados; fora da operação"},
     ]});

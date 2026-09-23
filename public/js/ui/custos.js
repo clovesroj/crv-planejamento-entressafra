@@ -10,8 +10,8 @@ import { barrasPeriodo, kpi, th } from './componentes.js';
 /* natureza do custo -> chave do rastro, para a linha abrir a explicacao */
 const NAT_RASTRO = {"Combustível (diesel)":"nat:diesel","Mão de obra direta":"nat:mdo","Manutenção e materiais":"nat:manut",
   "Insumos agronômicos":"nat:insumo","Terceirização de aplicações":"nat:terc","Arrendamento":"nat:arrend",
-  "Administração":"nat:admin","MDO equipamentos de apoio":"frota:apoio","MDO estrutura indireta":"cat:mdo",
-  "Equipe de manutenção":"cat:mdo","MDO apoio operacional":"cat:mdo","FAT (contrato suspenso)":"cat:mdo",
+  "Administração":"nat:admin","MDO equipamentos de apoio":"frota:apoio","MDO quadro ADM agrícola":"cat:mdo",
+  "MDO quadro da oficina":"cat:mdo","MDO apoio operacional":"cat:mdo","FAT (contrato suspenso)":"cat:mdo",
   "Irrigação e fertirrigação":"cat:irrig","Transporte de pessoal":"tpess","Terceirizações (contratos)":"cat:terc",
   "Custos esporádicos":"cat:espor","Depreciação":"fixo"};
 

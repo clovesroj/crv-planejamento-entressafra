@@ -171,8 +171,8 @@ function custoCorte(R){
 /* Natureza fina do custo total. Mora aqui para a aba Custos, o Painel, o
    relatório e o rastro lerem a mesma lista: natureza nova entra num lugar só. */
 function comps(R){
-  return [["Mão de obra direta",R.mdoDireta],["MDO equipamentos de apoio",R.mdoApoio],["MDO estrutura indireta",R.mdoIndirT],
-    ["Equipe de manutenção",R.mdoManut],["MDO apoio operacional",R.mdoApoioOper],["FAT (contrato suspenso)",R.mdoFat],
+  return [["Mão de obra direta",R.mdoDireta],["MDO equipamentos de apoio",R.mdoApoio],["MDO quadro ADM agrícola",R.mdoIndirT],
+    ["MDO quadro da oficina",R.mdoManut],["MDO apoio operacional",R.mdoApoioOper],["FAT (contrato suspenso)",R.mdoFat],
     ["Combustível (diesel)",R.dieselT],
     ["Manutenção e materiais",R.manutT],["Insumos agronômicos",R.insumoT],
     ["Irrigação e fertirrigação",R.irrT],["Transporte de pessoal",R.tpessT],["Terceirização de aplicações",R.tercAtivT],["Terceirizações (contratos)",R.tercT],

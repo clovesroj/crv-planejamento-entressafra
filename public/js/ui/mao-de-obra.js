@@ -1,7 +1,9 @@
 import { benVal, encPct, gratif } from '../calculo/mao-de-obra.js';
 import { CFG } from '../dados/cfg.js';
 import { MESES, NM, clsMes } from '../nucleo/calendario.js';
-import { BEN, ENC, FUN_SEL, GRAT } from '../nucleo/estado.js';
+import { BEN, ENC, FUN_SEL, GRAT, QF_GRUPO, QF_MES } from '../nucleo/estado.js';
+import { comparativoQuadro } from '../calculo/quadro-comparativo.js';
+import { QUADRO_FONTE } from '../dados/quadro-fixo.js';
 import { $, brl, esc, fmt, num, pct } from '../nucleo/formato.js';
 import { kpi, ligarBuscaSelect, th } from './componentes.js';
 import { setFUN_SEL } from '../nucleo/estado.js';
@@ -19,8 +21,8 @@ function pintarMDO(R){
     kpi("Encargos sociais","",pct(M.encTot),"sobre o salário","nat:mdo") +
     kpi("Benefícios","t",brl(M.benTot),"por colaborador/mês","nat:mdo") +
     kpi("MDO total do período","g",brl(R.mdoTotal),"","nat:mdo") +
-    kpi("Equipe de manutenção","a",R.EM.efetivo+" pessoas",
-        `${R.EM.mec} mec · ${R.EM.ajud} ajud · ${R.EM.lider} líder`,"pessoas:total");
+    kpi("Quadro ADM + oficina","a",fmt(R.QF.pico)+" pessoas",
+        `${fmt(R.QF.adm.pico)} ADM · ${fmt(R.QF.oficina.pico)} oficina · ${brl(R.QF.total)} no ano`,"cat:mdo");
 
   $("#t_enc").innerHTML = th([["Encargo"],["Base legal"],["% aplicado",1],["Original",1],["Impacto p/ F01",1]]) + "<tbody>" +
     CFG.encargos.map((e,i)=>{
@@ -72,20 +74,7 @@ function pintarMDO(R){
   $("#sel_grat_tipo").value = g.tipo;
   $("#in_grat").value = g.valor;
 
-  let ind = th([["Cod"],["Função"],["Vínculo"],["Efetivo",1],["Custo mensal",1],["Custo do período",1]])+"<tbody>";
-  CFG.indiretos.forEach(i=>{const c=M.custoFuncao[i.fcod]||{mensal:0,nome:"—"};
-    ind += `<tr><td>${i.cod}</td><td>${i.nome}</td><td class="calc">${i.fcod}</td>
-      <td class="num">${i.qtd}</td><td class="num calc">${brl(c.mensal*i.qtd)}</td>
-      <td class="num tot">${brl(c.mensal*i.qtd*NM)}</td></tr>`;});
-  [["Mecânico de manutenção","F09",R.EM.mec],["Ajudante de mecânico","F14",R.EM.ajud],
-   ["Mecânico líder","F13",R.EM.lider]].forEach(([n,f,q])=>{
-    const c=M.custoFuncao[f]||{mensal:0};
-    ind += `<tr><td class="calc">auto</td><td>${n}</td><td class="calc">${f}</td>
-      <td class="num">${q}</td><td class="num calc">${brl(c.mensal*q)}</td>
-      <td class="num tot">${brl(c.mensal*q*NM)}</td></tr>`;});
-  ind += `<tr><td class="tot" colspan="5">TOTAL ESTRUTURA + MANUTENÇÃO</td>
-    <td class="num tot">${brl(R.mdoIndirT+R.mdoManut)}</td></tr></tbody>`;
-  $("#t_ind").innerHTML = ind;
+  pintarQuadro(R);
   pintarFat(R);
 }
 
@@ -115,5 +104,54 @@ function pintarFat(R){
   $("#bl_fat_sub").textContent = F.total>0 ? `${fmt(F.pico)} pessoas no pico · ${brl(F.total)}` : "";
 }
 
+
+/* ---------- QUADRO ADM E OFICINA ----------
+   O mesmo desenho do Painel das planilhas de justificativa da folha: os
+   indicadores do mês, a evolução mensal, o departamento com as funções
+   embaixo (↳) e as funções ordenadas pela maior diferença em R$. O cálculo
+   mora em calculo/quadro-comparativo.js. */
+const pctF = v => (v>0?"+":"")+fmt(v*100,1)+"%";
+const sinal = v => (v>0?"+":"")+fmt(v,0);
+const brlS = v => (v>0?"+":"")+brl(v);
+function colsQuadro(o, rotulo, cls){
+  return `<tr${cls?` class="${cls}"`:""}>${rotulo}
+    <td class="num">${fmt(o.qa,0)}</td><td class="num">${fmt(o.qp,0)}</td><td class="num calc">${o.dq?sinal(o.dq):"0"}</td>
+    <td class="num calc">${o.sa?brl(o.sa):"—"}</td><td class="num calc">${o.sp?brl(o.sp):"—"}</td>
+    <td class="num calc">${o.dsal?pctF(o.dsal):"—"}</td>
+    <td class="num">${brl(o.va)}</td><td class="num tot">${brl(o.vp)}</td>
+    <td class="num ${o.dv>0?"qf-mais":o.dv<0?"qf-menos":""}">${brlS(o.dv)}</td><td class="num calc">${o.va?pctF(o.pct):"—"}</td>
+    <td class="num calc">${brlS(o.efQ)}</td><td class="num calc">${brlS(o.efS)}</td>
+    <td class="calc">${o.fator||""}</td><td class="num">${brl(o.cp)}</td></tr>`;
+}
+const CAB_QF = [["Qtde AA",1],["Qtde Prev.",1],["Δ Qtde",1],["Sal. méd. AA",1],["Sal. méd. Prev.",1],["Δ Sal. méd.",1],
+  ["Realizado AA",1],["Previsto",1],["Δ R$",1],["Δ %",1],["Ef. Qtde (R$)",1],["Ef. Salário (R$)",1],["Fator principal"],["Custo no plano",1]];
+function pintarQuadro(R){
+  const QF = R.QF; if(!QF) return;
+  const C = comparativoQuadro(QF, QF_GRUPO, QF_MES);
+  const nomeMes = QF_MES==="media" ? "média nov/26–mar/27" : MESES[QF_MES];
+  $("#sel_qf_mes").innerHTML = C.meses.map(i=>`<option value="${i}"${i===QF_MES?" selected":""}>${MESES[i]}</option>`).join("")
+    + `<option value="media"${QF_MES==="media"?" selected":""}>Média nov/26–mar/27</option>`;
+  $("#sel_qf_grupo").value = QF_GRUPO;
+  $("#qf_fonte").textContent = "Fonte: "+Object.values(QUADRO_FONTE).map(f=>f.arquivo+" (revisão "+f.revisao+")").join(" · ");
+  const T = C.total;
+  $("#k_qf").innerHTML =
+    kpi("Previsto — "+nomeMes,"",brl(T.vp), fmt(T.qp,0)+" pessoas · sal. médio "+(T.sp?brl(T.sp):"—"),"cat:mdo") +
+    kpi("Realizado AA","t",brl(T.va), fmt(T.qa,0)+" pessoas · sal. médio "+(T.sa?brl(T.sa):"—"),"") +
+    kpi("Variação","a",brlS(T.dv), (T.va?pctF(T.pct):"—")+" · "+(T.dq>0?"+":"")+fmt(T.dq,0)+" pessoas · "+(T.fator||"—"),"") +
+    kpi("Custo no plano — "+nomeMes,"g",brl(T.cp), "folha + contribuições + benefícios","cat:mdo");
+  $("#t_qf_evol").innerHTML = th([["Mês"],...CAB_QF])+"<tbody>"+
+    C.evolucao.map(e=>colsQuadro(e, `<td data-rastro="mes:${e.i}">${e.mes}</td>`, e.i===QF_MES?"qf-sel":"")).join("")+
+    colsQuadro(C.media, `<td class="tot">Média mensal</td>`, "qf-tot")+"</tbody>";
+  $("#t_qf_dep").innerHTML = th([["Departamento / Função"],...CAB_QF])+"<tbody>"+
+    (C.departamentos.length ? C.departamentos.map(d=>
+      colsQuadro(d, `<td><b>${esc(d.nome)}</b> <span class="calc">${esc(d.dcod)} · ${d.grupo==="adm"?"ADM":"oficina"}</span></td>`, "qf-dep") +
+      d.filhas.map(f=>colsQuadro(f, `<td class="qf-fun">↳ ${esc(f.nome)} <span class="calc">${esc(f.fcod)}</span></td>`, "qf-f")).join("")).join("")
+      : `<tr><td colspan="15" class="calc">Sem previsto neste mês.</td></tr>`)+
+    colsQuadro(T, `<td class="tot">TOTAL</td>`, "qf-tot")+"</tbody>";
+  $("#t_qf_fun").innerHTML = th([["#",1],["Função"],...CAB_QF])+"<tbody>"+
+    C.funcoes.map((f,k)=>colsQuadro(f, `<td class="num calc">${k+1}</td><td>${esc(f.nome)} <span class="calc">${esc(f.fcod)}</span></td>`)).join("")+
+    colsQuadro(T, `<td></td><td class="tot">TOTAL</td>`, "qf-tot")+"</tbody>";
+  $("#bl_qf_sub").textContent = `${fmt(QF.pico,0)} pessoas no pico · ${brl(QF.total)} no ano`;
+}
 
 export { pintarMDO };

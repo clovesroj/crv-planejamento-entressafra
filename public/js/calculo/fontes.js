@@ -5,8 +5,8 @@
    mês é o valor da conta naquele mês (a auditoria confere).
 
    É o que o rastro da grande conta mostra: "Mão de obra na entressafra =
-   equipes das atividades de preparo, plantio e tratos + estrutura indireta +
-   manutenção + FAT...", cada uma com quanto caiu no período e por quê. */
+   equipes das atividades de preparo, plantio e tratos + quadro ADM agrícola +
+   quadro da oficina + FAT...", cada uma com quanto caiu no período e por quê. */
 import { MESES, NM } from '../nucleo/calendario.js';
 import { ESPOR } from '../nucleo/estado.js';
 import { num } from '../nucleo/formato.js';
@@ -21,6 +21,7 @@ const CRIT = {
   fixo:    "o mesmo valor em todos os meses",
   pag:     "no mês de pagamento de cada contrato",
   lanc:    "no mês em que foi lançado",
+  folha:   "pela folha prevista de cada mês (abr a out repetem fev/27)",
 };
 
 function fontesDaConta(R, k){
@@ -46,8 +47,10 @@ function fontesDaConta(R, k){
   if(k==="mdo"){
     porEtapa("Equipes das atividades", (r,i)=>num((r.mdoMes||[])[i]), CRIT.equipe);
     add("Operadores dos equipamentos de apoio", pelaArea(R.AE.mdo), CRIT.area, "frota:apoio");
-    add("Estrutura agrícola indireta", pelaArea(R.mdoIndirT), CRIT.area);
-    add("Equipe de manutenção (oficina)", pelaArea(R.mdoManut), CRIT.area);
+    if(R.QF){
+      add("Quadro ADM agrícola (previsto da controladoria)", R.QF.adm.mes.slice(), CRIT.folha);
+      add("Quadro da oficina (previsto da controladoria)", R.QF.oficina.mes.slice(), CRIT.folha);
+    }
     if(R.MOA) add("Apoio operacional (Dimensionamento)", R.MOA.mes.slice(), CRIT.marcado);
     if(R.FT)  add("FAT — benefício do contrato suspenso", R.FT.mes.slice(), CRIT.marcado);
   }

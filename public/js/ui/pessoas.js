@@ -1,4 +1,5 @@
-import { deptIdx, janelaDaLinha, necessidadePorAtividade } from '../calculo/pessoas.js';
+import { GRUPOS_ORD, deptIdx, janelaDaLinha, necessidadePorAtividade, visaoPlanilha } from '../calculo/pessoas.js';
+import { perTag } from '../nucleo/calendario.js';
 import { diasDoMes } from '../calculo/atividade.js';
 import { ajusteQuadro, ativoDe, quadroBase } from '../calculo/quadro.js';
 import { CFG } from '../dados/cfg.js';
@@ -8,6 +9,11 @@ import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
 import { barras, serieDoPeriodo, kpi, maxSel, somaSel, tdMeses, th, thMeses } from './componentes.js';
 
 /* ---------- RESUMO DE PESSOAS ---------- */
+const nomeCargo = (R, f) => (R.PS && R.PS.nomeFun && R.PS.nomeFun[f]) || (R.MP.custoFuncao[f]||{nome:f}).nome;
+// grupos do quadro, na ordem e com o nome do Resumo de MDO da controladoria
+const NOME_GRUPO = {"OPERACIONAL":"Operacional (atividades do plano)", "ADM AGRÍCOLA":"ADM agrícola (quadro previsto)",
+  "OFICINA":"Oficina — manutenção (quadro previsto)", "FAT":"FAT (fora da operação)"};
+const CURTO_GRUPO = {"OPERACIONAL":"Operacional", "ADM AGRÍCOLA":"ADM agrícola", "OFICINA":"Oficina", "FAT":"FAT"};
 /* ---------- NECESSIDADE x QUADRO ATIVO ----------
    Veio do Dimensionamento: a pergunta "quanta gente falta contratar" e de
    pessoas, e e nesta tela que estao as outras respostas sobre pessoas.
@@ -49,7 +55,7 @@ function pintarQuadro(R){
     const iPico = o.qtdMes.indexOf(o.pico);
     tot.nec+=o.qtd; tot.pico+=o.pico; tot.ativo+=ativo; tot.ferias+=ferias; tot.demis+=demis; tot.fat+=fatPico;
     tot.disp+=disp; tot.contratar+=contratar; tot.exced+=exced;
-    return `<tr><td>${f} — ${esc((R.MP.custoFuncao[f]||{nome:f}).nome)}</td>
+    return `<tr><td>${f} — ${esc(nomeCargo(R, f))}</td>
       <td class="num calc">${base||"—"}</td>
       <td class="num"><input data-qd="${f}" data-f="ativo" value="${ajuste!=null?ajuste:""}"
           placeholder="${base}" inputmode="decimal" title="Em branco usa o quadro do ERP"></td>
@@ -81,7 +87,7 @@ function pintarQuadro(R){
   const faltaMes = MESES.map(()=>0);
   const corpoMes = funcoes.map(f=>{
     const o = necDe(f), disp = disponivel[f], fm = fatMesDe(f);
-    return `<tr><td>${f} — ${esc((R.MP.custoFuncao[f]||{nome:f}).nome)}</td>
+    return `<tr><td>${f} — ${esc(nomeCargo(R, f))}</td>
       <td class="num calc">${fmt(disp)}</td>` +
       o.qtdMes.map((v,i)=>{
         // no FAT naquele mes: e do quadro, mas nao esta disponivel
@@ -113,86 +119,96 @@ function pintarQuadro(R){
 
 function pintarPessoas(R){
   pintarQuadro(R);
-  const S = R.PS, sm = a => a.reduce((s,x)=>s+x,0);
-  const contaF = c => (CFG.funcoes.find(f=>f.cod===c)||{conta:"—"}).conta;
-  const depts = Object.keys(S.porDept).sort((a,b)=>deptIdx(a)-deptIdx(b));
-  // efetivo e custo por funcao somam todo mundo, FAT incluido (a necessidade,
-  // sem o FAT, e a do confronto com o quadro, acima)
-  const FUNS = S.porFunTodos || S.porFun;
-  const funs  = Object.keys(FUNS).sort();
-  const pm = sm(S.qtdMes), iPico = S.qtdMes.indexOf(Math.max(...S.qtdMes));
+  const S = R.PS, SEL = R.SEL;
+  /* Tudo abaixo no padrão das planilhas da controladoria (Painel das
+     justificativas de folha e Resumo de MDO): grupo -> departamento -> função,
+     o ranking por função e a evolução mensal, um mês por linha. O recorte é o
+     da barra do topo. A agregação mora em calculo/pessoas.js (visaoPlanilha),
+     a mesma do relatório. */
+  const V = visaoPlanilha(S, SEL.meses);
+  const T = V.total, nM = SEL.meses.length;
   const fat = S.fat || {qtd:0, custo:0, qtdMes:Array(NM).fill(0)};
-  const todosMes = S.qtdMes.map((v,i)=>v + fat.qtdMes[i]);
-  const porPessoa = o => o.pessoasMes>0 ? brl(o.custo/o.pessoasMes,0) : "—";
+  const iPico = S.qtdMes.indexOf(Math.max(...S.qtdMes));
+  const pctC = v => T.custo>0 ? fmt(v/T.custo*100,1)+"%" : "—";
+  const porPessoa = o => o.pm>0 ? brl(o.custo/o.pm,0) : "—";
 
   $("#k_pes").innerHTML =
-    kpi("Efetivo dimensionado","",fmt(S.qtd)+" pessoas", depts.length+" departamentos · "+funs.length+" funções"
-        + (S.fat && S.fat.qtd ? ` · ${fmt(S.fat.qtd)} no FAT, fora da operação` : ""),"pessoas:total") +
-    kpi("Pico de mobilização","a",fmt(S.qtdMes[iPico]||0)+" pessoas", S.qtd>0?MESES[iPico]:"","pessoas:pico") +
-    kpi("Custo de mão de obra","t",brl(S.custo), NM+" meses","nat:mdo") +
-    // o FAT tem custo mas nao mobiliza ninguem: fica fora da media por pessoa mobilizada
-    kpi("Custo médio por pessoa","g",pm>0?brl((S.custo-((S.fat&&S.fat.custo)||0))/pm,0)+"/mês":"—","pessoa mobilizada no mês","pessoas:total");
+    kpi("Efetivo dimensionado","",fmt(S.qtd)+" pessoas", V.grupos.map(g=>CURTO_GRUPO[g.grupo]+" "+fmt(g.pico)).join(" · "),"pessoas:total") +
+    kpi("Pico de mobilização","a",fmt(S.qtdMes[iPico]||0)+" pessoas", S.qtd>0?MESES[iPico]+" · sem o FAT":"","pessoas:pico") +
+    kpi("Custo de mão de obra","t",brl(T.custo), SEL.parcial ? SEL.rotulo : NM+" meses","nat:mdo") +
+    kpi("Salário médio","g",T.salMed?brl(T.salMed,0)+"/mês":"—", "folha ÷ pessoas-mês de quem tem folha no plano","pessoas:total");
 
-  $("#t_pes_dept").innerHTML = th([["Departamento"],["Funções",1],["Efetivo",1],["% do efetivo",1],["Pico mensal",1],
+  /* ---- por departamento, com as funções (↳) ---- */
+  const linhaP = (o, rot, cls, rastro) => `<tr${cls?` class="${cls}"`:""}${rastro?` data-rastro="${rastro}"`:""}>${rot}
+      <td class="num">${fmt(o.qtd,o.qtd<10?1:0)}</td><td class="num calc">${fmt(o.pico,o.pico<10?1:0)}</td>
+      <td class="num calc">${o.salMed?brl(o.salMed):"—"}</td><td class="num calc">${o.folha?brl(o.folha):"—"}</td>
+      <td class="num tot">${brl(o.custo)}</td><td class="num calc">${pctC(o.custo)}</td>
+      <td class="num calc">${porPessoa(o)}</td></tr>`;
+  $("#t_pes_dept").innerHTML = th([["Departamento / Função"],["Qtde (média)",1],["Pico",1],["Sal. médio",1],["Folha",1],
     ["Custo MDO",1],["% do custo",1],["R$/pessoa/mês",1]])+"<tbody>"+
-    depts.map(d=>{ const o=S.porDept[d], nf=new Set(S.itens.filter(it=>it.dept===d).map(it=>it.fcod)).size;
-      return `<tr><td>${esc(d)}</td><td class="num calc">${nf}</td><td class="num tot">${fmt(o.qtd)}</td>
-        <td class="num calc">${S.qtd>0?fmt(o.qtd/S.qtd*100,1)+"%":"—"}</td><td class="num calc">${fmt(o.pico)}</td>
-        <td class="num">${brl(o.custo)}</td><td class="num calc">${S.custo>0?fmt(o.custo/S.custo*100,1)+"%":"—"}</td>
-        <td class="num calc">${porPessoa(o)}</td></tr>`; }).join("")+
-    `<tr><td class="tot">TOTAL</td><td class="num tot">${funs.length}</td><td class="num tot">${fmt(S.qtd)}</td>
-     <td class="num tot">100,0%</td><td class="num tot">${fmt(Math.max(...S.qtdMes))}</td><td class="num tot">${brl(S.custo)}</td>
-     <td class="num tot">100,0%</td><td class="num tot">${pm>0?brl((S.custo-fat.custo)/pm,0):"—"}</td></tr></tbody>`;
+    V.grupos.map(g=>linhaP(g, `<td><b>${esc(NOME_GRUPO[g.grupo]||g.grupo)}</b></td>`, "pes-grp") +
+      g.depts.map(d=>linhaP(d, `<td class="pes-dep">${esc(d.dept)}${d.dcod?` <span class="calc">${esc(d.dcod)}</span>`:""}</td>`,
+          "qf-dep", "pessoas:dept:"+d.dept) +
+        d.funcs.map(f=>linhaP(f, `<td class="qf-fun">↳ ${esc(f.fnome)} <span class="calc">${esc(f.fcod)}</span></td>`, "qf-f",
+          S.porFun[f.fcod] ? "pessoas:fun:"+f.fcod : "")).join("")).join("")).join("")+
+    linhaP(T, `<td class="tot">TOTAL</td>`, "qf-tot", "nat:mdo")+"</tbody>";
 
-  // conferência com as outras abas: a Capa não soma os operadores de apoio
+  // conferência com as outras abas
   const difCusto = S.custo - R.mdoTotal;
-  $("#pes_conc").innerHTML = `Custo de mão de obra desta aba: <b>${brl(S.custo)}</b> — aba Custos: ${brl(R.mdoTotal)}
-    ${Math.abs(difCusto)<=1?"(confere)":"(diferença de "+brl(difCusto)+")"}. Efetivo da Capa: ${fmt(R.efetivoTotal)} pessoas,
-    que não inclui os ${fmt(S.apoio)} operadores dos equipamentos de apoio contados aqui. A reserva do transporte de cana
-    entra no efetivo sem custo de mão de obra próprio, como na Capa.`;
+  $("#pes_conc").innerHTML = `Custo de mão de obra desta aba no ano: <b>${brl(S.custo)}</b> — aba Custos: ${brl(R.mdoTotal)}
+    ${Math.abs(difCusto)<=1?"(confere)":"(diferença de "+brl(difCusto)+")"}. <b>Qtde</b> é a média mensal de pessoas no
+    período; <b>pico</b>, o mês que mais pede. O ADM agrícola e a oficina vêm do quadro previsto da controladoria (aba Mão
+    de Obra); motoristas, operadores e rurais, das atividades. Efetivo da Capa: ${fmt(R.efetivoTotal)} pessoas, sem os
+    ${fmt(S.apoio)} operadores dos equipamentos de apoio. A reserva do transporte e o apoio da frente entram na quantidade
+    sem custo próprio; o FAT entra no custo pelo benefício, sem folha.`;
 
-  $("#t_pes_fun").innerHTML = th([["Cod"],["Função"],["Conta"],["Departamentos"],["Efetivo",1],["Pico mensal",1],
-    ["Custo MDO",1],["R$/pessoa/mês",1]])+"<tbody>"+
-    funs.map(f=>{ const o=FUNS[f];
-      const ds=[...new Set(S.itens.filter(it=>it.fcod===f).map(it=>it.dept))].sort((a,b)=>deptIdx(a)-deptIdx(b));
-      return `<tr><td>${f}</td><td>${esc((R.MP.custoFuncao[f]||{nome:f}).nome)}</td><td class="calc">${contaF(f)}</td>
-        <td class="calc">${ds.map(esc).join(", ")}</td><td class="num tot">${fmt(o.qtd)}</td>
-        <td class="num calc">${fmt(o.pico)}</td><td class="num">${brl(o.custo)}</td>
-        <td class="num calc">${porPessoa(o)}</td></tr>`; }).join("")+
-    `<tr><td class="tot" colspan="4">TOTAL</td><td class="num tot">${fmt(S.qtd)}</td><td></td>
-     <td class="num tot">${brl(S.custo)}</td><td></td></tr></tbody>`;
+  /* ---- por função, ordenado pelo maior custo ---- */
+  $("#t_pes_fun").innerHTML = th([["#",1],["Cod"],["Função"],["Quadro"],["Deptos.",1],["Qtde (média)",1],["Pico",1],
+    ["Sal. médio",1],["Custo MDO",1],["% do custo",1]])+"<tbody>"+
+    V.funcoes.map((f,k)=>`<tr${S.porFun[f.fcod]?` data-rastro="pessoas:fun:${f.fcod}"`:""}><td class="num calc">${k+1}</td>
+      <td>${esc(f.fcod)}</td><td>${esc(f.fnome)}</td><td class="calc">${f.grupos.map(g=>CURTO_GRUPO[g]||g).join(", ")}</td>
+      <td class="num calc" title="${esc(f.depts.join(", "))}">${f.depts.length}</td>
+      <td class="num">${fmt(f.qtd,f.qtd<10?1:0)}</td><td class="num calc">${fmt(f.pico,f.pico<10?1:0)}</td>
+      <td class="num calc">${f.salMed?brl(f.salMed):"—"}</td><td class="num tot">${brl(f.custo)}</td>
+      <td class="num calc">${pctC(f.custo)}</td></tr>`).join("")+
+    `<tr class="qf-tot"><td></td><td class="tot" colspan="4">TOTAL</td><td class="num tot">${fmt(T.qtd,0)}</td>
+      <td class="num tot">${fmt(T.pico,0)}</td><td class="num tot">${T.salMed?brl(T.salMed):"—"}</td>
+      <td class="num tot">${brl(T.custo)}</td><td class="num tot">100,0%</td></tr></tbody>`;
 
-  const cel = (f,d) => S.itens.filter(it=>it.fcod===f && it.dept===d).reduce((s,it)=>s+it.qtd,0);
-  $("#t_pes_matriz").innerHTML = th([["Função"],...depts.map(d=>[esc(d),1]),["Total",1]])+"<tbody>"+
-    funs.map(f=>`<tr><td>${f} — ${esc((R.MP.custoFuncao[f]||{nome:f}).nome)}</td>`+
-      depts.map(d=>{ const v=cel(f,d); return `<td class="num ${v?"":"calc"}">${v?fmt(v):"—"}</td>`; }).join("")+
-      `<td class="num tot">${fmt(FUNS[f].qtd)}</td></tr>`).join("")+
-    `<tr><td class="tot">TOTAL</td>`+depts.map(d=>`<td class="num tot">${fmt(S.porDept[d].qtd)}</td>`).join("")+
-    `<td class="num tot">${fmt(S.qtd)}</td></tr></tbody>`;
+  /* ---- função × quadro (média de pessoas no período) ---- */
+  const gruposV = GRUPOS_ORD.filter(g=>V.grupos.some(x=>x.grupo===g));
+  const noRec = arr => SEL.meses.reduce((t,i)=>t+(+arr[i]||0),0)/Math.max(1,nM);
+  const celG = (fcod, g) => noRec(S.itens.filter(it=>it.fcod===fcod && it.grupo===g)
+    .reduce((a,it)=>a.map((v,i)=>v+it.qtdMes[i]), Array(NM).fill(0)));
+  $("#t_pes_matriz").innerHTML = th([["Função"],...gruposV.map(g=>[CURTO_GRUPO[g]||g,1]),["Total",1]])+"<tbody>"+
+    V.funcoes.map(f=>`<tr><td>${esc(f.fcod)} — ${esc(f.fnome)}</td>`+
+      gruposV.map(g=>{ const v = celG(f.fcod, g); return `<td class="num ${v?"":"calc"}">${v?fmt(v,v<10?1:0):"—"}</td>`; }).join("")+
+      `<td class="num tot">${fmt(f.qtd,f.qtd<10?1:0)}</td></tr>`).join("")+
+    `<tr class="qf-tot"><td class="tot">TOTAL</td>`+gruposV.map(g=>{ const o = V.grupos.find(x=>x.grupo===g);
+      return `<td class="num tot">${fmt(o?o.qtd:0,0)}</td>`; }).join("")+`<td class="num tot">${fmt(T.qtd,0)}</td></tr></tbody>`;
 
-  const SEL = R.SEL;
-  $("#t_pes_mes_qtd").innerHTML = th([["Departamento"],...thMeses(),[SEL.parcial?"Pico no período":"Pico",1]])+"<tbody>"+
-    depts.map(d=>{ const o=S.porDept[d];
-      return `<tr><td>${esc(d)}</td>`+tdMeses(o.qtdMes, v=>v?fmt(v):"—")+
-        `<td class="num tot">${fmt(maxSel(o.qtdMes, SEL))}</td></tr>`; }).join("")+
-    `<tr><td class="tot">TOTAL</td>`+tdMeses(todosMes, v=>fmt(v), "num tot")+
-    `<td class="num tot">${fmt(maxSel(todosMes, SEL))}</td></tr>`+
-    (fat.qtd ? `<tr><td class="calc">Na operação (sem o FAT)</td>`+tdMeses(S.qtdMes, v=>fmt(v))+
-      `<td class="num calc">${fmt(maxSel(S.qtdMes, SEL))}</td></tr>` : "")+`</tbody>`;
-
-  // o acumulado corre sobre os meses à mostra: acumular meses escondidos faria a
-  // última coluna visível não bater com o total da linha
+  /* ---- evolução mensal: um mês por linha, como na planilha ---- */
+  const cabG = gruposV.map(g=>[CURTO_GRUPO[g]||g,1]);
+  $("#t_pes_mes_qtd").innerHTML = th([["Mês"],["Período"],...cabG,["Total",1],["Na operação",1],["Sal. médio",1]])+"<tbody>"+
+    V.evolucao.map(e=>`<tr data-rastro="mes:${e.i}"><td>${MESES[e.i]}</td><td>${perTag(e.i)}</td>`+
+      gruposV.map(g=>`<td class="num">${fmt((e.porGrupo[g]||{qtd:0}).qtd,0)}</td>`).join("")+
+      `<td class="num tot">${fmt(e.qtd,0)}</td><td class="num calc">${fmt(e.qtd-(e.porGrupo["FAT"]||{qtd:0}).qtd,0)}</td>
+       <td class="num calc">${e.salMed?brl(e.salMed):"—"}</td></tr>`).join("")+
+    `<tr class="qf-tot"><td class="tot">Média mensal</td><td></td>`+
+      gruposV.map(g=>`<td class="num tot">${fmt(V.media.porGrupo[g].qtd,0)}</td>`).join("")+
+      `<td class="num tot">${fmt(V.media.qtd,0)}</td><td class="num tot">${fmt(V.media.qtd-(V.media.porGrupo["FAT"]||{qtd:0}).qtd,0)}</td>
+       <td class="num tot">${V.media.salMed?brl(V.media.salMed):"—"}</td></tr></tbody>`;
   let ac = 0;
-  const acum = S.custoMes.map((v,i)=> SEL.meses.includes(i) ? (ac+=v) : null);
-  $("#t_pes_mes_custo").innerHTML = th([["Departamento"],...thMeses(),[SEL.parcial?"Total do período":"Total",1]])+"<tbody>"+
-    depts.map(d=>{ const o=S.porDept[d];
-      return `<tr><td>${esc(d)}</td>`+tdMeses(o.custoMes, v=>brl(v))+
-        `<td class="num tot">${brl(somaSel(o.custoMes, SEL))}</td></tr>`; }).join("")+
-    `<tr><td class="tot">TOTAL</td>`+tdMeses(S.custoMes, v=>brl(v), "num tot")+
-    `<td class="num tot">${brl(somaSel(S.custoMes, SEL))}</td></tr>`+
-    `<tr><td class="calc">Acumulado</td>`+tdMeses(acum, v=>v==null?"—":brl(v))+`<td></td></tr>`+
-    `<tr><td class="calc">Pessoas na operação no mês</td>`+tdMeses(S.qtdMes, v=>fmt(v))+`<td></td></tr>`+
-    (fat.qtd ? `<tr><td class="calc">Pessoas no FAT no mês</td>`+tdMeses(fat.qtdMes, v=>v?fmt(v):"—")+`<td></td></tr>` : "")+`</tbody>`;
+  $("#t_pes_mes_custo").innerHTML = th([["Mês"],["Período"],...cabG,["Custo MDO",1],["% do período",1],["Acumulado",1]])+"<tbody>"+
+    V.evolucao.map(e=>{ ac += e.custo; return `<tr data-rastro="cat:mdo"><td>${MESES[e.i]}</td><td>${perTag(e.i)}</td>`+
+      gruposV.map(g=>`<td class="num">${brl((e.porGrupo[g]||{custo:0}).custo)}</td>`).join("")+
+      `<td class="num tot">${brl(e.custo)}</td><td class="num calc">${pctC(e.custo)}</td><td class="num calc">${brl(ac)}</td></tr>`; }).join("")+
+    `<tr class="qf-tot"><td class="tot">Média mensal</td><td></td>`+
+      gruposV.map(g=>`<td class="num tot">${brl(V.media.porGrupo[g].custo)}</td>`).join("")+
+      `<td class="num tot">${brl(V.media.custo)}</td><td></td><td></td></tr>`+
+    `<tr class="qf-tot"><td class="tot">TOTAL</td><td></td>`+
+      gruposV.map(g=>{ const o = V.grupos.find(x=>x.grupo===g); return `<td class="num tot">${brl(o?o.custo:0)}</td>`; }).join("")+
+      `<td class="num tot">${brl(T.custo)}</td><td class="num tot">100,0%</td><td></td></tr></tbody>`;
   barras($("#ch_pes"), serieDoPeriodo(S.custoMes, SEL), "#2A57A0");
 
   /* ---------- NECESSIDADE POR ETAPA, TIPO DE GENTE, ORIGEM E FUNCAO ----------

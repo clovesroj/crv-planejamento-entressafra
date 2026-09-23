@@ -928,3 +928,18 @@ table.pec tr.pec-a td:first-child{font-style:italic}
 .leg-per{display:inline-flex;align-items:center;gap:6px}
 .leg-per i{display:inline-block;width:12px;height:12px;border-radius:3px}
 #ch_per g[data-rastro]:hover rect:nth-child(2){opacity:.8}
+
+/* Quadro ADM e oficina (aba Mao de Obra), no desenho do Painel das planilhas da controladoria */
+table.qf tr.qf-dep td{background:var(--sunk);font-weight:600}
+table.qf tr.qf-f td.qf-fun{padding-left:26px;color:var(--grey)}
+table.qf tr.qf-tot td{font-weight:700;border-top:1px solid var(--line-strong)}
+table.qf tr.qf-sel td{background:color-mix(in srgb,var(--leaf) 9%,var(--card))}
+table.qf td.qf-mais{color:var(--bad)}
+table.qf td.qf-menos{color:var(--green)}
+
+/* Resumo de Pessoas no padrao das planilhas: grupo, departamento e funcao */
+#t_pes_dept tr.pes-grp td{background:color-mix(in srgb,var(--leaf) 10%,var(--card));font-weight:700;border-top:1px solid var(--line-strong)}
+#t_pes_dept tr.qf-dep td{background:var(--sunk);font-weight:600}
+#t_pes_dept td.pes-dep{padding-left:14px}
+#t_pes_dept tr.qf-f td.qf-fun{padding-left:30px;color:var(--grey)}
+#t_pes_dept tr.qf-tot td,#t_pes_fun tr.qf-tot td,#t_pes_matriz tr.qf-tot td,#t_pes_mes_qtd tr.qf-tot td,#t_pes_mes_custo tr.qf-tot td{font-weight:700;border-top:1px solid var(--line-strong)}

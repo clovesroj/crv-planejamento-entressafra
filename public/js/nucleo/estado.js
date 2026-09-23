@@ -99,6 +99,8 @@ let FAT = [];
    operacao precisa e que nao sai de atividade nenhuma (fiscal, apontador,
    lider de frente...). Linha: {fcod, qtd, m:[12 x 0/1], frente} */
 let MO_APOIO = [];
+// visao da pagina Quadro ADM e oficina (aba Mao de Obra): mes e grupo -- nao e gravado
+let QF_MES = 10, QF_GRUPO = "todos";
 let ENC = {};            // índice do encargo -> % ajustado
 let BEN = {};            // índice do benefício -> valor ajustado
 let EDITADO = false;     // true assim que o usuário mexe em algo — trava o carregamento
@@ -116,7 +118,7 @@ let AGROFIT_BUSCA = null;
 export {
   P, PLANO, DIM, INSUMO, ESPOR, TRATC, NIV, GRAT, APOIO, TERC_TAR, TERC_SUB, TERC_DET, CRM, MATX,
   INSX, INSX_V, ATVX, ATVX_V, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, CRIT_GER, CRIT_CABE, REF_BUSCA, REF_AG, REF_FAM, REF_FROTA, REF_PROP, GR_INICIO, GR_FIM, GR_EMPRESA, GR_ESP, GR_AG, GR_COMP, GR_FROTA, GR_PROP, GR_REFORMA, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, FITO_ABERTO, PLANO_ABERTO, INS_FICHA, DIM_DET, APOIO_DET, APOIO_FIXO, TRAT_NOME, TRAT_OBS, TRAT_ETAPA, TRAT_DEL, TRAT_ATIVO, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
-  TPESS, FAT, MO_APOIO, QUADRO, ADM, ADM_RAT, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL, ATIV_TRAT_SEL, GRUPOS_INS, FAM_NOME, FAM_CLASSE, AGROFIT_BUSCA, INS_EDIT,
+  TPESS, FAT, MO_APOIO, QF_MES, QF_GRUPO, QUADRO, ADM, ADM_RAT, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL, ATIV_TRAT_SEL, GRUPOS_INS, FAM_NOME, FAM_CLASSE, AGROFIT_BUSCA, INS_EDIT,
 };
 
 export const setP          = v => { P = v; };
@@ -183,6 +185,8 @@ export const setFORN_PAR   = v => { FORN_PAR = v; };
 export const setTPESS      = v => { TPESS = v; };
 export const setFAT        = v => { FAT = Array.isArray(v) ? v : []; };
 export const setMO_APOIO   = v => { MO_APOIO = Array.isArray(v) ? v : []; };
+export const setQF_MES     = v => { QF_MES = v==="media" ? v : +v; };
+export const setQF_GRUPO   = v => { QF_GRUPO = v || "todos"; };
 export const setQUADRO     = v => { QUADRO = v; };
 export const setGRUPOS_INS = v => { GRUPOS_INS = v; };
 export const setFAM_NOME   = v => { FAM_NOME = v; };

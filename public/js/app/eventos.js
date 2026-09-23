@@ -23,6 +23,7 @@ import { leve, render, renderAgrofit, renderApoioMes, renderDimDet, renderEditIn
 import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarBuscaItem, filtrarRastro, voltarRastro } from '../ui/rastro.js';
 import { abrirRendMensal, aberto as rendMensalAberto, descartarRascunho, editarRascunho,
   fecharRendMensal, pendencias, salvarRascunho } from '../ui/rendmensal.js';
+import { setQF_MES, setQF_GRUPO } from '../nucleo/estado.js';
 import { setAPOIO, setATIV_TRAT_SEL, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setINSX_V, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
 import { USUARIO, areasDePermissao, podeEditar } from '../nucleo/sessao.js';
 
@@ -256,6 +257,9 @@ document.addEventListener("input",e=>{
 });
 document.addEventListener("change",e=>{
   const t=e.target;
+  // quadro ADM e oficina (aba Mao de Obra): mes e grupo sao so visao -- nao grava
+  if(t.id==="sel_qf_mes"){ setQF_MES(t.value); render(); return; }
+  if(t.id==="sel_qf_grupo"){ setQF_GRUPO(t.value); render(); return; }
   // FAT e apoio operacional: funcao da linha e meses marcados
   if(t.dataset.fatf!==undefined){ const l=FAT[+t.dataset.fatf]; if(l){ l.fcod=t.value; salvar(); render(); } return; }
   if(t.dataset.moaf!==undefined){ const l=MO_APOIO[+t.dataset.moaf]; if(l){ l.fcod=t.value; salvar(); render(); } return; }
