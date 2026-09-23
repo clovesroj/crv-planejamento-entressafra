@@ -1,5 +1,21 @@
 # Histórico de mudanças
 
+## 2.37.0 — 2026-09-23 · A função da atividade passa a ser um campo
+
+- **Função editável no detalhe da atividade.** Era só leitura, e quando o código
+  não existia no cadastro de funções a linha virava "F02 — F02". Não era
+  cosmético: **função desconhecida não tem salário, então a atividade entrava
+  com mão de obra zero**. Medido na A05 (2ª Gradagem pesada, 11 pessoas): R$ 0
+  de MDO com "F02", R$ 240.915 depois de apontar para 918 — OP. DE MAQUINAS
+  AGRICOLAS II. Código fora do cadastro entra como primeira opção do select,
+  marcado, em vez de o campo mostrar outra função como se fosse a da atividade.
+- **"Frota fixa da atividade" saiu do modal.** A frota se ajusta mês a mês, no
+  botão **mês**; ter o mesmo número em dois lugares é o que faz um contradizer o
+  outro — o próprio campo já avisava "suspensa agora". O valor não some junto:
+  plano que já tem frota fixada mostra a leitura dela e um botão **remover**.
+- A permissão do campo de função acompanha o dado, não a tela: ele grava
+  `PLANO[cod].fcod`, então pede a permissão do Plano Operacional.
+
 ## 2.36.1 — 2026-09-23 · Alteração não confirmada sobrevive ao recarregar
 
 Célula apagada no Plano Operacional voltava depois do F5. Não era a tela: era a
