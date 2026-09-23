@@ -1,5 +1,31 @@
 # Histórico de mudanças
 
+## 2.36.0 — 2026-09-23 · Cada leitura na tela que responde por ela
+
+Os três dimensionamentos na mesma tela viraram três telas empilhadas numa
+rolagem só: quem vinha ver frota passava por duas antes, e quem vinha ver gente
+passava por todas. Cada leitura foi morar ao lado das tabelas que já respondiam
+a mesma pergunta.
+
+- **Dimensionamento** fica com o planejamento da atividade, e só — sem blocos e
+  sem submenu, a tela abre na tabela.
+- **Resumo de Frota** ganha a página **Necessidade do plano**: a frota por mês em
+  cada atividade e o confronto com a frota cadastrada, por especialidade. E
+  perdeu uma duplicata — havia duas tabelas de frota de apoio, da mesma fonte,
+  uma só de leitura e outra com a quantidade digitável. Ficou a que deixa
+  ajustar.
+- **Resumo de Pessoas** ganha a página **Necessidade x quadro ativo**, que abre a
+  tela: o confronto por função com férias e demissões, e a necessidade mês a mês
+  contra o disponível.
+- **"Detalhe por origem" passa a ser mês a mês, sem custo e com subtotal por
+  etapa.** Eram efetivo, meses mobilizado e custo — três números que não dizem em
+  *que* mês a gente é necessária. Agora é uma coluna por mês, e a faixa de cada
+  etapa é o subtotal dela, na mesma coluna das linhas que soma. O custo saiu:
+  tem tabela própria no Fluxo mensal.
+- **Permissões**: `QUADRO` ganhou `pessoas` como aba dona e `APOIO_FIXO` ganhou
+  `resumofrota`; as duas continuam em `dimens`, porque uma chave pode ter mais de
+  uma aba dona — assim nenhum perfil existente perde edição.
+
 ## 2.35.0 — 2026-09-23 · De onde vem cada pessoa do quadro
 
 O quadro por função responde *quantos* motoristas é preciso ter. Faltava a
