@@ -3,7 +3,7 @@ import { modoLiberado } from '../calculo/atividade.js';
 import { TRAT_ETAPAS } from '../dados/insumos.js';
 import { ATIV_TRAT_SEL, DIM, INSUMO, INS_EDIT, INS_FICHA, P, PLANO, TRATC, TRAT_ATIVO, TRAT_ETAPA, TRAT_NOME, TRAT_OBS, TRAT_SEL, atividadesLista, insLista } from '../nucleo/estado.js';
 import { $, brl, esc, fmt, num, urlWeb } from '../nucleo/formato.js';
-import { unidadesDaFamilia } from '../nucleo/unidades.js';
+import { normUn, unPreco, unidadesDaFamilia } from '../nucleo/unidades.js';
 import { definirPatchItens, marcarRascunhoPendente } from '../io/persistencia.js';
 import { kpi, ligarBuscaSelect, th } from './componentes.js';
 import { mixEditor } from './plano.js';
@@ -329,11 +329,17 @@ function pintarInsumos(R){
       const reg = insLista().find(x=>x.prod===l.prod);
       const regUn = reg && reg.un;
       // unidades da mesma familia da que o insumo e comprado -- dosar em kg/ha
-      // um produto comprado em ton, por exemplo, sem mudar o custo por hectare
+      // um produto comprado em ton, ou em ml/ha um vendido por litro, sem mudar
+      // o custo por hectare. Produto sem unidade no cadastro oferece todas: e a
+      // unidade escolhida para a dose que diz se o preco e por litro ou por kg
       const opcoesUn = unidadesDaFamilia(regUn);
-      const unAtual = opcoesUn.includes(l.un) ? l.un : (regUn || l.un || "");
+      const unLinha = normUn(l.un);
+      const unAtual = opcoesUn.includes(unLinha) ? unLinha : (normUn(regUn) || unLinha || "");
+      // a unidade em que o preco esta (nucleo/unidades.js, unPreco): e contra ela
+      // que a dose e convertida, e mostrar ao lado do preco deixa a conta legivel
+      const unPr = unPreco(regUn, unAtual);
       const f = l.frete || {};
-      const unRot = esc(unAtual || regUn || "un");
+      const unRot = esc(unAtual || unPr || "un");
       return `<tr><td>${esc(l.prod)}</td>
         <td class="calc">${esc((reg&&reg.pa)||"—")}</td>
         <td class="num"><input data-td="${i}" value="${l.dose}" inputmode="decimal"></td>
@@ -341,7 +347,8 @@ function pintarInsumos(R){
           ? `<select data-tud="${i}" title="Unidade em que a dose desta linha foi lançada">${opcoesUn.map(u=>
               `<option value="${u}"${u===unAtual?" selected":""}>${u}/ha</option>`).join("")}</select>`
           : `<span class="calc">${esc(unAtual || "—")}${unAtual?"/ha":""}</span>`}</td>
-        <td class="num calc">${pr>0?brl(pr,2):'<span class="badge b-warn">sem preço</span>'}</td>
+        <td class="num calc"${pr>0 && unPr ? ` title="Preço por ${esc(unPr)}${normUn(regUn)?"":" — o cadastro do produto não tem unidade; vale a de preço da unidade da dose"}. A dose é convertida para ${esc(unPr)} antes de multiplicar."` : ""}>${
+          pr>0 ? brl(pr,2)+(unPr?`<span class="calc">/${esc(unPr)}</span>`:"") : '<span class="badge b-warn">sem preço</span>'}</td>
         <td class="frete-cel">
           <label title="Este insumo tem frete pago à parte, além do preço"><input type="checkbox" data-tfrete="${i}" ${f.on?"checked":""}>Frete</label>
           ${f.on ? `<select data-tfretetipo="${i}">

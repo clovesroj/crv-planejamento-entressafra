@@ -1,5 +1,42 @@
 # Histórico de mudanças
 
+## 2.40.1 — 2026-09-23 · Custo/ha do produto respeita a unidade da dose
+
+Na composição do tratamento, dose em ml/ha de um produto com preço por litro
+entrava crua na conta: **Flumyzin a 50 ml/ha, R$ 143,52/L, custava
+R$ 7.176,00/ha — o certo é R$ 7,18** (0,05 L × R$ 143,52). O mesmo com g/ha
+contra preço por kg, e kg/ha contra preço por tonelada.
+
+A conversão já existia (`nucleo/unidades.js`), mas falhava em dois casos:
+
+- **Unidade escrita de outro jeito.** Só "lt", "kg", "ml", "g" e "ton" exatos
+  eram reconhecidos; "lt/ha", "Kg", "lt/há" ou "L" passavam sem converter. Agora
+  toda unidade é normalizada antes da conta (minúscula, sem "/ha", com
+  sinônimos: L, litro, gr, grama, t, tonelada...).
+- **Produto sem unidade no cadastro** — 72 produtos entraram só com nome e
+  preço, e o Flumyzin é um deles. Sem unidade não havia base para converter.
+  O preço desses é por litro ou por quilo (é como veio da planilha e do ERP),
+  então a base passa a ser a unidade de preço da família da dose: **litro para
+  ml/lt, quilo para g/kg/ton**.
+
+Na tela da composição:
+
+- O preço corrigido mostra a unidade a que se refere: **R$ 143,52/lt**,
+  R$ 27,56/kg. É contra ela que a dose é convertida.
+- Produto sem unidade no cadastro passa a ter o seletor de unidade da dose com
+  as cinco opções (ml, lt, g, kg, ton); com unidade no cadastro, as da família
+  dela, como antes.
+
+Vale em todo lugar que multiplica dose por preço: custo/ha do tratamento,
+insumo das atividades no plano, tabela de custo por hectare do Painel e volumes
+do Manejo Fitossanitário.
+
+Nenhum dos 38 tratamentos do cadastro base muda de custo (todas as 157 linhas
+já tinham a dose na unidade do preço), e o plano vazio segue 39.270.751,842344:
+muda só o tratamento com dose lançada em outra unidade, como o 1 BS do
+Bordadura. 45 invariantes sem falha; 29 abas, 121 rastros e 132 relatórios sem
+erro nem resíduo.
+
 ## 2.40.0 — 2026-09-23 · A plantadora é de um operador
 
 Uma frente de 10 conjuntos de plantio, três turnos, escala 5x1 com folguista,
