@@ -14,6 +14,9 @@
  * modoCfg ajusta maquina/implemento/rendimento de um modo de execucao nesta
  *        atividade (todo modo vale para toda atividade, exceto transporte)
  * cultura "Soca" ou "Planta" — usado no rateio de TRATOS CULTURAIS
+ * junto  codigo da atividade que executa esta na mesma passada (A39 e A19 vao
+ *        na plantadora da A10): a area e a dela, mes a mes, e a mecanizacao
+ *        tambem — aqui so entra o tratamento (insumo)
  */
 
 /* Versao do cadastro base de atividades. SOBE em uma unidade sempre que
@@ -28,11 +31,13 @@
         CORRECOES_ATIVIDADE abaixo
      4  A22 (Dessecacao, duplicava a A03) sai tambem do documento ja salvo —
         ver REMOCOES_ATIVIDADE abaixo
+     5  A39 (adubacao de fundacao) e A19 (tratos fitossanitarios no plantio)
+        passam a ir junto com a A10, na plantadora; a A19 vai para PLANTIO
    So tirar atividade daqui nao a tira do documento ja salvo (ATVX): ela
    deixa de ser "do sistema" e ganha o botao Remover na aba Cadastro de
    Atividades. Para ela sumir de todo plano gravado, entra tambem em
    REMOCOES_ATIVIDADE e a versao sobe. */
-export const ATIVIDADES_V = 4;
+export const ATIVIDADES_V = 5;
 
 /* Correcao de campo de atividade que JA existe no documento salvo.
    O merge da base so acrescenta atividade nova; nunca mexe em atividade que ja
@@ -48,6 +53,15 @@ export const CORRECOES_ATIVIDADE = [
   {cod:"A02", campo:"etapa", de:"COLHEITA", para:"PLANTIO"},
   {cod:"TR2", campo:"etapa", de:"COLHEITA", para:"PLANTIO"},
   {cod:"TR4", campo:"etapa", de:"COLHEITA", para:"PLANTIO"},
+  /* Adubacao de fundacao e inseticida do plantio saem da plantadora, na mesma
+     passada do plantio: o adubo no sulco e o inseticida sobre a muda, antes da
+     cobricao. Eram tres atividades com tres frotas, tres equipes e tres contas
+     de diesel para uma maquina so. Agora a mecanizacao e a da A10, e A39 e A19
+     ficam como linhas de tratamento dela (campo `junto`). A A19 acontece no ato
+     do plantio, entao e PLANTIO, nao trato de cana planta. */
+  {cod:"A39", campo:"junto", de:undefined, para:"A10"},
+  {cod:"A19", campo:"junto", de:undefined, para:"A10"},
+  {cod:"A19", campo:"etapa", de:"TRATOS CULTURAIS", para:"PLANTIO"},
 ];
 
 /* Atividade que saiu do cadastro base e tem de sair tambem do documento ja
@@ -75,7 +89,7 @@ export const ATIVIDADES = [
   {"cod":"A08","etapa":"PREPARO DE SOLO","nome":"2ª Gradagem média","un":"ha/mês","rend":0.7,"maq":"Trator 4x4 230 CV","imp":"Grade intermediária 24 discos","ops":1,"turnos":3,"util":0.9},
   {"cod":"A09","etapa":"PREPARO DE SOLO","nome":"Subsolagem","un":"ha/mês","rend":0.5,"maq":"Trator 4x4 230 CV","imp":"Subsolador 5 hastes","ops":1,"turnos":3,"util":0.9},
   {"cod":"A10","etapa":"PLANTIO","nome":"Plantio","un":"ha/mês","rend":0.84,"maq":"Trator 4x4 230 CV","imp":"Plantadora DMB PCP 6.000","ops":2,"turnos":2,"util":1},
-  {"cod":"A39","etapa":"PLANTIO","nome":"Adubação de fundação","un":"ha/mês","rend":4.0,"maq":"Trator 4x4 150 CV","imp":"Distribuidor de sólidos","ops":1,"turnos":2,"util":0.8,"modoCfg":{"Trator":{"imp":"Distribuidor de sólidos","rend":4.0,"fcod":"918","turnos":2}},"cultura":"Planta"},
+  {"cod":"A39","etapa":"PLANTIO","junto":"A10","nome":"Adubação de fundação","un":"ha/mês","rend":4.0,"maq":"Trator 4x4 150 CV","imp":"Distribuidor de sólidos","ops":1,"turnos":2,"util":0.8,"modoCfg":{"Trator":{"imp":"Distribuidor de sólidos","rend":4.0,"fcod":"918","turnos":2}},"cultura":"Planta"},
   {"cod":"A11","etapa":"TRATOS CULTURAIS","nome":"1ª Pré-emergência socaria","un":"ha/mês","rend":2.2,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.85,"cultura":"Soca"},
   {"cod":"A12","etapa":"TRATOS CULTURAIS","nome":"2ª Pré-emergência socaria","un":"ha/mês","rend":2.2,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.85,"cultura":"Soca"},
   {"cod":"A13","etapa":"TRATOS CULTURAIS","nome":"2ª Pré-emergência socaria pingente","un":"ha/mês","rend":1.8,"maq":"Trator 4x4 150 CV","imp":"Barra pingente","ops":1,"turnos":2,"util":0.7,"cultura":"Soca"},
@@ -84,7 +98,7 @@ export const ATIVIDADES = [
   {"cod":"A16","etapa":"TRATOS CULTURAIS","nome":"1ª Catação socaria","un":"ha/mês","rend":0.8,"maq":"Equipe manual","imp":"Pulverizador costal","ops":0,"turnos":1,"util":0.8,"cultura":"Soca"},
   {"cod":"A17","etapa":"TRATOS CULTURAIS","nome":"2ª Catação socaria","un":"ha/mês","rend":0.8,"maq":"Equipe manual","imp":"Pulverizador costal","ops":0,"turnos":1,"util":0.8,"cultura":"Soca"},
   {"cod":"A18","etapa":"TRATOS CULTURAIS","nome":"Colheitabilidade","un":"ha/mês","rend":1,"maq":"Equipe manual","imp":"----","ops":0,"turnos":1,"util":0.7,"cultura":"Soca"},
-  {"cod":"A19","etapa":"TRATOS CULTURAIS","nome":"Tratos Fitossanitários no Plantio","un":"ha/mês","rend":2.3,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"cultura":"Planta"},
+  {"cod":"A19","etapa":"PLANTIO","junto":"A10","nome":"Tratos Fitossanitários no Plantio","un":"ha/mês","rend":2.3,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"cultura":"Planta"},
   {"cod":"A20","etapa":"TRATOS CULTURAIS","nome":"Aplicação de Inseticida terrestre","un":"ha/mês","rend":2.5,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"cultura":"Soca"},
   {"cod":"A21","etapa":"TRATOS CULTURAIS","nome":"Aplicação de Inseticida aéreo","un":"ha/mês","rend":1,"maq":"Aeronave / Drone (terceiro)","imp":"----","ops":0,"turnos":1,"util":1,"cultura":"Soca"},
   {"cod":"A23","etapa":"TRATOS CULTURAIS","nome":"1ª Pré-emergência plantio","un":"ha/mês","rend":2.2,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.85,"cultura":"Planta"},

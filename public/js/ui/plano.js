@@ -124,6 +124,40 @@ function celFrota(r){
   return `<td class="num ${F.pico>0?"tot":"calc"}" data-rastro="ativ:${r.a.cod}" role="button" tabindex="0"
            title="${esc(dica)}">${F.pico ? F.pico+" ›" : "—"}</td>`;
 }
+/* Atividade que vai junto de outra (A39 e A19 na plantadora da A10) sai logo
+   abaixo dela, como linha de tratamento: e a mesma passada, e ler as tres
+   juntas e ler o que a plantadora leva. Fora isso a ordem e a da etapa. */
+function comAsAcopladas(L){
+  const filhas = {};
+  L.forEach(r=>{ if(r.junto) (filhas[r.junto] = filhas[r.junto] || []).push(r); });
+  const temPai = r => r.junto && L.some(x=>x.a.cod===r.junto);
+  const out = [];
+  L.forEach(r=>{
+    if(temPai(r)) return;
+    out.push(r);
+    (filhas[r.a.cod] || []).forEach(f=>out.push(f));
+  });
+  return out;
+}
+/* Linha da atividade que vai junto: area, janela, maquina e equipe sao da
+   atividade que executa, e aqui so se escolhe o tratamento. */
+function linhaAcoplada(r, SEL, opts){
+  const temExtras = !!r.tratsDetalhe;
+  const aberto = temExtras && !!PLANO_ABERTO[r.a.cod];
+  const dica = `Vai na mesma passada da ${r.junto}: a área é a dela, mês a mês, e a máquina, a equipe e o diesel também. Aqui entra só o tratamento.`;
+  return `<tr class="acoplada"><td class="calc">${r.a.cod}</td>
+      <td title="${esc(dica)}"><span class="acop-seta">↳</span>${temExtras?`<button type="button" class="mini-seta" data-planoabre="${r.a.cod}"
+          title="Área por tratamento">${aberto?"▾":"▸"}</button>`:""}${r.a.nome} <span class="badge b-ok">junto da ${esc(r.junto)}</span></td>
+      <td class="calc" colspan="2">na janela da ${esc(r.junto)}</td>
+      <td class="calc">${r.a.un}</td>` +
+    r.meses.map((q,j)=>`<td class="num calc ${clsMes(j)}" title="${esc(dica)}">${q?fmt(num(q)):""}</td>`).join("") +
+    `<td class="num tot" style="color:${totalNoFiltro(r, SEL)>0?'var(--green)':'var(--grey)'}">${fmt(totalNoFiltro(r, SEL))}</td>
+      <td class="calc">na plantadora</td>
+      <td class="num calc" title="${esc(dica)}">—</td>
+      <td><select data-t="${r.a.cod}" ${r.ehHa?"":"disabled"}>${opts}</select></td>
+      <td class="num calc">${r.cInsumo?brl(r.cInsumo):"—"}</td></tr>` +
+    (aberto ? subLinhasTrat(r, SEL) : "");
+}
 function pintarPlano(R){
   const TL = tratListaTodos();
   const SEL = R.SEL;
@@ -138,7 +172,7 @@ function pintarPlano(R){
      tela mostrava COLHEITA, PLANTIO, COLHEITA, PLANTIO... Dentro da etapa nada
      muda de lugar; o Manejo Fitossanitário, que é TRATOS CULTURAIS com faixa
      própria, vai sempre para o fim dos tratos (ver ordenarPorEtapa). */
-  ordenarPorEtapa(R.L, r=>r.a.etapa, r=>COD_FITOSSANITARIO.has(r.a.cod)?1:0).forEach(r=>{
+  comAsAcopladas(ordenarPorEtapa(R.L, r=>r.a.etapa, r=>COD_FITOSSANITARIO.has(r.a.cod)?1:0)).forEach(r=>{
     const grupo = grupoPlano(r.a);
     if(grupo!==et){et=grupo; h+=`<tr class="stage"><td colspan="${SEL.meses.length+10}"><span>${et}</span></td></tr>`;}
     // tratamento inativo some da lista, exceto o que a linha já usa — senão o
@@ -146,6 +180,8 @@ function pintarPlano(R){
     const optsTL = TL.filter(t=>TRAT_ATIVO[t.cod]!==false || t.cod===r.trat);
     const opts=['<option value="">—</option>'].concat(optsTL.map(t=>
       `<option value="${t.cod}" ${t.cod===r.trat?"selected":""}>${t.cod}${TRAT_NOME[t.cod]?" — "+esc(TRAT_NOME[t.cod]):""} · ${brl(t.custo_ha,0)}/ha</option>`)).join("");
+    if(r.junto){ h += linhaAcoplada(r, SEL, opts); return; }
+    const levaJunto = R.L.filter(x=>x.junto===r.a.cod).map(x=>x.a.cod);
     const auto = r.a.tipo==="transp";
     // janela de datas: define em que meses a atividade pode ser lancada
     const jIdx = r.janela.fonte==="datas" ? r.janela.idx : null;
@@ -154,7 +190,8 @@ function pintarPlano(R){
     const temExtras = !!r.tratsDetalhe;
     const aberto = temExtras && !!PLANO_ABERTO[r.a.cod];
     h+=`<tr><td>${r.a.cod}</td><td>${temExtras?`<button type="button" class="mini-seta" data-planoabre="${r.a.cod}"
-          title="Área por tratamento">${aberto?"▾":"▸"}</button>`:""}${r.a.nome}${auto?' <span class="badge b-ok">auto</span>':''}</td>
+          title="Área por tratamento">${aberto?"▾":"▸"}</button>`:""}${r.a.nome}${auto?' <span class="badge b-ok">auto</span>':''}${
+          levaJunto.length?` <span class="calc" title="${esc(levaJunto.join(" e ")+" vão na mesma passada: a mecanização é uma só, a desta linha")}">+ ${levaJunto.join(", ")}</span>`:""}</td>
         <td><input type="date" data-dt="${r.a.cod}" data-f="ini" value="${r.janela.ini||""}" max="${d.fim||""}" title="Início da execução"></td>
         <td><input type="date" data-dt="${r.a.cod}" data-f="fim" value="${r.janela.fim||""}" min="${d.ini||""}" title="Fim da execução"></td>
         <td class="calc">${r.a.un}</td>`+

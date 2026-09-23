@@ -44,7 +44,10 @@ function pintarDim(R){
      que e a ordem em que o ano acontece. Na ordem do cadastro a muda (PLANTIO)
      caia no meio da colheita, e a coluna Etapa alternava a cada linha: quem le
      de cima para baixo nao conseguia somar uma etapa com o olho. */
-  const L = ordenarPorEtapa(R.L, r=>r.a.etapa);
+  // atividade que vai junto de outra (A39 e A19 na plantadora da A10) nao tem
+  // maquina nem equipe proprias: nao entra aqui, e a que executa diz o que leva
+  const L = ordenarPorEtapa(R.L.filter(r=>!r.junto), r=>r.a.etapa);
+  const levaJunto = cod => R.L.filter(x=>x.junto===cod).map(x=>x.a.cod);
   $("#t_dim").innerHTML = th([["Cod"],["Atividade / frente"],["Etapa"],
     ["Área/Volume",1],["Rend. (un/h)",1],["Frota",1],["Efetivo (pessoas)",1]])+"<tbody>"+
     L.map(r=>{
@@ -52,7 +55,8 @@ function pintarDim(R){
       const un = r.a.un.split("/")[0];
       const F = frotaDaAtividade(r);
       const PE = pessoasDaAtividade(r);
-      return `<tr><td>${r.a.cod}</td><td>${r.a.nome}</td>
+      const lj = levaJunto(r.a.cod);
+      return `<tr><td>${r.a.cod}</td><td>${r.a.nome}${lj.length?` <span class="calc" title="Na mesma passada: a frota e a equipe desta linha fazem também ${lj.join(" e ")}">+ ${lj.join(", ")}</span>`:""}</td>
         <td class="calc">${r.a.etapa}</td>
         <td><div class="dim-cel"><span class="dim-val calc">${fmt(r.total)}</span>
           <span class="dim-un">${un}</span></div></td>

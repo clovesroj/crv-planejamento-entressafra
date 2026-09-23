@@ -122,7 +122,7 @@ function pintarResumoFrota(R){
   $("#t_dim_frotames").innerHTML = th([["Cod"],["Atividade / frente"],["Máquina"],
     ...thMeses(),["Pico",1]])+"<tbody>"+
     (()=>{
-      const linhas = L.filter(r=>r.total>0);
+      const linhas = L.filter(r=>r.total>0 && !r.junto);
       if(!linhas.length) return `<tr><td colspan="${NM+4}" class="calc">Sem atividade com volume lançado.</td></tr>`;
       const porMes = Array(NM).fill(0);
       const corpo = linhas.map(r=>{

@@ -602,7 +602,8 @@ const dimensionamento = R => secP("Dimensionamento","Dimensionamento por ativida
   ["Cod","Atividade",REC.parcial?"Volume no período":"Volume","Rendimento","Utilização",
    REC.parcial?"Horas no período":"Horas","Frota a ter (pico)","Mês do pico","Frota média (rateio)",
    "Turnos","Escala","Fator","Equipe a ter (pico)","Efetivo médio (folha)","Máquina","Implemento"],
-  R.L.map(r=>[r, ativP(r)]).filter(([,p])=>p.total>0).map(([r,p])=>{
+  // A39 e A19 vao na plantadora da A10: sem frota nem equipe proprias, nao se dimensionam
+  R.L.filter(r=>!r.junto).map(r=>[r, ativP(r)]).filter(([,p])=>p.total>0).map(([r,p])=>{
     const F = frotaDaAtividade(r), PE = pessoasDaAtividade(r);
     return [r.a.cod, r.a.nome, fmt(p.total),
       fmt(r.rend,2), pct(r.util), fmt(p.horas), F.pico, F.mes||"—", F.media,

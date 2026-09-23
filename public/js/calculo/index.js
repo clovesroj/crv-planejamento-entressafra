@@ -28,7 +28,9 @@ function calcular(){
   L.forEach(r=>{
     dieselT+=r.cDiesel; mdoT+=r.cMDO; insumoT+=r.cInsumo; tercAtivT+=r.cTerc;
     horasT+=r.horas; frotaT+=r.frotaR;
-    if(r.ehHa) haOp += r.total;
+    // a atividade que vai junto de outra (A39 e A19 na plantadora) e a mesma
+    // passada: o hectare ja foi contado na atividade que executa
+    if(r.ehHa && !r.junto) haOp += r.total;
   });
 
   const TR  = transporte(L, MP);      // dimensionamento (custo já está em L)

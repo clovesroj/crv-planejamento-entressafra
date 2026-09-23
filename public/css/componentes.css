@@ -819,3 +819,8 @@ table.pec tr.pec-n1 td:first-child{padding-left:22px}
 table.pec tr.pec-n2 td:first-child{padding-left:40px}
 table.pec tr.pec-n3 td:first-child{padding-left:58px}
 table.pec tr.pec-a td:first-child{font-style:italic}
+
+/* Plano Operacional: atividade que vai junto de outra (A39 e A19 na plantadora da A10) */
+#t_plano tr.acoplada td{background:color-mix(in srgb,var(--green) 5%,var(--card))}
+#t_plano tr.acoplada td:nth-child(2){padding-left:22px}
+#t_plano tr.acoplada .acop-seta{color:var(--grey);margin-right:6px}

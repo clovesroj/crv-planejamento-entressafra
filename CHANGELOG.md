@@ -1,5 +1,47 @@
 # Histórico de mudanças
 
+## 2.38.0 — 2026-09-23 · Adubação de fundação e inseticida do plantio vão na plantadora
+
+A plantadora faz três coisas na mesma passada: planta (A10), aduba o sulco (A39,
+adubação de fundação) e aplica o inseticida sobre a muda (A19, tratos
+fitossanitários no plantio). O plano tratava as três como operações separadas,
+cada uma com a própria frota, equipe, diesel e manutenção. A mecanização era
+contada três vezes para uma máquina só.
+
+Agora A39 e A19 vão **junto da A10**:
+
+- **Área** — é a da A10, mês a mês. Não se lança mais área nelas.
+- **Mecanização** — uma só, a da A10. A39 e A19 ficam sem frota, horas, diesel,
+  mão de obra, manutenção e terceiro próprios.
+- **Tratamento** — continua em cada uma: é por ela que se escolhe o adubo da
+  fundação e o inseticida do plantio, e o custo do insumo é área da A10 ×
+  custo por hectare do tratamento.
+- **Plano Operacional** — A39 e A19 aparecem como linhas logo abaixo da A10
+  (↳, "junto da A10"), com o tratamento editável e, quando houver, a abertura
+  por tratamento com área própria. A linha da A10 mostra "+ A39, A19".
+- **A19 passa para PLANTIO.** Acontece no ato do plantio, não é trato de cana
+  planta. O custo sai de Tratos Culturais e entra em Plantio; a formação do
+  canavial (preparo + plantio + tratos de cana planta) não muda de composição.
+- **Dimensionamento, Resumo de Frota, metas e relatório de Dimensionamento** —
+  A39 e A19 saem: não têm máquina nem equipe para dimensionar. A A10 diz o que
+  leva junto.
+- **ha-operação** — A39 e A19 não somam de novo o hectare que a A10 já contou.
+- **Rastro** da A39 e da A19 — mostra a área, o tratamento e aponta para a A10
+  como a atividade que tem a mecanização.
+
+Plano já salvo recebe a mudança na leitura (`ATIVIDADES_V` 5, campo `junto` e
+etapa da A19 em `CORRECOES_ATIVIDADE`). **Área lançada à parte na A39 ou na A19
+deixa de valer**: vale a da A10.
+
+Também corrigido: o rastro "Pico de mobilização" (Resumo de Pessoas) quebrava
+com `r is not defined` ao abrir.
+
+No plano de teste da auditoria, o total cai R$ 696.086 (de 223.524.240 para
+222.828.153): sai a mecanização da A39 (R$ 185.611) e da A19 (R$ 255.032), e o
+insumo passa a cobrir a área plantada (1.681 ha) em vez das áreas lançadas à
+parte (1.718 e 2.051 ha). Plano vazio segue 39.270.751,842344. 45 invariantes
+sem falha; 29 abas, 121 rastros e 132 relatórios sem erro nem resíduo.
+
 ## 2.37.1 — 2026-09-23 · A22 (Dessecação) sai também do plano já salvo
 
 A A22 era a Dessecação em duplicata da A03: mesmo nome, mesma máquina (Uniport

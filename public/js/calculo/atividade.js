@@ -239,7 +239,8 @@ function criterioMensal(r){
     // Mes sem volume nao opera: frota e efetivo sao zero, nao os da atividade.
     // Herdar o criterio ali fazia o mes aparecer com maquina e gente alocadas
     // para uma producao que nao existe.
-    const n = q > 0 ? (c.frota > 0 ? c.frota : nPad) : 0;
+    // junto de outra atividade, a frota e a equipe sao as dela: aqui e zero
+    const n = q > 0 && !r.junto ? (c.frota > 0 ? c.frota : nPad) : 0;
     // com a frota do mes fixada, as horas sao a capacidade dela e o rendimento
     // e o que fecha a conta -- a mesma inversao do Dimensionamento, por mes
     const hDispEquip = hDia * c.disp * c.util * c.efic;   // hora produtiva por equipamento/dia
@@ -325,8 +326,14 @@ function pessoasDaAtividade(r){
 
 function linha(a, MP){
   const p = PLANO[a.cod] || {m:Array(NM).fill(0), trat:""};
+  /* Atividade que vai na mesma passada de outra (A39 e A19 na plantadora da
+     A10): a area e a da atividade que executa, mes a mes, e a maquina, a
+     equipe e o diesel sao dela tambem. Aqui fica so o tratamento. */
+  const junto = a.tipo!=="transp" && a.junto && a.junto!==a.cod ? a.junto : null;
   const baseMeses = a.tipo==="transp"
     ? ((PLANO[a.src]||{m:Array(NM).fill(0)}).m || Array(NM).fill(0))
+    : junto
+    ? ((PLANO[junto]||{}).m || Array(NM).fill(0))
     : (p.m || Array(NM).fill(0));
   /* dois tratamentos na mesma atividade, cada um com área própria: a área
      operacional (a que dimensiona frota e horas) passa a ser a SOMA das
@@ -358,8 +365,9 @@ function linha(a, MP){
   const turnosOv = num((DIM[a.cod]||{}).turnos);
   const util = d.util!=null ? num(d.util) : a.util;
   const ehHa = a.un.indexOf("ha")===0;
-  const jan = janelaDe(a.cod, meses, a.tipo === "transp" ? a.src : null);
-  const M = mixDe(a, p);
+  const jan = janelaDe(a.cod, meses, a.tipo === "transp" ? a.src : junto);
+  // junto de outra, nao ha modo de execucao proprio: a maquina e a da outra
+  const M = junto ? null : mixDe(a, p);
 
   // define as frentes de trabalho: uma por modo com % > 0, ou uma única no padrão
   let frentes;
@@ -383,7 +391,10 @@ function linha(a, MP){
   const fracMes = total>0 ? meses.map(q=>num(q)/total) : Array(NM).fill(0);
   const precoMed = fracMes.reduce((s,fr,i)=>s+fr*precoDiesel(i),0);
 
-  const partes = frentes.map(f=>{
+  const partes = junto ? [{...frentes[0], area:total, horas:0, capMes:0, frota:0, frotaR:0, litros:0,
+      fcod:"—", fnome:"Na "+junto, cDiesel:0, cManut:0, cMDO:0, mdoMes:Array(NM).fill(0), cTerc:0,
+      efetivo:0, direto:0}]
+  : frentes.map(f=>{
     const area = total*f.pct;
     if(f.terc){
       // prestador de serviço: não consome frota nem mão de obra própria.
@@ -495,10 +506,10 @@ function linha(a, MP){
   }
   const rendMed = soma("horas")>0 ? total/soma("horas") : (frentes[0].rend||0);
 
-  return {a, meses, total, rend:rendMed,
-          frotaAlvo: frotaAlvo>0 && !M && !mensal ? frotaAlvo : 0,
-          frotaAlvoSuspensa: frotaAlvo>0 && !M && mensal ? frotaAlvo : 0,
-          rendPremissa: (M || a.tipo==="transp") ? 0 : frentes[0].rend,
+  return {a, meses, total, rend:rendMed, junto,
+          frotaAlvo: frotaAlvo>0 && !M && !mensal && !junto ? frotaAlvo : 0,
+          frotaAlvoSuspensa: frotaAlvo>0 && !M && mensal && !junto ? frotaAlvo : 0,
+          rendPremissa: (M || a.tipo==="transp" || junto) ? 0 : frentes[0].rend,
           criterioMensal: mensal, util, partes, escala:(d.esc||""), fator, turnosOv, janela:jan, mix:M?M.mx:null, mixSoma:M?M.soma:0,
           horas:soma("horas"), capMes:partes[0].capMes, frota:soma("frota"),
           frotaR:partes.reduce((s,x)=>s+x.frotaR,0),

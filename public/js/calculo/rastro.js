@@ -459,12 +459,17 @@ function apresentacao(r, un){
         : `${fmt(r.janela.meses,1)} meses de execução`},
     {rot: "Custo por "+un, val: total > 0 ? brl(custo/total, 2) : "—",
      sub: brl(custo)+" no total"},
+    // junto de outra atividade (A39 e A19 na plantadora): maquina e equipe sao dela
+    r.junto ? {rot: "Frota", val: "na "+r.junto, ir: "ativ:"+r.junto,
+     sub: "mesma passada da "+r.junto+": a máquina, o diesel e a manutenção são dela"} :
     {rot: "Frota", val: (FR.pico || 0)+" equip.",
      sub: (r.frotaAlvo ? "frota fixada · rendimento veio dela — " : "")
         + (FR.difere ? `média da janela ${fmt(FR.media)} · ` : "") + (r.maqEfetiva || "—")},
     {rot: "Meta por dia efetivo", val: dias > 0 ? fmt(total/dias, 1)+" "+un : "—",
      sub: dias > 0 ? `${fmt(dias,0)} dias de operação · ${fmt(total/diasCal,1)} ${un} por dia corrido (${fmt(diasCal,0)} dias)`
                    : "sem janela definida"},
+    r.junto ? {rot: "Efetivo", val: "na "+r.junto, ir: "ativ:"+r.junto,
+     sub: "a equipe da plantadora faz as três operações"} :
     {rot: "Efetivo", val: fmt(PES.pico)+" pessoas",
      sub: (PES.difere ? `média da janela ${fmt(PES.media)} · ` : "")
         + (r.partes[0] ? r.partes[0].turnosEf : r.a.turnos)+" turno(s) · fator "+fmt(r.fator,2)},
@@ -576,6 +581,29 @@ function rastroAtividade(R, cod){
     ]},
   ];
 
+  /* Atividade que vai junto de outra (A39 e A19 na plantadora da A10): nao
+     ha horas, frota, meta nem consumo proprios para explicar -- e a mesma
+     passada da outra. Fica o que e dela: onde entra, a area e o tratamento. */
+  if(r.junto){
+    const rj = R.L.find(x=>x.a.cod===r.junto);
+    blocos.splice(2, blocos.length-2,
+      {titulo:"Mecanização — na "+r.junto, linhas:[
+        {rot:"Executada junto com", val:r.junto+(rj?" · "+rj.a.nome:""), ir:"ativ:"+r.junto,
+         sub:"mesma passada: a área é a dela, mês a mês, e a máquina, a equipe, o diesel e a manutenção também"},
+        {rot:"Custo da mecanização na "+r.junto, val:rj?brl(rj.direto-rj.cInsumo):"—",
+         sub:"contado uma vez só, na atividade que executa"},
+      ]},
+      {titulo:"Custo desta linha", linhas:[
+        {rot:"Insumos", val:brl(r.cInsumo),
+         sub:r.trat ? `tratamento ${r.trat} a ${brl(trat,2)}/ha × ${fmt(r.total)} ${un}` : "sem tratamento vinculado"},
+        {rot:"CUSTO DIRETO DA ATIVIDADE", val:brl(r.direto)},
+      ]});
+    return {largo:true, destaques:apres.destaques, tabelas:[],
+      titulo:`${r.a.cod} · ${r.a.nome}`, subtitulo:"Tratamento aplicado na plantadora, junto da "+r.junto,
+      valor:brl(r.direto), blocos,
+      premissas: premissasGerais().concat([{rot:"Atualização de preço de insumos", val:fmt(P.ipreco,0)+"%"}]),
+      voltar:"etapa:"+r.a.etapa};
+  }
   const cf = R.MP.custoFuncao[r.fcod] || {};
   return {
     largo:true, destaques:apres.destaques, tabelas:apres.tabelas,
@@ -711,7 +739,7 @@ function rastroPessoasPico(R, periodo){
   return {titulo:"Pico de mobilização", subtitulo:"Maior necessidade simultânea de pessoas", valor:fmt(pico)+" pessoas",
     blocos:[{titulo:"Pessoas mobilizadas, por mês", linhas: idxs.map(i=>({rot:MESES[i], val:fmt(PS.qtdMes[i])+" pessoas"}))}],
     nota: iPico!=null&&pico>0 ? `Pico em ${MESES[iPico]}.` : "",
-    premissas:premissasDaAtividade(r.a), temPeriodo:true};
+    premissas:premissasGerais(), temPeriodo:true};
 }
 
 /* ---------- frota: horas, equipamentos, CRM ---------- */

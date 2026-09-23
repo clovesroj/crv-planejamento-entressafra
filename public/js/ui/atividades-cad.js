@@ -44,7 +44,8 @@ function pintarAtividadesCad(){
       <td class="num"><input data-atu="${i}" value="${Math.round((a.util??0.8)*100)}" inputmode="decimal" style="width:55px" title="Utilização em %"></td>
       <td class="num"><input type="checkbox" data-atativo="${i}" ${a.ativo===false?"":"checked"}
           title="Atividade inativa some das buscas de vínculo novo (ex.: 'atividade que usa este tratamento'), mas continua valendo normalmente onde já está lançada"></td>
-      <td class="calc">${fixo ? "Cadastro do sistema" : "Criado por você"}</td>
+      <td class="calc">${fixo ? "Cadastro do sistema" : "Criado por você"}${a.junto
+        ? `<br><span class="badge b-ok" title="Vai na mesma passada da ${esc(a.junto)}: a área, a máquina e a equipe são dela, e aqui só entra o tratamento">junto da ${esc(a.junto)}</span>` : ""}</td>
       <td>${fixo ? "" : `<button class="btn d" data-atrm="${esc(a.cod)}">Remover</button>`}</td></tr>`;
   }).join("");
 
