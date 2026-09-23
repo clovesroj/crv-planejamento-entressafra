@@ -1,5 +1,71 @@
 # Histórico de mudanças
 
+## 2.34.0 — 2026-09-22 · Um número só para a mesma pergunta
+
+Auditoria pedida depois que a frota do Plano Operacional discordava da do
+Dimensionamento: **44 numa tela, 70 na outra, para o mesmo transbordo**. O mesmo
+erro estava em mais quatro lugares, e a raiz é sempre a mesma — quem *mostra* o
+número recalculava por conta própria, com premissa diferente de quem o *calcula*.
+
+### Frota e equipe
+
+- **A frota da atividade é uma só em todo lugar.** Plano, Dimensionamento,
+  modal, rastro, metas por gerência, os 21 relatórios e o CSV mostram a frota do
+  **mês que mais pede** — a que tem de existir no pátio. Onde o número é a média
+  da janela (a que rateia custo) ele está rotulado como média: no rastro as duas
+  aparecem lado a lado, e o relatório de Dimensionamento ganhou uma coluna para
+  cada, com o mês do pico.
+- **A equipe do mês segue a frota do mês.** A linha do transbordo dizia 207
+  pessoas e o mês aberto logo abaixo dela dizia 154. A série mensal de pessoas
+  passa a sair da frota de cada mês; o custo não passa por aí — a folha continua
+  vindo do efetivo médio do motor. No cenário de teste o pico do quadro cai de
+  542 para 490, que é o número certo: 542 contratava gente para uma frota que
+  aquele mês não tem.
+
+### Premissas de transporte
+
+- **O transporte explica o próprio número com as premissas dele.** O motor sempre
+  dimensionou o caminhão com jornada e disponibilidade próprias (20 h), mas a
+  meta, o critério por mês, o rastro e o modal usavam as gerais (16,8 h): o modal
+  do transbordo acusava o mês de não caber enquanto o motor dizia que cabia.
+  Agora há uma função só — `premissasDe()` — e as duas falam a mesma língua. No
+  TR3, Out/26 passa de 14.192 h para **16.896 h** de capacidade.
+- **A capacidade do transporte ficava sem a eficiência operacional.** A hora
+  efetiva é jornada × disponibilidade × utilização × eficiência, e o transporte
+  perdia o último fator: chuva encolhia o dia da colhedora e não o do caminhão.
+  Com eficiência em 100% (o padrão, e o que está gravado) **não muda número
+  nenhum** — medido, total idêntico até a última casa. Com eficiência em 80%, o
+  transbordo vai de 59 para 73 equipamentos e o total sobe R$ 1.674.010,84
+  (+2,17%).
+
+### Ordem e layout
+
+- **Ordem da etapa.** A correção da muda para PLANTIO deixou a lista alternando
+  COLHEITA / PLANTIO / COLHEITA: o Plano pintava **12 faixas de grupo para 6
+  etapas**. Plano, Dimensionamento e Cadastro de Atividades saem na ordem em que
+  o ano acontece — preparo, plantio, tratos, colheita, apoio. Dentro da etapa
+  nada muda de lugar, e o Manejo Fitossanitário fica sempre no fim dos tratos.
+- **O cabeçalho cai no eixo do dado, nas 86 tabelas.** O `th` era centralizado em
+  toda tabela enquanto a célula ia para a esquerda (texto) ou para a direita
+  (número): **616 colunas em 68 tabelas** com o rótulo fora do eixo do próprio
+  conteúdo. Agora a regra é uma só, por CSS. Onde a célula é campo de digitação
+  ou célula composta — Plano Operacional e Dimensionamento — as duas ficam ao
+  centro.
+- **13 colunas em que o cabeçalho contradizia a célula** apareceram quando o
+  centro saiu da frente, e foram corrigidas na origem: "Usado em" no Cadastro de
+  Insumos, as seis colunas da tabela CTTA no Painel, "Atividades" no
+  Acompanhamento e a coluna da seta nas duas tabelas do Manejo Fitossanitário.
+
+**Conferido** — plano vazio em 39.270.751,842344, igual ao contrato de
+regressão; cenário de teste com eficiência em 100% com total idêntico antes e
+depois (76.791.211,82345276); 8 invariantes do motor num plano com volume em
+toda atividade (total = variável + fixo = soma dos meses = safra + entressafra =
+soma das etapas, CRM por etapa, mão de obra, custo direto por atividade, frentes
+somando a atividade); as 29 abas sem `NaN`, `undefined` ou `Infinity`; 68
+rastros limpos; 21 relatórios nos dois níveis com toda linha do tamanho do
+cabeçalho; auditoria automática de alinhamento nas 86 tabelas com 0 divergência,
+contra 616 antes.
+
 ## 2.33.1 — 2026-09-22 · Nome da referência fora das telas
 
 Nenhuma tela, rastro ou relatório cita mais "PECEGE" ou "modelo PECEGE". O
