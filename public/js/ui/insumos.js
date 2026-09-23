@@ -155,7 +155,7 @@ let USOS_ABERTO = null;
 function alternarUsos(prod){ USOS_ABERTO = USOS_ABERTO===prod ? null : prod; }
 function linhaUsos(prod, usos){
   const fmtDose = l => `${num(l.dose).toLocaleString("pt-BR",{maximumFractionDigits:4})} ${esc(l.un||"")}`;
-  return `<tr class="sub"><td colspan="19" class="usos-cel"><div class="usos-ins">
+  return `<tr class="sub"><td colspan="20" class="usos-cel"><div class="usos-ins">
     <span class="calc">Tratamentos com ${esc(prod)}:</span>` +
     usos.map(c=>{
       const l = composicao(c).find(x=>x.prod===prod) || {};
@@ -251,18 +251,18 @@ function pintarInsumos(R){
   // classificacao tecnica fica na ficha, que abre por linha
   // colgroup fixa a largura de cada coluna: com table-layout:fixed, recolher um
   // grupo deixa de mexer na largura das outras (ver componentes.css)
-  const COLS = [90,190,190,70,110,140,150,90,85,85,100,90,115,100,60,130,75,80,90];
+  const COLS = [90,190,190,70,110,140,150,90,85,105,85,100,90,115,100,60,130,75,80,90];
   $("#t_ins").innerHTML =
     `<colgroup>${COLS.map(w=>`<col style="width:${w}px">`).join("")}</colgroup>` +
     th([["Código"],["Nome comercial"],["Princípio ativo"],["Un."],
-    ["Concentração"],["Classe agronômica"],["Grupo"],["Volume dem.",1],["Estoque",1],["Preço base",1],
+    ["Concentração"],["Classe agronômica"],["Grupo"],["Volume dem.",1],["Estoque",1],["Atualizado em"],["Preço base",1],
     ["Preço corrigido",1],["Necessidade",1],["Custo de aquisição",1],["Usado em",1],["Ativo",1],["Bula"],[""],[""],[""]])+"<tbody>"+
     // quebra por família e, dentro dela, ordem alfabética de princípio ativo.
     // O `ix` que vai na linha é a posição original em insLista() — é por ele que
     // a edição acha o produto, então reordenar a tela não pode reordenar o índice.
     todasFams.filter(fam => !FAM_SEL || fam.id === FAM_SEL).map(fam=>
       `<tr class="stage" data-fam="${fam.id}" role="button" tabindex="0"
-           title="Clique para ${dobrada(fam.id)?"abrir":"recolher"} este grupo"><td colspan="19">
+           title="Clique para ${dobrada(fam.id)?"abrir":"recolher"} este grupo"><td colspan="20">
         <span style="display:inline-block;width:14px">${dobrada(fam.id)?"▸":"▾"}</span>${fam.nome}
         <span style="font-weight:400;opacity:.75"> · ${fam.itens.length} produto${
           fam.itens.length>1?"s":""}${dobrada(fam.id)?" · recolhido":""}</span></td></tr>` +
@@ -270,6 +270,7 @@ function pintarInsumos(R){
       const ov=INSUMO[i.prod]||{};
       const preco = ov.preco!=null?num(ov.preco):num(i.preco);
       const est   = ov.est!=null?num(ov.est):num(i.est);
+      const estData = ov.estData || "";
       const corr  = preco*(1+P.ipreco/100);
       const vol   = R.volDem[i.prod]||0;
       const nec   = Math.max(0,vol-est);
@@ -302,6 +303,8 @@ function pintarInsumos(R){
         <td class="num calc">${fmt(vol,1)}</td>
         <td class="num">${editando?`<span class="calc">${est}</span>`
           :`<input data-ie="${esc(i.prod)}" value="${est}" inputmode="decimal">`}</td>
+        <td>${editando?`<span class="calc">${estData||"—"}</span>`
+          :`<input type="date" data-ied="${esc(i.prod)}" value="${estData}" title="Data do último saldo conferido deste produto">`}</td>
         <td class="num">${editando?`<span class="calc">${preco}</span>`
           :`<input data-ip="${esc(i.prod)}" value="${preco}" inputmode="decimal">`}</td>
         <td class="num calc">${brl(corr,2)}</td><td class="num calc">${fmt(nec,1)}</td>
@@ -627,6 +630,7 @@ function pintarEditIns(){
   const ov = INSUMO[i.prod] || {};
   const preco = ov.preco != null ? num(ov.preco) : num(i.preco);
   const est   = ov.est   != null ? num(ov.est)   : num(i.est);
+  const estData = ov.estData || "";
   const campo = (rot, html) => `<div class="fx-item"><b>${rot}</b>${html}</div>`;
 
   cont.innerHTML = `
@@ -653,6 +657,7 @@ function pintarEditIns(){
           ${todasFamilias().map(f=>`<option value="${f.id}"${i.fam===f.id?" selected":""}>${f.nome}</option>`).join("")}
         </select>`)}
         ${campo("Estoque", `<input data-ie="${esc(i.prod)}" value="${est}" inputmode="decimal">`)}
+        ${campo("Atualizado em", `<input type="date" data-ied="${esc(i.prod)}" value="${estData}" title="Data do último saldo conferido deste produto">`)}
         ${campo("Preço base", `<input data-ip="${esc(i.prod)}" value="${preco}" inputmode="decimal">`)}
         ${campo("Ativo", `<input type="checkbox" data-inativo="${ix}" ${i.ativo===false?"":"checked"}
           title="Inativo some das buscas para adicionar numa composição nova, mas continua valendo onde já está lançado">`)}

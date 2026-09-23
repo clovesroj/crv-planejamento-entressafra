@@ -205,6 +205,8 @@ document.addEventListener("input",e=>{
     marcarInsSujo(insLista().find(x=>x.prod===t.dataset.ip)); leve(); return; }
   if(t.dataset.ie!==undefined){ INSUMO[t.dataset.ie]=INSUMO[t.dataset.ie]||{}; INSUMO[t.dataset.ie].est=num(t.value);
     marcarInsSujo(insLista().find(x=>x.prod===t.dataset.ie)); leve(); return; }
+  if(t.dataset.ied!==undefined){ INSUMO[t.dataset.ied]=INSUMO[t.dataset.ied]||{}; INSUMO[t.dataset.ied].estData=t.value;
+    marcarInsSujo(insLista().find(x=>x.prod===t.dataset.ied)); leve(); return; }
   if(t.dataset.ex!==undefined){ ESPOR[+t.dataset.ex][t.dataset.f]=t.dataset.f==="valor"?num(t.value):t.value; salvar(); leve(); return; }
   if(t.dataset.td!==undefined){ const c=destravar(TRAT_SEL); c[+t.dataset.td].dose=num(t.value); salvar(); leve(); return; }
   // frete de uma linha da composicao: valor (R$/un ou total pago) e a
