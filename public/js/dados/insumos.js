@@ -56,23 +56,30 @@
         Karate zeon 250 cs, K-othrine sc25 250ml, Dobbel) foi tocado.
      7  DE-PARA do ERP (insumos - 2026-09-23.xlsx, 73 materiais), por codigo:
         preco em 69 produtos e estoque em 72 (a planilha e o saldo real
-        conferido no ERP; onde nao mudou, o cadastro ja batia). 4 nomes
-        truncados ganharam o complemento tecnico do ERP -- Ureia -> "Ureia
-        46.00.00", Alion -> "Alion sc500 indaziflan 50g/l", Reator -> "Reator
-        360 cs", Actara 750 -> "Actara 750 sg" (so a 1a letra maiuscula,
-        padrao ja usado desde a v5; renomear so no cadastro base nao herda
-        para um documento ja salvo -- isso precisa da mesma cascata que o
-        editor de nome usa, ver app/eventos.js). A ressalva do "ALION" da v5
-        nao se aplica mais: hoje so existe um "Alion" no documento de
-        producao, o "Falcon" e outro produto (sem correspondencia no ERP).
-        Duplicidade encontrada pelo codigo, nao pelo nome: "Diluente fitofog
-        100" (cod 2411003) e "Diluente fitofog 100 malta profog 02" (mesmo
-        codigo) sao o mesmo material -- o segundo nome bate exato com o ERP,
-        o primeiro e truncado. Marcado ativo:false no primeiro, sem apagar a
-        linha (tratamento que porventura o cite continua valendo). A data do
-        saldo (2026-09-23) nao entra aqui -- mora na sobreposicao INSUMO[prod]
-        do documento (campo estData), nao no cadastro base. */
-export const INSUMOS_V = 7;
+        conferido no ERP; onde nao mudou, o cadastro ja batia). Duplicidade
+        encontrada pelo codigo, nao pelo nome: "Diluente fitofog 100" (cod
+        2411003) e "Diluente fitofog 100 malta profog 02" (mesmo codigo) sao
+        o mesmo material -- o segundo nome bate exato com o ERP, o primeiro e
+        truncado. Marcado ativo:false no primeiro, sem apagar a linha
+        (tratamento que porventura o cite continua valendo). A ressalva do
+        "ALION" da v5 nao se aplica mais: hoje so existe um "Alion" no
+        documento de producao, o "Falcon" e outro produto (sem correspondencia
+        no ERP).
+     8  A v7 tambem renomeou 4 produtos truncados (Ureia, Alion, Reator,
+        Actara 750) com o complemento tecnico do ERP -- direto no cadastro
+        base. Errado: mesclarBaseInsumos() casa produto por nome (chaveProd),
+        entao um documento ja salvo com o nome antigo nao reconhece o nome
+        novo como o MESMO produto -- entra como produto NOVO, duplicado, com
+        o antigo continuando do jeito que estava (e sendo o que as composicoes
+        de tratamento ainda referenciam, por nome). Aconteceu em producao: 533
+        virou 537. Revertido aqui -- os 4 nomes voltam a "Reator", "Alion",
+        "Actara 750", "Ureia" (preco/estoque da v7 continuam valendo, so o
+        nome voltou). Renomear um produto que ja existe em documento salvo so
+        e seguro pela mesma cascata que o editor de nome usa (app/eventos.js,
+        f==="prod"), aplicada NAQUELE documento -- nunca só no cadastro base.
+        A data do saldo (2026-09-23) nao entra aqui -- mora na sobreposicao
+        INSUMO[prod] do documento (campo estData), nao no cadastro base. */
+export const INSUMOS_V = 8;
 
 /* Familias de insumo, para a quebra do cadastro.
    O campo `classe` da planilha e texto livre e tem 33 valores distintos para 161
@@ -129,10 +136,10 @@ export const TRAT_ETAPAS = {
 
 export const INSUMOS = [
   {"prod": "Provence total", "pa": "Indaziflam 150 g/L + isoxaflutol 450 g/L", "cod": "1830648", "un": "lt", "conc": "150 g/L + 450 g/L", "classe": "Herbicida", "categ": "Herbicida químico", "form": "SC - suspensão concentrada", "modo": "Sistêmico, com ação pré/pós-emergente conforme bula", "mec": "Inibição da HPPD e da biossíntese de carotenoides", "grupo": "Alquilazina + Isoxazol", "fab": "Bayer", "tox": "Categoria 4 - Produto Pouco Tóxico", "culturas": "Cana-de-açúcar", "estadio": "Pré-emergência das plantas daninhas ou emergência inicial, conforme modalidade registrada e condição de umidade do solo.", "status": "Confirmado", "base": "Agrofit/MAPA, bula ou fabricante", "vol": 432.2933952870903, "est": 98.63, "preco": 487.9869998986},
-  {"prod": "Reator 360 cs", "pa": "Clomazona 360 g/L", "cod": "1797293", "un": "lt", "conc": "360 g/L", "classe": "Herbicida", "categ": "Herbicida químico", "form": "CS - suspensão de encapsulado", "modo": "Sistêmico, predominantemente pré-emergente", "mec": "Inibição da DOXP sintase/biossíntese de carotenoides", "grupo": "Isoxazolidinona", "fab": "FMC", "tox": "Categoria 5 - Produto Improvável de Causar Dano Agudo", "culturas": "Algodão, Arroz, Arroz irrigado, Batata, Cana-de-açúcar, Fumo, Mandioca, Soja", "estadio": "Pré-emergência das plantas daninhas ou emergência inicial, conforme modalidade registrada e condição de umidade do solo.", "status": "Confirmado", "base": "Agrofit/MAPA, bula ou fabricante", "vol": 10375.041486890168, "est": 591.87, "preco": 39.0203000659},
+  {"prod": "Reator", "pa": "Clomazona 360 g/L", "cod": "1797293", "un": "lt", "conc": "360 g/L", "classe": "Herbicida", "categ": "Herbicida químico", "form": "CS - suspensão de encapsulado", "modo": "Sistêmico, predominantemente pré-emergente", "mec": "Inibição da DOXP sintase/biossíntese de carotenoides", "grupo": "Isoxazolidinona", "fab": "FMC", "tox": "Categoria 5 - Produto Improvável de Causar Dano Agudo", "culturas": "Algodão, Arroz, Arroz irrigado, Batata, Cana-de-açúcar, Fumo, Mandioca, Soja", "estadio": "Pré-emergência das plantas daninhas ou emergência inicial, conforme modalidade registrada e condição de umidade do solo.", "status": "Confirmado", "base": "Agrofit/MAPA, bula ou fabricante", "vol": 10375.041486890168, "est": 591.87, "preco": 39.0203000659},
   {"prod": "Combine 500 sc", "pa": "Tebutiuron 500 g/L", "cod": "2145029", "un": "lt", "conc": "500 g/L", "classe": "Herbicida", "categ": "Herbicida químico", "form": "SC - suspensão concentrada", "modo": "Sistêmico/residual, pré e/ou pós-emergente conforme bula", "mec": "Inibição do fotossistema II", "grupo": "Ureia substituída", "fab": "Proventis Lifescience", "tox": "Categoria 4 - Produto Pouco Tóxico", "culturas": "Cana-de-açúcar", "estadio": "Pré-emergência até pós-emergência inicial; daninhas jovens e em crescimento ativo quando aplicado em pós.", "status": "Confirmado", "base": "Agrofit/MAPA, bula ou fabricante", "vol": 7180.062446067051, "est": 7.4, "preco": 50.48},
   {"prod": "Stone sc", "vol": 16601.10189180221, "est": 1885, "preco": 82},
-  {"prod": "Alion sc500 indaziflan 50g/l", "pa": "Indaziflam 500 g/L", "cod": "1350500", "un": "lt", "conc": "500 g/L", "classe": "Herbicida", "categ": "Herbicida químico", "form": "SC - suspensão concentrada", "modo": "Residual e predominantemente pré-emergente", "mec": "Inibição da biossíntese de celulose", "grupo": "Alquilazina", "fab": "Bayer", "tox": "Categoria 5 - Produto Improvável de Causar Dano Agudo", "culturas": "Abacate, Anonáceas, Banana, Cacau, Café, Caju, Cana-de-açúcar, Citros, Coco, Dendê, Goiaba, Manga, Maçã, Oliveira, Uva", "estadio": "Pré-emergência das plantas daninhas ou emergência inicial, conforme modalidade registrada e condição de umidade do solo.", "status": "Confirmado", "obs": "O texto do cadastro diz 50 g/L, mas Alion SC500 registrado contém 500 g/L.", "base": "Cadastro interno + validação complementar", "vol": 180.83150929306333, "est": 153.91, "preco": 1549.9796998246},
+  {"prod": "Alion", "pa": "Indaziflam 500 g/L", "cod": "1350500", "un": "lt", "conc": "500 g/L", "classe": "Herbicida", "categ": "Herbicida químico", "form": "SC - suspensão concentrada", "modo": "Residual e predominantemente pré-emergente", "mec": "Inibição da biossíntese de celulose", "grupo": "Alquilazina", "fab": "Bayer", "tox": "Categoria 5 - Produto Improvável de Causar Dano Agudo", "culturas": "Abacate, Anonáceas, Banana, Cacau, Café, Caju, Cana-de-açúcar, Citros, Coco, Dendê, Goiaba, Manga, Maçã, Oliveira, Uva", "estadio": "Pré-emergência das plantas daninhas ou emergência inicial, conforme modalidade registrada e condição de umidade do solo.", "status": "Confirmado", "obs": "O texto do cadastro diz 50 g/L, mas Alion SC500 registrado contém 500 g/L.", "base": "Cadastro interno + validação complementar", "vol": 180.83150929306333, "est": 153.91, "preco": 1549.9796998246},
   {"prod": "Herburon", "vol": 21536.660371722533, "est": 5540, "preco": 26},
   {"prod": "Lumica", "pa": "Mesotriona 480 g/L", "cod": "1612943", "un": "lt", "conc": "480 g/L", "classe": "Herbicida", "categ": "Herbicida químico", "form": "SC - suspensão concentrada", "modo": "Sistêmico, com ação pré/pós-emergente conforme bula", "mec": "Inibição da HPPD e da biossíntese de carotenoides", "grupo": "Tricetona", "fab": "Syngenta", "tox": "Não Classificado - Produto Não Classificado", "culturas": "Cana-de-açúcar", "estadio": "Pré-emergência e/ou pós-emergência inicial das plantas daninhas, conforme cultura, espécie e bula.", "status": "Confirmado", "base": "Agrofit/MAPA, bula ou fabricante", "vol": 2603.6660371722533, "est": 859.8, "preco": 69},
   {"prod": "Sencor", "vol": 38652.260371722536, "est": 1428, "preco": 64},
@@ -151,7 +158,7 @@ export const INSUMOS = [
   {"prod": "Volcane", "cod": "1132623", "un": "lt", "vol": 3013, "est": 0, "preco": 23.34},
   {"prod": "Yamato", "cod": "2772292", "vol": 783.984069034185, "est": 208.1, "preco": 640},
   {"prod": "Altacor", "vol": 3207.9, "est": 94, "preco": 1057},
-  {"prod": "Actara 750 sg", "pa": "Tiametoxam 750 g/kg", "cod": "1178738", "un": "kg", "conc": "750 g/kg", "classe": "Inseticida", "categ": "Inseticida químico", "form": "SG - granulado solúvel", "modo": "Sistêmico e/ou contato e ingestão", "mec": "Modulação agonista dos receptores nicotínicos de acetilcolina", "grupo": "Neonicotinoide", "fab": "Syngenta", "tox": "Categoria 5 - Produto Improvável de Causar Dano Agudo", "culturas": "Cana-de-açúcar, Palma forrageira", "estadio": "Aplicar no início da infestação, priorizando ovos recém-eclodidos, ninfas ou larvas jovens quando forem o alvo; confirmar o estádio específico de cada praga na bula.", "status": "Confirmado", "base": "Agrofit/MAPA, bula ou fabricante", "vol": 930, "est": 95.481, "preco": 348.4488997811},
+  {"prod": "Actara 750", "pa": "Tiametoxam 750 g/kg", "cod": "1178738", "un": "kg", "conc": "750 g/kg", "classe": "Inseticida", "categ": "Inseticida químico", "form": "SG - granulado solúvel", "modo": "Sistêmico e/ou contato e ingestão", "mec": "Modulação agonista dos receptores nicotínicos de acetilcolina", "grupo": "Neonicotinoide", "fab": "Syngenta", "tox": "Categoria 5 - Produto Improvável de Causar Dano Agudo", "culturas": "Cana-de-açúcar, Palma forrageira", "estadio": "Aplicar no início da infestação, priorizando ovos recém-eclodidos, ninfas ou larvas jovens quando forem o alvo; confirmar o estádio específico de cada praga na bula.", "status": "Confirmado", "base": "Agrofit/MAPA, bula ou fabricante", "vol": 930, "est": 95.481, "preco": 348.4488997811},
   {"prod": "Quartzo", "vol": 758.6, "est": 75.7, "preco": 706},
   {"prod": "Authority", "vol": 13000, "est": 0, "preco": 84.12},
   {"prod": "Nativo", "cod": "920095", "un": "lt", "vol": 10000, "est": 397, "preco": 75},
@@ -177,7 +184,7 @@ export const INSUMOS = [
   {"prod": "Endomaxx", "vol": 900, "est": 0, "preco": 710},
   {"prod": "Progibb", "cod": "2376593", "un": "kg", "vol": 105, "est": 2.12, "preco": 4900},
   {"prod": "Verdatto", "cod": "2523360", "un": "lt", "vol": 1330, "est": 315, "preco": 27},
-  {"prod": "Ureia 46.00.00", "pa": "Nitrogênio 46% (ureia)", "cod": "2030524", "un": "ton", "conc": "46% de N", "classe": "Fertilizante mineral simples", "categ": "Adubo - macronutriente", "form": "Sólido granulado", "modo": "Nutricional/fisiológico por absorção foliar e/ou radicular", "mec": "Fornecimento de nutrientes e/ou modulação de processos fisiológicos", "grupo": "Não se aplica - insumo nutricional/fisiológico", "fab": "Confirmar fabricante/registrante no rótulo ou nota fiscal", "tox": "Não se aplica como classificação de agrotóxico; consultar FISPQ/GHS", "culturas": "Culturas indicadas no registro/rótulo do fertilizante ou insumo; confirmar documento vigente.", "estadio": "Aplicar no estádio fenológico e na condição nutricional definidos pela recomendação agronômica e pelo rótulo.", "status": "Confirmado", "base": "Agrofit/MAPA, bula ou fabricante", "vol": 399142.9897, "est": 493.97, "preco": 3818.6516999008},
+  {"prod": "Ureia", "pa": "Nitrogênio 46% (ureia)", "cod": "2030524", "un": "ton", "conc": "46% de N", "classe": "Fertilizante mineral simples", "categ": "Adubo - macronutriente", "form": "Sólido granulado", "modo": "Nutricional/fisiológico por absorção foliar e/ou radicular", "mec": "Fornecimento de nutrientes e/ou modulação de processos fisiológicos", "grupo": "Não se aplica - insumo nutricional/fisiológico", "fab": "Confirmar fabricante/registrante no rótulo ou nota fiscal", "tox": "Não se aplica como classificação de agrotóxico; consultar FISPQ/GHS", "culturas": "Culturas indicadas no registro/rótulo do fertilizante ou insumo; confirmar documento vigente.", "estadio": "Aplicar no estádio fenológico e na condição nutricional definidos pela recomendação agronômica e pelo rótulo.", "status": "Confirmado", "base": "Agrofit/MAPA, bula ou fabricante", "vol": 399142.9897, "est": 493.97, "preco": 3818.6516999008},
   {"prod": "Map", "vol": 31670.834000000003, "est": 9100, "preco": 6.59},
   {"prod": "Kcl branco", "vol": 317200, "est": 38600, "preco": 2.66},
   {"prod": "Manganês", "vol": 10705.5, "est": 1500, "preco": 34},
