@@ -3,7 +3,7 @@ import { FROTA_ESP, SEP_MOD, chaveDoModelo, destinoDe, espDe, modDe, opcoesDesti
 import { DIM, DIM_DET, FROTA_ABERTO, QUADRO } from '../nucleo/estado.js';
 import { $, brl, fmt, num, pct } from '../nucleo/formato.js';
 import { MESES, NM, clsMes } from '../nucleo/calendario.js';
-import { maxSel, tdMeses, th, thMeses } from './componentes.js';
+import { maxSel, ordenarPorEtapa, tdMeses, th, thMeses } from './componentes.js';
 import { ESCALAS } from '../dados/escalas.js';
 import { quadroBase } from '../calculo/quadro.js';
 import { criterioMensal, frotaDaAtividade, temCriterioMensal } from '../calculo/atividade.js';
@@ -40,10 +40,16 @@ function pintarDim(R){
 
      Ficam as sete que se compara de uma linha para outra, e tres delas abrem o
      detalhe no ponto certo: rendimento abre Operacao, frota abre Frota e
-     efetivo abre Pessoas. */
+     efetivo abre Pessoas.
+
+     A lista sai na ordem da etapa -- prepara, planta, trata, colhe, apoia --,
+     que e a ordem em que o ano acontece. Na ordem do cadastro a muda (PLANTIO)
+     caia no meio da colheita, e a coluna Etapa alternava a cada linha: quem le
+     de cima para baixo nao conseguia somar uma etapa com o olho. */
+  const L = ordenarPorEtapa(R.L, r=>r.a.etapa);
   $("#t_dim").innerHTML = th([["Cod"],["Atividade / frente"],["Etapa"],
     ["Área/Volume",1],["Rend. (un/h)",1],["Frota",1],["Efetivo (pessoas)",1]])+"<tbody>"+
-    R.L.map(r=>{
+    L.map(r=>{
       const multi = r.partes.length>1;
       const un = r.a.un.split("/")[0];
       const F = frotaDaAtividade(r);
@@ -76,9 +82,9 @@ function pintarDim(R){
           </div></td></tr>` + (MES_ABERTO[r.a.cod] ? linhaDosMeses(r, un) : "");
     }).join("")+
     `<tr><td class="tot" colspan="4">TOTAL DAS ATIVIDADES</td>
-     <td class="tot">${fmt(R.L.reduce((s,r)=>s+r.horas,0))} h</td>
+     <td class="tot">${fmt(L.reduce((s,r)=>s+r.horas,0))} h</td>
      <td class="calc" title="Somar o pico de cada atividade nao da a frota da usina: atividades que picam em meses diferentes dividem a mesma maquina.">—</td>
-     <td class="tot">${fmt(R.L.reduce((s,r)=>s+r.efetivo,0))}</td></tr></tbody>`;
+     <td class="tot">${fmt(L.reduce((s,r)=>s+r.efetivo,0))}</td></tr></tbody>`;
 
   /* Necessidade de frota por MES, uma linha por atividade.
      A tabela por tipo de maquina somava o ano inteiro e escondia justamente o
@@ -88,7 +94,7 @@ function pintarDim(R){
   $("#t_dim_frotames").innerHTML = th([["Cod"],["Atividade / frente"],["Máquina"],
     ...thMeses(),["Pico",1]])+"<tbody>"+
     (()=>{
-      const linhas = R.L.filter(r=>r.total>0);
+      const linhas = L.filter(r=>r.total>0);
       if(!linhas.length) return `<tr><td colspan="${NM+4}" class="calc">Sem atividade com volume lançado.</td></tr>`;
       const porMes = Array(NM).fill(0);
       const corpo = linhas.map(r=>{

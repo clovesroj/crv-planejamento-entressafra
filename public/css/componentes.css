@@ -181,6 +181,18 @@ th.th-arrasta.sobre{box-shadow:inset 0 0 0 2px var(--leaf)}
    a linha inteira (senão a rolagem "corta" o fundo antes do rótulo aparecer) */
 #t_plano tr.stage td>span{position:sticky;left:0;display:inline-block;padding:7px 12px}
 #plano .tblwrap{scrollbar-width:auto}
+/* Cabecalho e dado no mesmo eixo — a mesma regra do Dimensionamento (#t_dim).
+   O th do app e centralizado e a celula numerica ia para a direita: o rotulo do
+   mes flutuava no meio da coluna e o numero encostava na borda dela, entao
+   cabecalho e conteudo nunca caiam na mesma linha vertical. As duas primeiras
+   colunas sao identificacao e vao a esquerda; da terceira em diante e data,
+   numero ou seletor, e vao ao centro — inclusive o que se digita, senao o
+   valor lancado ficaria fora do eixo do mes que o encima. */
+#t_plano th:nth-child(-n+2),#t_plano td:nth-child(-n+2){text-align:left}
+#t_plano th:nth-child(n+3),#t_plano td:nth-child(n+3){text-align:center}
+#t_plano td:nth-child(n+3) input{text-align:center}
+#t_plano .mix{justify-content:center}
+#t_plano td{vertical-align:middle}
 
 /* coluna congelada — Cadastro de Atividades: mesmo motivo do Plano Operacional
    (muita coluna pra rolar sem perder de vista qual atividade é qual) */

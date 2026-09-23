@@ -1,3 +1,4 @@
+import { ETAPAS_ORD } from '../calculo/arrendamento.js';
 import { MESES, clsMes } from '../nucleo/calendario.js';
 import { $, brl, esc, fmt } from '../nucleo/formato.js';
 import { USUARIO } from '../nucleo/sessao.js';
@@ -27,6 +28,28 @@ const tdMeses = (arr, f, cls="num calc") =>
 const somaSel = (arr, SEL) => SEL.meses.reduce((s,i)=>s+(+arr[i]||0), 0);
 /** Pico de uma série mensal dentro do período filtrado. */
 const maxSel  = (arr, SEL) => SEL.meses.reduce((m,i)=>Math.max(m, +arr[i]||0), 0);
+
+/* ---------- ORDEM DAS ETAPAS ----------
+   Etapa é a ordem em que o ano acontece: prepara, planta, trata, colhe, e o
+   apoio corre por fora. A lista de atividades vem na ordem do cadastro, que é
+   a ordem em que cada uma foi criada — e corrigir a etapa de uma atividade (a
+   muda, que virou PLANTIO) deixou a tela alternando COLHEITA / PLANTIO /
+   COLHEITA. Numa tabela com faixa de grupo isso repete a faixa, e a mesma
+   etapa passa a aparecer três vezes como se fossem três grupos diferentes.
+
+   Ordenação estável: dentro da etapa, a ordem do cadastro fica de pé — é por
+   ela que A04 vem antes de A05, e não há por que inventar outra. `sub`
+   desempata antes disso, para o grupo que mora dentro de uma etapa (o Manejo
+   Fitossanitário, que é TRATOS CULTURAIS com faixa própria) ficar sempre no
+   fim dela, e não no meio, partindo a etapa em duas faixas. */
+const ordemEtapa = e => { const i = ETAPAS_ORD.indexOf(e); return i < 0 ? ETAPAS_ORD.length : i; };
+const ordenarPorEtapa = (lista, etapaDe, sub) => lista
+  .map((r, i) => [r, i])
+  .sort((a, b) => ordemEtapa(etapaDe(a[0])) - ordemEtapa(etapaDe(b[0]))
+               || (sub ? sub(a[0]) - sub(b[0]) : 0)
+               || a[1] - b[1])
+  .map(x => x[0]);
+
 
 /* ---------- BUSCA POR NOME EM TABELA ----------
    Genérica pra qualquer tabela pintada por th()+innerHTML neste app: esconde
@@ -377,4 +400,4 @@ function barrasH(el,dados){
 
 
 export { barras, barrasH, exportarTabela, filtrarPorNome, habilitarReordenacao, kpi, ligarBuscaSelect, maxSel,
-         reaplicarBuscas, reaplicarExportar, somaSel, tdMeses, th, thMeses };
+         ordenarPorEtapa, reaplicarBuscas, reaplicarExportar, somaSel, tdMeses, th, thMeses };
