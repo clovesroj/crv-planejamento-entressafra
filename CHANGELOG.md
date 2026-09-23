@@ -1,5 +1,29 @@
 # Histórico de mudanças
 
+## 2.42.0 — 2026-09-23 · O catálogo do ERP entra no plano
+
+Da planilha **Cashflow Diário — Plataforma Controladoria**: 272 linhas, **151
+atividades** com código, nome e especialidade de frota.
+
+- **O código do ERP é um campo, não a chave.** A correspondência não é de um
+  para um: o Plantio (A10) é, no ERP, o trator da plantadeira e o implemento
+  mais oito códigos de apoio; na volta, o ERP tem um código só para a 1ª e a 2ª
+  gradagem pesada, que no plano são atividades separadas. Trocar a chave
+  escolheria um dos dez e jogaria fora o resto.
+- **As 151 têm lugar, cada uma em um só.** O de‑para separa **núcleo** (o
+  equipamento que faz a operação) de **apoio** (pipa, área de vivência,
+  transporte de pessoal, auxiliar rural, carrego de insumo). Quatro atividades
+  do plano ficam sem correspondente porque o ERP não as tem.
+- **A frente abre no Plano Operacional.** A seta ao lado do nome abre, além da
+  área por tratamento, as atividades do ERP daquela frente — no Plantio, o
+  trator e o implemento como núcleo e, embaixo, o auxiliar rural, a área de
+  vivência, a pipa, o roll on/off e o transporte de pessoal. Só leitura: o custo
+  já está na frente.
+- **Dez operações novas** que o ERP aponta e o plano não tinha: limpeza de área,
+  sistematização, sulcação, cobrição do plantio manual, plantio com semeadeira,
+  maturador, inibidor de florescimento, fungicida, micronutrientes e conservação
+  de estradas e cercas. Enquanto não houver área lançada, nenhuma custa nada.
+
 ## 2.41.0 — 2026-09-23 · FAT na mão de obra e apoio operacional no Dimensionamento
 
 ### FAT — Fundo de Amparo ao Trabalhador (aba Mão de Obra)
