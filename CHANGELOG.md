@@ -1,5 +1,28 @@
 # Histórico de mudanças
 
+## 2.42.2 — 2026-09-23 · Atividade zerada no Plano Operacional não é pendência
+
+Num plano de entressafra a colheita fica zerada — e a Validação acusava isso
+como inconsistência. Três regras tratavam "zerado" como "faltando":
+
+- **Atividades sem volume programado** virava pendência para qualquer atividade
+  zerada no ano. Agora é só informação: "40 de 70 zeradas — ficam fora do
+  cálculo". Zerar o que não roda no período é permitido.
+- **Rendimento operacional zerado** acusava o transporte de cana (TR1) quando a
+  colheita estava zerada: sem tonelada, ele não tem rendimento calculado. Agora
+  a regra só olha atividade com volume — rendimento zerado de verdade, numa
+  atividade lançada, continua acusando.
+- **Base física dos custos informada em Premissas** cobrava área e volume de
+  colheita mesmo sem colheita no plano. Agora cada base só é exigida quando a
+  operação que a usa tem volume: colheita para área e volume de colheita,
+  preparo ou plantio para área de plantio, tratos de cana planta e de cana soca
+  para as áreas de cada cultura.
+
+Nenhum número muda. Testado: plano de entressafra com a colheita zerada e sem a
+base de colheita — nenhuma pendência dessas três; plano completo sem a base de
+colheita — continua acusando; rendimento zerado numa atividade com volume —
+continua acusando. 29 abas sem erro.
+
 ## 2.42.1 — 2026-09-23 · Gráfico mensal segue o período escolhido
 
 Com **Entressafra** selecionado no topo, o gráfico do fluxo mensal do Resumo de
