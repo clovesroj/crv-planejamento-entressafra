@@ -6,7 +6,7 @@ import { MESES, NM, clsMes } from '../nucleo/calendario.js';
 import { maxSel, ordenarPorEtapa, tdMeses, th, thMeses } from './componentes.js';
 import { ESCALAS } from '../dados/escalas.js';
 import { quadroBase } from '../calculo/quadro.js';
-import { criterioMensal, frotaDaAtividade, temCriterioMensal } from '../calculo/atividade.js';
+import { criterioMensal, frotaDaAtividade, pessoasDaAtividade, temCriterioMensal } from '../calculo/atividade.js';
 
 /* ---------- DIMENSIONAMENTO ---------- */
 /* Botao do criterio mensal. O ponto avisa que algum mes ja foge do padrao da
@@ -53,6 +53,7 @@ function pintarDim(R){
       const multi = r.partes.length>1;
       const un = r.a.un.split("/")[0];
       const F = frotaDaAtividade(r);
+      const PE = pessoasDaAtividade(r);
       return `<tr><td>${r.a.cod}</td><td>${r.a.nome}</td>
         <td class="calc">${r.a.etapa}</td>
         <td><div class="dim-cel"><span class="dim-val calc">${fmt(r.total)}</span>
@@ -70,21 +71,25 @@ function pintarDim(R){
         <td>
           <div class="dim-cel">
             <span class="dim-val" title="${F.difere
-              ? `Frota do mês que mais pede (${F.mes}): ${fmt(F.pico)}. Na média da janela dá ${fmt(F.media)}, mas média não estaciona no pátio — quem tem de existir é a do mês cheio. Ajuste mês a mês no botão mês.`
+              ? `Frota do mês que mais pede (${F.mes}): ${fmt(F.pico)}. Na média da janela dá ${fmt(F.media)}, mas média não estaciona no pátio — quem tem de existir é a do mês cheio. É a média que o motor usa para ratear custo. Ajuste mês a mês no botão mês.`
               : `Sai do critério por mês. Ajuste mês a mês no botão mês.`}">${F.pico||"—"}</span>
-            ${F.difere ? `<span class="badge b-warn" title="A média da janela é ${fmt(F.media)}">pico ${F.mes}</span>` : ""}
+            ${F.acima ? `<span class="badge b-warn" title="A média da janela é ${fmt(F.media)}">pico ${F.mes}</span>` : ""}
             <button class="btn xs" data-dimdet="${r.a.cod}" data-aba="frota">detalhe ›</button>
           </div></td>
         <td>
           <div class="dim-cel">
-            <span class="dim-val">${r.efetivo||"—"}</span>
+            <span class="dim-val" title="${PE.difere
+              ? `Equipe do mês que mais pede (${PE.mes}): ${fmt(PE.pico)} pessoas, para a frota daquele mês. Na média da janela dá ${fmt(PE.media)}, que é o efetivo com que o motor paga a folha. Ajuste mês a mês no botão mês.`
+              : `Frota × operadores × turnos × fator de escala.`}">${PE.pico||"—"}</span>
+            ${PE.acima ? `<span class="badge b-warn" title="Na média da janela são ${fmt(PE.media)}">pico ${PE.mes}</span>` : ""}
             <button class="btn xs" data-dimdet="${r.a.cod}" data-aba="pessoas">detalhe ›</button>
           </div></td></tr>` + (MES_ABERTO[r.a.cod] ? linhaDosMeses(r, un) : "");
     }).join("")+
     `<tr><td class="tot" colspan="4">TOTAL DAS ATIVIDADES</td>
      <td class="tot">${fmt(L.reduce((s,r)=>s+r.horas,0))} h</td>
      <td class="calc" title="Somar o pico de cada atividade nao da a frota da usina: atividades que picam em meses diferentes dividem a mesma maquina.">—</td>
-     <td class="tot">${fmt(L.reduce((s,r)=>s+r.efetivo,0))}</td></tr></tbody>`;
+     <td class="tot" title="Soma do pico de cada atividade. Assim como na frota, atividades que picam em meses diferentes podem dividir a mesma equipe — o confronto que decide contratação é o da aba Pessoas, por função.">${
+       fmt(L.reduce((s,r)=>s+pessoasDaAtividade(r).pico,0))}</td></tr></tbody>`;
 
   /* Necessidade de frota por MES, uma linha por atividade.
      A tabela por tipo de maquina somava o ano inteiro e escondia justamente o
@@ -214,6 +219,7 @@ function pintarDimDetalhe(R){
   const multi = r.partes.length>1;
   const BASE = quadroBase();
   const FR = frotaDaAtividade(r);
+  const PES = pessoasDaAtividade(r);
   const aba = DIM_DET.aba || "oper";
   const linha = (rot, val, dica) => `<div class="dd-linha"${dica?` title="${dica}"`:""}>
     <span>${rot}</span><b>${val}</b></div>`;
@@ -274,8 +280,10 @@ function pintarDimDetalhe(R){
     <div class="dd-bloco" id="dd_pessoas">
       <div class="dd-tit">Pessoas</div>
       <div class="dd-grade">
-        ${linha("Efetivo desta atividade", (r.efetivo||"—")+" pessoas",
-                "frota × operadores × turnos × fator de escala")}
+        ${linha("Equipe a ter", fmt(PES.pico)+" pessoas"+(PES.mes?" · pico em "+PES.mes:""),
+                "frota do mes que mais pede × operadores × turnos × fator de escala")}
+        ${linha("Média da janela", fmt(PES.media)+" pessoas",
+                "e o efetivo com que o motor paga a folha, em todo mes com volume")}
         ${linha("Função", multi?"—":(r.fcod+" — "+r.fnome))}
         ${linha("Quadro ativo da função", ativoDe(r.fcod, BASE)||"—",
                 "pessoas dessa função no ERP, já com o ajuste da aba Pessoas")}
@@ -302,7 +310,7 @@ function pintarDimDetalhe(R){
         <button class="ghost-btn" id="dd_fechar" title="Fechar" aria-label="Fechar">✕</button></div>
       <div class="ra-tit">${r.a.cod} · ${r.a.nome}</div>
       <div class="ra-subtit">${r.a.etapa} · ${fmt(r.total)} ${un} · ${fmt(r.horas)} h ·
-        ${r.frotaR||0} equip. · ${r.efetivo||0} pessoas</div>
+        ${FR.pico||0} equip. · ${PES.pico||0} pessoas</div>
       <div class="dd-abas">${ABAS_DET.map(([k,n])=>
         `<button class="${k===aba?"on":""}" data-ddaba="${k}">${n}</button>`).join("")}</div>
     </div>

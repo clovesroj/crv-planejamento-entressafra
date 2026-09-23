@@ -1,3 +1,4 @@
+import { frotaDaAtividade, pessoasDaAtividade } from '../calculo/atividade.js';
 import { agDeLinha, contaOrigem, rotuloItem } from '../calculo/crm.js';
 import { ADM_CRITERIOS, ADM_GRUPOS } from '../dados/administrativo.js';
 import { ARR_FORMAS, ETAPAS_ORD, arrRat } from '../calculo/arrendamento.js';
@@ -105,8 +106,13 @@ const horasP = R => REC.parcial
   : R.horasT;
 const totEtapas = R => Object.values(R.etapas).reduce((s,e)=>s+e.total,0)||1;
 const ativosDe = (R, etapa) => R.L.filter(r=>r.a.etapa===etapa && r.total>0);
+/* Frota e efetivo da folha impressa sao os mesmos das telas: o do mes que mais
+   pede, que e o que tem de existir. A media da janela -- a que rateia o custo
+   -- fica no relatorio de Dimensionamento, que e o tecnico, com as duas
+   colunas lado a lado. Folha e tela discordando sobre a mesma atividade e o
+   tipo de coisa que para uma reuniao. */
 const linhaAtiv = r => [r.a.cod, r.a.nome, r.a.un.split("/")[0], fmt(r.total), fmt(r.horas),
-  r.frotaR||0, fmt(r.efetivo), brl(r.cDiesel), brl(r.cMDO), brl(r.cManut), brl(r.cInsumo),
+  frotaDaAtividade(r).pico||0, fmt(pessoasDaAtividade(r).pico), brl(r.cDiesel), brl(r.cMDO), brl(r.cManut), brl(r.cInsumo),
   brl(r.cTerc), brl(r.direto), r.total>0?brl(r.direto/r.total,2):"—"];
 const CAB_ATIV = ["Cod","Atividade","Un","Volume","Horas","Frota","Efetivo","Diesel","Mão de obra",
   "Manutenção","Insumos","Terceiros","Custo direto","R$/un"];
@@ -581,12 +587,15 @@ const planoOperacional = R => secP("Plano Operacional","Plano Operacional",
    horas do período, e a frota e o efetivo dimensionados. */
 const dimensionamento = R => secP("Dimensionamento","Dimensionamento por atividade",
   ["Cod","Atividade",REC.parcial?"Volume no período":"Volume","Rendimento","Utilização",
-   REC.parcial?"Horas no período":"Horas",REC.parcial?"Frota (dimensionada)":"Frota","Turnos","Escala","Fator",
-   REC.parcial?"Efetivo (dimensionado)":"Efetivo","Máquina","Implemento"],
-  R.L.map(r=>[r, ativP(r)]).filter(([,p])=>p.total>0).map(([r,p])=>[r.a.cod, r.a.nome, fmt(p.total),
-    fmt(r.rend,2), pct(r.util), fmt(p.horas), r.frotaR,
-    (r.partes[0]?r.partes[0].turnosEf:r.a.turnos)+"t", r.escala||"padrão",
-    fmt(r.fator,2), fmt(r.efetivo), r.maqEfetiva, r.impEfetivo]));
+   REC.parcial?"Horas no período":"Horas","Frota a ter (pico)","Mês do pico","Frota média (rateio)",
+   "Turnos","Escala","Fator","Equipe a ter (pico)","Efetivo médio (folha)","Máquina","Implemento"],
+  R.L.map(r=>[r, ativP(r)]).filter(([,p])=>p.total>0).map(([r,p])=>{
+    const F = frotaDaAtividade(r), PE = pessoasDaAtividade(r);
+    return [r.a.cod, r.a.nome, fmt(p.total),
+      fmt(r.rend,2), pct(r.util), fmt(p.horas), F.pico, F.mes||"—", F.media,
+      (r.partes[0]?r.partes[0].turnosEf:r.a.turnos)+"t", r.escala||"padrão",
+      fmt(r.fator,2), fmt(PE.pico), fmt(PE.media), r.maqEfetiva, r.impEfetivo];
+  }));
 
 const combustivel = R => {
   const lit = noPer(R.CB.litrosOperMes) + noPer(R.CB.litrosApoioMes);

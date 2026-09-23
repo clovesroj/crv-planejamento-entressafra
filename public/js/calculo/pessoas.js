@@ -1,3 +1,4 @@
+import { criterioMensal } from './atividade.js';
 import { CFG } from '../dados/cfg.js';
 import { MESES, NM } from '../nucleo/calendario.js';
 import { num } from '../nucleo/formato.js';
@@ -18,10 +19,18 @@ function pessoasCalc(R){
   // atividades do plano: a equipe conta nos meses com quantidade; o custo segue a quantidade do mês
   R.L.forEach(r=>{
     const tot = r.total||0; if(tot<=0) return;
+    /* Equipe de cada mes na proporcao da frota DAQUELE mes. Quem ajusta a
+       frota de dezembro no criterio por mes muda a equipe de dezembro, e essa
+       serie e a que responde "quanta gente tenho de ter em cada mes" no
+       Dimensionamento e na aba Pessoas. Sem criterio lancado, a frota do mes e
+       a da atividade, o fator da 1 e a serie sai identica a de sempre.
+       O custo nao passa por aqui: custoMes continua vindo do motor. */
+    const C = criterioMensal(r);
+    const fatorMes = i => (r.frotaR > 0 ? C[i].n / r.frotaR : 1);
     r.partes.forEach(p=>{
       if(p.terc || !(p.efetivo>0)) return;
       add(r.a.etapa, p.fcod, r.a.nome, p.efetivo,
-          r.meses.map(q=>num(q)>0 ? p.efetivo : 0), (p.mdoMes||[]).slice());
+          r.meses.map((q,i)=>num(q)>0 ? Math.ceil(p.efetivo*fatorMes(i)) : 0), (p.mdoMes||[]).slice());
     });
   });
   // reserva do transporte de cana que o efetivo total soma à parte (sem custo de MDO próprio no modelo)

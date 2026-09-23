@@ -1,3 +1,4 @@
+import { frotaDaAtividade, pessoasDaAtividade } from '../calculo/atividade.js';
 import { calcular } from '../calculo/index.js';
 import { calcularCompleto } from './ciclo.js';
 import { CFG } from '../dados/cfg.js';
@@ -28,9 +29,11 @@ $("#btn_adm_add").onclick=()=>{
 $("#btn_forn_add").onclick=()=>{ fornLista().push({...FORN_LINHA}); salvar(); render(); };
 $("#btn_export").onclick=async()=>{
   const R=calcular();
-  let c="PLANO OPERACIONAL\nCod;Etapa;Atividade;Un;"+MESES.join(";")+";Total;Tratamento;Funcao;Horas;Frota;Efetivo;Custo direto\n";
+  let c="PLANO OPERACIONAL\nCod;Etapa;Atividade;Un;"+MESES.join(";")+";Total;Tratamento;Funcao;Horas;Frota a ter (pico);Frota media (rateio);Equipe a ter (pico);Efetivo medio (folha);Custo direto\n";
+  // as duas leituras, como nas telas e nos relatorios: o pico e o que tem de
+  // existir no patio e na escala; a media e a que rateia o custo
   R.L.forEach(r=>c+=[r.a.cod,r.a.etapa,r.a.nome,r.a.un,...r.meses.map(num),r.total,r.trat||"",r.fcod,
-    r.horas.toFixed(1),r.frotaR,r.efetivo,r.direto.toFixed(2)].join(";")+"\n");
+    r.horas.toFixed(1),frotaDaAtividade(r).pico,r.frotaR,pessoasDaAtividade(r).pico,r.efetivo,r.direto.toFixed(2)].join(";")+"\n");
   c+="\nCOMPOSICAO DE CUSTOS\nNatureza;Total\n";
   comps(R).forEach(([n,v])=>c+=n+";"+v.toFixed(2)+"\n");
   c+="TOTAL;"+R.total.toFixed(2)+"\n";
