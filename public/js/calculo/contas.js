@@ -35,6 +35,7 @@ const CONTA_COMBINADA = {"200-52":"200-51","200-73":"200-72","200-79":"200-77"};
 const SEM_CONTA = {
   "__insumos": "Insumos sem conta própria (reguladores, adjuvantes, produtos sem classe agronômica)",
   "__espor":   "Custos esporádicos (lançados na aba Custos)",
+  "__fat":     "FAT — benefício pago aos funcionários com contrato suspenso (aba Mão de Obra)",
 };
 const INSUMO_CONTA = {herbicida:"INS-01", inseticida:"INS-02", fungicida:"INS-02", biologico:"INS-02",
   fertilizante:"INS-03", corretivo:"INS-03", foliar:"INS-04", micro:"INS-04", bioestim:"INS-04"};
@@ -77,6 +78,11 @@ function contasValores(R){
   const EM = R.EM || {};
   [["F09",EM.mec],["F14",EM.ajud],["F13",EM.lider]].forEach(([f,n])=>{ const cf = MP.custoFuncao[f];
     if(cf && n>0) abrirMDO(cf.mensal*n*NM, f, "200-16"); });
+  // apoio operacional do Dimensionamento: custo cheio da função, como o operador
+  ((R.MOA||{}).linhas||[]).forEach(l=>abrirMDO(num(l.total), l.fcod, "200-17"));
+  // FAT: não há salário nem encargo no período, só o benefício lançado — que
+  // não tem conta própria no plano; fica em linha separada, somando no total
+  add("__fat", num(R.mdoFat));
 
   // manutenção (CRM por componente + materiais)
   add("200-93", R.crmComp.pecas); add("200-94", R.crmComp.terc);

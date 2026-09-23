@@ -89,6 +89,15 @@ let ADM = null;          // [{grupo,desc,valor,crit,cc}] custos administrativos
 let ADM_RAT = {};        // etapa -> % do rateio administrativo por percentual
 let QUADRO = {};         // fcod -> {ativo, ferias, demis} quadro de pessoal informado
 let TPESS = null;        // rotas de transporte de pessoal (lista editável)
+/* FAT: funcionarios com o contrato suspenso para qualificacao (bolsa paga pelo
+   Fundo de Amparo ao Trabalhador). Somam no efetivo e no custo -- a empresa
+   paga um beneficio por mes enquanto dura --, mas nao ficam disponiveis para a
+   operacao. Linha: {fcod, qtd, m:[12 x 0/1], ben (R$/mes por pessoa), desc} */
+let FAT = [];
+/* Mao de obra de apoio operacional, lancada no Dimensionamento: gente que a
+   operacao precisa e que nao sai de atividade nenhuma (fiscal, apontador,
+   lider de frente...). Linha: {fcod, qtd, m:[12 x 0/1], frente} */
+let MO_APOIO = [];
 let ENC = {};            // índice do encargo -> % ajustado
 let BEN = {};            // índice do benefício -> valor ajustado
 let EDITADO = false;     // true assim que o usuário mexe em algo — trava o carregamento
@@ -106,7 +115,7 @@ let AGROFIT_BUSCA = null;
 export {
   P, PLANO, DIM, INSUMO, ESPOR, TRATC, NIV, GRAT, APOIO, TERC_TAR, TERC_SUB, TERC_DET, CRM, MATX,
   INSX, INSX_V, ATVX, ATVX_V, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, CRIT_GER, CRIT_CABE, REF_BUSCA, REF_AG, REF_FAM, REF_FROTA, REF_PROP, GR_INICIO, GR_FIM, GR_EMPRESA, GR_ESP, GR_AG, GR_COMP, GR_FROTA, GR_PROP, GR_REFORMA, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, FITO_ABERTO, PLANO_ABERTO, INS_FICHA, DIM_DET, APOIO_FIXO, TRAT_NOME, TRAT_OBS, TRAT_ETAPA, TRAT_DEL, TRAT_ATIVO, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
-  TPESS, QUADRO, ADM, ADM_RAT, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL, ATIV_TRAT_SEL, GRUPOS_INS, FAM_NOME, FAM_CLASSE, AGROFIT_BUSCA, INS_EDIT,
+  TPESS, FAT, MO_APOIO, QUADRO, ADM, ADM_RAT, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL, ATIV_TRAT_SEL, GRUPOS_INS, FAM_NOME, FAM_CLASSE, AGROFIT_BUSCA, INS_EDIT,
 };
 
 export const setP          = v => { P = v; };
@@ -170,6 +179,8 @@ export const setARR_RAT    = v => { ARR_RAT = v; };
 export const setFORN       = v => { FORN = v; };
 export const setFORN_PAR   = v => { FORN_PAR = v; };
 export const setTPESS      = v => { TPESS = v; };
+export const setFAT        = v => { FAT = Array.isArray(v) ? v : []; };
+export const setMO_APOIO   = v => { MO_APOIO = Array.isArray(v) ? v : []; };
 export const setQUADRO     = v => { QUADRO = v; };
 export const setGRUPOS_INS = v => { GRUPOS_INS = v; };
 export const setFAM_NOME   = v => { FAM_NOME = v; };

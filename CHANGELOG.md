@@ -1,5 +1,71 @@
 # Histórico de mudanças
 
+## 2.41.0 — 2026-09-23 · FAT na mão de obra e apoio operacional no Dimensionamento
+
+### FAT — Fundo de Amparo ao Trabalhador (aba Mão de Obra)
+
+Página nova na aba Mão de Obra para os funcionários com o **contrato suspenso
+para qualificação** (art. 476-A da CLT), com a bolsa paga pelo FAT. Uma linha
+por função:
+
+- **pessoas** que entram no FAT;
+- **meses** em que ficam suspensas (linha nova já vem com a entressafra marcada);
+- **benefício por pessoa por mês** que a empresa paga no período (ajuda
+  compensatória, cesta, plano de saúde...) e a descrição dele.
+
+Custo = pessoas × benefício × meses marcados. No período não há salário nem
+encargo, só o benefício. O custo **soma no total de mão de obra**, cai
+exatamente nos meses marcados (não é espalhado pela área operada) e entra no
+indireto das etapas como o resto da mão de obra fora das atividades.
+
+Essas pessoas **contam no efetivo, mas não ficam disponíveis para a
+operação**. No Resumo de Pessoas:
+
+- departamento próprio, **FAT — fora da operação**, que soma no efetivo e no
+  custo;
+- **não entra na necessidade**: o confronto com o quadro ganha a coluna **No FAT
+  (pico)**, e nos meses de FAT o disponível da função cai (a célula mostra
+  "−20 FAT", e o título diz "disponível 185 = 205 menos 20 no FAT"). A
+  contratação é calculada contra necessidade + FAT de cada mês;
+- o custo médio por pessoa mobilizada não conta o FAT.
+
+No Plano de Contas o benefício do FAT fica em linha própria, sem conta (o plano
+não tem conta para ajuda compensatória), e o total continua fechando.
+
+### Mão de obra de apoio operacional (aba Dimensionamento)
+
+Tabela nova abaixo das atividades para lançar a gente que a operação precisa e
+que não sai de nenhuma atividade — fiscal de campo, apontador, líder de frente,
+bituqueiro, vigia. Uma linha por função e frente, com **pessoas** e **meses**
+(linha nova vem com os doze marcados).
+
+Custo = pessoas × custo mensal cheio da função (salário, encargos e benefícios
+da aba Mão de Obra) × meses marcados. Soma no total de mão de obra nos meses
+marcados, abre pela composição da função na conta 200-17 do Plano de Contas e
+entra na **necessidade** do Resumo de Pessoas, departamento **Apoio
+operacional**.
+
+### Onde mais aparece
+
+- Natureza de custo (aba Custos, Painel e rastro de mão de obra): "MDO apoio
+  operacional" e "FAT (contrato suspenso)".
+- Relatórios: o de mão de obra traz a linha do FAT antes do total; o de pessoas
+  por atividade, a linha do FAT fora da necessidade; o fluxo mensal, a coluna
+  "No FAT".
+- Validação: avisa linha de FAT ou de apoio sem pessoas ou sem mês, e FAT sem
+  benefício — o botão leva direto ao campo.
+- Permissões: `FAT` é da aba Mão de Obra e `MO_APOIO` do Dimensionamento
+  (`server/permissoes.js`). As duas chaves entram no documento salvo;
+  documento antigo abre sem elas, e o `aplicar()` só as troca quando vêm —
+  a recuperação de alteração pendente manda documento parcial.
+
+Sem nada lançado não muda número: plano vazio segue 39.270.751,842344 e o plano
+da auditoria fica idêntico. Com 23 pessoas no FAT e 6 de apoio, o total sobe
+exatamente o FAT (20 × R$ 850 × 4 meses + 3 × R$ 500 × 2 meses = R$ 71.000)
+mais o apoio (R$ 438.027,60). 51 invariantes sem falha (6 novos, de FAT e
+apoio); 29 abas, 121 rastros e 132 relatórios sem erro; gravar e reabrir
+devolve as duas listas.
+
 ## 2.40.2 — 2026-09-23 · Combustível sem a referência de mercado da ANP
 
 Sai da aba Combustível o bloco **Referência de mercado (ANP)** — consulta do

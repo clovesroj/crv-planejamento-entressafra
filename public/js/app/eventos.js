@@ -9,7 +9,7 @@ import { CFG } from '../dados/cfg.js';
 import { buscarAgrofit, bulaDoProduto } from '../io/agrofit.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
-import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TERC_SUB, TERC_DET, setTERC_DET, TPESS, TRATC, TRAT_ATIVO, TRAT_NOME, TRAT_OBS, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, atividadesLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE, setREF_BUSCA, setREF_AG, setREF_FAM, setREF_FROTA, setREF_PROP,
+import { FAT, MO_APOIO, REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TERC_SUB, TERC_DET, setTERC_DET, TPESS, TRATC, TRAT_ATIVO, TRAT_NOME, TRAT_OBS, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, atividadesLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE, setREF_BUSCA, setREF_AG, setREF_FAM, setREF_FROTA, setREF_PROP,
   setGR_INICIO, setGR_FIM, setGR_EMPRESA, setGR_ESP, setGR_AG, setGR_COMP, setGR_FROTA, setGR_PROP, setGR_REFORMA } from '../nucleo/estado.js';
 import { AGROFIT_BUSCA, DIM_DET, FITO_ABERTO, PLANO_ABERTO, FROTA_ABERTO, FROTA_UN, INS_EDIT, INS_FICHA, MAQ, setAGROFIT_BUSCA, setDIM_DET, setFROTA_DEST, setFROTA_ORIG, setINS_EDIT, setINS_FICHA } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
@@ -176,6 +176,11 @@ document.addEventListener("input",e=>{
     marcarAtivSujo(a); leve(); return; }
   if(t.dataset.atu!==undefined){ const a=atividadesLista()[+t.dataset.atu]; a.util = num(t.value)/100;
     marcarAtivSujo(a); leve(); return; }
+  // FAT (aba Mao de Obra) e apoio operacional (Dimensionamento)
+  if(t.dataset.fat!==undefined){ const l=FAT[+t.dataset.fat], f=t.dataset.f; if(!l) return;
+    l[f] = f==="desc" ? t.value : num(t.value); salvar(); leve(); return; }
+  if(t.dataset.moa!==undefined){ const l=MO_APOIO[+t.dataset.moa], f=t.dataset.f; if(!l) return;
+    l[f] = f==="frente" ? t.value : num(t.value); salvar(); leve(); return; }
   if(t.dataset.mx!==undefined){ const c=t.dataset.mx;
     PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""};
     PLANO[c].mix=PLANO[c].mix||{}; PLANO[c].mix[t.dataset.mo]=num(t.value);
@@ -236,6 +241,13 @@ document.addEventListener("input",e=>{
 });
 document.addEventListener("change",e=>{
   const t=e.target;
+  // FAT e apoio operacional: funcao da linha e meses marcados
+  if(t.dataset.fatf!==undefined){ const l=FAT[+t.dataset.fatf]; if(l){ l.fcod=t.value; salvar(); render(); } return; }
+  if(t.dataset.moaf!==undefined){ const l=MO_APOIO[+t.dataset.moaf]; if(l){ l.fcod=t.value; salvar(); render(); } return; }
+  if(t.dataset.fatm!==undefined || t.dataset.moam!==undefined){
+    const l = t.dataset.fatm!==undefined ? FAT[+t.dataset.fatm] : MO_APOIO[+t.dataset.moam]; if(!l) return;
+    l.m = Array.from({length:NM}, (_,i)=> Array.isArray(l.m) ? (num(l.m[i])>0?1:0) : 0);
+    l.m[+t.dataset.m] = t.checked ? 1 : 0; salvar(); render(); return; }
   // marca/desmarca um lancamento do ERP no rastro do gasto real da reforma —
   // o total do conjunto (e da especialidade) so soma o que estiver marcado
   // (ver itensReforma() em calculo/reforma.js). Item do mapeamento automatico
@@ -649,6 +661,8 @@ document.addEventListener("click",e=>{
   }
   const t=e.target;
   if(t.dataset.rm!==undefined){ ESPOR.splice(+t.dataset.rm,1); salvar(); render(); return; }
+  if(t.dataset.fatrm!==undefined){ FAT.splice(+t.dataset.fatrm,1); salvar(); render(); return; }
+  if(t.dataset.moarm!==undefined){ MO_APOIO.splice(+t.dataset.moarm,1); salvar(); render(); return; }
   if(t.dataset.admrm!==undefined){ const l=admLista()[+t.dataset.admrm];
     if(!confirm(`Remover "${l.desc}" dos custos administrativos?`)) return;
     admLista().splice(+t.dataset.admrm,1); salvar(); render(); return; }
@@ -700,6 +714,19 @@ document.addEventListener("click",e=>{
     if(!r.ok){ alert(r.erro); return; }
     salvar(); render(); return; }
 });
+
+/* FAT: linha nova ja com os meses da entressafra, que e quando o contrato
+   costuma ser suspenso; a funcao sugerida e a do operador de maquinas */
+const FUNCAO_PADRAO = () => (CFG.funcoes.find(f=>f.cod==="918") || CFG.funcoes[0] || {cod:""}).cod;
+$("#btn_fat_add").onclick=()=>{
+  FAT.push({fcod:FUNCAO_PADRAO(), qtd:1, ben:0, desc:"",
+            m:Array.from({length:NM}, (_,i)=> periodoMes(i)==="entressafra" ? 1 : 0)});
+  salvar(); render();
+};
+$("#btn_moa_add").onclick=()=>{
+  MO_APOIO.push({fcod:FUNCAO_PADRAO(), qtd:1, frente:"", m:Array(NM).fill(1)});
+  salvar(); render();
+};
 
 $("#btn_grp_add").onclick=()=>{
   const r = criarGrupoInsumo($("#in_grp_novo").value);

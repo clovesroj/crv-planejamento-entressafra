@@ -73,6 +73,17 @@ function validar(R){
   const arrSemValor = R.AR.linhas.filter(l=>l.area>0 && l.rsHa<=0);
   add(arrSemValor.length===0,"Fazenda arrendada com área e sem valor de pagamento", arrSemValor.map(l=>l.faz).join(", "),
       ir("arrend", arrSemValor.length ? `#t_arr [data-arr="${R.AR.linhas.indexOf(arrSemValor[0])}"][data-f="qtd"]` : null, "#t_arr"));
+  // FAT e apoio operacional: linha sem pessoa ou sem mes entra com custo zero, calada
+  const nomeF = c => (R.MP.custoFuncao[c]||{nome:c||"sem função"}).nome;
+  const fatVazia = ((R.FT||{}).linhas||[]).find(l=>!(l.qtd>0) || !l.nMeses);
+  add(!fatVazia, "FAT: linha sem pessoas ou sem mês marcado", fatVazia ? nomeF(fatVazia.fcod) : "",
+      ir("mdo", fatVazia ? (fatVazia.qtd>0 ? `#t_fat [data-fatm="${fatVazia.ix}"][data-m="0"]` : `#t_fat [data-fat="${fatVazia.ix}"][data-f="qtd"]`) : null, "#t_fat"));
+  const fatSemBen = ((R.FT||{}).linhas||[]).find(l=>l.qtd>0 && l.nMeses && !(l.ben>0));
+  add(!fatSemBen, "FAT: função sem benefício por pessoa/mês", fatSemBen ? nomeF(fatSemBen.fcod)+" — o FAT entra no efetivo, mas com custo zero" : "",
+      ir("mdo", fatSemBen ? `#t_fat [data-fat="${fatSemBen.ix}"][data-f="ben"]` : null, "#t_fat"));
+  const moaVazia = ((R.MOA||{}).linhas||[]).find(l=>!(l.qtd>0) || !l.nMeses);
+  add(!moaVazia, "Apoio operacional: linha sem pessoas ou sem mês marcado", moaVazia ? nomeF(moaVazia.fcod)+(moaVazia.frente?" · "+moaVazia.frente:"") : "",
+      ir("dimens", moaVazia ? (moaVazia.qtd>0 ? `#t_moa [data-moam="${moaVazia.ix}"][data-m="0"]` : `#t_moa [data-moa="${moaVazia.ix}"][data-f="qtd"]`) : null, "#t_moa"));
   if(R.PS) add(Math.abs(R.PS.custo-R.mdoTotal)<=1,"Resumo de pessoas confere com o custo de mão de obra",
       Math.abs(R.PS.custo-R.mdoTotal)<=1 ? "" : "diferença de "+brl(R.PS.custo-R.mdoTotal), ir("pessoas", "#t_pes_dept"));
   const semRend = R.L.find(r=>r.rend<=0);

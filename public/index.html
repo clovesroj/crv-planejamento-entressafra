@@ -216,7 +216,7 @@
   <p class="lead">Encargos, benefícios, quadro de funções e escala de trabalho. O custo mensal de cada função
   (salário, encargos e benefícios) alimenta todas as atividades do plano: a equipe de cada atividade — frota ×
   operadores × turnos × fator de escala — é paga o mês cheio em todo mês em que a atividade tem volume.
-  Três páginas — use o menu ao lado para trocar.</p>
+  Quatro páginas — use o menu ao lado para trocar.</p>
   <div class="grid g4" id="k_mdo" style="margin-bottom:16px"></div>
 
   <details class="bloco" id="bl_mdo_quadro" open>
@@ -276,6 +276,22 @@
         <div class="tblwrap"><table id="t_ind"></table></div></div>
     </div>
   </details>
+
+  <details class="bloco" id="bl_mdo_fat">
+    <summary><span class="bl-tit">FAT — Fundo de Amparo ao Trabalhador</span><span class="bl-sub" id="bl_fat_sub"></span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Funcionários com contrato suspenso (FAT)</h3>
+        <div class="tblwrap"><table id="t_fat"></table></div>
+        <div class="row" style="margin-top:10px"><button class="btn" id="btn_fat_add">Adicionar função ao FAT</button></div>
+        <div class="hint" style="margin-top:9px">Uma linha por função: quantos funcionários entram no FAT, os meses
+        em que ficam com o contrato suspenso e o benefício que a empresa paga a cada um por mês nesse período
+        (ajuda compensatória, cesta, plano de saúde...). No período a bolsa é paga pelo FAT: a empresa não paga
+        salário nem encargos, só o benefício lançado aqui. O custo — pessoas × benefício × meses marcados — soma
+        no total de mão de obra, nos meses marcados. Essas pessoas contam no efetivo, mas <b>não ficam disponíveis
+        para a operação</b>: no Resumo de Pessoas elas saem do disponível da função nos meses em que estão no FAT.
+        Linha nova já vem com os meses da entressafra marcados.</div></div>
+    </div>
+  </details>
 </section>
 
 <!-- ===== PLANO ===== -->
@@ -317,6 +333,15 @@
   no botão <b>mês</b>. A <b>frota</b> da coluna é a do mês que mais pede, porque é essa que precisa existir
   no pátio. <b>detalhe ›</b> abre operação, frota e pessoas, onde ficam o rendimento padrão da atividade e
   os demais ajustes.</div>
+
+  <div class="panel" style="margin-top:16px"><h3>Mão de obra de apoio operacional</h3>
+    <div class="tblwrap"><table id="t_moa"></table></div>
+    <div class="row" style="margin-top:10px"><button class="btn" id="btn_moa_add">Adicionar mão de obra de apoio</button></div>
+    <div class="hint" style="margin-top:9px">Gente que a operação precisa e que não sai de nenhuma atividade da
+    tabela acima: fiscal de campo, apontador, líder de frente, bituqueiro, vigia... Uma linha por função e frente,
+    com quantas pessoas e em que meses. O custo é pessoas × custo mensal da função (salário, encargos e benefícios,
+    da aba Mão de Obra) × meses marcados, e soma no total de mão de obra. As pessoas entram na necessidade do
+    Resumo de Pessoas, no departamento Apoio operacional. Linha nova vem com os doze meses marcados.</div></div>
 </section>
 
 <!-- ===== TRANSPORTE ===== -->

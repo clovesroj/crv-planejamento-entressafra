@@ -635,6 +635,8 @@ function rastroNatureza(R, nat){
       {rot:"Equipamentos de apoio", val:brl(R.mdoApoio)},
       {rot:"Estrutura indireta", val:brl(R.mdoIndirT)},
       {rot:"Equipe de manutenção", val:brl(R.mdoManut)},
+      {rot:"Apoio operacional", val:brl(R.mdoApoioOper||0), sub:"lançado no Dimensionamento, nos meses marcados"},
+      {rot:"FAT — contrato suspenso", val:brl(R.mdoFat||0), sub:"benefício por pessoa nos meses marcados; fora da operação"},
     ]});
     return {titulo:NAT[nat]||nat, subtitulo:"Natureza de custo, somada no plano",
             valor: brl(nat==="mdo" ? R.mdoTotal : soma), blocos,
