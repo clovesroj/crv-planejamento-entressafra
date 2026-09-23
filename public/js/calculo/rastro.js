@@ -12,6 +12,7 @@ import { SEM_CONTA, contasValores, totaisContas } from './contas.js';
 import { baseEtapa, custoUnit, premissaBase, rotuloBase } from './base-fisica.js';
 import { reforma, itensReforma } from './reforma.js';
 import { fontesDaConta } from './fontes.js';
+import { codExibir } from '../nucleo/codigo-atividade.js';
 
 // soma um array de NM meses respeitando o filtro de período (mesmo critério de R.PER)
 const somaPeriodo = (arr, periodo) => !arr ? 0
@@ -190,7 +191,7 @@ function rastroOperacao(R, id, modo){
     const ativs = R.L.filter(x=>x.a.etapa===l.etapa && x.total>0 && (!l.cultura || culturaDe(x.a)===l.cultura))
       .sort((x,y)=>y.direto-x.direto);
     blocos.push({titulo:"Atividades da operação (custo operacional)", linhas: ativs.map(x=>({
-      rot:x.a.cod+" · "+x.a.nome, val:brl(x.direto), ir:"ativ:"+x.a.cod,
+      rot:codExibir(x.a.cod)+" · "+x.a.nome, val:brl(x.direto), ir:"ativ:"+x.a.cod,
       sub:fmt(x.total)+" "+x.a.un.split("/")[0]+" · "+fmt(x.horas)+" h"}))});
   }
   const premBase = [{rot:"Base física", val:rotBase,
@@ -222,7 +223,7 @@ function rastroCorte(R){
   const pct = fmt(CC.fracao*100,1)+"% do custo direto da colheita";
   return {
     titulo:"Custo de colheita — só o corte",
-    subtitulo:"corte ("+(CC.cods.join(", ")||"—")+"), sem transporte nem transbordo · por tonelada",
+    subtitulo:"corte ("+(CC.cods.map(codExibir).join(", ")||"—")+"), sem transporte nem transbordo · por tonelada",
     valor: porT(tot),
     blocos:[
       {titulo:"A conta", linhas:[
@@ -232,7 +233,7 @@ function rastroCorte(R){
         {rot:"Parte do corte no custo indireto da colheita", val:brl(ind), sub:"pelo custo direto · "+porT(ind)},
         {rot:"Custo do corte", val:brl(tot), sub:porT(tot)+" · "+fmt(ton)+(CC.base.fonte==="premissa"?" t colhidas (premissa)":" t cortadas nas atividades")},
       ]},
-      {titulo:"Atividades", linhas: corte.map(r=>({rot:r.a.cod+" · "+r.a.nome, val:brl(r.direto),
+      {titulo:"Atividades", linhas: corte.map(r=>({rot:codExibir(r.a.cod)+" · "+r.a.nome, val:brl(r.direto),
         ir:"ativ:"+r.a.cod, sub:fmt(r.total)+" t · "+(r.total>0?brl(r.direto/r.total,2)+"/t":"—")}))},
       {titulo:"A etapa inteira", linhas:[{rot:"Colheita com transporte e transbordo",
         val: colh ? custoUnit(colh.total, baseEtapa(R,"COLHEITA")) : "—", ir:"etapa:COLHEITA",
@@ -385,7 +386,7 @@ function rastroEtapaPeriodo(R, etapa, p){
         {rot:"Parte da etapa nos rateios do período", val:brl(tot-direto), sub:"arrendamento, administrativo e custos gerais do mês, pelo custo direto da etapa"},
         {rot:"Custo da etapa no período", val:brl(tot), ir:"etapa:"+etapa, sub:fmt(totPer>0?tot/totPer*100:0,1)+"% do custo do período · composição completa ›"},
       ]},
-      {titulo:"Atividades com lançamento no período", linhas: ativs.length ? ativs.map(x=>({rot:`${x.r.a.cod} · ${x.r.a.nome}`,
+      {titulo:"Atividades com lançamento no período", linhas: ativs.length ? ativs.map(x=>({rot:`${codExibir(x.r.a.cod)} · ${x.r.a.nome}`,
           val:brl(x.v), ir:"ativ:"+x.r.a.cod})) : [{rot:"Nenhuma atividade lançada no período", val:"—"}]},
       {titulo:"Mês a mês", linhas: idx.map(i=>({rot:MESES[i], val:brl(serie[i]), ir:"mes:"+i}))},
       {titulo:"No ano", linhas:[{rot:"Parte do ano da etapa", val: totAno>0 ? fmt(tot/totAno*100,1)+"%" : "—", sub:brl(totAno)+" no ano"}]},
@@ -404,7 +405,7 @@ function rastroEtapa(R, etapa){
 
   const blocos = [
     {titulo:"Atividades da etapa (custo direto)", linhas: ativs.length ? ativs.map(r=>({
-      rot:`${r.a.cod} · ${r.a.nome}`, val:brl(r.direto), ir:"ativ:"+r.a.cod,
+      rot:`${codExibir(r.a.cod)} · ${r.a.nome}`, val:brl(r.direto), ir:"ativ:"+r.a.cod,
       sub:`${fmt(r.total)} ${r.a.un.split("/")[0]} · ${fmt(r.horas)} h · ${r.frotaR||0} equip.`}))
       : [{rot:"Nenhuma atividade com custo", val:"—"}]},
     {titulo:"Custo direto por natureza", linhas:[
@@ -547,15 +548,15 @@ function apresentacao(r, un){
     {rot: "Custo por "+un, val: total > 0 ? brl(custo/total, 2) : "—",
      sub: brl(custo)+" no total"},
     // junto de outra atividade (A39 e A19 na plantadora): maquina e equipe sao dela
-    r.junto ? {rot: "Frota", val: "na "+r.junto, ir: "ativ:"+r.junto,
-     sub: "mesma passada da "+r.junto+": a máquina, o diesel e a manutenção são dela"} :
+    r.junto ? {rot: "Frota", val: "na "+codExibir(r.junto), ir: "ativ:"+r.junto,
+     sub: "mesma passada da "+codExibir(r.junto)+": a máquina, o diesel e a manutenção são dela"} :
     {rot: "Frota", val: (FR.pico || 0)+" equip.",
      sub: (r.frotaAlvo ? "frota fixada · rendimento veio dela — " : "")
         + (FR.difere ? `média da janela ${fmt(FR.media)} · ` : "") + (r.maqEfetiva || "—")},
     {rot: "Meta por dia efetivo", val: dias > 0 ? fmt(total/dias, 1)+" "+un : "—",
      sub: dias > 0 ? `${fmt(dias,0)} dias de operação · ${fmt(total/diasCal,1)} ${un} por dia corrido (${fmt(diasCal,0)} dias)`
                    : "sem janela definida"},
-    r.junto ? {rot: "Efetivo", val: "na "+r.junto, ir: "ativ:"+r.junto,
+    r.junto ? {rot: "Efetivo", val: "na "+codExibir(r.junto), ir: "ativ:"+r.junto,
      sub: "a equipe da plantadora faz as três operações"} :
     {rot: "Efetivo", val: fmt(PES.pico)+" pessoas",
      sub: (PES.difere ? `média da janela ${fmt(PES.media)} · ` : "")
@@ -673,11 +674,12 @@ function rastroAtividade(R, cod){
      passada da outra. Fica o que e dela: onde entra, a area e o tratamento. */
   if(r.junto){
     const rj = R.L.find(x=>x.a.cod===r.junto);
+    const codJunto = codExibir(r.junto);
     blocos.splice(2, blocos.length-2,
-      {titulo:"Mecanização — na "+r.junto, linhas:[
-        {rot:"Executada junto com", val:r.junto+(rj?" · "+rj.a.nome:""), ir:"ativ:"+r.junto,
+      {titulo:"Mecanização — na "+codJunto, linhas:[
+        {rot:"Executada junto com", val:codJunto+(rj?" · "+rj.a.nome:""), ir:"ativ:"+r.junto,
          sub:"mesma passada: a área é a dela, mês a mês, e a máquina, a equipe, o diesel e a manutenção também"},
-        {rot:"Custo da mecanização na "+r.junto, val:rj?brl(rj.direto-rj.cInsumo):"—",
+        {rot:"Custo da mecanização na "+codJunto, val:rj?brl(rj.direto-rj.cInsumo):"—",
          sub:"contado uma vez só, na atividade que executa"},
       ]},
       {titulo:"Custo desta linha", linhas:[
@@ -686,7 +688,7 @@ function rastroAtividade(R, cod){
         {rot:"CUSTO DIRETO DA ATIVIDADE", val:brl(r.direto)},
       ]});
     return {largo:true, destaques:apres.destaques, tabelas:[],
-      titulo:`${r.a.cod} · ${r.a.nome}`, subtitulo:"Tratamento aplicado na plantadora, junto da "+r.junto,
+      titulo:`${codExibir(r.a.cod)} · ${r.a.nome}`, subtitulo:"Tratamento aplicado na plantadora, junto da "+codJunto,
       valor:brl(r.direto), blocos,
       premissas: premissasGerais().concat([{rot:"Atualização de preço de insumos", val:fmt(P.ipreco,0)+"%"}]),
       voltar:"etapa:"+r.a.etapa};
@@ -694,7 +696,7 @@ function rastroAtividade(R, cod){
   const cf = R.MP.custoFuncao[r.fcod] || {};
   return {
     largo:true, destaques:apres.destaques, tabelas:apres.tabelas,
-    titulo:`${r.a.cod} · ${r.a.nome}`, subtitulo:"Atividade do Plano Operacional",
+    titulo:`${codExibir(r.a.cod)} · ${r.a.nome}`, subtitulo:"Atividade do Plano Operacional",
     valor:brl(r.direto), blocos,
     premissas: premissasGerais().concat([
       {rot:"Salário do cargo "+(cf.nome||r.fcod), val:brl(cf.salCad||cf.sal||0,2)},
@@ -713,7 +715,7 @@ function rastroNatureza(R, nat){
     const itens = R.L.filter(r=>r[campo]>0).sort((a,b)=>b[campo]-a[campo]);
     const soma = itens.reduce((s,r)=>s+r[campo],0);
     const blocos = [{titulo:"Atividades que geram este custo", linhas: itens.length
-      ? itens.map(r=>({rot:`${r.a.cod} · ${r.a.nome}`, val:brl(r[campo]), ir:"ativ:"+r.a.cod,
+      ? itens.map(r=>({rot:`${codExibir(r.a.cod)} · ${r.a.nome}`, val:brl(r[campo]), ir:"ativ:"+r.a.cod,
           sub:r.a.etapa}))
       : [{rot:"Nenhuma atividade com este custo", val:"—"}]}];
     if(nat==="diesel") blocos.push({titulo:"Preço do diesel por mês", linhas:
@@ -775,7 +777,7 @@ function rastroMes(R, i){
         .map(([k,a])=>({rot:CAT_LBL[k]||k, val:brl(a[idx]), ir:"cat:"+k,
           sub:fmt(R.meses[idx]>0?a[idx]/R.meses[idx]*100:0,1)+"% do mês"}))},
       {titulo:"Atividades com lançamento no mês", linhas: itens.length
-        ? itens.map(x=>({rot:`${x.r.a.cod} · ${x.r.a.nome}`, val:brl(x.v), ir:"ativ:"+x.r.a.cod,
+        ? itens.map(x=>({rot:`${codExibir(x.r.a.cod)} · ${x.r.a.nome}`, val:brl(x.v), ir:"ativ:"+x.r.a.cod,
             sub:`${fmt(num(x.r.meses[idx]))} ${x.r.a.un.split("/")[0]} no mês`}))
         : [{rot:"Nenhuma atividade lançada neste mês", val:"—"}]},
     ].concat(matMes.length || (R.MT.mes && R.MT.mes[idx]>0.5) ? [{titulo:"Materiais de manutenção no mês", linhas:
@@ -837,7 +839,7 @@ function rastroFrotaHoras(R){
   const ativs = R.L.filter(r=>r.horas>0).sort((a,b)=>b.horas-a.horas);
   return {titulo:"Horas-máquina", subtitulo:"Horas de uso da frota, todas as atividades", valor:fmt(R.horasT)+" h",
     blocos:[{titulo:"Atividades que mais usam frota", linhas: ativs.slice(0,25).map(r=>({
-      rot:`${r.a.cod} · ${r.a.nome}`, val:fmt(r.horas)+" h", ir:"ativ:"+r.a.cod, sub:(r.frotaR||0)+" equip."}))}],
+      rot:`${codExibir(r.a.cod)} · ${r.a.nome}`, val:fmt(r.horas)+" h", ir:"ativ:"+r.a.cod, sub:(r.frotaR||0)+" equip."}))}],
     premissas:premissasGerais()};
 }
 function rastroFrotaOper(R){
@@ -994,7 +996,7 @@ function rastroContas(R){
 function rastroHectares(R){
   const ativs = R.L.filter(r=>r.ehHa && r.total>0).sort((a,b)=>b.total-a.total);
   return {titulo:"Hectares operados", subtitulo:"Área lançada no Plano Operacional, atividades em ha", valor:fmt(R.haOp)+" ha",
-    blocos:[{titulo:"Por atividade", linhas: ativs.map(r=>({rot:`${r.a.cod} · ${r.a.nome}`, val:fmt(r.total)+" ha",
+    blocos:[{titulo:"Por atividade", linhas: ativs.map(r=>({rot:`${codExibir(r.a.cod)} · ${r.a.nome}`, val:fmt(r.total)+" ha",
       ir:"ativ:"+r.a.cod, sub:r.a.etapa}))}],
     premissas:premissasGerais()};
 }

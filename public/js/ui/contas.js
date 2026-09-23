@@ -3,6 +3,7 @@ import { CONTA_COMBINADA, SEM_CONTA, contasValores, totaisContas } from '../calc
 import { CFG } from '../dados/cfg.js';
 import { NM } from '../nucleo/calendario.js';
 import { $, brl, fmt, pct } from '../nucleo/formato.js';
+import { codExibir } from '../nucleo/codigo-atividade.js';
 import { kpi, th } from './componentes.js';
 
 /* ---------- PLANO DE CONTAS ----------
@@ -36,7 +37,7 @@ function pintarContas(R){
     (comTerc.length? comTerc.map(x=>{
       const p = x.partes.find(z=>z.terc);
       const detalhado = temDetalheTerc(x.a.cod);
-      return `<tr><td>${x.a.cod}</td><td>${x.a.nome}</td>
+      return `<tr><td>${codExibir(x.a.cod)}</td><td>${x.a.nome}</td>
         <td class="num calc">${fmt(p.pct*100,1)}%</td>
         <td class="num calc">${fmt(p.area)} ha</td>
         <td class="num">${detalhado

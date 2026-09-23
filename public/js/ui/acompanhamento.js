@@ -1,6 +1,7 @@
 import { GERENCIAS, criterioPorMes, excecoes, metasDeFrota, metasPorAtividade, porGerencia } from '../calculo/acompanhamento.js';
 import { MESES, clsMes } from '../nucleo/calendario.js';
 import { ACOMP_MES, CRIT_CABE, CRIT_GER, REAL } from '../nucleo/estado.js';
+import { codExibir } from '../nucleo/codigo-atividade.js';
 import { $, brl, fmt, pct } from '../nucleo/formato.js';
 import { kpi, tdMeses, th, thMeses } from './componentes.js';
 
@@ -42,7 +43,7 @@ function pintarAcomp(R){
   $("#t_acomp_exc").innerHTML = th([["Atividade"],["Gerência"],["Etapa"],["Plano medido",1],
     ["Realizado",1],["Falta",1],["Aderência",1],["Atraso em R$",1]])+"<tbody>"+
     (E.atraso.length ? E.atraso.map(l=>`<tr>
-      <td>${l.cod} · ${l.nome}</td>
+      <td>${codExibir(l.cod)} · ${l.nome}</td>
       <td class="calc">${GERENCIAS[l.gerencia]||l.gerencia}</td>
       <td class="calc">${l.etapa}</td>
       <td class="num calc">${fmt(l.planoAte)} ${l.un}</td>
@@ -85,7 +86,7 @@ function pintarAcomp(R){
     ["Por dia efetivo",1],["Por dia corrido",1],["Frota",1],["Rend.",1],["Horas",1],
     ["h/dia · equip.",1],["Rend. nec.",1],["Disp. nec.",1],["Utiliz. nec.",1],["Efic. nec.",1],["Situação"]])+"<tbody>"+
     (crit.length ? crit.map(c=>`<tr>
-      <td class="tot">${c.mes}${c.parcial?' <span class="badge b-warn">parcial</span>':""}</td><td>${c.cod}</td><td>${c.nome}</td>
+      <td class="tot">${c.mes}${c.parcial?' <span class="badge b-warn">parcial</span>':""}</td><td>${codExibir(c.cod)}</td><td>${c.nome}</td>
       <td class="calc">${GERENCIAS[c.gerencia]||c.gerencia}</td>
       <td class="num tot">${fmt(c.q)} ${c.un}</td>
       <td class="num tot" title="${fmt(c.q)} ${c.un} ÷ ${fmt(c.dias,1)} dias de operação${
@@ -115,7 +116,7 @@ function pintarAcomp(R){
       ["Rend.",1],["Frota",1],["Efetivo",1],["Meta/dia efetivo · equip.",1],
       ["Meta/dia efetivo · frota",1],["Meta/dia corrido · frota",1],["Custo",1]])+"<tbody>"+
       (lin.length ? lin.map(m=>`<tr>
-        <td>${m.cod}</td><td>${m.nome}</td><td class="calc">${m.etapa}</td>
+        <td>${codExibir(m.cod)}</td><td>${m.nome}</td><td class="calc">${m.etapa}</td>
         <td class="num tot">${fmt(m.total)} ${m.un}</td>
         <td class="calc">${janelaTxt(m.janela)}</td>
         <td class="num calc">${fmt(m.rend,2)} ${m.un}/h</td>
@@ -157,7 +158,7 @@ function pintarAcomp(R){
   $("#t_acomp").innerHTML = th([["Cod"],["Atividade"],["Gerência"],
     ...thMeses(),["Plano medido",1],["Realizado",1],["Aderência",1],["A fazer",1]])+"<tbody>"+
     ex.linhas.map(l=>`<tr>
-      <td>${l.cod}</td><td>${l.nome}</td>
+      <td>${codExibir(l.cod)}</td><td>${l.nome}</td>
       <td class="calc">${GERENCIAS[l.gerencia]||l.gerencia}</td>
       ${l.meses.map(m=>`<td class="num ${clsMes(m.i)}${m.i>ex.ateMes?" fora-janela":""}">
         <input data-real="${l.cod}" data-m="${m.i}" value="${m.real!=null?m.real:""}"

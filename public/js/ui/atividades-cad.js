@@ -1,6 +1,7 @@
 import { CFG } from '../dados/cfg.js';
 import { erpDe } from '../dados/atividades-erp.js';
 import { atividadesLista } from '../nucleo/estado.js';
+import { mapaCodigos } from '../nucleo/codigo-atividade.js';
 import { $, esc } from '../nucleo/formato.js';
 import { definirPatchItens, marcarRascunhoPendente } from '../io/persistencia.js';
 import { ordenarPorEtapa, th } from './componentes.js';
@@ -65,6 +66,10 @@ function pintarAtividadesCad(){
 
   const lista = atividadesLista();
   const fixos = new Set(CFG.atividades.map(a => a.cod));
+  // codigo de exibicao (PS03...), so texto — o codigo interno (A03...) segue
+  // sendo a chave de tudo (ver nucleo/codigo-atividade.js). Mostrar os dois
+  // aqui e o de-para: onde a atividade e identificada primeiro no sistema.
+  const M = mapaCodigos();
 
   /* Sai na ordem da etapa, como o Plano e o Dimensionamento. Cada linha carrega
      o indice ORIGINAL da lista em data-at -- ordenar a tela e escrever pela
@@ -73,7 +78,7 @@ function pintarAtividadesCad(){
   const linhas = ordenarPorEtapa(lista.map((a, i) => ({a, i})), x => x.a.etapa).map(({a, i}) => {
     const fixo = fixos.has(a.cod);
     return `<tr${a.ativo===false?' class="inativo"':''}>
-      <td>${esc(a.cod)}</td>
+      <td>${esc(M[a.cod]||a.cod)}<br><span class="calc" style="font-size:10.5px" title="Código interno — usado no documento salvo, não muda">${esc(a.cod)}</span></td>
       <td>${fixo ? esc(a.etapa) : `<select data-at="${i}" data-f="etapa">${ETAPAS.map(e =>
         `<option value="${esc(e)}"${a.etapa===e?" selected":""}>${esc(e)}</option>`).join("")}</select>`}</td>
       <td><input data-at="${i}" data-f="nome" value="${esc(a.nome)}" style="text-align:left;min-width:200px"${fixo?' title="Atividade do cadastro do sistema — nome pode ser ajustado"':""}></td>
@@ -94,7 +99,7 @@ function pintarAtividadesCad(){
               E.apoio.length?` <span class="badge b-warn">+${E.apoio.length} apoio</span>`:""}</span>`
           : "—"; })()}</td>
       <td class="calc">${fixo ? "Cadastro do sistema" : "Criado por você"}${a.junto
-        ? `<br><span class="badge b-ok" title="Vai na mesma passada da ${esc(a.junto)}: a área, a máquina e a equipe são dela, e aqui só entra o tratamento">junto da ${esc(a.junto)}</span>` : ""}</td>
+        ? `<br><span class="badge b-ok" title="Vai na mesma passada da ${esc(M[a.junto]||a.junto)}: a área, a máquina e a equipe são dela, e aqui só entra o tratamento">junto da ${esc(M[a.junto]||a.junto)}</span>` : ""}</td>
       <td>${fixo ? "" : `<button class="btn d" data-atrm="${esc(a.cod)}">Remover</button>`}</td></tr>`;
   }).join("");
 

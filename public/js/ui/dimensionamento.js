@@ -1,4 +1,5 @@
 import { APOIO_DET, DIM, DIM_DET } from '../nucleo/estado.js';
+import { codExibir, mapaCodigos } from '../nucleo/codigo-atividade.js';
 import { $, brl, esc, fmt } from '../nucleo/formato.js';
 import { MESES, NM, clsMes } from '../nucleo/calendario.js';
 
@@ -59,7 +60,8 @@ function pintarDim(R){
   // atividade que vai junto de outra (A39 e A19 na plantadora da A10) nao tem
   // maquina nem equipe proprias: nao entra aqui, e a que executa diz o que leva
   const L = ordenarPorEtapa(R.L.filter(r=>!r.junto), r=>r.a.etapa);
-  const levaJunto = cod => R.L.filter(x=>x.junto===cod).map(x=>x.a.cod);
+  const M = mapaCodigos();   // codigo de exibicao — so texto, ver nucleo/codigo-atividade.js
+  const levaJunto = cod => R.L.filter(x=>x.junto===cod).map(x=>M[x.a.cod]||x.a.cod);
   $("#t_dim").innerHTML = th([["Cod"],["Atividade / frente"],["Etapa"],
     ["Área/Volume",1],["Rend. (un/h)",1],["Frota",1],["Efetivo (pessoas)",1]])+"<tbody>"+
     L.map(r=>{
@@ -68,7 +70,7 @@ function pintarDim(R){
       const F = frotaDaAtividade(r);
       const PE = pessoasDaAtividade(r);
       const lj = levaJunto(r.a.cod);
-      return `<tr><td>${r.a.cod}</td><td>${r.a.nome}${lj.length?` <span class="calc" title="Na mesma passada: a frota e a equipe desta linha fazem também ${lj.join(" e ")}">+ ${lj.join(", ")}</span>`:""}</td>
+      return `<tr><td>${esc(M[r.a.cod]||r.a.cod)}</td><td>${r.a.nome}${lj.length?` <span class="calc" title="Na mesma passada: a frota e a equipe desta linha fazem também ${lj.join(" e ")}">+ ${lj.join(", ")}</span>`:""}</td>
         <td class="calc">${r.a.etapa}</td>
         <td><div class="dim-cel"><span class="dim-val calc">${fmt(r.total)}</span>
           <span class="dim-un">${un}</span></div></td>
@@ -249,7 +251,7 @@ function pintarApoioMes(R){
       <div class="ra-nav"><div></div>
         <button class="ghost-btn" id="am_fechar" title="Fechar" aria-label="Fechar">✕</button></div>
       <div class="ra-tit">${esc(item.erp)} · ${esc(item.nome)}</div>
-      <div class="ra-subtit">${esc(r.a.cod)} — ${esc(r.a.nome)} · ${fmt(item.qtd)} ${unidade} na frente ·
+      <div class="ra-subtit">${esc(codExibir(r.a.cod))} — ${esc(r.a.nome)} · ${fmt(item.qtd)} ${unidade} na frente ·
         ${item.temGente ? fmt(item.pessoas)+" pessoas" : "sem gente escalada"}</div>
     </div>
     <div class="ra-corpo">
@@ -404,7 +406,7 @@ function pintarDimDetalhe(R){
     <div class="ra-topo">
       <div class="ra-nav"><div></div>
         <button class="ghost-btn" id="dd_fechar" title="Fechar" aria-label="Fechar">✕</button></div>
-      <div class="ra-tit">${r.a.cod} · ${r.a.nome}</div>
+      <div class="ra-tit">${esc(codExibir(r.a.cod))} · ${esc(r.a.nome)}</div>
       <div class="ra-subtit">${r.a.etapa} · ${fmt(r.total)} ${un} · ${fmt(r.horas)} h ·
         ${FR.pico||0} equip. · ${PES.pico||0} pessoas</div>
       <div class="dd-abas">${ABAS_DET.map(([k,n])=>

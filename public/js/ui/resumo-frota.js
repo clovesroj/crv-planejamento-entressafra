@@ -5,6 +5,7 @@ import { $, esc, fmt, num, pct } from '../nucleo/formato.js';
 import { kpi, maxSel, ordenarPorEtapa, tdMeses, th, thMeses } from './componentes.js';
 import { NM } from '../nucleo/calendario.js';
 import { criterioMensal, frotaDaAtividade } from '../calculo/atividade.js';
+import { codExibir } from '../nucleo/codigo-atividade.js';
 
 /* ---------- RESUMO DE FROTA ---------- */
 function pintarResumoFrota(R){
@@ -143,7 +144,7 @@ function pintarResumoFrota(R){
         const C = criterioMensal(r);
         const F = frotaDaAtividade(r);
         C.forEach((c,i)=>{ porMes[i] += c.n; });
-        return `<tr><td>${r.a.cod}</td><td>${esc(r.a.nome)}</td>
+        return `<tr><td>${esc(codExibir(r.a.cod))}</td><td>${esc(r.a.nome)}</td>
           <td class="calc">${r.partes.length>1?"—":esc(r.maqEfetiva||"—")}</td>
           ${tdMeses(C.map(c=>c.n), (v,i)=>v>0?fmt(v):'<span class="calc">—</span>')}
           <td class="num tot">${fmt(F.pico)}${F.mes?` <span class="calc">${F.mes}</span>`:""}</td></tr>`;

@@ -16,6 +16,7 @@ import { comps } from '../ui/custos.js';
 import { validar } from '../ui/validacao.js';
 import { custoPorOperacao } from '../calculo/custo-operacao.js';
 import { baseEtapa, custoUnit, rotuloBase } from '../calculo/base-fisica.js';
+import { codExibir } from '../nucleo/codigo-atividade.js';
 
 /* ================== SEÇÕES DE RELATÓRIO ==================
    Cada seção é uma função de R -> {aba, titulo, cab, linhas}. O relatório
@@ -111,7 +112,7 @@ const ativosDe = (R, etapa) => R.L.filter(r=>r.a.etapa===etapa && r.total>0);
    -- fica no relatorio de Dimensionamento, que e o tecnico, com as duas
    colunas lado a lado. Folha e tela discordando sobre a mesma atividade e o
    tipo de coisa que para uma reuniao. */
-const linhaAtiv = r => [r.a.cod, r.a.nome, r.a.un.split("/")[0], fmt(r.total), fmt(r.horas),
+const linhaAtiv = r => [codExibir(r.a.cod), r.a.nome, r.a.un.split("/")[0], fmt(r.total), fmt(r.horas),
   frotaDaAtividade(r).pico||0, fmt(pessoasDaAtividade(r).pico), brl(r.cDiesel), brl(r.cMDO), brl(r.cManut), brl(r.cInsumo),
   brl(r.cTerc), brl(r.direto), r.total>0?brl(r.direto/r.total,2):"—"];
 const CAB_ATIV = ["Cod","Atividade","Un","Volume","Horas","Frota","Efetivo","Diesel","Mão de obra",
@@ -296,7 +297,7 @@ const pessoasAtividade = R => secP("Pessoas por atividade",
   ["Etapa","Tipo de gente","Cod","Atividade ou origem","Cod função","Função","Início","Fim",
    ...REC.meses.map(i=>MESES[i]), REC.parcial?"Pico no período":"Pico","Custo MDO no período"],
   R.PS ? necessidadePorAtividade(R.PS).map(l=>{ const j = janelaDaLinha(l);
-      return [l.dept, l.categoria, l.cod||"—", l.origem, l.fcod, l.fnome, j.ini, j.fim,
+      return [l.dept, l.categoria, l.cod?codExibir(l.cod):"—", l.origem, l.fcod, l.fnome, j.ini, j.fim,
         ...REC.meses.map(i=>fmt(l.qtdMes[i])), fmt(picoP(l.qtdMes)), brl(noPer(l.custoMes))]; })
     // o FAT nao e necessidade, mas o custo dele e mao de obra: linha propria
     .concat(R.PS.fat && R.PS.fat.qtd ? [["FAT","","—","Contrato suspenso — fora da operação","","","","",
@@ -336,7 +337,7 @@ const tratamentos = R => secP("Tratamentos","Tratamentos — composição, etapa
     return [t.cod, TRAT_NOME[t.cod]||"—", marc||"sem marcação", plano||"—",
       composicao(t.cod).length,
       composicao(t.cod).map(l=>l.prod+" "+fmt(num(l.dose),2)+" "+(l.un||"")).join(" · ")||"—",
-      t.custo_ha>0?brl(t.custo_ha,2):"—", usos.map(u=>u.a.cod).join(", ")||"—",
+      t.custo_ha>0?brl(t.custo_ha,2):"—", usos.map(u=>codExibir(u.a.cod)).join(", ")||"—",
       area>0?fmt(area)+" ha":"—", area>0?brl(area*t.custo_ha):"—"];}));
 
 /* ---------- 13. arrendamentos ---------- */
@@ -599,7 +600,7 @@ const logistica = R => sec("Logística","Orçamento de logística",
 const planoOperacional = R => secP("Plano Operacional","Plano Operacional",
   ["Cod","Etapa","Atividade","Un",...REC.meses.map(i=>MESES[i]),
    REC.parcial?"Total do período":"Total","Tratamento"],
-  R.L.filter(r=>noPer((r.meses||[]).map(num))>0).map(r=>[r.a.cod, r.a.etapa, r.a.nome, r.a.un,
+  R.L.filter(r=>noPer((r.meses||[]).map(num))>0).map(r=>[codExibir(r.a.cod), r.a.etapa, r.a.nome, r.a.un,
     ...REC.meses.map(i=>fmt(num(r.meses[i]))), fmt(noPer(r.meses.map(num))), r.trat||"—"]));
 
 /* Frota e efetivo são o dimensionamento do plano — o pico, não uma parte do
@@ -612,7 +613,7 @@ const dimensionamento = R => secP("Dimensionamento","Dimensionamento por ativida
   // A39 e A19 vao na plantadora da A10: sem frota nem equipe proprias, nao se dimensionam
   R.L.filter(r=>!r.junto).map(r=>[r, ativP(r)]).filter(([,p])=>p.total>0).map(([r,p])=>{
     const F = frotaDaAtividade(r), PE = pessoasDaAtividade(r);
-    return [r.a.cod, r.a.nome, fmt(p.total),
+    return [codExibir(r.a.cod), r.a.nome, fmt(p.total),
       fmt(r.rend,2), pct(r.util), fmt(p.horas), F.pico, F.mes||"—", F.media,
       (r.partes[0]?r.partes[0].turnosEf:r.a.turnos)+"t", r.escala||"padrão",
       fmt(r.fator,2), fmt(PE.pico), fmt(PE.media), r.maqEfetiva, r.impEfetivo];
@@ -712,7 +713,7 @@ function metasDe(R, ger){
     ["Cod","Atividade","Etapa","Volume","Unid.","Janela","Rendimento","Frota","Efetivo",
      "Meta/dia efetivo por equipamento","Horas/dia por equipamento",
      "Meta/dia efetivo da frota","Meta/dia corrido da frota","Custo"],
-    lin.map(m=>[m.cod, m.nome, m.etapa, fmt(m.total), m.un,
+    lin.map(m=>[codExibir(m.cod), m.nome, m.etapa, fmt(m.total), m.un,
       m.janela ? (m.janela.fonte==="datas" ? m.janela.ini+" a "+m.janela.fim : fmt(m.janela.meses,1)+" meses") : "—",
       fmt(m.rend,2)+" "+m.un+"/h", fmt(m.frota), fmt(m.efetivo),
       m.meta ? fmt(m.meta.qEquipDia,1)+" "+m.un : "—",
@@ -733,7 +734,7 @@ SECOES.excecoes = R => {
   const E = excecoes(R, null);
   return sec("Onde perguntar", "Atividades fora da meta, por atraso em dinheiro",
     ["Cod","Atividade","Gerência","Etapa","Unid.","Plano medido","Realizado","Falta","Aderência","Atraso em R$"],
-    E.atraso.map(l=>[l.cod, l.nome, GERENCIAS[l.gerencia]||l.gerencia, l.etapa, l.un,
+    E.atraso.map(l=>[codExibir(l.cod), l.nome, GERENCIAS[l.gerencia]||l.gerencia, l.etapa, l.un,
       fmt(l.planoAte), fmt(l.realizado), fmt(l.gap), pct(l.aderencia), brl(l.gapValor)])
       .concat(E.atraso.length ? [["","","","","","","","","ATRASO TOTAL", brl(E.atrasoValor)]] : []));
 };
@@ -753,7 +754,7 @@ SECOES.acompanhamento = R => {
     ["Cod","Atividade","Gerência","Unid.", ...REC.meses.map(i=>MESES[i]+" plano"),
      ...REC.meses.map(i=>MESES[i]+" real"),
      "Plano medido","Realizado","Aderência","A fazer"],
-    ex.linhas.map(l=>[l.cod, l.nome, GERENCIAS[l.gerencia]||l.gerencia, l.un,
+    ex.linhas.map(l=>[codExibir(l.cod), l.nome, GERENCIAS[l.gerencia]||l.gerencia, l.un,
       ...l.meses.filter(naJanela).map(m=>fmt(m.plano)),
       ...l.meses.filter(naJanela).map(m=>m.real!=null?fmt(m.real):"—"),
       fmt(l.planoAte), l.lancados?fmt(l.realizado):"—",
@@ -781,7 +782,7 @@ function criterioDe(R, ger){
      "Rendimento necessário","Disponibilidade necessária","Utilização necessária","Eficiência necessária",
      "Situação"]),
     lin.map(c=>[c.mes, c.parcial ? "parcial ("+fmt(c.diasCorridos)+" de "+fmt(c.diasCheios)+" dias)" : "mês inteiro",
-      c.cod, c.nome, c.etapa].concat(ger ? [] : [GERENCIAS[c.gerencia]||c.gerencia]).concat(
+      codExibir(c.cod), c.nome, c.etapa].concat(ger ? [] : [GERENCIAS[c.gerencia]||c.gerencia]).concat(
       [fmt(c.q), c.un, fmt(c.qDia,1), fmt(c.dias,1), fmt(c.qDiaCorrido,1), fmt(c.diasCorridos),
        fmt(c.n), fmt(c.rend,2)+" "+c.un+"/h", fmt(c.horas), fmt(c.hDiaEquip,1), fmt(c.hDispEquip,1),
        pct(c.disp), pct(c.util), pct(c.efic),
@@ -799,7 +800,7 @@ SECOES.criterioApertado = R => {
     ["Mês","Cod","Atividade","Gerência","Produção","Unid.","Horas de máquina",
      "Horas/dia por equipamento","Horas efetivas/dia","Falta de hora por dia",
      "Rendimento necessário","Disponibilidade necessária","Utilização necessária","Eficiência necessária"],
-    lin.map(c=>[c.mes, c.cod, c.nome, GERENCIAS[c.gerencia]||c.gerencia, fmt(c.q), c.un,
+    lin.map(c=>[c.mes, codExibir(c.cod), c.nome, GERENCIAS[c.gerencia]||c.gerencia, fmt(c.q), c.un,
       fmt(c.horas), fmt(c.hDiaEquip,1), fmt(c.hDispEquip,1), fmt(c.hDiaEquip-c.hDispEquip,1),
       fmt(c.rendNec,2)+" "+c.un+"/h", pct(c.dispNec), pct(c.utilNec), pct(c.eficNec)]));
 };
