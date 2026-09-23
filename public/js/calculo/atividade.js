@@ -225,7 +225,7 @@ function criterioMensal(r){
   const fator = num(r.fator) || 1;
   const pessoasDe = n => {
     if(!(n > 0)) return 0;
-    if(p0) return Math.ceil(n * num(p0.ops) * (num(p0.turnosEf) || 1) * fator);
+    if(p0) return Math.ceil(n * num(p0.opsEf) * (num(p0.turnosEf) || 1) * fator);
     return r.frotaR > 0 ? Math.ceil(num(r.efetivo) * n / r.frotaR) : 0;
   };
   const nPad = r.frotaR || 0;
@@ -364,6 +364,12 @@ function linha(a, MP){
   const fator = fatorDe(a.cod, MP);   // escala da atividade
   // turnos escolhidos na atividade (1t, 2t, 3t); sem escolha, o do modo ou do cadastro
   const turnosOv = num((DIM[a.cod]||{}).turnos);
+  /* Operadores por equipamento, ajustados na atividade. O cadastro traz o
+     padrao do conjunto (a plantadora DMB vem com 2, o trator de grade com 1),
+     mas quem monta a frente sabe quando aquele conjunto roda com um operador
+     so. Sem ajuste, vale o do cadastro -- e o plano de quem nunca mexeu aqui
+     nao muda em nada. */
+  const opsOv = num((DIM[a.cod]||{}).ops);
   const util = d.util!=null ? num(d.util) : a.util;
   const ehHa = a.un.indexOf("ha")===0;
   // junto de outra, a janela e a dela, mesmo que tenha ficado data gravada aqui
@@ -475,14 +481,15 @@ function linha(a, MP){
        encargos e benefícios). É como a folha é paga, e fecha com o Resumo de
        Pessoas. Antes era por hora de máquina (salário ÷ 403 h), sem os turnos:
        cobrava um operador por máquina onde o efetivo conta três. */
-    const efetivo = Math.ceil(Math.ceil(frota)*f.ops*(turnosOv>0?turnosOv:f.turnos)*fator);
+    const opsEf = opsOv > 0 ? opsOv : f.ops;
+    const efetivo = Math.ceil(Math.ceil(frota)*opsEf*(turnosOv>0?turnosOv:f.turnos)*fator);
     const mdoMes  = meses.map(q => num(q)>0 ? efetivo*cf.mensal : 0);
     const cMDO    = mdoMes.reduce((s,x)=>s+x, 0);
     return {...f, area, horas, capMes, frota, frotaR:Math.ceil(frota), cTerc:0, litros, consumoLh:cons.lh,
             consumoUn:cons.un, consumoLkm:cons.lkm, km:cons.km, fonteKm:cons.fonteKm,
             rend: rendAlvo!=null ? rendAlvo : f.rend, rendAlvo,
             fcod:fc, fnome:cf.nome, cDiesel, cManut, cMDO, mdoMes, custoMensal:cf.mensal,
-            turnosEf: turnosOv>0 ? turnosOv : f.turnos,
+            turnosEf: turnosOv>0 ? turnosOv : f.turnos, opsEf,
             efetivo,
             direto: cDiesel+cManut+cMDO};
   });

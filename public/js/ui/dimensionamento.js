@@ -1,4 +1,4 @@
-import { DIM_DET } from '../nucleo/estado.js';
+import { DIM, DIM_DET } from '../nucleo/estado.js';
 import { $, brl, fmt } from '../nucleo/formato.js';
 
 import { ordenarPorEtapa, th } from './componentes.js';
@@ -145,6 +145,8 @@ function pintarDimDetalhe(R){
   // criterio por mes), mas um valor ja lancado continua mandando no motor --
   // some da tela e ninguem mais consegue tirar. Fica a leitura e o botao.
   const fixa = r.frotaAlvo || r.frotaAlvoSuspensa || 0;
+  const dimA = DIM[r.a.cod] || {};
+  const p0 = r.partes && r.partes.length === 1 ? r.partes[0] : null;
   const aba = DIM_DET.aba || "oper";
   const linha = (rot, val, dica) => `<div class="dd-linha"${dica?` title="${dica}"`:""}>
     <span>${rot}</span><b>${val}</b></div>`;
@@ -217,6 +219,14 @@ function pintarDimDetalhe(R){
         ${linha("Quadro ativo da função", ativoDe(r.fcod, BASE)||"—",
                 "pessoas dessa função no ERP, já com o ajuste da aba Pessoas")}
         ${linha("Fator de escala", fmt(r.fator,2))}
+        ${multi ? "" : `<div class="dd-campo"><label for="dd_ops">Operadores por equipamento</label>
+          <input id="dd_ops" data-ops="${r.a.cod}" value="${dimA.ops||""}"
+                 placeholder="${p0 ? p0.ops : 1}" inputmode="decimal">
+          <span class="calc">Em branco vale o do cadastro da atividade. É por aqui que uma frente que
+          roda com um operador só deixa de contar dois.</span></div>`}
+        ${multi ? "" : linha("Como se chega ao efetivo",
+          `${fmt(FR.pico)} × ${fmt(p0 ? p0.opsEf : 0)} × ${fmt(p0 ? p0.turnosEf : 0)} × ${fmt(r.fator,2)} = ${fmt(PES.pico)}`,
+          "frota do mes que mais pede × operadores por equipamento × turnos × fator de escala")}
         <div class="dd-campo"><label for="dd_esc">Escala</label>
           <select id="dd_esc" data-esc="${r.a.cod}">${escOpts(r.escala)}</select>
           <span class="calc">muda o fator, e com ele o efetivo</span></div>

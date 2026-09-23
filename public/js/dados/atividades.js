@@ -33,11 +33,13 @@
         ver REMOCOES_ATIVIDADE abaixo
      5  A39 (adubacao de fundacao) e A19 (tratos fitossanitarios no plantio)
         passam a ir junto com a A10, na plantadora; a A19 vai para PLANTIO
+     6  A10 (Plantio) passa de 2 para 1 operador por equipamento: a plantadora
+        e de um operador
    So tirar atividade daqui nao a tira do documento ja salvo (ATVX): ela
    deixa de ser "do sistema" e ganha o botao Remover na aba Cadastro de
    Atividades. Para ela sumir de todo plano gravado, entra tambem em
    REMOCOES_ATIVIDADE e a versao sobe. */
-export const ATIVIDADES_V = 5;
+export const ATIVIDADES_V = 6;
 
 /* Correcao de campo de atividade que JA existe no documento salvo.
    O merge da base so acrescenta atividade nova; nunca mexe em atividade que ja
@@ -62,6 +64,10 @@ export const CORRECOES_ATIVIDADE = [
   {cod:"A39", campo:"junto", de:undefined, para:"A10"},
   {cod:"A19", campo:"junto", de:undefined, para:"A10"},
   {cod:"A19", campo:"etapa", de:"TRATOS CULTURAIS", para:"PLANTIO"},
+  /* A plantadora e de UM operador. Com dois, uma frente de 10 conjuntos em tres
+     turnos na escala 5x1 pedia 72 operadores onde precisa de 36 -- e pagava os
+     72 na folha. */
+  {cod:"A10", campo:"ops", de:2, para:1},
 ];
 
 /* Atividade que saiu do cadastro base e tem de sair tambem do documento ja
@@ -88,7 +94,7 @@ export const ATIVIDADES = [
   {"cod":"A07","etapa":"PREPARO DE SOLO","nome":"1ª Gradagem média","un":"ha/mês","rend":0.7,"maq":"Trator 4x4 230 CV","imp":"Grade intermediária 24 discos","ops":1,"turnos":3,"util":0.9},
   {"cod":"A08","etapa":"PREPARO DE SOLO","nome":"2ª Gradagem média","un":"ha/mês","rend":0.7,"maq":"Trator 4x4 230 CV","imp":"Grade intermediária 24 discos","ops":1,"turnos":3,"util":0.9},
   {"cod":"A09","etapa":"PREPARO DE SOLO","nome":"Subsolagem","un":"ha/mês","rend":0.5,"maq":"Trator 4x4 230 CV","imp":"Subsolador 5 hastes","ops":1,"turnos":3,"util":0.9},
-  {"cod":"A10","etapa":"PLANTIO","nome":"Plantio","un":"ha/mês","rend":0.84,"maq":"Trator 4x4 230 CV","imp":"Plantadora DMB PCP 6.000","ops":2,"turnos":2,"util":1},
+  {"cod":"A10","etapa":"PLANTIO","nome":"Plantio","un":"ha/mês","rend":0.84,"maq":"Trator 4x4 230 CV","imp":"Plantadora DMB PCP 6.000","ops":1,"turnos":2,"util":1},
   {"cod":"A39","etapa":"PLANTIO","junto":"A10","nome":"Adubação de fundação","un":"ha/mês","rend":4.0,"maq":"Trator 4x4 150 CV","imp":"Distribuidor de sólidos","ops":1,"turnos":2,"util":0.8,"modoCfg":{"Trator":{"imp":"Distribuidor de sólidos","rend":4.0,"fcod":"918","turnos":2}},"cultura":"Planta"},
   {"cod":"A11","etapa":"TRATOS CULTURAIS","nome":"1ª Pré-emergência socaria","un":"ha/mês","rend":2.2,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.85,"cultura":"Soca"},
   {"cod":"A12","etapa":"TRATOS CULTURAIS","nome":"2ª Pré-emergência socaria","un":"ha/mês","rend":2.2,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.85,"cultura":"Soca"},

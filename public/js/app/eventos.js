@@ -92,6 +92,12 @@ document.addEventListener("input",e=>{
   // no criterio por mes, e ter o mesmo numero em dois lugares era o que fazia
   // um contradizer o outro. Quem remove um valor ja lancado e o botao
   // data-frlimpar, no clique.
+  // operadores por equipamento, ajustado na atividade; em branco volta ao cadastro.
+  // leve() em vez de render(): render() reconstroi a tabela e derruba o foco de
+  // quem esta digitando no modal
+  if(t.dataset.ops!==undefined){ const c=t.dataset.ops; DIM[c]=DIM[c]||{};
+    const v=num(t.value); if(v>0) DIM[c].ops=v; else delete DIM[c].ops;
+    salvar(); leve(); return; }
   if(t.dataset.fs!==undefined){ const f=CFG.funcoes.find(x=>x.cod===t.dataset.fs);
     if(f) f.sal=num(t.value);
     salvar(); leve(); return; }
