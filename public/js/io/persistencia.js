@@ -5,7 +5,7 @@ import { setAPOIO, setAPOIO_FIXO, setARREND, setARR_PAR, setARR_RAT, setATVX, se
          setINSX, setMATX, setNIV, setP, setPLANO, setQUADRO, setADM, setADM_RAT, setTERC_TAR, setTERC_SUB, setTPESS, setTRATC,
          setTRAT_ATIVO, setTRAT_DEL, setTRAT_ETAPA, setTRAT_NOME, setTRAT_OBS, setINSX_V } from '../nucleo/estado.js';
 import { mesclarBaseInsumos } from '../calculo/insumos.js';
-import { mesclarBaseAtividades } from '../calculo/atividade.js';
+import { mesclarBaseAtividades, removerAtividadesRetiradas } from '../calculo/atividade.js';
 import { $, num } from '../nucleo/formato.js';
 import { MESES, NM } from '../nucleo/calendario.js';
 import { claudeUse } from './arquivo.js';
@@ -192,13 +192,16 @@ async function carregar(){
       const d = await REMOTO.ler();
       // se o usuário já começou a editar enquanto isto ainda carregava, não pisar na edição dele
       if(d && !EDITADO) aplicar(d);
+      if(!EDITADO) await recuperarPendente(d);
       statusRemoto(d ? "Salvo no servidor" : "Pronto — salva no servidor");
       return;
     }catch(e){ REMOTO = null; }
   }
   try{
     const raw = localStorage.getItem("crv_plano_v10");
-    if(!EDITADO && raw) aplicar(JSON.parse(raw));
+    const local = raw ? JSON.parse(raw) : null;
+    if(!EDITADO && local) aplicar(local);
+    if(!EDITADO) await recuperarPendente(local);
     setStatus("Salvo neste navegador","warn");
   }catch(e){ setStatus("Sem salvamento","off"); }
 }
@@ -260,9 +263,9 @@ function aplicar(d){
   if(d.ATVX && ATVX_V < CFG.atividades_v){
     const r = mesclarBaseAtividades();
     setATVX_V(CFG.atividades_v);
-    if(r.novas || r.corrigidas)
-      console.info(`cadastro de atividades atualizado: +${r.novas} atividade(s), ${r.corrigidas} corrigida(s), ${r.total} no total`);
-  } else if(!d.ATVX) setATVX_V(CFG.atividades_v);
+    if(r.novas || r.corrigidas || r.removidas)
+      console.info(`cadastro de atividades atualizado: +${r.novas} atividade(s), ${r.corrigidas} corrigida(s), -${r.removidas} retirada(s), ${r.total} no total`);
+  } else if(!d.ATVX){ setATVX_V(CFG.atividades_v); removerAtividadesRetiradas(); }
   if(d.GRUPOS_INS) setGRUPOS_INS(d.GRUPOS_INS);
   if(d.FAM_NOME) setFAM_NOME(d.FAM_NOME);
   if(d.FAM_CLASSE) setFAM_CLASSE(d.FAM_CLASSE);
@@ -324,8 +327,62 @@ function migrarJanela(d){
   return d;
 }
 let salvePendente = false;
+
+/* ===== Alteracao pendente, que sobrevive ao recarregar =====
+   Gravar e assincrono: entre "o debounce disparou" e "o servidor respondeu" ha
+   uma janela em que a alteracao so existe no ar. Recarregar a pagina nessa
+   janela cancelava o fetch e a alteracao sumia -- a tela voltava com o valor
+   antigo, como se nada tivesse sido feito. Era assim que uma celula apagada no
+   Plano Operacional "voltava" depois do F5.
+
+   Aqui a alteracao fica marcada no localStorage ANTES de ir ao fio e so sai de
+   la quando o servidor confirma. Na abertura seguinte, o que ficou pendente e
+   reaplicado por cima do documento do servidor e reenviado. Cobre tambem o
+   beacon recusado (payload grande demais), a rede fora e a aba fechada no meio.
+
+   E o mesmo recorte que uma gravacao normal manda (so as chaves que esta
+   sessao mudou), entao o risco de pisar em outra sessao nao muda. */
+const CHAVE_PEND = "crv_plano_pendente";
+const VALIDADE_PEND = 7*24*60*60*1000;   // uma semana: pendencia mais velha que isso e lixo
+function marcarPendente(doc){
+  try{ localStorage.setItem(CHAVE_PEND, JSON.stringify({ts:Date.now(), doc})); }catch(err){}
+}
+function limparPendente(){ try{ localStorage.removeItem(CHAVE_PEND); }catch(err){} }
+function lerPendente(){
+  try{
+    const raw = localStorage.getItem(CHAVE_PEND);
+    if(!raw) return null;
+    const p = JSON.parse(raw);
+    if(!p || !p.doc || !(Date.now() - (p.ts||0) < VALIDADE_PEND)){ limparPendente(); return null; }
+    if(!Object.keys(p.doc).some(k=>k!=="v")){ limparPendente(); return null; }
+    return p;
+  }catch(err){ limparPendente(); return null; }
+}
+/* Reaplica e reenvia o que ficou pendente da sessao anterior. Roda dentro do
+   carregar(), depois do documento do servidor.
+
+   Primeiro compara: na maioria das vezes o envio anterior chegou (o beacon foi
+   entregue) e o documento do servidor ja traz a alteracao -- ai a pendencia so
+   e apagada, sem reenvio e sem aviso. So quando o servidor ainda NAO tem o que
+   ficou pendente e que ele e reaplicado por cima, reenviado e anunciado: foi
+   uma alteracao que a pessoa fez e que teria sumido. */
+async function recuperarPendente(doServidor){
+  const p = lerPendente();
+  if(!p) return;
+  const doc = doServidor || {};
+  const faltando = Object.keys(p.doc).filter(k =>
+    k !== "v" && canonJSON(valorDaChave(p.doc, k)) !== canonJSON(valorDaChave(doc, k)));
+  if(!faltando.length){ limparPendente(); return; }
+  aplicar(p.doc);
+  if(!REMOTO) return;   // sem servidor, o rascunho local ja e o estado
+  try{
+    await REMOTO.mesclar(p.doc);
+    limparPendente();
+    mostrarToast("Alteração pendente da sessão anterior foi enviada");
+  }catch(err){ /* fica marcada para a proxima abertura */ }
+}
+
 async function gravar(){
-  salvePendente = false;
   // rascunho local: sempre o estado inteiro (é o que sobra se o banco perder
   // alguma coisa), sobrevive a fechar a aba no meio da gravação
   try{ localStorage.setItem("crv_plano_v10",JSON.stringify(estado())); }catch(err){}
@@ -333,9 +390,13 @@ async function gravar(){
   // nada mudou desde a última gravação (ex.: campo editado e desfeito antes do
   // debounce disparar) — não vale ir ao servidor só pra atualizar o relógio
   if(!Object.keys(doc).some(k=>k!=="v")){
+    salvePendente = false; limparPendente();
     if(REMOTO) statusRemoto("Salvo no servidor"); else setStatus("Salvo neste navegador","warn");
     return;
   }
+  // marca ANTES de ir ao fio: se a aba recarregar no meio, a alteração é
+  // reaplicada e reenviada na abertura seguinte
+  marcarPendente(doc);
   if(REMOTO){
     try{
       // sempre mescla, nunca substitui o documento inteiro: só manda quem de
@@ -348,6 +409,7 @@ async function gravar(){
       // conta o que o usuário mudou desde a última gravação (ver BASE_GRAVACAO).
       const ignorados = (resp && Array.isArray(resp.ignorados) ? resp.ignorados : []).filter(k=>mudouDesdeBase(doc,k));
       atualizarBaseComEnviado(doc, ignorados);
+      salvePendente = false; limparPendente();
       if(ignorados.length){
         setStatus("Salvo — sem permissão para alterar: "+ignorados.slice(0,3).join(", ")
           +(ignorados.length>3?"…":""), "warn");
@@ -359,9 +421,12 @@ async function gravar(){
     }catch(err){
       // O rascunho local acima já segurou a alteração; dizer que está tudo salvo
       // esconderia do usuário que os outros ainda não estão vendo o que ele digitou.
+      // A pendência fica marcada: a próxima abertura reenvia.
       setStatus("Servidor fora — salvo neste navegador","warn"); return;
     }
   }
+  // sem servidor, o rascunho local é o destino final — não há o que reenviar
+  salvePendente = false; limparPendente();
   setStatus("Salvo neste navegador","warn");
 }
 function salvar(){
@@ -370,18 +435,25 @@ function salvar(){
   clearTimeout(saveTimer);
   saveTimer=setTimeout(gravar,700);
 }
-// sair da página com uma gravação pendente perdia a alteração — força a gravação antes
+/* Sair da pagina com gravacao pendente perdia a alteracao — forca a gravacao
+   antes. Nao pergunta mais por `salvePendente`: quando o debounce ja disparou,
+   ele ja e false e a gravacao pode estar EM VOO, e o fetch em voo o navegador
+   cancela ao navegar. Quem responde "ha algo a mandar?" e alteracoes(), que
+   compara com a base e so avanca quando o servidor confirma. */
 function flushSalvar(){
-  if(!salvePendente) return;
   clearTimeout(saveTimer);
   try{ localStorage.setItem("crv_plano_v10",JSON.stringify(estado())); }catch(err){}
   const doc = alteracoes(), temMudanca = Object.keys(doc).some(k=>k!=="v");
+  if(!temMudanca) return;
+  // marcada antes de tentar: beacon recusado (payload grande) ou fetch
+  // cancelado pela navegacao deixam a alteracao para a proxima abertura
+  marcarPendente(doc);
   // O navegador cancela um fetch() em curso quando a aba fecha; o sendBeacon ele
   // se encarrega de entregar. Só existe contra servidor próprio — no Artifact e
   // sem rede, gravar() faz o que dá. Otimista: sendBeacon só confirma que o
   // navegador aceitou entregar, não que o servidor já processou — mesmo grau
   // de certeza que salvePendente=false já assumia aqui antes desta mudança.
-  if(temMudanca && REMOTO && REMOTO.beacon && REMOTO.beacon(doc)){
+  if(REMOTO && REMOTO.beacon && REMOTO.beacon(doc)){
     atualizarBaseComEnviado(doc, []); salvePendente = false; return;
   }
   gravar();

@@ -545,6 +545,8 @@ tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:under
 .dd-campo{display:flex;flex-direction:column;gap:3px;padding:5px 0}
 .dd-campo label{font-size:11px;color:var(--grey);font-weight:600;margin:0}
 .dd-campo .calc{font-size:10.5px;line-height:1.35}
+/* leitura de um valor antigo com o botao que o remove, dentro de um dd-campo */
+.dd-fixa{display:flex;align-items:center;gap:10px;padding:2px 0}
 .dd-bloco .ra-tbl{margin-top:12px}
 @media (max-width:640px){#dimdet{padding:0}
   .dd-modal{width:100%;height:100%;max-height:100%;border-radius:0}

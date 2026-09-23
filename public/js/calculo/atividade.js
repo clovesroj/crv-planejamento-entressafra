@@ -1,7 +1,7 @@
 import { maqDe } from './crm.js';
 import { litrosDe } from './consumo.js';
 import { CFG } from '../dados/cfg.js';
-import { CORRECOES_ATIVIDADE } from '../dados/atividades.js';
+import { CORRECOES_ATIVIDADE, REMOCOES_ATIVIDADE } from '../dados/atividades.js';
 import { fatorEscala } from '../dados/escalas.js';
 import { MESES, NM, diasCorridos, diasNoMesEntre, mesesEntre } from '../nucleo/calendario.js';
 import { DIM, P, PLANO, REAL, TERC_SUB, TERC_TAR, atividadesLista } from '../nucleo/estado.js';
@@ -533,7 +533,22 @@ function mesclarBaseAtividades(){
     const a = lista.find(x=>x.cod===c.cod);
     if(a && a[c.campo] === c.de){ a[c.campo] = c.para; corrigidas++; }
   });
-  return {novas, corrigidas, total:lista.length};
+  const removidas = removerAtividadesRetiradas();
+  return {novas, corrigidas, removidas, total:lista.length};
+}
+/* Atividade retirada do sistema (REMOCOES_ATIVIDADE) sai do documento com o que
+   estiver lancado nela. Vale tambem para documento sem cadastro proprio (ATVX):
+   o lancamento orfao no PLANO sairia do motor, mas ficaria gravado. */
+function removerAtividadesRetiradas(){
+  const lista = atividadesLista();
+  let removidas = 0;
+  REMOCOES_ATIVIDADE.forEach(cod=>{
+    if(CFG.atividades.some(a=>a.cod===cod)) return;
+    const i = lista.findIndex(a=>a.cod===cod);
+    if(i>=0){ lista.splice(i,1); removidas++; }
+    delete PLANO[cod]; delete DIM[cod]; delete TERC_TAR[cod]; delete TERC_SUB[cod]; delete REAL[cod];
+  });
+  return removidas;
 }
 // mesmo alfabeto de codigoTratValido (calculo/insumos.js): texto de tela, valor
 // de <option> e atributo data-*, sem nada que feche aspa ou abra marcacao
@@ -561,4 +576,4 @@ function removerAtividade(cod){
 
 export { MODOS_ORD, criterioMensal, diasDoMes, fatorDe, frotaDaAtividade, modoLiberado, modosDe, linha, mixDe, pessoasDaAtividade,
          premissasDe, tarifaTerc, tarifaTercDe, temDetalheTerc, metaDe,
-  temCriterioMensal, mesclarBaseAtividades, codigoAtividadeValido, criarAtividade, removerAtividade };
+  temCriterioMensal, mesclarBaseAtividades, codigoAtividadeValido, criarAtividade, removerAtividade, removerAtividadesRetiradas };

@@ -88,9 +88,10 @@ document.addEventListener("input",e=>{
   if(t.dataset.u!==undefined){ DIM[t.dataset.u]=DIM[t.dataset.u]||{}; DIM[t.dataset.u].util=num(t.value)/100; salvar(); leve(); return; }
   // frota alvo: em branco volta a sair do rendimento, e por isso e apagada em vez
   // de guardada como zero -- zero seria uma frota fixada em nenhuma maquina
-  if(t.dataset.fr!==undefined){ const c=t.dataset.fr; DIM[c]=DIM[c]||{};
-    const v=num(t.value); if(v>0) DIM[c].frota=v; else delete DIM[c].frota;
-    salvar(); leve(); return; }
+  // data-fr (campo "frota fixa da atividade") saiu do modal: a frota se ajusta
+  // no criterio por mes, e ter o mesmo numero em dois lugares era o que fazia
+  // um contradizer o outro. Quem remove um valor ja lancado e o botao
+  // data-frlimpar, no clique.
   if(t.dataset.fs!==undefined){ const f=CFG.funcoes.find(x=>x.cod===t.dataset.fs);
     if(f) f.sal=num(t.value);
     salvar(); leve(); return; }
@@ -522,6 +523,11 @@ document.addEventListener("click",e=>{
   const dd = e.target.closest && e.target.closest("[data-dimdet]");
   if(dd){ setDIM_DET({cod: dd.dataset.dimdet, aba: dd.dataset.aba || "oper"});
     renderDimDet(); return; }
+  // remove a frota fixa que ficou de um ajuste antigo — o campo nao existe mais
+  const frl = e.target.closest && e.target.closest("[data-frlimpar]");
+  if(frl){ const c = frl.dataset.frlimpar;
+    if(DIM[c]) delete DIM[c].frota;
+    salvar(); render(); renderDimDet(); return; }
   const ddAba = e.target.closest && e.target.closest("[data-ddaba]");
   if(ddAba && DIM_DET){ setDIM_DET({...DIM_DET, aba: ddAba.dataset.ddaba}); renderDimDet(); return; }
   if((e.target.closest && e.target.closest("#dd_fechar")) || e.target.id==="dimdet_fundo"){

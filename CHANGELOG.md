@@ -1,5 +1,68 @@
 # Histórico de mudanças
 
+## 2.37.1 — 2026-09-23 · A22 (Dessecação) sai também do plano já salvo
+
+A A22 era a Dessecação em duplicata da A03: mesmo nome, mesma máquina (Uniport
+3030 / Drone), mesma barra de 24 m, 1,65 ha/h. Ela já tinha saído do cadastro
+base, mas isso não a tirava do documento gravado: o plano em uso continuava com
+ela, agora com o botão Remover na aba Cadastro de Atividades.
+
+Agora ela sai sozinha na leitura do documento, uma vez, com o que estiver
+lançado nela — Plano Operacional, Dimensionamento, tarifa e subtarefa de
+terceiro e realizado —, o mesmo que o botão Remover faz. A dessecação do plano
+fica na A03.
+
+- `dados/atividades.js` ganha `REMOCOES_ATIVIDADE` (hoje só `A22`), e
+  `ATIVIDADES_V` sobe para 4: é a versão que faz o documento gravado antes
+  receber a remoção.
+- Vale também para documento sem cadastro próprio de atividades: lançamento
+  órfão da A22 no `PLANO` sai do que é gravado.
+- **Área ou tratamento lançado na A22 sai do plano.** Se a dessecação estava
+  lançada nela e não na A03, lance na A03.
+
+Plano vazio segue 39.270.751,842344. Testado com um documento gravado na versão
+3 com a A22 lançada (600 ha): depois da leitura ela não está no cadastro, no
+Plano, no Dimensionamento, no realizado nem no motor; a A03 fica; e o total é
+idêntico ao do mesmo documento sem a A22. Auditoria com 45 invariantes sem
+falha, 29 abas e 132 relatórios sem erro, nenhuma "A22" na tela.
+
+## 2.37.0 — 2026-09-23 · A função da atividade passa a ser um campo
+
+- **Função editável no detalhe da atividade.** Era só leitura, e quando o código
+  não existia no cadastro de funções a linha virava "F02 — F02". Não era
+  cosmético: **função desconhecida não tem salário, então a atividade entrava
+  com mão de obra zero**. Medido na A05 (2ª Gradagem pesada, 11 pessoas): R$ 0
+  de MDO com "F02", R$ 240.915 depois de apontar para 918 — OP. DE MAQUINAS
+  AGRICOLAS II. Código fora do cadastro entra como primeira opção do select,
+  marcado, em vez de o campo mostrar outra função como se fosse a da atividade.
+- **"Frota fixa da atividade" saiu do modal.** A frota se ajusta mês a mês, no
+  botão **mês**; ter o mesmo número em dois lugares é o que faz um contradizer o
+  outro — o próprio campo já avisava "suspensa agora". O valor não some junto:
+  plano que já tem frota fixada mostra a leitura dela e um botão **remover**.
+- A permissão do campo de função acompanha o dado, não a tela: ele grava
+  `PLANO[cod].fcod`, então pede a permissão do Plano Operacional.
+
+## 2.36.1 — 2026-09-23 · Alteração não confirmada sobrevive ao recarregar
+
+Célula apagada no Plano Operacional voltava depois do F5. Não era a tela: era a
+gravação que nunca chegou ao servidor, e ninguém guardava o que ficou pelo
+caminho. Dois furos, o mesmo sintoma:
+
+- **A gravação em voo não contava como pendente.** `gravar()` zerava o sinal de
+  "há coisa para salvar" *antes* de esperar o servidor. Entre o disparo e a
+  resposta — no Render, com plano grande, mais de um segundo — a alteração só
+  existia na requisição; recarregar ali a cancelava, e o disparo de emergência
+  do `pagehide` saía na primeira linha porque o sinal já estava desligado.
+- **O beacon recusado caía num fetch que a navegação cancela.** `sendBeacon` não
+  aceita payload grande, e uma sessão que passou pelo cadastro de insumos manda
+  bem mais do que o limite.
+
+Agora a alteração é **marcada no navegador antes de ir ao fio** e só sai de lá
+quando o servidor confirma. Na abertura seguinte, o que ficou pendente é
+comparado com o documento do servidor: se ele já tem, a marca é apagada em
+silêncio; se não tem, é reaplicado, reenviado e anunciado. Cobre também rede
+fora, aba fechada no meio e navegador matando a aba.
+
 ## 2.36.0 — 2026-09-23 · Cada leitura na tela que responde por ela
 
 Os três dimensionamentos na mesma tela viraram três telas empilhadas numa

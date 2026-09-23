@@ -2,6 +2,8 @@ import { DIM_DET } from '../nucleo/estado.js';
 import { $, brl, fmt } from '../nucleo/formato.js';
 
 import { ordenarPorEtapa, th } from './componentes.js';
+import { optFuncao } from './plano.js';
+import { CFG } from '../dados/cfg.js';
 import { ESCALAS } from '../dados/escalas.js';
 import { ativoDe, quadroBase } from '../calculo/quadro.js';
 import { criterioMensal, frotaDaAtividade, modoLiberado, pessoasDaAtividade, temCriterioMensal } from '../calculo/atividade.js';
@@ -99,6 +101,17 @@ function pintarDim(R){
    para clicar de novo seria o mesmo vai e volta que tirou as colunas daqui. */
 const ABAS_DET = [["oper","Operação"],["frota","Frota"],["pessoas","Pessoas"]];
 
+/* Opcoes de funcao da atividade. Codigo que nao esta no cadastro de funcoes
+   (veio de importacao ou de um documento antigo -- o "F02" que aparecia como
+   "F02 — F02") entra como primeira opcao, marcado: sem isso o select mostraria
+   outra funcao como se fosse a da atividade, e a primeira interacao gravaria
+   essa outra por cima sem ninguem pedir. */
+function opcoesFuncao(sel){
+  const conhecida = CFG.funcoes.some(f=>f.cod===sel);
+  return (conhecida || !sel ? "" : `<option value="${sel}" selected>${sel} — fora do cadastro de funções</option>`)
+    + optFuncao(sel);
+}
+
 /* Um chip por mes com lancamento: mes, volume, frota e pessoas daquele mes.
    Mes sem volume nao entra -- listar doze meses para mostrar tres seria o
    mesmo ruido que a tabela larga tinha. */
@@ -124,6 +137,10 @@ function pintarDimDetalhe(R){
   const BASE = quadroBase();
   const FR = frotaDaAtividade(r);
   const PES = pessoasDaAtividade(r);
+  // frota fixada num ajuste antigo: o campo saiu daqui (a frota se ajusta no
+  // criterio por mes), mas um valor ja lancado continua mandando no motor --
+  // some da tela e ninguem mais consegue tirar. Fica a leitura e o botao.
+  const fixa = r.frotaAlvo || r.frotaAlvoSuspensa || 0;
   const aba = DIM_DET.aba || "oper";
   const linha = (rot, val, dica) => `<div class="dd-linha"${dica?` title="${dica}"`:""}>
     <span>${rot}</span><b>${val}</b></div>`;
@@ -167,12 +184,13 @@ function pintarDimDetalhe(R){
                 "dias efetivos × jornada × disponibilidade × utilização")}
         ${linha("Diesel", r.cDiesel?brl(r.cDiesel):"—")}
         ${linha("Manutenção (CRM)", r.cManut?brl(r.cManut):"—")}
-        ${multi ? "" : `<div class="dd-campo"><label for="dd_frota_fixa">Frota fixa da atividade</label>
-          <input id="dd_frota_fixa" data-fr="${r.a.cod}" value="${r.frotaAlvo||""}"
-                 placeholder="${r.frotaR||"—"}" inputmode="decimal">
-          <span class="calc">Em branco, a frota sai do rendimento. Preenchida, fixa a frota e o rendimento
-          passa a ser o que ela exige.${r.frotaAlvoSuspensa
-            ? ` <b>Suspensa agora:</b> há critério lançado por mês, e é ele que vale.` : ""}</span></div>`}
+        ${fixa && !multi ? `<div class="dd-campo"><label>Frota fixa lançada antes</label>
+          <div class="dd-fixa"><b>${fmt(fixa)} equipamentos</b>
+            <button type="button" class="btn xs" data-frlimpar="${r.a.cod}">remover</button></div>
+          <span class="calc">A frota se ajusta mês a mês, no botão <b>mês</b> — este número ficou de um ajuste
+          antigo, de quando dava para fixá-la aqui.${r.frotaAlvoSuspensa
+            ? " Já está suspenso: há critério por mês lançado, e é ele que vale."
+            : " Enquanto existir, é ele que manda, e o rendimento passa a ser o que ele exige."}</span></div>` : ""}
       </div>
       ${multi ? `<div class="tblwrap ra-tbl"><table>${th([["Frente"],["Frota",1],["Máquina"],["Implemento"]])}
         <tbody>${r.partes.map(p=>`<tr><td>${p.modo}</td>
@@ -188,7 +206,10 @@ function pintarDimDetalhe(R){
                 "frota do mes que mais pede × operadores × turnos × fator de escala")}
         ${linha("Média da janela", fmt(PES.media)+" pessoas",
                 "e o efetivo com que o motor paga a folha, em todo mes com volume")}
-        ${linha("Função", multi?"—":(r.fcod+" — "+r.fnome))}
+        ${multi ? linha("Função","—") : `<div class="dd-campo"><label for="dd_fun">Função</label>
+          <select id="dd_fun" data-fc="${r.a.cod}">${opcoesFuncao(r.fcod)}</select>
+          <span class="calc">quem opera esta atividade: muda o custo de mão de obra e a função confrontada
+          com o quadro ativo, no Resumo de Pessoas</span></div>`}
         ${linha("Quadro ativo da função", ativoDe(r.fcod, BASE)||"—",
                 "pessoas dessa função no ERP, já com o ajuste da aba Pessoas")}
         ${linha("Fator de escala", fmt(r.fator,2))}
