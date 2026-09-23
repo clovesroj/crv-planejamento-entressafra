@@ -110,6 +110,11 @@ function pintarDim(R){
      <td class="tot" title="Soma do pico de cada atividade. Assim como na frota, atividades que picam em meses diferentes podem dividir a mesma equipe — o confronto que decide contratação é o da aba Pessoas, por função.">${
        fmt(L.reduce((s,r)=>s+pessoasDaAtividade(r).pico,0))}</td></tr></tbody>`;
 
+  // lista de consulta do campo de acrescentar: uma so, fora da tabela
+  const dl = $("#erp_lista");
+  if(dl && dl.childElementCount !== ATIVIDADES_ERP.length){
+    dl.innerHTML = ATIVIDADES_ERP.map(a=>`<option value="${esc(a.cod)}" label="${esc(a.nome)}"></option>`).join("");
+  }
   $("#bl_ativ_sub").textContent = `${R.L.filter(r=>r.total>0).length} de ${R.L.length} atividades · ${fmt(R.horasT)} horas`;
   pintarApoioOper(R);
 }
@@ -197,9 +202,8 @@ function linhaDaFrente(r){
       <td class="calc">${esc(e.cod)}</td>
       <td class="calc">${nucleo?"":"↳ "}${esc(e.nome)}
         <span class="badge ${nucleo?"b-ok":"b-warn"}">${nucleo?"núcleo":"apoio"}</span>${
-        !nucleo && (dim.apoioX||[]).includes(e.cod)
-          ? ` <button class="btn xs d" data-aprm="${esc(r.a.cod)}" data-erp="${esc(e.cod)}"
-                title="Tirar esta atividade do plano">remover</button>` : ""}</td>
+        nucleo ? "" : ` <button class="btn xs d" data-aprm="${esc(r.a.cod)}" data-erp="${esc(e.cod)}"
+            title="Tirar esta atividade do plano. Dá para trazer de volta pelo campo de acrescentar.">remover</button>`}</td>
       <td class="calc">${e.esp.length?"esp. "+e.esp.map(esc).join(", "):"—"}</td>
       <td>${nucleo
         ? `<div class="dim-cel"><span class="dim-val calc">${fmt(r.total)}</span><span class="dim-un">${un}</span></div>`
@@ -221,13 +225,14 @@ function linhaDaFrente(r){
      a frente, mas quem monta o plano sabe o que aquela frente vai usar. O que
      entra por aqui fica marcado e pode sair pelo botao remover. */
   const jaTem = new Set(apoioDoPlano(r.a.cod).map(e=>e.cod).concat(E.nucleo.map(e=>e.cod)));
-  const opcoes = ATIVIDADES_ERP.filter(a=>!jaTem.has(a.cod))
-    .map(a=>`<option value="${esc(a.cod)}">${esc(a.cod)} — ${esc(a.nome)}</option>`).join("");
+  const faltam = ATIVIDADES_ERP.filter(a=>!jaTem.has(a.cod));
+  const fora = ((DIM[r.a.cod]||{}).apoioOff || []).length;
   const adicionar = `<tr class="sub frente-add"><td colspan="7">
     <div class="dim-cel" style="justify-content:flex-start">
       <span class="calc">Acrescentar atividade a este plano:</span>
-      <select data-apadd="${esc(r.a.cod)}" style="max-width:420px">
-        <option value="">escolha uma atividade do ERP…</option>${opcoes}</select>
+      <input list="erp_lista" data-apadd="${esc(r.a.cod)}" class="add-erp"
+             placeholder="consulte por código ou nome — ${faltam.length} atividades">
+      <span class="calc">${fora ? fora+" tirada(s) deste plano; digite o código para trazer de volta" : ""}</span>
     </div></td></tr>`;
   return cabeca + E.nucleo.map(e=>linhaItem(e,true)).join("")
        + apoioDoPlano(r.a.cod).map(e=>linhaItem(e,false)).join("") + adicionar;
