@@ -127,6 +127,15 @@ function pessoasCalc(R){
     add(DEPT_FAT, l.fcod, l.desc ? "FAT — "+l.desc : "FAT — contrato suspenso", l.qtd, l.qtdMes.slice(), l.mes.slice(),
         "", null, true); });
 
+  return resumirPessoas(itens, R.AE.efetivo);
+}
+
+/* Resume uma lista de itens de pessoas: os agrupamentos, as series mensais e
+   os totais que as telas leem. Separado de pessoasCalc para o filtro de quadro
+   e departamento do Resumo de Pessoas (filtrarPessoas) reusar a mesma conta
+   sobre um subconjunto -- o filtrado sai com a mesma forma do inteiro. */
+function resumirPessoas(itens, apoio){
+  const fixo = v => Array(NM).fill(v);
   const operam = itens.filter(it=>!it.fora), noFat = itens.filter(it=>it.fora);
   const agrupa = (chave, lista = itens) => {
     const g = {};
@@ -154,12 +163,30 @@ function pessoasCalc(R){
   return {itens, nomeFun, folhaMes, porGrupo:agrupa(it=>it.grupo),
           porDept:agrupa(it=>it.dept), porFun:agrupa(it=>it.fcod, operam), porFunTodos:agrupa(it=>it.fcod), qtdMes, custoMes,
           qtd: itens.reduce((s,it)=>s+it.qtd,0), custo: custoMes.reduce((s,x)=>s+x,0),
-          apoio: R.AE.efetivo,
+          apoio,
           fat: {porFun:agrupa(it=>it.fcod, noFat), qtdMes:fatMes, custoMes:fatCustoMes,
                 qtd: noFat.reduce((s,it)=>s+it.qtd,0), custo: fatCustoMes.reduce((s,x)=>s+x,0),
                 pico: Math.max(0,...fatMes)}};
 }
 
+
+/* Filtro do Resumo de Pessoas: quadro (Operacional, ADM agricola, Oficina,
+   FAT) e departamento. "todos" em qualquer dos dois nao filtra. Devolve um PS
+   com a mesma forma do inteiro. */
+function filtrarPessoas(PS, grupo, dept){
+  if(!PS || ((!grupo || grupo==="todos") && (!dept || dept==="todos"))) return PS;
+  const itens = PS.itens.filter(it => (!grupo || grupo==="todos" || it.grupo===grupo)
+                                   && (!dept || dept==="todos" || it.dept===dept));
+  const F = resumirPessoas(itens, (!grupo || grupo==="todos" || grupo===GRUPO_OPER) && (!dept || dept==="todos" || dept==="APOIO E CONSERVAÇÃO") ? PS.apoio : 0);
+  F.filtrado = true;
+  return F;
+}
+// departamentos de um quadro (ou de todos), na ordem da tela
+function departamentosDe(PS, grupo){
+  const ds = {};
+  ((PS && PS.itens) || []).forEach(it=>{ if(!grupo || grupo==="todos" || it.grupo===grupo) ds[it.dept] = ds[it.dept] || {dept:it.dept, dcod:it.dcod, grupo:it.grupo}; });
+  return Object.values(ds).sort((a,b)=>grupoIdx(a.grupo)-grupoIdx(b.grupo) || deptIdx(a.dept)-deptIdx(b.dept) || a.dept.localeCompare(b.dept));
+}
 
 /* ===== Necessidade de gente por etapa, atividade e funcao =====
    O quadro por funcao responde "quantos motoristas preciso ter"; esta lista
@@ -268,4 +295,4 @@ function janelaDaLinha(l){
           dica: "meses com gente; a atividade não tem data lançada"};
 }
 
-export { DEPTS_ORD, DEPT_APOIO_OPER, DEPT_FAT, GRUPOS_ORD, categoriaDaFuncao, grupoIdx, visaoPlanilha, deptIdx, janelaDaLinha, necessidadePorAtividade, pessoasCalc };
+export { DEPTS_ORD, DEPT_APOIO_OPER, DEPT_FAT, GRUPOS_ORD, categoriaDaFuncao, departamentosDe, filtrarPessoas, grupoIdx, resumirPessoas, visaoPlanilha, deptIdx, janelaDaLinha, necessidadePorAtividade, pessoasCalc };

@@ -24,7 +24,7 @@ import { leve, render, renderAgrofit, renderApoioMes, renderDimDet, renderEditIn
 import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarBuscaItem, filtrarRastro, voltarRastro } from '../ui/rastro.js';
 import { abrirRendMensal, aberto as rendMensalAberto, descartarRascunho, editarRascunho,
   fecharRendMensal, pendencias, salvarRascunho } from '../ui/rendmensal.js';
-import { setQF_MES, setQF_GRUPO } from '../nucleo/estado.js';
+import { setQF_MES, setQF_GRUPO, setPES_GRUPO, setPES_DEPT } from '../nucleo/estado.js';
 import { setAPOIO, setATIV_TRAT_SEL, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setINSX_V, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
 import { USUARIO, areasDePermissao, podeEditar } from '../nucleo/sessao.js';
 
@@ -263,6 +263,9 @@ document.addEventListener("change",e=>{
   // quadro ADM e oficina (aba Mao de Obra): mes e grupo sao so visao -- nao grava
   if(t.id==="sel_qf_mes"){ setQF_MES(t.value); render(); return; }
   if(t.id==="sel_qf_grupo"){ setQF_GRUPO(t.value); render(); return; }
+  // filtro do Resumo de Pessoas: quadro e departamento -- so visao, nao grava
+  if(t.id==="sel_pes_grupo"){ setPES_GRUPO(t.value); setPES_DEPT("todos"); render(); return; }
+  if(t.id==="sel_pes_dept"){ setPES_DEPT(t.value); render(); return; }
   // FAT e apoio operacional: funcao da linha e meses marcados
   if(t.dataset.fatf!==undefined){ const l=FAT[+t.dataset.fatf]; if(l){ l.fcod=t.value; salvar(); render(); } return; }
   if(t.dataset.moaf!==undefined){ const l=MO_APOIO[+t.dataset.moaf]; if(l){ l.fcod=t.value; salvar(); render(); } return; }
@@ -806,6 +809,8 @@ $("#btn_moa_add").onclick=()=>{
   MO_APOIO.push({fcod:FUNCAO_PADRAO(), qtd:1, frente:"", m:Array(NM).fill(1)});
   salvar(); render();
 };
+
+$("#btn_pes_limpar").onclick=()=>{ setPES_GRUPO("todos"); setPES_DEPT("todos"); render(); };
 
 $("#btn_grp_add").onclick=()=>{
   const r = criarGrupoInsumo($("#in_grp_novo").value);

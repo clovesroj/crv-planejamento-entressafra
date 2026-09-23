@@ -1172,6 +1172,14 @@
   por função, e de onde vem cada pessoa, mês a mês. O operacional (motoristas, operadores e rurais) sai das
   atividades do plano, por etapa; o ADM agrícola e a oficina, do quadro previsto da controladoria, por departamento;
   e o FAT, fora da operação. Quatro páginas — use o menu ao lado para trocar.</p>
+  <div class="row pes-filtro" style="margin-bottom:12px;align-items:flex-end">
+    <div style="min-width:220px"><label for="sel_pes_grupo">Quadro</label>
+      <select id="sel_pes_grupo"></select></div>
+    <div style="min-width:300px"><label for="sel_pes_dept">Departamento</label>
+      <select id="sel_pes_dept"></select></div>
+    <button class="btn" id="btn_pes_limpar" type="button">Limpar filtro</button>
+    <div class="hint" id="pes_filtro_nota" style="flex:1;margin:0"></div>
+  </div>
   <div class="grid g4" id="k_pes" style="margin-bottom:16px"></div>
 
   <details class="bloco" id="bl_pes_quadro" open>

@@ -1,9 +1,9 @@
-import { GRUPOS_ORD, deptIdx, janelaDaLinha, necessidadePorAtividade, visaoPlanilha } from '../calculo/pessoas.js';
+import { GRUPOS_ORD, departamentosDe, deptIdx, filtrarPessoas, janelaDaLinha, necessidadePorAtividade, visaoPlanilha } from '../calculo/pessoas.js';
 import { perTag } from '../nucleo/calendario.js';
 import { diasDoMes } from '../calculo/atividade.js';
 import { ajusteQuadro, ativoDe, quadroBase } from '../calculo/quadro.js';
 import { CFG } from '../dados/cfg.js';
-import { QUADRO } from '../nucleo/estado.js';
+import { PES_DEPT, PES_GRUPO, QUADRO, setPES_DEPT } from '../nucleo/estado.js';
 import { MESES, NM, clsMes } from '../nucleo/calendario.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
 import { barras, serieDoPeriodo, kpi, maxSel, somaSel, tdMeses, th, thMeses } from './componentes.js';
@@ -117,9 +117,33 @@ function pintarQuadro(R){
     + (tot.contratar>0 ? ` · faltam ${fmt(tot.contratar)}` : "");
 }
 
+/* Filtro de quadro e departamento. O departamento escolhido tem de pertencer
+   ao quadro escolhido: trocar de quadro com um departamento de outro volta o
+   departamento para "todos". O confronto com o quadro ativo não filtra -- o
+   ativo do ERP é por função, sem departamento, e comparar a necessidade de um
+   departamento com o ativo da função inteira diria que sobra gente. */
+function pintarFiltroPessoas(R){
+  const ds = departamentosDe(R.PS, PES_GRUPO);
+  if(PES_DEPT !== "todos" && !ds.some(d=>d.dept===PES_DEPT)) setPES_DEPT("todos");
+  const grupos = GRUPOS_ORD.filter(g=>R.PS.itens.some(it=>it.grupo===g));
+  $("#sel_pes_grupo").innerHTML = `<option value="todos">Todos os quadros</option>` +
+    grupos.map(g=>`<option value="${esc(g)}"${g===PES_GRUPO?" selected":""}>${esc(NOME_GRUPO[g]||g)}</option>`).join("");
+  $("#sel_pes_dept").innerHTML = `<option value="todos">Todos os departamentos${PES_GRUPO!=="todos"?" do quadro":""}</option>` +
+    ds.map(d=>`<option value="${esc(d.dept)}"${d.dept===PES_DEPT?" selected":""}>${esc(d.dept)}${d.dcod?" ("+esc(d.dcod)+")":""}${
+      PES_GRUPO==="todos"?" — "+esc(CURTO_GRUPO[d.grupo]||d.grupo):""}</option>`).join("");
+  const ativo = PES_GRUPO!=="todos" || PES_DEPT!=="todos";
+  $("#btn_pes_limpar").hidden = !ativo;
+  $("#pes_filtro_nota").textContent = ativo
+    ? "Filtrado: "+[PES_GRUPO!=="todos" ? (NOME_GRUPO[PES_GRUPO]||PES_GRUPO) : "", PES_DEPT!=="todos" ? PES_DEPT : ""].filter(Boolean).join(" › ")
+      +". O confronto com o quadro ativo (primeira página) segue sem filtro: o ativo do ERP é por função."
+    : "";
+  return ativo;
+}
+
 function pintarPessoas(R){
   pintarQuadro(R);
-  const S = R.PS, SEL = R.SEL;
+  pintarFiltroPessoas(R);
+  const S = filtrarPessoas(R.PS, PES_GRUPO, PES_DEPT), SEL = R.SEL;
   /* Tudo abaixo no padrão das planilhas da controladoria (Painel das
      justificativas de folha e Resumo de MDO): grupo -> departamento -> função,
      o ranking por função e a evolução mensal, um mês por linha. O recorte é o
@@ -155,8 +179,11 @@ function pintarPessoas(R){
 
   // conferência com as outras abas
   const difCusto = S.custo - R.mdoTotal;
-  $("#pes_conc").innerHTML = `Custo de mão de obra desta aba no ano: <b>${brl(S.custo)}</b> — aba Custos: ${brl(R.mdoTotal)}
-    ${Math.abs(difCusto)<=1?"(confere)":"(diferença de "+brl(difCusto)+")"}. <b>Qtde</b> é a média mensal de pessoas no
+  $("#pes_conc").innerHTML = (S.filtrado
+    ? `Filtrado: custo de mão de obra no ano de <b>${brl(S.custo)}</b>, ${R.mdoTotal>0?fmt(S.custo/R.mdoTotal*100,1):"0"}% dos
+       ${brl(R.mdoTotal)} do plano (sem filtro, esta aba confere com a aba Custos).`
+    : `Custo de mão de obra desta aba no ano: <b>${brl(S.custo)}</b> — aba Custos: ${brl(R.mdoTotal)}
+    ${Math.abs(difCusto)<=1?"(confere)":"(diferença de "+brl(difCusto)+")"}.`)+` <b>Qtde</b> é a média mensal de pessoas no
     período; <b>pico</b>, o mês que mais pede. O ADM agrícola e a oficina vêm do quadro previsto da controladoria (aba Mão
     de Obra); motoristas, operadores e rurais, das atividades. Efetivo da Capa: ${fmt(R.efetivoTotal)} pessoas, sem os
     ${fmt(S.apoio)} operadores dos equipamentos de apoio. A reserva do transporte e o apoio da frente entram na quantidade

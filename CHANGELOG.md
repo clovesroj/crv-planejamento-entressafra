@@ -1,5 +1,31 @@
 # Histórico de mudanças
 
+## 2.45.0 — 2026-09-23 · Resumo de Pessoas: filtro por quadro e departamento
+
+No topo do Resumo de Pessoas, dois filtros:
+
+- **Quadro** — Operacional (atividades do plano), ADM agrícola, Oficina ou FAT;
+- **Departamento** — a lista se ajusta ao quadro escolhido (ex.: só os 19
+  departamentos da oficina); trocar de quadro volta o departamento para "todos".
+
+O filtro vale para os cartões do topo, a página por departamento e função, a
+evolução mensal, o gráfico e o **detalhe por origem**. O botão "Limpar filtro"
+aparece quando há filtro, e uma nota diz o que está filtrado. É só visão: não é
+gravado e fica liberado para quem só visualiza.
+
+O confronto com o quadro ativo (primeira página) **não** é filtrado: o quadro
+ativo do ERP é por função, sem departamento, e comparar a necessidade de um
+departamento com o ativo da função inteira diria que sobra gente.
+
+Filtrada, a nota de conferência diz quanto o recorte é do custo de mão de obra
+do plano, em vez de acusar diferença com a aba Custos. A conta do filtro é a
+mesma do Resumo inteiro (`resumirPessoas` e `filtrarPessoas`, em
+`calculo/pessoas.js`): filtrado na Oficina, o custo é exatamente o do quadro da
+oficina no motor.
+
+Nenhum número muda. 54 invariantes sem falha; 29 abas, rastros e relatórios sem
+erro.
+
 ## 2.44.2 — 2026-09-23 · Quadro ADM e oficina: títulos sem a sigla "AA"
 
 Na página "Quadro ADM e oficina" (aba Mão de Obra) e no relatório do quadro, os
