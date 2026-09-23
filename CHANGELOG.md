@@ -1,5 +1,26 @@
 # Histórico de mudanças
 
+## 2.36.1 — 2026-09-23 · Alteração não confirmada sobrevive ao recarregar
+
+Célula apagada no Plano Operacional voltava depois do F5. Não era a tela: era a
+gravação que nunca chegou ao servidor, e ninguém guardava o que ficou pelo
+caminho. Dois furos, o mesmo sintoma:
+
+- **A gravação em voo não contava como pendente.** `gravar()` zerava o sinal de
+  "há coisa para salvar" *antes* de esperar o servidor. Entre o disparo e a
+  resposta — no Render, com plano grande, mais de um segundo — a alteração só
+  existia na requisição; recarregar ali a cancelava, e o disparo de emergência
+  do `pagehide` saía na primeira linha porque o sinal já estava desligado.
+- **O beacon recusado caía num fetch que a navegação cancela.** `sendBeacon` não
+  aceita payload grande, e uma sessão que passou pelo cadastro de insumos manda
+  bem mais do que o limite.
+
+Agora a alteração é **marcada no navegador antes de ir ao fio** e só sai de lá
+quando o servidor confirma. Na abertura seguinte, o que ficou pendente é
+comparado com o documento do servidor: se ele já tem, a marca é apagada em
+silêncio; se não tem, é reaplicado, reenviado e anunciado. Cobre também rede
+fora, aba fechada no meio e navegador matando a aba.
+
 ## 2.36.0 — 2026-09-23 · Cada leitura na tela que responde por ela
 
 Os três dimensionamentos na mesma tela viraram três telas empilhadas numa
