@@ -195,7 +195,7 @@ function pintarFito(R){
 
   const tercLinhas = todas.filter(r => r.cTerc > 0);
   $("#t_fito_terc").innerHTML = !tercLinhas.length ? '<p class="calc">Nenhum serviço de terceiro lançado.</p>' :
-    th([["Atividade"],["Área/ano (ha)",1],["Tarifa (R$/ha)",1],["Valor (R$)",1]]) + "<tbody>" +
+    th([["Atividade"],["Área/ano (ha)",1],["Valor (R$/ha)",1],["Valor (R$)",1]]) + "<tbody>" +
     tercLinhas.map(r => `<tr><td>${esc(r.a.cod)} — ${esc(r.a.nome)}</td><td class="num">${fmt(r.total)}</td>
       <td class="num calc">${brl(tarifaTercDe(r.a.cod), 2)}</td>
       <td class="num tot">${brl(r.cTerc)}</td></tr>`).join("") +

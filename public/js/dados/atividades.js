@@ -35,11 +35,16 @@
         passam a ir junto com a A10, na plantadora; a A19 vai para PLANTIO
      6  A10 (Plantio) passa de 2 para 1 operador por equipamento: a plantadora
         e de um operador
+     7  A54-A63: operacoes que o ERP aponta e o plano nao tinha — limpeza de
+        area, sistematizacao, sulcacao, cobricao do plantio manual, plantio com
+        semeadeira, maturador, inibidor de florescimento, fungicida,
+        micronutrientes e conservacao de estradas e cercas. O codigo de cada uma
+        no ERP esta em dados/atividades-erp.js
    So tirar atividade daqui nao a tira do documento ja salvo (ATVX): ela
    deixa de ser "do sistema" e ganha o botao Remover na aba Cadastro de
    Atividades. Para ela sumir de todo plano gravado, entra tambem em
    REMOCOES_ATIVIDADE e a versao sobe. */
-export const ATIVIDADES_V = 6;
+export const ATIVIDADES_V = 7;
 
 /* Correcao de campo de atividade que JA existe no documento salvo.
    O merge da base so acrescenta atividade nova; nunca mexe em atividade que ja
@@ -153,5 +158,26 @@ export const ATIVIDADES = [
   {"cod":"A50","etapa":"TRATOS CULTURAIS","nome":"Cigarrinha 1ª Aplicação Terrestre","un":"ha/mês","rend":2.5,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"cultura":"Soca"},
   {"cod":"A51","etapa":"TRATOS CULTURAIS","nome":"Cigarrinha 2ª Aplicação Terrestre","un":"ha/mês","rend":2.5,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"cultura":"Soca"},
   {"cod":"A52","etapa":"TRATOS CULTURAIS","nome":"Cigarrinha 1ª Aplicação Aérea","un":"ha/mês","rend":1,"maq":"Aeronave / Drone (terceiro)","imp":"----","ops":0,"turnos":1,"util":1,"cultura":"Soca"},
+  /* ===== Operacoes que o ERP aponta e o plano nao tinha (ATIVIDADES_V 7) =====
+     Rendimento, maquina e implemento sao o padrao de partida, do porte de
+     equipamento que a operacao usa hoje; quem monta a frente ajusta no
+     Dimensionamento, como em qualquer atividade. Enquanto nao houver area ou
+     tonelada lancada no Plano Operacional, nenhuma delas custa nada.
+     O codigo de cada uma na Plataforma Controladoria esta no de-para
+     (dados/atividades-erp.js). */
+  {"cod":"A54","etapa":"PREPARO DE SOLO","nome":"Limpeza de área e supressão de vegetação","un":"ha/mês","rend":0.3,"maq":"Escavadeira hidráulica","imp":"----","ops":1,"turnos":2,"util":0.8},
+  {"cod":"A55","etapa":"PREPARO DE SOLO","nome":"Sistematização de área","un":"ha/mês","rend":0.5,"maq":"Motoniveladora","imp":"----","ops":1,"turnos":2,"util":0.8},
+  {"cod":"A56","etapa":"PLANTIO","nome":"Sulcação","un":"ha/mês","rend":0.9,"maq":"Trator 4x4 230 CV","imp":"Sulcador adubador 5 linhas","ops":1,"turnos":2,"util":0.9},
+  {"cod":"A57","etapa":"PLANTIO","nome":"Cobrição do plantio manual","un":"ha/mês","rend":1.2,"maq":"Trator 4x4 150 CV","imp":"Cobridor de sulco","ops":1,"turnos":2,"util":0.85},
+  {"cod":"A58","etapa":"PLANTIO","nome":"Plantio com semeadeira","un":"ha/mês","rend":0.8,"maq":"Trator 4x4 230 CV","imp":"Semeadeira distribuidora de cana","ops":1,"turnos":2,"util":1},
+  {"cod":"A59","etapa":"TRATOS CULTURAIS","nome":"Aplicação de maturador","un":"ha/mês","rend":1,"maq":"Aeronave / Drone (terceiro)","imp":"----","ops":0,"turnos":1,"util":1,"modoOn":true,"cultura":"Soca"},
+  {"cod":"A60","etapa":"TRATOS CULTURAIS","nome":"Aplicação de inibidor de florescimento","un":"ha/mês","rend":1,"maq":"Aeronave / Drone (terceiro)","imp":"----","ops":0,"turnos":1,"util":1,"modoOn":true,"cultura":"Soca"},
+  {"cod":"A61","etapa":"TRATOS CULTURAIS","nome":"Aplicação de fungicida","un":"ha/mês","rend":1,"maq":"Aeronave / Drone (terceiro)","imp":"----","ops":0,"turnos":1,"util":1,"modoOn":true,"cultura":"Soca"},
+  {"cod":"A62","etapa":"TRATOS CULTURAIS","nome":"Aplicação de micronutrientes","un":"ha/mês","rend":1,"maq":"Aeronave / Drone (terceiro)","imp":"----","ops":0,"turnos":1,"util":1,"modoOn":true,"cultura":"Soca"},
+  /* Estrada e cerca se medem em quilometro, mas a unidade do cadastro so
+     conhece ha e ton, e o que nao e ha entra como TONELADA no rateio das etapas
+     (calculo/index.js). Fica em ha/mes, como o Reflorestamento e o Apoio
+     operacional, que tambem nao sao area de cana. */
+  {"cod":"A63","etapa":"APOIO E CONSERVAÇÃO","nome":"Conservação de estradas e cercas","un":"ha/mês","rend":0.6,"maq":"Motoniveladora","imp":"----","ops":1,"turnos":2,"util":0.7},
   {"cod":"A53","etapa":"TRATOS CULTURAIS","nome":"Cigarrinha 2ª Aplicação Aérea","un":"ha/mês","rend":1,"maq":"Aeronave / Drone (terceiro)","imp":"----","ops":0,"turnos":1,"util":1,"cultura":"Soca"}
 ];

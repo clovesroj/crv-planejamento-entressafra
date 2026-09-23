@@ -2,7 +2,7 @@ import { MESES, NM } from '../nucleo/calendario.js';
 import { DIESEL_MES, P } from '../nucleo/estado.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
 import { consumoDe, velPadrao } from '../calculo/consumo.js';
-import { barras, kpi, somaSel, tdMeses, th, thMeses } from './componentes.js';
+import { barras, serieDoPeriodo, kpi, somaSel, tdMeses, th, thMeses } from './componentes.js';
 
 /* ---------- COMBUSTÍVEL ---------- */
 function pintarCombustivel(R){
@@ -39,7 +39,7 @@ function pintarCombustivel(R){
   if(C.litrosIrrig>0)
     tm += linhaTab("Irrigação com motobomba a diesel (L) — custo em Irrigação", C.litrosIrrigMes, v=>fmt(v));
   $("#t_comb_mes").innerHTML = tm + "</tbody>";
-  barras($("#ch_comb"), MESES.map((m,i)=>({l:m, v:litrosMes[i]})), "#2A57A0", "L");
+  barras($("#ch_comb"), serieDoPeriodo(litrosMes, SEL), "#2A57A0", "L");
 
   const et = Object.entries(R.etapas).filter(([,d])=>d.litros>0).sort((a,b)=>b[1].litros-a[1].litros);
   const lEt = et.reduce((s,[,d])=>s+d.litros,0), cEt = et.reduce((s,[,d])=>s+d.diesel,0);

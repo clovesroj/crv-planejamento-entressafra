@@ -1,13 +1,16 @@
 import { DIM, DIM_DET } from '../nucleo/estado.js';
-import { $, brl, fmt } from '../nucleo/formato.js';
+import { $, brl, esc, fmt } from '../nucleo/formato.js';
+import { MESES, NM, clsMes } from '../nucleo/calendario.js';
 
 import { celulaBusca, ordenarPorEtapa, registrarCombo, th } from './componentes.js';
 import { funcaoItens, funcaoRotulo, funcaoValor } from './plano.js';
 import { ESCALAS } from '../dados/escalas.js';
-
-registrarCombo("funcao", funcaoItens, funcaoRotulo, funcaoValor);
+import { erpDe } from '../dados/atividades-erp.js';
+import { apoioDaAtividade } from '../calculo/apoio-frente.js';
 import { ativoDe, quadroBase } from '../calculo/quadro.js';
 import { criterioMensal, frotaDaAtividade, modoLiberado, pessoasDaAtividade, temCriterioMensal } from '../calculo/atividade.js';
+
+registrarCombo("funcao", funcaoItens, funcaoRotulo, funcaoValor);
 
 /* ---------- DIMENSIONAMENTO ---------- */
 /* Botao do criterio mensal. O ponto avisa que algum mes ja foge do padrao da
@@ -17,6 +20,13 @@ import { criterioMensal, frotaDaAtividade, modoLiberado, pessoasDaAtividade, tem
    modal -- e a pergunta que se faz percorrendo a lista, nao parando nela. */
 const MES_ABERTO = {};
 function alternarMesLinha(cod){ if(MES_ABERTO[cod]) delete MES_ABERTO[cod]; else MES_ABERTO[cod]=true; }
+/* Frente aberta na tabela: tudo o que aquela atividade precisa para acontecer —
+   a maquina que faz (nucleo) e a estrutura de apoio (pipa, area de vivencia,
+   auxiliar). E aqui que se lanca QUANTAS de cada uma, porque e aqui que se
+   dimensiona a atividade; no Plano Operacional a mesma frente aparece so para
+   leitura. */
+const FRENTE_ABERTA = {};
+function alternarFrenteLinha(cod){ if(FRENTE_ABERTA[cod]) delete FRENTE_ABERTA[cod]; else FRENTE_ABERTA[cod]=true; }
 
 const btnMes = cod => `<button class="btn xs" data-rendmes="${cod}"
   title="Critério por mês: produção, frota, disponibilidade e utilização">${
@@ -76,7 +86,9 @@ function pintarDim(R){
             <span class="dim-val" title="${F.difere
               ? `Frota do mês que mais pede (${F.mes}): ${fmt(F.pico)}. Na média da janela dá ${fmt(F.media)}, mas média não estaciona no pátio — quem tem de existir é a do mês cheio. É a média que o motor usa para ratear custo. Ajuste mês a mês no botão mês.`
               : `Sai do critério por mês. Ajuste mês a mês no botão mês.`}">${F.pico||"—"}</span>
-            ${F.acima ? `<span class="badge b-warn" title="A média da janela é ${fmt(F.media)}">pico ${F.mes}</span>` : ""}
+            ${temFrente(r) ? `<button class="btn xs" data-dimfrente="${r.a.cod}"
+              title="As atividades deste plano: a que faz a operação e as de apoio que ela precisa"
+              aria-expanded="${FRENTE_ABERTA[r.a.cod]?"true":"false"}">atividades ${FRENTE_ABERTA[r.a.cod]?"▴":"▾"}</button>` : ""}
             <button class="btn xs" data-dimdet="${r.a.cod}" data-aba="frota">detalhe ›</button>
           </div></td>
         <td>
@@ -84,9 +96,10 @@ function pintarDim(R){
             <span class="dim-val" title="${PE.difere
               ? `Equipe do mês que mais pede (${PE.mes}): ${fmt(PE.pico)} pessoas, para a frota daquele mês. Na média da janela dá ${fmt(PE.media)}, que é o efetivo com que o motor paga a folha. Ajuste mês a mês no botão mês.`
               : `Frota × operadores × turnos × fator de escala.`}">${PE.pico||"—"}</span>
-            ${PE.acima ? `<span class="badge b-warn" title="Na média da janela são ${fmt(PE.media)}">pico ${PE.mes}</span>` : ""}
             <button class="btn xs" data-dimdet="${r.a.cod}" data-aba="pessoas">detalhe ›</button>
-          </div></td></tr>` + (MES_ABERTO[r.a.cod] ? linhaDosMeses(r, un) : "");
+          </div></td></tr>`
+        + (MES_ABERTO[r.a.cod] ? linhaDosMeses(r, un) : "")
+        + (FRENTE_ABERTA[r.a.cod] ? linhaDaFrente(r) : "");
     }).join("")+
     `<tr><td class="tot" colspan="4">TOTAL DAS ATIVIDADES</td>
      <td class="tot">${fmt(L.reduce((s,r)=>s+r.horas,0))} h</td>
@@ -95,6 +108,31 @@ function pintarDim(R){
        fmt(L.reduce((s,r)=>s+pessoasDaAtividade(r).pico,0))}</td></tr></tbody>`;
 
   $("#bl_ativ_sub").textContent = `${R.L.filter(r=>r.total>0).length} de ${R.L.length} atividades · ${fmt(R.horasT)} horas`;
+  pintarApoioOper(R);
+}
+
+/* ---------- MAO DE OBRA DE APOIO OPERACIONAL ----------
+   Gente que a operacao precisa e que nao sai de atividade nenhuma. Uma linha
+   por funcao e frente, com os meses em que vale; o custo vem de
+   calculo/mao-de-obra.js (apoioOperCalc) e as pessoas vao para a necessidade
+   do Resumo de Pessoas. */
+function pintarApoioOper(R){
+  const M = R.MOA || {linhas:[], qtdMes:Array(NM).fill(0), total:0, pico:0};
+  $("#t_moa").innerHTML = th([["Função"],["Frente / descrição"],["Pessoas",1],...MESES.map((m,j)=>[m,1,clsMes(j)]),
+      ["Custo mensal por pessoa",1],["Custo no período",1],[""]])+"<tbody>"+
+    (M.linhas.length ? M.linhas.map(l=>`<tr>
+      <td>${celulaBusca("funcao", l.fcod, `data-moaf="${l.ix}"`)}</td>
+      <td><input data-moa="${l.ix}" data-f="frente" value="${esc(l.frente)}" placeholder="ex.: fiscal da frente 1" style="min-width:170px;text-align:left"></td>
+      <td class="num"><input data-moa="${l.ix}" data-f="qtd" value="${l.qtd||""}" inputmode="decimal" style="width:60px"></td>` +
+      l.on.map((b,j)=>`<td class="num ${clsMes(j)}"><input type="checkbox" data-moam="${l.ix}" data-m="${j}"${b?" checked":""}
+        title="${MESES[j]}"></td>`).join("") +
+      `<td class="num calc" title="Salário, encargos e benefícios da função, da aba Mão de Obra">${brl(l.custoMensal)}</td>
+      <td class="num tot">${l.nMeses ? brl(l.total) : '<span class="badge b-warn">sem mês</span>'}</td>
+      <td><button class="btn d" data-moarm="${l.ix}">Remover</button></td></tr>`).join("")
+      : `<tr><td colspan="${NM+6}" class="calc">Nenhuma mão de obra de apoio lançada. Use o botão abaixo para incluir.</td></tr>`) +
+    `<tr><td class="tot" colspan="2">TOTAL DO APOIO OPERACIONAL</td><td class="num tot">${fmt(M.pico)}</td>` +
+    M.qtdMes.map((q,j)=>`<td class="num tot ${clsMes(j)}">${q?fmt(q):"—"}</td>`).join("") +
+    `<td></td><td class="num tot">${brl(M.total)}</td><td></td></tr></tbody>`;
 }
 
 
@@ -105,6 +143,91 @@ function pintarDim(R){
    frota costuma querer conferir o efetivo logo em seguida, e voltar a tabela
    para clicar de novo seria o mesmo vai e volta que tirou as colunas daqui. */
 const ABAS_DET = [["oper","Operação"],["frota","Frota"],["pessoas","Pessoas"]];
+
+/* Tudo o que a atividade precisa para acontecer, numa linha aberta: o NUCLEO
+   (a maquina que faz a operacao, com a frota que o dimensionamento calculou) e
+   o APOIO (pipa, area de vivencia, auxiliar rural, onibus), com a quantidade
+   lancada aqui. E o plano da frente inteira, no lugar em que a frente e
+   dimensionada — o Plano Operacional mostra a mesma composicao so para leitura.
+
+   Item de gente conta por TURNO: dois auxiliares numa frente de tres turnos sao
+   seis pessoas. Item de estrutura (area de vivencia, gerador) tem unidade e nao
+   tem gente. */
+function temFrente(r){ const E = erpDe(r.a.cod); return !!(E.nucleo.length || E.apoio.length); }
+
+/* Mes a mes de um item da frente, aberto na propria linha dele — o mesmo chip
+   do mes da atividade, com a quantidade daquele item em cada mes. */
+const FRENTE_MES = {};
+function alternarMesItem(chave){ if(FRENTE_MES[chave]) delete FRENTE_MES[chave]; else FRENTE_MES[chave]=true; }
+
+/* Tudo o que a atividade precisa para acontecer, em LINHA, nas mesmas colunas
+   da atividade: o NUCLEO (a maquina que faz, com a frota que o dimensionamento
+   calculou) e o APOIO (pipa, area de vivencia, onibus, auxiliar), com a
+   quantidade lancada na coluna Frota e o efetivo saindo dela.
+
+   Em linha, e nao em cartao, porque e assim que se preenche uma tabela: a
+   coluna Frota e a mesma da atividade, o botao de mes abre os meses do item, e
+   o olho desce a coluna em vez de caçar campo dentro de cartao.
+
+   Item de gente (auxiliar rural) conta por TURNO: dois auxiliares numa frente
+   de tres turnos sao seis pessoas. "sem gente" tira o item da conta de pessoal
+   sem tirar o equipamento — area de vivencia e gerador ja nascem assim. */
+function linhaDaFrente(r){
+  const E = erpDe(r.a.cod);
+  const AP = apoioDaAtividade(r);
+  const porErp = Object.fromEntries(AP.map(x=>[x.erp, x]));
+  const dim = DIM[r.a.cod] || {};
+  const semVolume = !(r.total > 0);
+  const un = r.a.un.split("/")[0];
+  const linhaItem = (e, nucleo) => {
+    const x = porErp[e.cod];
+    const chave = r.a.cod+"|"+e.cod;
+    const lanc = (dim.apoio||{})[e.cod];
+    const meses = x ? x.qtdMes : [];
+    const temMes = meses.some(v=>v>0);
+    const frota = nucleo
+      ? `<span class="dim-val calc" title="Vem do dimensionamento da atividade">${fmt(frotaDaAtividade(r).pico)}</span>`
+      : `<input data-apfr="${esc(r.a.cod)}" data-erp="${esc(e.cod)}" value="${lanc||""}"
+           placeholder="1" inputmode="decimal"
+           title="${x && x.tipo==="pessoa" ? "Pessoas por turno nesta frente" : "Equipamentos desta frente"}">`;
+    const efetivo = nucleo
+      ? `<span class="dim-val calc">${fmt(pessoasDaAtividade(r).pico)}</span>`
+      : `<span class="dim-val ${x && x.pessoas ? "" : "calc"}">${x ? fmt(x.pessoas) : "—"}</span>
+         <label class="dim-sp" title="Equipamento sem gente escalada — continua contando como frota e sai da conta de pessoal">
+           <input type="checkbox" data-apsp="${esc(r.a.cod)}" data-erp="${esc(e.cod)}"
+             ${x && !x.temGente ? "checked" : ""}> sem gente</label>`;
+    return `<tr class="sub frente-linha">
+      <td class="calc">${esc(e.cod)}</td>
+      <td class="calc">${nucleo?"":"↳ "}${esc(e.nome)}
+        <span class="badge ${nucleo?"b-ok":"b-warn"}">${nucleo?"núcleo":"apoio"}</span></td>
+      <td class="calc">${e.esp.length?"esp. "+e.esp.map(esc).join(", "):"—"}</td>
+      <td>${nucleo
+        ? `<div class="dim-cel"><span class="dim-val calc">${fmt(r.total)}</span><span class="dim-un">${un}</span></div>`
+        : '<span class="calc">—</span>'}</td>
+      <td><div class="dim-cel">${nucleo
+        ? `<span class="dim-val">${fmt(r.rend,2)}</span><span class="dim-un">${un}/h</span>
+           ${btnMes(r.a.cod)}
+           <button class="btn xs" data-dimdet="${r.a.cod}" data-aba="oper">detalhe ›</button>`
+        : (temMes
+          ? `<button class="btn xs" data-apmes="${esc(chave)}" aria-expanded="${FRENTE_MES[chave]?"true":"false"}"
+               title="Mês a mês deste item, na janela do plano">mês ${FRENTE_MES[chave]?"▴":"▾"}</button>`
+          : '<span class="calc">—</span>')}</div></td>
+      <td><div class="dim-cel">${frota}</div></td>
+      <td><div class="dim-cel">${efetivo}</div></td></tr>`
+      + (FRENTE_MES[chave] && x ? mesesDoItem(x) : "");
+  };
+  const cabeca = `<tr class="sub frente-cab"><td colspan="7"><b>Atividades do plano de ${esc(r.a.nome)}</b>
+    <span class="calc">— a que faz a operação e as de apoio. Quantidade em branco vale 1.${
+      semVolume ? " Sem volume lançado no Plano Operacional, este plano ainda não conta." : ""}</span></td></tr>`;
+  return cabeca + E.nucleo.map(e=>linhaItem(e,true)).join("") + E.apoio.map(e=>linhaItem(e,false)).join("");
+}
+
+function mesesDoItem(x){
+  const chips = x.qtdMes.map((v,i)=> v>0
+    ? `<span class="dim-mes"><b>${MESES[i]}</b><span>${fmt(v)} ${x.tipo==="pessoa"?"por turno":"equip."}</span>
+       <span class="calc">${x.pessoasMes[i]?fmt(x.pessoasMes[i])+" pessoas":"sem gente"}</span></span>` : "").join("");
+  return `<tr class="sub"><td colspan="7"><div class="dim-meses">${chips || '<span class="calc">Sem mês com volume na frente.</span>'}</div></td></tr>`;
+}
 
 /* Um chip por mes com lancamento: mes, volume, frota e pessoas daquele mes.
    Mes sem volume nao entra -- listar doze meses para mostrar tres seria o
@@ -252,4 +375,4 @@ function pintarDimDetalhe(R){
   if(alvo) alvo.scrollIntoView({block:"start"});
 }
 
-export { alternarMesLinha, pintarDimDetalhe, pintarDim };
+export { alternarFrenteLinha, alternarMesItem, alternarMesLinha, pintarDimDetalhe, pintarDim };

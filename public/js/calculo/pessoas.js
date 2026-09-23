@@ -1,4 +1,5 @@
 import { criterioMensal } from './atividade.js';
+import { apoioDaAtividade } from './apoio-frente.js';
 import { CFG } from '../dados/cfg.js';
 import { CATEGORIAS_FUNCAO, CATEGORIA_OUTRAS } from '../dados/mao-de-obra.js';
 import { MESES, NM } from '../nucleo/calendario.js';
@@ -6,7 +7,9 @@ import { num } from '../nucleo/formato.js';
 import { ETAPAS_ORD } from './arrendamento.js';
 
 /* ================== RESUMO DE PESSOAS ================== */
-const DEPTS_ORD = [...ETAPAS_ORD, "MANUTENÇÃO", "ESTRUTURA AGRÍCOLA"];
+const DEPT_APOIO_OPER = "APOIO OPERACIONAL";
+const DEPT_FAT = "FAT — FORA DA OPERAÇÃO";
+const DEPTS_ORD = [...ETAPAS_ORD, DEPT_APOIO_OPER, "MANUTENÇÃO", "ESTRUTURA AGRÍCOLA", DEPT_FAT];
 function deptIdx(d){ const i = DEPTS_ORD.indexOf(d); return i<0 ? 99 : i; }
 // Reúne cada fonte de efetivo do plano numa lista única (departamento, função, pessoas e custo por mês).
 // Usa os mesmos números das abas de origem, para o total conferir com a mão de obra da aba Custos.
@@ -27,9 +30,11 @@ function pessoasCalc(R){
   // e por ele que a necessidade de gente volta a conversar com o Plano
   // Operacional e com o Dimensionamento. Apoio, manutencao e estrutura nao tem
   // atividade, e ficam sem codigo.
-  const add = (dept, fcod, origem, qtd, qtdMes, custoMes, cod, janela) => itens.push({dept, fcod, fnome:nomeF(fcod), origem,
+  // `fora` marca quem conta no efetivo e no custo mas nao e necessidade da
+  // operacao nem esta disponivel para ela: o pessoal no FAT
+  const add = (dept, fcod, origem, qtd, qtdMes, custoMes, cod, janela, fora) => itens.push({dept, fcod, fnome:nomeF(fcod), origem,
     cod: cod || "", janela: janela || null, categoria: categoriaDaFuncao(nomeF(fcod)),
-    qtd, qtdMes, custoMes, custo:custoMes.reduce((s,x)=>s+x,0)});
+    qtd, qtdMes, custoMes, custo:custoMes.reduce((s,x)=>s+x,0), fora: !!fora});
 
   // atividades do plano: a equipe conta nos meses com quantidade; o custo segue a quantidade do mês
   R.L.forEach(r=>{
@@ -51,6 +56,21 @@ function pessoasCalc(R){
           r.janela ? {fonte:r.janela.fonte, ini:r.janela.ini||"", fim:r.janela.fim||""} : null);
     });
   });
+  /* Apoio da frente: a gente que a operacao precisa e que nao tem area para
+     lancar — auxiliar rural, motorista da pipa, do onibus, do caminhao de
+     insumo. Vem do catalogo do ERP preso a atividade (calculo/apoio-frente.js)
+     e conta nos meses em que a frente roda. Entra SEM custo de mao de obra
+     proprio, como a reserva do transporte de cana logo abaixo: o caminhao pipa
+     e o onibus ja sao pagos nos Equipamentos de Apoio e no Transporte de
+     Pessoal, e somar de novo aqui pagaria a mesma gente duas vezes. */
+  R.L.forEach(r=>{
+    if(!(r.total > 0)) return;
+    apoioDaAtividade(r).forEach(x=>{
+      if(!(x.pessoas > 0)) return;
+      add(r.a.etapa, x.fcod, `${r.a.nome} · ${x.nome}`, x.pessoas, x.pessoasMes.slice(), fixo(0), r.a.cod,
+          r.janela ? {fonte:r.janela.fonte, ini:r.janela.ini||"", fim:r.janela.fim||""} : null);
+    });
+  });
   // reserva do transporte de cana que o efetivo total soma à parte (sem custo de MDO próprio no modelo)
   const fe = MP.fatorEscala, TR = R.TR;
   const extraTot = Math.ceil(TR.frota*fe);
@@ -69,10 +89,18 @@ function pessoasCalc(R){
   // estrutura agrícola indireta
   CFG.indiretos.forEach(i=>{ if(i.qtd>0)
     add("ESTRUTURA AGRÍCOLA", i.fcod, i.nome, i.qtd, fixo(i.qtd), fixo(i.qtd*(MP.custoFuncao[i.fcod]||{mensal:0}).mensal)); });
+  // apoio operacional lancado no Dimensionamento: necessidade nos meses marcados
+  ((R.MOA||{}).linhas||[]).forEach(l=>{ if(l.qtd>0 && l.nMeses>0)
+    add(DEPT_APOIO_OPER, l.fcod, l.frente || "Apoio operacional", l.qtd, l.qtdMes.slice(), l.mes.slice()); });
+  // FAT: somam no efetivo e no custo, fora da operacao
+  ((R.FT||{}).linhas||[]).forEach(l=>{ if(l.qtd>0 && l.nMeses>0)
+    add(DEPT_FAT, l.fcod, l.desc ? "FAT — "+l.desc : "FAT — contrato suspenso", l.qtd, l.qtdMes.slice(), l.mes.slice(),
+        "", null, true); });
 
-  const agrupa = chave => {
+  const operam = itens.filter(it=>!it.fora), noFat = itens.filter(it=>it.fora);
+  const agrupa = (chave, lista = itens) => {
     const g = {};
-    itens.forEach(it=>{
+    lista.forEach(it=>{
       const o = g[chave(it)] = g[chave(it)] || {qtd:0, custo:0, n:0, qtdMes:fixo(0), custoMes:fixo(0)};
       o.qtd+=it.qtd; o.custo+=it.custo; o.n++;
       it.qtdMes.forEach((v,i)=>{ o.qtdMes[i]+=v; o.custoMes[i]+=it.custoMes[i]; });
@@ -80,11 +108,20 @@ function pessoasCalc(R){
     Object.values(g).forEach(o=>{ o.pico=Math.max(...o.qtdMes); o.pessoasMes=o.qtdMes.reduce((s,x)=>s+x,0); });
     return g;
   };
-  const qtdMes = MESES.map((m,i)=>itens.reduce((s,it)=>s+it.qtdMes[i],0));
+  /* qtdMes e porFun sao necessidade da operacao: o FAT fica fora deles, e o
+     confronto com o quadro o desconta do disponivel (ui/pessoas.js). O custo e
+     o efetivo total somam todo mundo, e por isso fecham com a mao de obra. */
+  const qtdMes = MESES.map((m,i)=>operam.reduce((s,it)=>s+it.qtdMes[i],0));
   const custoMes = MESES.map((m,i)=>itens.reduce((s,it)=>s+it.custoMes[i],0));
-  return {itens, porDept:agrupa(it=>it.dept), porFun:agrupa(it=>it.fcod), qtdMes, custoMes,
+  const fatMes = MESES.map((m,i)=>noFat.reduce((s,it)=>s+it.qtdMes[i],0));
+  const fatCustoMes = MESES.map((m,i)=>noFat.reduce((s,it)=>s+it.custoMes[i],0));
+  // porFunTodos: efetivo e custo por funcao com o FAT, para as tabelas que somam ao total
+  return {itens, porDept:agrupa(it=>it.dept), porFun:agrupa(it=>it.fcod, operam), porFunTodos:agrupa(it=>it.fcod), qtdMes, custoMes,
           qtd: itens.reduce((s,it)=>s+it.qtd,0), custo: custoMes.reduce((s,x)=>s+x,0),
-          apoio: R.AE.efetivo};
+          apoio: R.AE.efetivo,
+          fat: {porFun:agrupa(it=>it.fcod, noFat), qtdMes:fatMes, custoMes:fatCustoMes,
+                qtd: noFat.reduce((s,it)=>s+it.qtd,0), custo: fatCustoMes.reduce((s,x)=>s+x,0),
+                pico: Math.max(0,...fatMes)}};
 }
 
 
@@ -101,7 +138,8 @@ function pessoasCalc(R){
 function necessidadePorAtividade(PS){
   if(!PS || !PS.itens) return [];
   const g = {};
-  PS.itens.forEach(it=>{
+  // FAT nao e necessidade: nao entra nesta lista (ver pessoasCalc)
+  PS.itens.filter(it=>!it.fora).forEach(it=>{
     const k = [it.dept, it.cod, it.origem, it.fcod].join("|");
     const o = g[k] = g[k] || {dept:it.dept, cod:it.cod, origem:it.origem, fcod:it.fcod, fnome:it.fnome,
                               categoria:it.categoria, janela:it.janela,
@@ -134,4 +172,4 @@ function janelaDaLinha(l){
           dica: "meses com gente; a atividade não tem data lançada"};
 }
 
-export { DEPTS_ORD, categoriaDaFuncao, deptIdx, janelaDaLinha, necessidadePorAtividade, pessoasCalc };
+export { DEPTS_ORD, DEPT_APOIO_OPER, DEPT_FAT, categoriaDaFuncao, deptIdx, janelaDaLinha, necessidadePorAtividade, pessoasCalc };

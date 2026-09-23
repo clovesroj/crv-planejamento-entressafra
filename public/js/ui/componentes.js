@@ -22,8 +22,10 @@ const th=a=>`<thead><tr>${a.map(x=>{
    deixa de fechar na tela e quem lê some com a diferença. Daí somaSel() e
    maxSel(), que refazem o fechamento sobre os meses à mostra. */
 const thMeses = () => MESES.map((m,i)=>[m,1,clsMes(i)]);
-const tdMeses = (arr, f, cls="num calc") =>
-  arr.map((v,i)=>`<td class="${cls} ${clsMes(i)}">${f(v,i)}</td>`).join("");
+// rastroDe(v,i), opcional: chave do rastro de cada celula (clique e dica ao passar o mouse)
+const tdMeses = (arr, f, cls="num calc", rastroDe) =>
+  arr.map((v,i)=>{ const k = rastroDe ? rastroDe(v,i) : "";
+    return `<td class="${cls} ${clsMes(i)}"${k?` data-rastro="${k}"`:""}>${f(v,i)}</td>`; }).join("");
 /** Soma de uma série mensal restrita aos meses que o filtro deixa à mostra. */
 const somaSel = (arr, SEL) => SEL.meses.reduce((s,i)=>s+(+arr[i]||0), 0);
 /** Pico de uma série mensal dentro do período filtrado. */
@@ -130,9 +132,15 @@ function ligarBuscaSelect(buscaId, listaId, valorId, itens, rotulo, valorDe){
   if(!busca || !lista || !valor) return null;
   valorDe = valorDe || rotulo;
   let foco = -1;
+  // escolha vigente. Com o rotulo dela ainda na caixa, a lista mostra tudo: ele
+  // e o valor escolhido, nao um termo de busca — filtrar por ele deixava so a
+  // propria escolha na lista, e o que se digitava ia pro fim do rotulo e nao
+  // achava nada ("A10 — Plantio (vinculada)grad")
+  let atual = {valor:"", rotulo:""};
   const opcoes = termo => {
     const t = (termo||"").trim().toLowerCase();
-    return itens().filter(i => !t || rotulo(i).toLowerCase().includes(t));
+    const tudo = !t || termo === atual.rotulo;
+    return itens().filter(i => tudo || rotulo(i).toLowerCase().includes(t));
   };
   function pintar(){
     const op = opcoes(busca.value);
@@ -147,11 +155,22 @@ function ligarBuscaSelect(buscaId, listaId, valorId, itens, rotulo, valorDe){
   // tratamento redesenha a tela) continua funcionando sem saber que virou combobox
   function escolher(i){
     valor.value = valorDe(i); busca.value = rotulo(i); fechar();
+    atual = {valor: valor.value, rotulo: busca.value};
     valor.dispatchEvent(new Event("change", {bubbles:true}));
   }
   busca.addEventListener("input", ()=>{ foco = -1; valor.value = ""; pintar(); });
-  busca.addEventListener("focus", pintar);
-  busca.addEventListener("blur", ()=>setTimeout(fechar,150)); // da tempo do mousedown na lista rodar antes
+  // entrar na caixa seleciona o texto: digitar substitui a escolha em vez de
+  // emendar nela. O mouseup do clique desfaria a selecao, dai o par abaixo
+  let entrouNoClique = false;
+  busca.addEventListener("mousedown", ()=>{ entrouNoClique = document.activeElement !== busca; });
+  busca.addEventListener("mouseup", e=>{ if(entrouNoClique){ e.preventDefault(); entrouNoClique = false; } });
+  busca.addEventListener("focus", ()=>{ busca.select(); pintar(); });
+  busca.addEventListener("blur", ()=>setTimeout(()=>{   // da tempo do mousedown na lista rodar antes
+    fechar();
+    // saiu sem escolher: volta a escolha vigente, senao quem le o campo
+    // escondido (ex.: adicionar tratamento extra) ficaria sem valor
+    if(!valor.value){ valor.value = atual.valor; busca.value = atual.rotulo; }
+  },150));
   busca.addEventListener("keydown", e=>{
     const op = opcoes(busca.value);
     if(e.key==="ArrowDown"){ e.preventDefault(); foco = Math.min(foco+1, op.length-1); pintar(); }
@@ -165,13 +184,14 @@ function ligarBuscaSelect(buscaId, listaId, valorId, itens, rotulo, valorDe){
     escolher(opcoes(busca.value)[+item.dataset.ix]);
   });
   return {
-    limpar(){ busca.value = ""; valor.value = ""; fechar(); },
+    limpar(){ busca.value = ""; valor.value = ""; atual = {valor:"", rotulo:""}; fechar(); },
     // sincroniza a caixa com um valor que mudou por fora (ex.: repintar depois
     // do proprio "change" trocar o estado) -- sem disparar "change" de novo
     definir(v){
       valor.value = v;
       const item = itens().find(i=>valorDe(i)===v);
       busca.value = item ? rotulo(item) : "";
+      atual = {valor: v, rotulo: busca.value};
     },
   };
 }
@@ -203,10 +223,17 @@ function registrarCombo(nome, itens, rotulo, valorDe){
 /** Markup de uma célula pronta pra `registrarCombo(nome, ...)`.
     `dataAttrs` é a string de atributos (ex.: `data-ap="3" data-f="maq"`) que o
     campo escondido carrega -- os mesmos que o <select> substituído tinha.
-    `desabilitado` imita o <select disabled>: campo visível travado, sem lista. */
+    `desabilitado` imita o <select disabled>: campo visível travado, sem lista.
+    O campo visível nasce já com o RÓTULO do valor gravado, não o valor cru --
+    senão toda vez que render() recria a linha (inclusive logo depois de uma
+    escolha, pelo próprio "change" que a escolha dispara) o campo voltava a
+    mostrar só o código, até a próxima vez que alguém abrisse a caixa. */
 function celulaBusca(nome, valorAtual, dataAttrs, desabilitado){
+  const reg = REGISTROS_COMBO[nome];
+  const item = reg ? reg.itens(valorAtual).find(i=>reg.valorDe(i)===valorAtual) : null;
+  const rotuloAtual = item ? reg.rotulo(item) : (valorAtual || "");
   return `<span class="combo-cel" data-combo="${esc(nome)}">
-    <input type="text" class="combo-busca" value="${esc(valorAtual)}" autocomplete="off"
+    <input type="text" class="combo-busca" value="${esc(rotuloAtual)}" autocomplete="off"
            role="combobox" aria-expanded="false"${desabilitado?" disabled":""}>
     <input type="hidden" ${dataAttrs} value="${esc(valorAtual)}">
     <div class="lista-select" role="listbox" hidden></div></span>`;
@@ -220,10 +247,16 @@ function contextoComboCel(el){
   return { reg, busca: cel.querySelector(".combo-busca"), oculto: cel.querySelector("input[type=hidden]"),
            lista: cel.querySelector(".lista-select") };
 }
+// escolha vigente: com o rotulo dela ainda na caixa a lista mostra tudo, do
+// jeito que ligarBuscaSelect() ja faz pros pickers singleton -- ele e o valor
+// escolhido, nao um termo de busca, e filtrar por ele deixaria so ele mesmo
 function opcoesComboCel(ctx){
   const t = ctx.busca.value.trim().toLowerCase();
   const itens = ctx.reg.itens(ctx.oculto.value);
-  return t ? itens.filter(i=>ctx.reg.rotulo(i).toLowerCase().includes(t)) : itens;
+  if(!t) return itens;
+  const atual = itens.find(i=>ctx.reg.valorDe(i)===ctx.oculto.value);
+  if(atual && ctx.busca.value===ctx.reg.rotulo(atual)) return itens;
+  return itens.filter(i=>ctx.reg.rotulo(i).toLowerCase().includes(t));
 }
 function pintarComboCel(ctx){
   const op = opcoesComboCel(ctx);
@@ -250,9 +283,22 @@ function escolherComboCel(ctx, item){
   fecharComboCel(ctx);
   ctx.oculto.dispatchEvent(new Event("change", {bubbles:true}));
 }
+// entrar na caixa seleciona o texto: digitar substitui a escolha em vez de
+// emendar nela. O mouseup do clique desfaria a selecao, dai o par abaixo
+// (mesmo truque de ligarBuscaSelect() acima)
+let comboCelEntrouNoClique = false;
+document.addEventListener("mousedown", e=>{
+  if(!e.target.classList || !e.target.classList.contains("combo-busca")) return;
+  comboCelEntrouNoClique = document.activeElement !== e.target;
+});
+document.addEventListener("mouseup", e=>{
+  if(!e.target.classList || !e.target.classList.contains("combo-busca")) return;
+  if(comboCelEntrouNoClique){ e.preventDefault(); comboCelEntrouNoClique = false; }
+});
 document.addEventListener("focusin", e=>{
   if(!e.target.classList || !e.target.classList.contains("combo-busca")) return;
   const ctx = contextoComboCel(e.target); if(!ctx) return;
+  e.target.select();
   focoComboCel = -1; pintarComboCel(ctx);
 });
 document.addEventListener("input", e=>{
@@ -485,6 +531,14 @@ function reaplicarExportar(){
 }
 
 /* ---------- GRÁFICOS ---------- */
+/* Serie mensal de um grafico de barras, so com os meses do periodo escolhido
+   na barra do topo (Ano todo, Safra, Entressafra ou meses avulsos). As
+   tabelas ja escondiam as colunas fora do periodo; o grafico desenhava os doze
+   meses sempre, e "Entressafra" continuava mostrando abril a novembro. */
+function serieDoPeriodo(valores, SEL){
+  const idx = SEL && Array.isArray(SEL.meses) && SEL.meses.length ? SEL.meses : MESES.map((m,i)=>i);
+  return idx.map(i=>({l:MESES[i], v:+valores[i]||0}));
+}
 function barras(el,dados,cor,un){
   const W=760,H=210,ml=64,mb=34,mt=12,mr=10;
   const max=Math.max(...dados.map(d=>d.v),1), bw=(W-ml-mr)/dados.length;
@@ -498,6 +552,40 @@ function barras(el,dados,cor,un){
         <text x="${ml+i*bw+bw/2}" y="${ly}" text-anchor="middle" font-size="9" font-weight="700" fill="var(--ink)">${d.v>0?fmt(d.v/1000,0)+"k":""}</text>
         <text x="${ml+i*bw+bw/2}" y="${H-mb+14}" text-anchor="middle" font-size="9.5" fill="var(--grey)">${d.l}</text>`;});
   el.innerHTML=s+`</svg>`;
+}
+/* Custo mensal com a cor do periodo: safra no azul da marca, entressafra no
+   ambar -- as mesmas cores das etiquetas de periodo do app. So os meses do
+   recorte da barra do topo. Cada barra tem rastro (dica e clique): o calculo
+   do mes. A legenda traz o total e a media mensal de cada periodo. */
+const COR_PER = {safra:"var(--leaf)", entressafra:"var(--warn)"};
+function barrasPeriodo(el, legEl, valores, SEL, perDe){
+  const idx = SEL && SEL.meses && SEL.meses.length ? SEL.meses : MESES.map((m,i)=>i);
+  const dados = idx.map(i=>({i, l:MESES[i], v:+valores[i]||0, per:perDe(i)}));
+  const W=760,H=230,ml=64,mb=34,mt=16,mr=10;
+  const max=Math.max(...dados.map(d=>d.v),1), bw=(W-ml-mr)/Math.max(dados.length,1);
+  let s=`<svg viewBox="0 0 ${W} ${H}" class="chart" role="img" aria-label="Custo mensal por período">`;
+  for(let k=0;k<=4;k++){const y=mt+(H-mt-mb)*k/4,v=max*(1-k/4);
+    s+=`<line x1="${ml}" y1="${y}" x2="${W-mr}" y2="${y}" stroke="var(--line)"/>
+        <text x="${ml-7}" y="${y+4}" text-anchor="end" font-size="9.5" fill="var(--grey)">${fmt(v/1000)}k</text>`;}
+  // media mensal de cada periodo, tracejada, so no trecho dos seus meses
+  ["safra","entressafra"].forEach(p=>{
+    const ds = dados.filter(d=>d.per===p); if(!ds.length) return;
+    const med = ds.reduce((t,d)=>t+d.v,0)/ds.length, y = H-mb-(H-mt-mb)*(med/max);
+    const x1 = ml+dados.indexOf(ds[0])*bw, x2 = ml+(dados.indexOf(ds[ds.length-1])+1)*bw;
+    s+=`<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="${COR_PER[p]}" stroke-width="1.5" stroke-dasharray="5 4" opacity=".9"/>`;
+  });
+  dados.forEach((d,k)=>{const hh=(H-mt-mb)*(d.v/max),x=ml+k*bw+bw*.18,y=H-mb-hh, ly=Math.max(y-5,mt+9);
+    s+=`<g data-rastro="mes:${d.i}"><rect x="${ml+k*bw}" y="${mt}" width="${bw}" height="${H-mt-mb}" fill="transparent"/>
+        <rect x="${x}" y="${y}" width="${bw*.64}" height="${Math.max(hh,0)}" fill="${COR_PER[d.per]}" rx="2"/>
+        <text x="${ml+k*bw+bw/2}" y="${ly}" text-anchor="middle" font-size="9" font-weight="700" fill="var(--ink)">${d.v>0?fmt(d.v/1000,0)+"k":""}</text>
+        <text x="${ml+k*bw+bw/2}" y="${H-mb+14}" text-anchor="middle" font-size="9.5" fill="var(--grey)">${d.l}</text></g>`;});
+  el.innerHTML = s+`</svg>`;
+  if(legEl) legEl.innerHTML = ["safra","entressafra"].map(p=>{
+    const ds = dados.filter(d=>d.per===p); if(!ds.length) return "";
+    const tot = ds.reduce((t,d)=>t+d.v,0);
+    return `<span class="leg-per" data-rastro="periodo:${p}"><i style="background:${COR_PER[p]}"></i>
+      <b>${p==="safra"?"Safra":"Entressafra"}</b> ${brl(tot)} · média ${brl(tot/ds.length)}/mês
+      <span class="calc">(${ds.length} ${ds.length===1?"mês":"meses"}; tracejado = média)</span></span>`; }).join("");
 }
 function barrasH(el,dados){
   // paleta do campo: folha, palha, céu, latossolo e tons intermediários
@@ -517,5 +605,6 @@ function barrasH(el,dados){
 }
 
 
-export { barras, barrasH, celulaBusca, exportarTabela, filtrarPorNome, habilitarReordenacao, kpi, ligarBuscaSelect,
-         maxSel, ordenarPorEtapa, reaplicarBuscas, reaplicarExportar, registrarCombo, somaSel, tdMeses, th, thMeses };
+export { barras, barrasH, barrasPeriodo, celulaBusca, exportarTabela, filtrarPorNome, habilitarReordenacao, kpi,
+         ligarBuscaSelect, maxSel, ordenarPorEtapa, reaplicarBuscas, reaplicarExportar, registrarCombo, serieDoPeriodo,
+         somaSel, tdMeses, th, thMeses };

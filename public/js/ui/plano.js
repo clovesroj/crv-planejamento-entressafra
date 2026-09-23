@@ -1,6 +1,8 @@
 import { MODOS_ORD, frotaDaAtividade, modoLiberado, modosDe, temDetalheTerc } from '../calculo/atividade.js';
 import { tratListaTodos } from '../calculo/insumos.js';
 import { CFG } from '../dados/cfg.js';
+import { erpDe } from '../dados/atividades-erp.js';
+import { apoioDaAtividade, resumoApoio } from '../calculo/apoio-frente.js';
 import { TERC_MODOS } from '../dados/modos.js';
 import { NM } from '../nucleo/calendario.js';
 import { DIM, PLANO_ABERTO, TERC_DET, TERC_SUB, TRAT_ATIVO, TRAT_NOME, atividadesLista } from '../nucleo/estado.js';
@@ -27,7 +29,7 @@ function mixEditor(r){
     modos.map(m=>`<label title="${m}" class="${m==="Terceiro"?"terc":""}">${sigla[m]}<input data-mx="${r.a.cod}" data-mo="${m}"
       value="${mx[m]||""}" inputmode="decimal" placeholder="0"></label>`).join("") +
     (modos.includes("Terceiro") ? `<button type="button" class="terc-det${temSub?" on":""}" data-tercdet="${r.a.cod}"
-      title="${temSub?"Detalhamento do terceiro por avião/drone/terrestre já preenchido — clique para ajustar":"Detalhar o terceiro por avião, drone ou terrestre, cada um com seu % e sua tarifa"}">›</button>` : "") +
+      title="${temSub?"Detalhamento do terceiro por avião/drone/terrestre já preenchido — clique para ajustar":"Detalhar o terceiro por avião, drone ou terrestre, cada um com seu % e seu valor por hectare"}">›</button>` : "") +
     `<span class="mixsum" style="color:${cor}">${soma===0?"padrão":fmt(soma,0)+"%"}</span></div>`;
 }
 
@@ -53,7 +55,7 @@ function pintarTercDet(){
       <div class="ra-subtit">${esc(a.cod)} — ${esc(a.nome)}</div>
     </div>
     <div class="ra-corpo">
-      <table>${th([["Sub-modo"],["% do terceiro",1],["Tarifa (R$/ha)",1]])}<tbody>` +
+      <table>${th([["Sub-modo"],["% do terceiro",1],["Valor (R$/ha)",1]])}<tbody>` +
       TERC_MODOS.map(m=>`<tr><td>${esc(m)}</td>
         <td class="num"><input data-tsub="${esc(cod)}" data-tsm="${esc(m)}" data-tsf="pct"
           value="${(sub[m] && sub[m].pct) || ""}" inputmode="decimal" placeholder="0"></td>
@@ -61,9 +63,9 @@ function pintarTercDet(){
           value="${(sub[m] && sub[m].tar) || ""}" inputmode="decimal" placeholder="0"></td></tr>`).join("") +
       `<tr><td class="tot">Soma</td><td class="num tot" style="color:${cor}">${fmt(soma,0)}%</td><td></td></tr>
       </tbody></table>
-      <p class="calc" style="margin-top:10px;font-size:11.5px">Sem nada aqui, vale a tarifa única lançada em
-        Plano de Contas. Preenchendo o % de cada sub-modo (soma até 100%), o custo da parte terceirizada
-        vira a média ponderada das tarifas acima.</p>
+      <p class="calc" style="margin-top:10px;font-size:11.5px">Sem nada aqui, vale o valor único por hectare
+        lançado em Plano de Contas. Preenchendo o % de cada sub-modo (soma até 100%), o custo da parte
+        terceirizada vira a média ponderada dos valores acima.</p>
     </div>
     </div>`;
   cont.hidden = false;
@@ -120,7 +122,9 @@ function subLinhasTrat(r, SEL){
         : `<td class="num ${clsMes(j)}"><input data-cx="${esc(r.a.cod)}" data-tx="${i-1}" data-m="${j}" value="${q||""}" inputmode="decimal"></td>`).join("") +
       `<td class="num calc tot">${fmt(totalFiltro)}</td>
        <td></td><td></td><td></td>
-       <td class="num calc">${d.custo?brl(d.custo):"—"}</td></tr>`;
+       <td class="num calc">${d.custo && d.area>0 ? brl(d.custo/d.area*totalFiltro) : "—"}</td>
+       <td class="num calc">${d.custo && d.area>0 ? brl(d.custo/d.area,2) : "—"}</td>
+       <td></td><td></td><td></td></tr>`;
   }).join("");
 }
 /* Frota da atividade: o mesmo número do Dimensionamento, e por isso lido de lá
@@ -132,6 +136,39 @@ function subLinhasTrat(r, SEL){
 
    A média da janela continua sendo a que o motor usa para ratear custo; quando
    as duas não batem, o título diz as duas e o clique abre o rastro. */
+/* Custo da linha em cinco colunas: insumo, insumo por hectare, serviço de
+   terceiro, serviço por hectare terceirizado (o valor contratado) e a soma
+   insumo + serviço + mão de obra das frentes próprias. Os valores em R$ seguem
+   o filtro de período, como a coluna Total: insumo e serviço são lineares na
+   área (a parcela do período é exata), e a mão de obra sai do mdoMes do motor,
+   que já é o custo de cada mês. Os valores por hectare são razões e não mudam
+   com o filtro. Atividade em tonelada mostra o unitário por tonelada. */
+function custosDaLinha(r, SEL){
+  const soSel = arr => SEL.meses.reduce((s,j)=>s+num((arr||[])[j]),0);
+  const fatia = r.total>0 ? totalNoFiltro(r, SEL)/r.total : 0;
+  let insumo = r.cInsumo;
+  if(SEL.parcial){
+    insumo = r.tratsDetalhe
+      ? r.tratsDetalhe.reduce((s,d)=>s + (d.area>0 ? d.custo/d.area*soSel(d.m) : 0), 0)
+      : r.cInsumo*fatia;
+  }
+  const servico = SEL.parcial ? r.cTerc*fatia : r.cTerc;
+  const mdo = SEL.parcial ? soSel(r.mdoMes) : r.cMDO;
+  const areaTerc = r.partes.filter(p=>p.terc).reduce((s,p)=>s+p.area,0);
+  return {insumo, servico, total: insumo + servico + mdo, mdo,
+          insumoHa: r.total>0 ? r.cInsumo/r.total : 0,
+          servicoHa: areaTerc>0 ? r.cTerc/areaTerc : 0};
+}
+function celulasCusto(r, SEL){
+  const c = custosDaLinha(r, SEL);
+  const un = r.ehHa ? "" : ` <span class="calc">/${esc(r.a.un.split("/")[0])}</span>`;
+  const v = (x, casas) => x>0 ? brl(x, casas) : "—";
+  return `<td class="num calc">${v(c.insumo)}</td>
+       <td class="num calc">${c.insumoHa>0 ? brl(c.insumoHa,2)+un : "—"}</td>
+       <td class="num calc">${v(c.servico)}</td>
+       <td class="num calc">${c.servicoHa>0 ? brl(c.servicoHa,2)+un : "—"}</td>
+       <td class="num tot" title="Insumo ${brl(c.insumo)} + serviço ${brl(c.servico)} + mão de obra própria ${brl(c.mdo)}">${v(c.total)}</td>`;
+}
 function celFrota(r){
   const F = frotaDaAtividade(r);
   const dica = F.pico !== F.media
@@ -171,15 +208,41 @@ function linhaAcoplada(r, SEL, celTrat){
       <td class="calc">na plantadora</td>
       <td class="num calc" title="${esc(dica)}">—</td>
       <td>${celTrat}</td>
-      <td class="num calc">${r.cInsumo?brl(r.cInsumo):"—"}</td></tr>` +
+      ${celulasCusto(r, SEL)}</tr>` +
     (aberto ? subLinhasTrat(r, SEL) : "");
+}
+/* Atividades do ERP que compoem a frente, abertas embaixo da atividade.
+   A Plataforma Controladoria aponta por equipamento: o plantio mecanizado, que
+   aqui e uma linha, la sao dez — trator e implemento da plantadeira, carrego de
+   adubo, pipa, area de vivencia, auxiliar rural, transporte de pessoal. Sao so
+   leitura: o custo dessa gente e dessas maquinas ja esta na frente. Servem para
+   conferir o plano com o apontamento sem abrir planilha ao lado. */
+function subLinhasErp(r, SEL){
+  const {nucleo, apoio} = erpDe(r.a.cod);
+  if(!nucleo.length && !apoio.length) return "";
+  const AP = apoioDaAtividade(r);
+  const porErp = Object.fromEntries(AP.map(x=>[x.erp, x]));
+  const linha = (e, tipo) => {
+    const x = porErp[e.cod];
+    // operacao de apoio nao tem area, mas tem maquina e gente: e isso que ela
+    // traz para a frente, nos meses em que a frente roda
+    const nec = x && (x.frota || x.pessoas)
+      ? `${x.frota ? fmt(x.frota)+" equip." : ""}${x.frota&&x.pessoas?" · ":""}${x.pessoas ? fmt(x.pessoas)+" pessoas" : ""}`
+      : (tipo==="apoio" ? '<span class="calc">estrutura, sem gente</span>' : "");
+    return `<tr class="sub"><td class="calc">${esc(e.cod)}</td>
+      <td class="calc">${esc(e.nome)} <span class="badge ${tipo==="núcleo"?"b-ok":"b-warn"}">${tipo}</span></td>
+      <td class="calc" colspan="99">${nec}${e.esp.length ? ` <span class="calc">· especialidade ${e.esp.map(esc).join(", ")}</span>` : ""}</td></tr>`;
+  };
+  return nucleo.map(e=>linha(e,"núcleo")).join("") + apoio.map(e=>linha(e,"apoio")).join("");
 }
 function pintarPlano(R){
   const SEL = R.SEL;
   const parcial = SEL.parcial;
   let h = th([["Cod"],["Atividade"],["Início"],["Fim"],["Un."],
               ...MESES.map((m,j)=>[m,1,clsMes(j)]),[parcial?"Total do período":"Total",1],
-              ["Modo de execução"],["Frota",1],["Tratamento"],["Insumo",1]])+"<tbody>";
+              ["Modo de execução"],["Frota",1],["Tratamento"],
+              ["Insumo (R$)",1],["Insumo (R$/ha)",1],["Serviço (R$)",1],["Serviço (R$/ha)",1],
+              ["Insumo + serviço + MO (R$)",1]])+"<tbody>";
   let et="";
   /* A ordem da tela é a da etapa, não a do cadastro. A faixa de grupo só faz
      sentido se cada grupo aparecer uma vez: com a lista na ordem em que as
@@ -189,7 +252,7 @@ function pintarPlano(R){
      própria, vai sempre para o fim dos tratos (ver ordenarPorEtapa). */
   comAsAcopladas(ordenarPorEtapa(R.L, r=>r.a.etapa, r=>COD_FITOSSANITARIO.has(r.a.cod)?1:0)).forEach(r=>{
     const grupo = grupoPlano(r.a);
-    if(grupo!==et){et=grupo; h+=`<tr class="stage"><td colspan="${SEL.meses.length+10}"><span>${et}</span></td></tr>`;}
+    if(grupo!==et){et=grupo; h+=`<tr class="stage"><td colspan="${SEL.meses.length+14}"><span>${et}</span></td></tr>`;}
     const celTrat = celulaBusca("tratamento", r.trat, `data-t="${r.a.cod}"`, !r.ehHa);
     if(r.junto){ h += linhaAcoplada(r, SEL, celTrat); return; }
     const levaJunto = R.L.filter(x=>x.junto===r.a.cod).map(x=>x.a.cod);
@@ -199,9 +262,16 @@ function pintarPlano(R){
     const dentro = j => !jIdx || jIdx.includes(j);
     const d = DIM[r.a.cod] || {};
     const temExtras = !!r.tratsDetalhe;
-    const aberto = temExtras && !!PLANO_ABERTO[r.a.cod];
-    h+=`<tr><td>${r.a.cod}</td><td>${temExtras?`<button type="button" class="mini-seta" data-planoabre="${r.a.cod}"
-          title="Área por tratamento">${aberto?"▾":"▸"}</button>`:""}${r.a.nome}${auto?' <span class="badge b-ok">auto</span>':''}${
+    const E = erpDe(r.a.cod);
+    const temErp = !!(E.nucleo.length || E.apoio.length);
+    const RA = r.total > 0 ? resumoApoio(apoioDaAtividade(r)) : {frota:0, pessoas:0};
+    const aberto = (temExtras || temErp) && !!PLANO_ABERTO[r.a.cod];
+    h+=`<tr><td>${r.a.cod}</td><td>${temExtras||temErp?`<button type="button" class="mini-seta" data-planoabre="${r.a.cod}"
+          title="${temExtras?"Área por tratamento e atividades do ERP que compõem a frente"
+                            :"Atividades do ERP que compõem a frente"}">${aberto?"▾":"▸"}</button>`:""}${r.a.nome}${
+        RA.frota||RA.pessoas ? ` <span class="badge" title="Operações de apoio desta frente, que não têm área para lançar: ${
+          RA.frota} equipamento(s) e ${RA.pessoas} pessoa(s) enquanto a frente roda. Abra a seta para ver quais.">apoio ${
+          RA.frota?RA.frota+" eq":""}${RA.frota&&RA.pessoas?" · ":""}${RA.pessoas?RA.pessoas+" pess":""}</span>` : ""}${auto?' <span class="badge b-ok">auto</span>':''}${
           levaJunto.length?` <span class="calc" title="${esc(levaJunto.join(" e ")+" vão na mesma passada: a mecanização é uma só, a desta linha")}">+ ${levaJunto.join(", ")}</span>`:""}</td>
         <td><input type="date" data-dt="${r.a.cod}" data-f="ini" value="${r.janela.ini||""}" max="${d.fim||""}" title="Início da execução"></td>
         <td><input type="date" data-dt="${r.a.cod}" data-f="fim" value="${r.janela.fim||""}" min="${d.ini||""}" title="Fim da execução"></td>
@@ -218,8 +288,8 @@ function pintarPlano(R){
        <td>${modoLiberado(r.a) ? mixEditor(r) : '<span class="calc">—</span>'}</td>
        ${celFrota(r)}
        <td>${celTrat}</td>
-       <td class="num calc">${r.cInsumo?brl(r.cInsumo):"—"}</td></tr>`;
-    if(aberto) h += subLinhasTrat(r, SEL);
+       ${celulasCusto(r, SEL)}</tr>`;
+    if(aberto) h += subLinhasTrat(r, SEL) + subLinhasErp(r, SEL);
   });
   $("#t_plano").innerHTML = h+"</tbody>";
   // O resumo segue o filtro. Horas e insumos de uma atividade são lineares na

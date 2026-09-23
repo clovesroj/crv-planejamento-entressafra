@@ -3,7 +3,7 @@ import { baseEtapa, custoUnit, rotuloBase } from '../calculo/base-fisica.js';
 import { ARR_FORMAS, ARR_PAG, ETAPAS_ORD, PAG_LIVRE, arrPar, arrRat } from '../calculo/arrendamento.js';
 import { MESES, NM, clsMes } from '../nucleo/calendario.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
-import { barras, kpi, somaSel, tdMeses, th, thMeses } from './componentes.js';
+import { barras, serieDoPeriodo, kpi, somaSel, tdMeses, th, thMeses } from './componentes.js';
 
 /* Meses de pagamento na própria linha do contrato: uma caixa por mês da janela.
    Contrato paga em meses seguidos ou não, e é aqui que isso se configura —
@@ -110,7 +110,7 @@ function pintarArrend(R){
     `<tr><td class="tot">TOTAL</td>`+tdMeses(A.mes, v=>brl(v), "num tot")+
     `<td class="num tot">${A.linhas.reduce((s,l)=>s+l.nParc,0)}</td>
      <td class="num tot">${brl(somaSel(A.mes, SEL))}</td></tr></tbody>`;
-  barras($("#ch_arr"), MESES.map((m,i)=>({l:m, v:A.mes[i]})), "#2A57A0");
+  barras($("#ch_arr"), serieDoPeriodo(A.mes, SEL), "#2A57A0");
 }
 
 

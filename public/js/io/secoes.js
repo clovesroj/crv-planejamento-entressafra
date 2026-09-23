@@ -171,7 +171,7 @@ const premissas = R => sec("Premissas","Premissas do plano",["Premissa","Valor",
   ["Raio médio — muda", fmt(P.raioMuda)+" km","Ciclo do transporte"],
   ["Encargos sobre a folha", fmt((R.MP.encTot||0)*100,1)+"%","Custo de mão de obra"],
   ["Benefícios por colaborador", brl(R.MP.benTot,2)+"/mês","Custo de mão de obra"],
-  ["Tarifa padrão de terceirização", brl(CFG.terc_tar_pad,2)+"/ha","Frentes terceirizadas"],
+  ["Valor padrão de terceirização", brl(CFG.terc_tar_pad,2)+"/ha","Frentes terceirizadas"],
 ]);
 
 /* ---------- 3. área ---------- */
@@ -275,6 +275,9 @@ const maoDeObra = R => {
       const pico = o.qtdMes ? picoP(o.qtdMes) : 0, custo = o.custoMes ? noPer(o.custoMes) : 0;
       return [f.cod, f.nome, f.conta, brl(f.sal,2), brl(c.mensal||0,2), brl(c.hora||0,2),
         o.qtd?fmt(o.qtd):"—", pico?fmt(pico):"—", custo?brl(custo):"—"];})
+    // FAT: conta no efetivo e no custo, fora da necessidade de cada cargo acima
+    .concat(PS && PS.fat && PS.fat.qtd ? [["","FAT — contrato suspenso, fora da operação","","","","",
+      fmt(PS.fat.qtd), fmt(picoP(PS.fat.qtdMes)), brl(noPer(PS.fat.custoMes))]] : [])
     .concat([["","TOTAL","","","","", PS?fmt(PS.qtd):"—", PS?fmt(picoP(PS.qtdMes)):"—",
       PS?brl(noPer(PS.custoMes)):brl(R.mdoTotal*REC.fracMeses)]]));
 };
@@ -295,13 +298,16 @@ const pessoasAtividade = R => secP("Pessoas por atividade",
   R.PS ? necessidadePorAtividade(R.PS).map(l=>{ const j = janelaDaLinha(l);
       return [l.dept, l.categoria, l.cod||"—", l.origem, l.fcod, l.fnome, j.ini, j.fim,
         ...REC.meses.map(i=>fmt(l.qtdMes[i])), fmt(picoP(l.qtdMes)), brl(noPer(l.custoMes))]; })
+    // o FAT nao e necessidade, mas o custo dele e mao de obra: linha propria
+    .concat(R.PS.fat && R.PS.fat.qtd ? [["FAT","","—","Contrato suspenso — fora da operação","","","","",
+      ...REC.meses.map(i=>fmt(R.PS.fat.qtdMes[i])), fmt(picoP(R.PS.fat.qtdMes)), brl(noPer(R.PS.fat.custoMes))]] : [])
     .concat([["TOTAL","","","","","","","", ...REC.meses.map(i=>fmt(R.PS.qtdMes[i])),
       fmt(picoP(R.PS.qtdMes)), brl(noPer(R.PS.custoMes))]]) : []);
 const fluxoMdo = R => secP("Fluxo MDO","Fluxo mensal — pessoas e custo de mão de obra",
-  ["Mês","Período","Pessoas","Custo MDO","Acumulado"],
+  ["Mês","Período","Pessoas na operação","No FAT","Custo MDO","Acumulado"],
   R.PS ? (()=>{ let ac=0; return REC.meses.map(i=>{ ac+=R.PS.custoMes[i];
     return [MESES[i], periodoMes(i)==="safra"?"Safra":"Entressafra", fmt(R.PS.qtdMes[i]),
-            brl(R.PS.custoMes[i]), brl(ac)]; }); })() : []);
+            fmt(R.PS.fat ? R.PS.fat.qtdMes[i] : 0), brl(R.PS.custoMes[i]), brl(ac)]; }); })() : []);
 
 /* ---------- 12. insumos ---------- */
 const insumos = R => sec("Insumos","Insumos — cadastro, classificação técnica e necessidade",

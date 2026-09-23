@@ -1,4 +1,5 @@
 import { CFG } from '../dados/cfg.js';
+import { erpDe } from '../dados/atividades-erp.js';
 import { atividadesLista } from '../nucleo/estado.js';
 import { $, esc } from '../nucleo/formato.js';
 import { definirPatchItens, marcarRascunhoPendente } from '../io/persistencia.js';
@@ -71,7 +72,7 @@ function pintarAtividadesCad(){
      armadilha ja conhecida do Cadastro de Insumos. */
   const linhas = ordenarPorEtapa(lista.map((a, i) => ({a, i})), x => x.a.etapa).map(({a, i}) => {
     const fixo = fixos.has(a.cod);
-    return `<tr>
+    return `<tr${a.ativo===false?' class="inativo"':''}>
       <td>${esc(a.cod)}</td>
       <td>${fixo ? esc(a.etapa) : `<select data-at="${i}" data-f="etapa">${ETAPAS.map(e =>
         `<option value="${esc(e)}"${a.etapa===e?" selected":""}>${esc(e)}</option>`).join("")}</select>`}</td>
@@ -87,13 +88,19 @@ function pintarAtividadesCad(){
       <td class="num"><input data-atu="${i}" value="${Math.round((a.util??0.8)*100)}" inputmode="decimal" style="width:55px" title="Utilização em %"></td>
       <td class="num"><input type="checkbox" data-atativo="${i}" ${a.ativo===false?"":"checked"}
           title="Atividade inativa some das buscas de vínculo novo (ex.: 'atividade que usa este tratamento'), mas continua valendo normalmente onde já está lançada"></td>
+      <td class="calc">${(()=>{ const E=erpDe(a.cod), todos=E.nucleo.concat(E.apoio);
+        return todos.length
+          ? `<span title="${esc(todos.map(e=>e.cod+" — "+e.nome).join(" · "))}">${esc(E.nucleo.map(e=>e.cod).join(", ")||"—")}${
+              E.apoio.length?` <span class="badge b-warn">+${E.apoio.length} apoio</span>`:""}</span>`
+          : "—"; })()}</td>
       <td class="calc">${fixo ? "Cadastro do sistema" : "Criado por você"}${a.junto
         ? `<br><span class="badge b-ok" title="Vai na mesma passada da ${esc(a.junto)}: a área, a máquina e a equipe são dela, e aqui só entra o tratamento">junto da ${esc(a.junto)}</span>` : ""}</td>
       <td>${fixo ? "" : `<button class="btn d" data-atrm="${esc(a.cod)}">Remover</button>`}</td></tr>`;
   }).join("");
 
   $("#t_ativ").innerHTML = th([["Código"],["Etapa"],["Nome"],["Unidade"],["Rendimento (por hora)",1],
-    ["Máquina"],["Implemento"],["Operadores",1],["Turnos",1],["Utilização %",1],["Ativo",1],["Origem"],[""]]) +
+    ["Máquina"],["Implemento"],["Operadores",1],["Turnos",1],["Utilização %",1],["Ativo",1],
+    ["Atividade no ERP"],["Origem"],[""]]) +
     "<tbody>" + linhas + "</tbody>";
 }
 

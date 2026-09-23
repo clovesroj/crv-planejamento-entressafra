@@ -5,7 +5,7 @@ import { CFG } from '../dados/cfg.js';
 import { QUADRO } from '../nucleo/estado.js';
 import { MESES, NM, clsMes } from '../nucleo/calendario.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
-import { barras, kpi, maxSel, somaSel, tdMeses, th, thMeses } from './componentes.js';
+import { barras, serieDoPeriodo, kpi, maxSel, somaSel, tdMeses, th, thMeses } from './componentes.js';
 
 /* ---------- RESUMO DE PESSOAS ---------- */
 /* ---------- NECESSIDADE x QUADRO ATIVO ----------
@@ -26,18 +26,28 @@ function pintarQuadro(R){
      Dimensionamento, ao lado da frota e das horas que a geram. O que fica neste
      bloco e o que so existe por FUNCAO -- confronto com o quadro ativo, ferias,
      demissoes e o pico mensal que decide a contratacao. */
-  const funcoes = Object.keys(PS.porFun).sort();
-  const tot = {nec:0, pico:0, ativo:0, ferias:0, demis:0, disp:0, contratar:0, exced:0};
+  /* FAT: quem esta com o contrato suspenso e do quadro, mas nao opera. Nao e
+     necessidade -- e disponivel que falta naquele mes. Por isso a conta do mes
+     e necessidade + FAT contra o disponivel, e a funcao que so tem gente no
+     FAT tambem aparece aqui. */
+  const zeros = () => Array(NM).fill(0);
+  const FATF = (PS.fat && PS.fat.porFun) || {};
+  const fatMesDe = f => (FATF[f] && FATF[f].qtdMes) || zeros();
+  const necDe = f => PS.porFun[f] || {qtd:0, pico:0, qtdMes:zeros()};
+  const funcoes = [...new Set([...Object.keys(PS.porFun), ...Object.keys(FATF)])].sort();
+  const tot = {nec:0, pico:0, ativo:0, ferias:0, demis:0, fat:0, disp:0, contratar:0, exced:0};
   const disponivel = {};
   const corpo = funcoes.map(f=>{
-    const o = PS.porFun[f];
+    const o = necDe(f), fm = fatMesDe(f), fatPico = Math.max(0,...fm);
     const base = BASE.porFuncao[f]||0, ajuste = ajusteQuadro(f);
     const ativo = ativoDe(f, BASE), ferias = qv(f,"ferias"), demis = qv(f,"demis");
     const disp = ativo - ferias - demis;
     disponivel[f] = disp;
-    const contratar = Math.max(0, o.pico - disp), exced = Math.max(0, disp - o.pico);
+    // o mes que mais ocupa o quadro: necessidade da operacao mais quem esta no FAT
+    const ocupa = Math.max(0, ...o.qtdMes.map((v,i)=>v + fm[i]));
+    const contratar = Math.max(0, ocupa - disp), exced = Math.max(0, disp - ocupa);
     const iPico = o.qtdMes.indexOf(o.pico);
-    tot.nec+=o.qtd; tot.pico+=o.pico; tot.ativo+=ativo; tot.ferias+=ferias; tot.demis+=demis;
+    tot.nec+=o.qtd; tot.pico+=o.pico; tot.ativo+=ativo; tot.ferias+=ferias; tot.demis+=demis; tot.fat+=fatPico;
     tot.disp+=disp; tot.contratar+=contratar; tot.exced+=exced;
     return `<tr><td>${f} — ${esc((R.MP.custoFuncao[f]||{nome:f}).nome)}</td>
       <td class="num calc">${base||"—"}</td>
@@ -45,6 +55,7 @@ function pintarQuadro(R){
           placeholder="${base}" inputmode="decimal" title="Em branco usa o quadro do ERP"></td>
       <td class="num"><input data-qd="${f}" data-f="ferias" value="${ferias||""}" inputmode="decimal"></td>
       <td class="num"><input data-qd="${f}" data-f="demis" value="${demis||""}" inputmode="decimal"></td>
+      <td class="num calc" title="Pico de pessoas desta função no FAT (aba Mão de Obra). Saem do disponível nos meses em que estão suspensas.">${fatPico?fmt(fatPico):"—"}</td>
       <td class="num calc">${fmt(disp)}</td>
       <td class="num calc">${fmt(o.qtd)}</td>
       <td class="num tot">${fmt(o.pico)}<span class="calc" style="font-size:10px"> ${o.pico>0?MESES[iPico]:""}</span></td>
@@ -53,10 +64,10 @@ function pintarQuadro(R){
   }).join("");
 
   $("#t_pes_quadro").innerHTML = th([["Função"],["Ativos ERP",1],["Ajuste",1],["Férias program.",1],["Demissões program.",1],
-    ["Disponível",1],["Necessidade",1],["Pico mensal",1],["A contratar",1],["Excedente",1]])+"<tbody>"+
-    (funcoes.length ? corpo : `<tr><td colspan="10" class="calc">Sem função dimensionada.</td></tr>`)+
+    ["No FAT (pico)",1],["Disponível",1],["Necessidade",1],["Pico mensal",1],["A contratar",1],["Excedente",1]])+"<tbody>"+
+    (funcoes.length ? corpo : `<tr><td colspan="11" class="calc">Sem função dimensionada.</td></tr>`)+
     `<tr><td class="tot">TOTAL</td><td class="num tot">${fmt(tot.ativo)}</td><td></td><td class="num tot">${fmt(tot.ferias)}</td>
-     <td class="num tot">${fmt(tot.demis)}</td><td class="num tot">${fmt(tot.disp)}</td>
+     <td class="num tot">${fmt(tot.demis)}</td><td class="num tot">${tot.fat?fmt(tot.fat):"—"}</td><td class="num tot">${fmt(tot.disp)}</td>
      <td class="num tot">${fmt(tot.nec)}</td><td class="num tot">${fmt(tot.pico)}</td>
      <td class="num tot">${tot.contratar>0?"+"+fmt(tot.contratar):"—"}</td>
      <td class="num tot">${tot.exced>0?fmt(tot.exced):"—"}</td></tr></tbody>`;
@@ -69,16 +80,19 @@ function pintarQuadro(R){
   const temQuadro = tot.ativo + tot.ferias + tot.demis > 0;
   const faltaMes = MESES.map(()=>0);
   const corpoMes = funcoes.map(f=>{
-    const o = PS.porFun[f], disp = disponivel[f];
+    const o = necDe(f), disp = disponivel[f], fm = fatMesDe(f);
     return `<tr><td>${f} — ${esc((R.MP.custoFuncao[f]||{nome:f}).nome)}</td>
       <td class="num calc">${fmt(disp)}</td>` +
       o.qtdMes.map((v,i)=>{
-        const falta = temQuadro ? v - disp : 0;
+        // no FAT naquele mes: e do quadro, mas nao esta disponivel
+        const dispMes = disp - fm[i];
+        const falta = temQuadro ? v - dispMes : 0;
         if(falta>0) faltaMes[i] += falta;
         const ehPico = v>0 && v===o.pico;
         const estilo = falta>0 ? ' style="background:var(--bad-bg);color:var(--bad);font-weight:600"' : '';
-        return `<td class="num ${falta>0?"":"calc"} ${clsMes(i)}"${estilo} title="${MESES[i]}: precisa de ${fmt(v)}, disponível ${fmt(disp)}">${
-          v>0 ? (ehPico?`<b>${fmt(v)}</b>`:fmt(v)) : "—"}</td>`;
+        return `<td class="num ${falta>0?"":"calc"} ${clsMes(i)}"${estilo} title="${MESES[i]}: precisa de ${fmt(v)}, disponível ${fmt(dispMes)}${
+          fm[i]?` (${fmt(disp)} menos ${fmt(fm[i])} no FAT)`:""}">${
+          v>0 ? (ehPico?`<b>${fmt(v)}</b>`:fmt(v)) : "—"}${fm[i]?`<span class="calc" style="font-size:10px"> −${fmt(fm[i])} FAT</span>`:""}</td>`;
       }).join("") +
       `<td class="num tot">${fmt(maxSel(o.qtdMes, SEL))}</td></tr>`;
   }).join("");
@@ -102,15 +116,22 @@ function pintarPessoas(R){
   const S = R.PS, sm = a => a.reduce((s,x)=>s+x,0);
   const contaF = c => (CFG.funcoes.find(f=>f.cod===c)||{conta:"—"}).conta;
   const depts = Object.keys(S.porDept).sort((a,b)=>deptIdx(a)-deptIdx(b));
-  const funs  = Object.keys(S.porFun).sort();
+  // efetivo e custo por funcao somam todo mundo, FAT incluido (a necessidade,
+  // sem o FAT, e a do confronto com o quadro, acima)
+  const FUNS = S.porFunTodos || S.porFun;
+  const funs  = Object.keys(FUNS).sort();
   const pm = sm(S.qtdMes), iPico = S.qtdMes.indexOf(Math.max(...S.qtdMes));
+  const fat = S.fat || {qtd:0, custo:0, qtdMes:Array(NM).fill(0)};
+  const todosMes = S.qtdMes.map((v,i)=>v + fat.qtdMes[i]);
   const porPessoa = o => o.pessoasMes>0 ? brl(o.custo/o.pessoasMes,0) : "—";
 
   $("#k_pes").innerHTML =
-    kpi("Efetivo dimensionado","",fmt(S.qtd)+" pessoas", depts.length+" departamentos · "+funs.length+" funções","pessoas:total") +
+    kpi("Efetivo dimensionado","",fmt(S.qtd)+" pessoas", depts.length+" departamentos · "+funs.length+" funções"
+        + (S.fat && S.fat.qtd ? ` · ${fmt(S.fat.qtd)} no FAT, fora da operação` : ""),"pessoas:total") +
     kpi("Pico de mobilização","a",fmt(S.qtdMes[iPico]||0)+" pessoas", S.qtd>0?MESES[iPico]:"","pessoas:pico") +
     kpi("Custo de mão de obra","t",brl(S.custo), NM+" meses","nat:mdo") +
-    kpi("Custo médio por pessoa","g",pm>0?brl(S.custo/pm,0)+"/mês":"—","pessoa mobilizada no mês","pessoas:total");
+    // o FAT tem custo mas nao mobiliza ninguem: fica fora da media por pessoa mobilizada
+    kpi("Custo médio por pessoa","g",pm>0?brl((S.custo-((S.fat&&S.fat.custo)||0))/pm,0)+"/mês":"—","pessoa mobilizada no mês","pessoas:total");
 
   $("#t_pes_dept").innerHTML = th([["Departamento"],["Funções",1],["Efetivo",1],["% do efetivo",1],["Pico mensal",1],
     ["Custo MDO",1],["% do custo",1],["R$/pessoa/mês",1]])+"<tbody>"+
@@ -121,7 +142,7 @@ function pintarPessoas(R){
         <td class="num calc">${porPessoa(o)}</td></tr>`; }).join("")+
     `<tr><td class="tot">TOTAL</td><td class="num tot">${funs.length}</td><td class="num tot">${fmt(S.qtd)}</td>
      <td class="num tot">100,0%</td><td class="num tot">${fmt(Math.max(...S.qtdMes))}</td><td class="num tot">${brl(S.custo)}</td>
-     <td class="num tot">100,0%</td><td class="num tot">${pm>0?brl(S.custo/pm,0):"—"}</td></tr></tbody>`;
+     <td class="num tot">100,0%</td><td class="num tot">${pm>0?brl((S.custo-fat.custo)/pm,0):"—"}</td></tr></tbody>`;
 
   // conferência com as outras abas: a Capa não soma os operadores de apoio
   const difCusto = S.custo - R.mdoTotal;
@@ -132,7 +153,7 @@ function pintarPessoas(R){
 
   $("#t_pes_fun").innerHTML = th([["Cod"],["Função"],["Conta"],["Departamentos"],["Efetivo",1],["Pico mensal",1],
     ["Custo MDO",1],["R$/pessoa/mês",1]])+"<tbody>"+
-    funs.map(f=>{ const o=S.porFun[f];
+    funs.map(f=>{ const o=FUNS[f];
       const ds=[...new Set(S.itens.filter(it=>it.fcod===f).map(it=>it.dept))].sort((a,b)=>deptIdx(a)-deptIdx(b));
       return `<tr><td>${f}</td><td>${esc((R.MP.custoFuncao[f]||{nome:f}).nome)}</td><td class="calc">${contaF(f)}</td>
         <td class="calc">${ds.map(esc).join(", ")}</td><td class="num tot">${fmt(o.qtd)}</td>
@@ -145,7 +166,7 @@ function pintarPessoas(R){
   $("#t_pes_matriz").innerHTML = th([["Função"],...depts.map(d=>[esc(d),1]),["Total",1]])+"<tbody>"+
     funs.map(f=>`<tr><td>${f} — ${esc((R.MP.custoFuncao[f]||{nome:f}).nome)}</td>`+
       depts.map(d=>{ const v=cel(f,d); return `<td class="num ${v?"":"calc"}">${v?fmt(v):"—"}</td>`; }).join("")+
-      `<td class="num tot">${fmt(S.porFun[f].qtd)}</td></tr>`).join("")+
+      `<td class="num tot">${fmt(FUNS[f].qtd)}</td></tr>`).join("")+
     `<tr><td class="tot">TOTAL</td>`+depts.map(d=>`<td class="num tot">${fmt(S.porDept[d].qtd)}</td>`).join("")+
     `<td class="num tot">${fmt(S.qtd)}</td></tr></tbody>`;
 
@@ -154,8 +175,10 @@ function pintarPessoas(R){
     depts.map(d=>{ const o=S.porDept[d];
       return `<tr><td>${esc(d)}</td>`+tdMeses(o.qtdMes, v=>v?fmt(v):"—")+
         `<td class="num tot">${fmt(maxSel(o.qtdMes, SEL))}</td></tr>`; }).join("")+
-    `<tr><td class="tot">TOTAL</td>`+tdMeses(S.qtdMes, v=>fmt(v), "num tot")+
-    `<td class="num tot">${fmt(maxSel(S.qtdMes, SEL))}</td></tr></tbody>`;
+    `<tr><td class="tot">TOTAL</td>`+tdMeses(todosMes, v=>fmt(v), "num tot")+
+    `<td class="num tot">${fmt(maxSel(todosMes, SEL))}</td></tr>`+
+    (fat.qtd ? `<tr><td class="calc">Na operação (sem o FAT)</td>`+tdMeses(S.qtdMes, v=>fmt(v))+
+      `<td class="num calc">${fmt(maxSel(S.qtdMes, SEL))}</td></tr>` : "")+`</tbody>`;
 
   // o acumulado corre sobre os meses à mostra: acumular meses escondidos faria a
   // última coluna visível não bater com o total da linha
@@ -168,8 +191,9 @@ function pintarPessoas(R){
     `<tr><td class="tot">TOTAL</td>`+tdMeses(S.custoMes, v=>brl(v), "num tot")+
     `<td class="num tot">${brl(somaSel(S.custoMes, SEL))}</td></tr>`+
     `<tr><td class="calc">Acumulado</td>`+tdMeses(acum, v=>v==null?"—":brl(v))+`<td></td></tr>`+
-    `<tr><td class="calc">Pessoas no mês</td>`+tdMeses(S.qtdMes, v=>fmt(v))+`<td></td></tr></tbody>`;
-  barras($("#ch_pes"), MESES.map((m,i)=>({l:m, v:S.custoMes[i]})), "#2A57A0");
+    `<tr><td class="calc">Pessoas na operação no mês</td>`+tdMeses(S.qtdMes, v=>fmt(v))+`<td></td></tr>`+
+    (fat.qtd ? `<tr><td class="calc">Pessoas no FAT no mês</td>`+tdMeses(fat.qtdMes, v=>v?fmt(v):"—")+`<td></td></tr>` : "")+`</tbody>`;
+  barras($("#ch_pes"), serieDoPeriodo(S.custoMes, SEL), "#2A57A0");
 
   /* ---------- NECESSIDADE POR ETAPA, TIPO DE GENTE, ORIGEM E FUNCAO ----------
      O quadro por funcao responde "quantos motoristas preciso ter". Esta tabela

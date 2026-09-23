@@ -1,5 +1,199 @@
 # Histórico de mudanças
 
+## 2.43.0 — 2026-09-23 · Grandes contas separadas, rastro em todo número de custo e gráfico por período
+
+### Grandes contas
+
+Insumos e irrigação, terceirização e transporte de pessoal passam a ser contas
+separadas: **Mão de obra · Manutenção (CRM) · Diesel · Insumos · Irrigação ·
+Terceirização · Transporte de pessoal · Arrendamento · Fixos · Esporádicos**.
+Vale na aba Custos (por período), no Painel (grandes contas mês a mês), nos
+relatórios e nos rastros. O total não muda: só a abertura.
+
+### Rastreabilidade em todo número das tabelas de custo
+
+Todo número das tabelas de custo — aba Custos (por período, por etapa e
+período, natureza, custo mensal, custo por etapa, custo operacional e contábil
+por operação) e grandes contas do Painel — agora:
+
+- **ao passar o mouse**, mostra o começo da explicação: título, valor e as
+  primeiras linhas de como se chegou nele;
+- **ao clicar**, abre o rastro completo, já no período da coluna (a célula de
+  "Entressafra" abre filtrada na entressafra; os botões do rastro trocam).
+
+Rastros novos:
+
+- **Grande conta, no ano ou num período** — de onde vem o valor, fonte a fonte,
+  com o critério que levou cada uma a cada mês (equipe paga no mês com volume,
+  litros ao preço do mês, volume do mês, área operada do mês, meses marcados,
+  mês de pagamento...), e o valor de cada mês. A abertura mora em
+  `calculo/fontes.js`, refazendo a conta do motor fonte por fonte: a soma das
+  fontes de cada mês é o valor da conta naquele mês (conferido na auditoria).
+- **Etapa num período** — custo direto das atividades no período, a parte da
+  etapa nos rateios, as atividades com lançamento e o mês a mês.
+- **Subtotais das operações** — a soma operação a operação.
+
+A dica usa o cálculo do último render: passar o mouse não recalcula nada. No
+app são agora 178 rastros alcançáveis pelas telas (eram 121), todos sem erro,
+e nenhuma célula numérica das tabelas de custo ficou sem rastro.
+
+### Gráfico de custo mensal por período
+
+Na aba Custos, página "Por período": barras do custo de cada mês na cor do
+período — safra no azul, entressafra no âmbar, as mesmas das etiquetas de
+período —, com a média mensal de cada período tracejada e, na legenda, o total
+e a média de cada um. Segue o recorte da barra do topo (Ano todo, Safra,
+Entressafra ou meses), e cada barra abre o rastro do mês.
+
+Nenhum número muda: plano da auditoria idêntico; 52 invariantes sem falha (um
+novo: fontes de cada grande conta = conta, mês a mês); 29 abas e 132 relatórios
+sem erro.
+
+## 2.42.2 — 2026-09-23 · Atividade zerada no Plano Operacional não é pendência
+
+Num plano de entressafra a colheita fica zerada — e a Validação acusava isso
+como inconsistência. Três regras tratavam "zerado" como "faltando":
+
+- **Atividades sem volume programado** virava pendência para qualquer atividade
+  zerada no ano. Agora é só informação: "40 de 70 zeradas — ficam fora do
+  cálculo". Zerar o que não roda no período é permitido.
+- **Rendimento operacional zerado** acusava o transporte de cana (TR1) quando a
+  colheita estava zerada: sem tonelada, ele não tem rendimento calculado. Agora
+  a regra só olha atividade com volume — rendimento zerado de verdade, numa
+  atividade lançada, continua acusando.
+- **Base física dos custos informada em Premissas** cobrava área e volume de
+  colheita mesmo sem colheita no plano. Agora cada base só é exigida quando a
+  operação que a usa tem volume: colheita para área e volume de colheita,
+  preparo ou plantio para área de plantio, tratos de cana planta e de cana soca
+  para as áreas de cada cultura.
+
+Nenhum número muda. Testado: plano de entressafra com a colheita zerada e sem a
+base de colheita — nenhuma pendência dessas três; plano completo sem a base de
+colheita — continua acusando; rendimento zerado numa atividade com volume —
+continua acusando. 29 abas sem erro.
+
+## 2.42.1 — 2026-09-23 · Gráfico mensal segue o período escolhido
+
+Com **Entressafra** selecionado no topo, o gráfico do fluxo mensal do Resumo de
+Pessoas continuava desenhando os doze meses: a tabela logo acima já mostrava só
+dezembro a março, e o gráfico mostrava abril a novembro também. Agora ele
+desenha só os meses do período — Ano todo (12), Safra (abr–nov), Entressafra
+(dez–mar) ou os meses escolhidos em "Meses".
+
+O mesmo acontecia em mais três gráficos de barras mensais, corrigidos junto:
+**custo por mês** do Painel, **litros de diesel por mês** da aba Combustível e
+**pagamento de arrendamento por mês** da aba Arrendamentos. Os quatro usam agora
+`serieDoPeriodo()` (`ui/componentes.js`), que monta a série a partir do recorte
+da barra do topo.
+
+Só a exibição muda; nenhum número. 29 abas sem erro.
+
+## 2.42.0 — 2026-09-23 · O catálogo do ERP entra no plano
+
+Da planilha **Cashflow Diário — Plataforma Controladoria**: 272 linhas, **151
+atividades** com código, nome e especialidade de frota.
+
+- **O código do ERP é um campo, não a chave.** A correspondência não é de um
+  para um: o Plantio (A10) é, no ERP, o trator da plantadeira e o implemento
+  mais oito códigos de apoio; na volta, o ERP tem um código só para a 1ª e a 2ª
+  gradagem pesada, que no plano são atividades separadas. Trocar a chave
+  escolheria um dos dez e jogaria fora o resto.
+- **As 151 têm lugar, cada uma em um só.** O de‑para separa **núcleo** (o
+  equipamento que faz a operação) de **apoio** (pipa, área de vivência,
+  transporte de pessoal, auxiliar rural, carrego de insumo). Quatro atividades
+  do plano ficam sem correspondente porque o ERP não as tem.
+- **A frente abre no Plano Operacional.** A seta ao lado do nome abre, além da
+  área por tratamento, as atividades do ERP daquela frente — no Plantio, o
+  trator e o implemento como núcleo e, embaixo, o auxiliar rural, a área de
+  vivência, a pipa, o roll on/off e o transporte de pessoal. Só leitura: o custo
+  já está na frente.
+- **Dez operações novas** que o ERP aponta e o plano não tinha: limpeza de área,
+  sistematização, sulcação, cobrição do plantio manual, plantio com semeadeira,
+  maturador, inibidor de florescimento, fungicida, micronutrientes e conservação
+  de estradas e cercas. Enquanto não houver área lançada, nenhuma custa nada.
+
+## 2.41.0 — 2026-09-23 · FAT na mão de obra e apoio operacional no Dimensionamento
+
+### FAT — Fundo de Amparo ao Trabalhador (aba Mão de Obra)
+
+Página nova na aba Mão de Obra para os funcionários com o **contrato suspenso
+para qualificação** (art. 476-A da CLT), com a bolsa paga pelo FAT. Uma linha
+por função:
+
+- **pessoas** que entram no FAT;
+- **meses** em que ficam suspensas (linha nova já vem com a entressafra marcada);
+- **benefício por pessoa por mês** que a empresa paga no período (ajuda
+  compensatória, cesta, plano de saúde...) e a descrição dele.
+
+Custo = pessoas × benefício × meses marcados. No período não há salário nem
+encargo, só o benefício. O custo **soma no total de mão de obra**, cai
+exatamente nos meses marcados (não é espalhado pela área operada) e entra no
+indireto das etapas como o resto da mão de obra fora das atividades.
+
+Essas pessoas **contam no efetivo, mas não ficam disponíveis para a
+operação**. No Resumo de Pessoas:
+
+- departamento próprio, **FAT — fora da operação**, que soma no efetivo e no
+  custo;
+- **não entra na necessidade**: o confronto com o quadro ganha a coluna **No FAT
+  (pico)**, e nos meses de FAT o disponível da função cai (a célula mostra
+  "−20 FAT", e o título diz "disponível 185 = 205 menos 20 no FAT"). A
+  contratação é calculada contra necessidade + FAT de cada mês;
+- o custo médio por pessoa mobilizada não conta o FAT.
+
+No Plano de Contas o benefício do FAT fica em linha própria, sem conta (o plano
+não tem conta para ajuda compensatória), e o total continua fechando.
+
+### Mão de obra de apoio operacional (aba Dimensionamento)
+
+Tabela nova abaixo das atividades para lançar a gente que a operação precisa e
+que não sai de nenhuma atividade — fiscal de campo, apontador, líder de frente,
+bituqueiro, vigia. Uma linha por função e frente, com **pessoas** e **meses**
+(linha nova vem com os doze marcados).
+
+Custo = pessoas × custo mensal cheio da função (salário, encargos e benefícios
+da aba Mão de Obra) × meses marcados. Soma no total de mão de obra nos meses
+marcados, abre pela composição da função na conta 200-17 do Plano de Contas e
+entra na **necessidade** do Resumo de Pessoas, departamento **Apoio
+operacional**.
+
+### Onde mais aparece
+
+- Natureza de custo (aba Custos, Painel e rastro de mão de obra): "MDO apoio
+  operacional" e "FAT (contrato suspenso)".
+- Relatórios: o de mão de obra traz a linha do FAT antes do total; o de pessoas
+  por atividade, a linha do FAT fora da necessidade; o fluxo mensal, a coluna
+  "No FAT".
+- Validação: avisa linha de FAT ou de apoio sem pessoas ou sem mês, e FAT sem
+  benefício — o botão leva direto ao campo.
+- Permissões: `FAT` é da aba Mão de Obra e `MO_APOIO` do Dimensionamento
+  (`server/permissoes.js`). As duas chaves entram no documento salvo;
+  documento antigo abre sem elas, e o `aplicar()` só as troca quando vêm —
+  a recuperação de alteração pendente manda documento parcial.
+
+Sem nada lançado não muda número: plano vazio segue 39.270.751,842344 e o plano
+da auditoria fica idêntico. Com 23 pessoas no FAT e 6 de apoio, o total sobe
+exatamente o FAT (20 × R$ 850 × 4 meses + 3 × R$ 500 × 2 meses = R$ 71.000)
+mais o apoio (R$ 438.027,60). 51 invariantes sem falha (6 novos, de FAT e
+apoio); 29 abas, 121 rastros e 132 relatórios sem erro; gravar e reabrir
+devolve as duas listas.
+
+## 2.40.2 — 2026-09-23 · Combustível sem a referência de mercado da ANP
+
+Sai da aba Combustível o bloco **Referência de mercado (ANP)** — consulta do
+preço semanal por município, combustível e posto pesquisado. Era só consulta:
+nenhum cálculo do plano usava o preço de lá. A aba fica com **Preço e volume** e
+**Consumo**.
+
+Saiu junto tudo o que só servia a ele: `public/js/ui/anp.js`,
+`public/js/io/anp.js`, `server/anp.js` (que baixava as planilhas do site da ANP)
+e as rotas `/api/anp/semanas`, `/api/anp/resumo-semanal` e `/api/anp/postos`,
+além do CSS e das travas de permissão dos campos do bloco. O SheetJS continua:
+é o do relatório em Excel.
+
+Não muda número: total do plano da auditoria idêntico (222.645.641,87); 45
+invariantes sem falha; 29 abas, 121 rastros e 132 relatórios sem erro.
+
 ## 2.40.1 — 2026-09-23 · Custo/ha do produto respeita a unidade da dose
 
 Na composição do tratamento, dose em ml/ha de um produto com preço por litro

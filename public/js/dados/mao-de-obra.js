@@ -120,7 +120,18 @@ export const FUNCAO_POR_ATIVIDADE = {
   "Apoio operacional": "596",
   "Auxiliares agrícolas": "596",
   "Adubação de socaria": "918",
-  "Adubação de cobertura": "918"
+  "Adubação de cobertura": "918",
+  // operacoes que vieram do catalogo do ERP (ATIVIDADES_V 7)
+  "Limpeza de área e supressão de vegetação": "917",
+  "Sistematização de área": "917",
+  "Sulcação": "918",
+  "Cobrição do plantio manual": "918",
+  "Plantio com semeadeira": "918",
+  "Aplicação de maturador": "596",
+  "Aplicação de inibidor de florescimento": "596",
+  "Aplicação de fungicida": "596",
+  "Aplicação de micronutrientes": "596",
+  "Conservação de estradas e cercas": "917"
 };
 
 /* Categoria operacional da funcao — para agrupar o efetivo por TIPO de gente.

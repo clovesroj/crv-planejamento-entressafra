@@ -1,8 +1,8 @@
 import { benVal, encPct, gratif } from '../calculo/mao-de-obra.js';
 import { CFG } from '../dados/cfg.js';
-import { NM } from '../nucleo/calendario.js';
+import { MESES, NM, clsMes } from '../nucleo/calendario.js';
 import { BEN, ENC, FUN_SEL, GRAT } from '../nucleo/estado.js';
-import { $, brl, fmt, num, pct } from '../nucleo/formato.js';
+import { $, brl, esc, fmt, num, pct } from '../nucleo/formato.js';
 import { kpi, ligarBuscaSelect, th } from './componentes.js';
 import { setFUN_SEL } from '../nucleo/estado.js';
 
@@ -86,6 +86,33 @@ function pintarMDO(R){
   ind += `<tr><td class="tot" colspan="5">TOTAL ESTRUTURA + MANUTENÇÃO</td>
     <td class="num tot">${brl(R.mdoIndirT+R.mdoManut)}</td></tr></tbody>`;
   $("#t_ind").innerHTML = ind;
+  pintarFat(R);
+}
+
+/* ---------- FAT ----------
+   Uma linha por funcao: pessoas, meses com o contrato suspenso e o beneficio
+   por pessoa por mes. O custo vem de calculo/mao-de-obra.js (fatCalc). */
+function pintarFat(R){
+  const F = R.FT || {linhas:[], qtdMes:Array(NM).fill(0), mes:Array(NM).fill(0), total:0, pico:0};
+  const optF = sel => CFG.funcoes.map(f=>`<option value="${esc(f.cod)}"${f.cod===sel?" selected":""}>${esc(f.cod)} · ${esc(f.nome)}</option>`).join("")
+    + (sel && !CFG.funcoes.some(f=>f.cod===sel) ? `<option value="${esc(sel)}" selected>${esc(sel)} — fora do cadastro</option>` : "");
+  $("#t_fat").innerHTML = th([["Função"],["Pessoas",1],...MESES.map((m,j)=>[m,1,clsMes(j)]),
+      ["Benefício por pessoa/mês",1],["Benefício pago"],["Custo por mês",1],["Custo no período",1],[""]])+"<tbody>"+
+    (F.linhas.length ? F.linhas.map(l=>`<tr>
+      <td><select data-fatf="${l.ix}" style="min-width:220px">${optF(l.fcod)}</select></td>
+      <td class="num"><input data-fat="${l.ix}" data-f="qtd" value="${l.qtd||""}" inputmode="decimal" style="width:60px"></td>` +
+      l.on.map((b,j)=>`<td class="num ${clsMes(j)}"><input type="checkbox" data-fatm="${l.ix}" data-m="${j}"${b?" checked":""}
+        title="${MESES[j]}: ${b?"no FAT":"trabalhando"}"></td>`).join("") +
+      `<td class="num"><input data-fat="${l.ix}" data-f="ben" value="${l.ben||""}" inputmode="decimal" style="width:90px" placeholder="R$"></td>
+      <td><input data-fat="${l.ix}" data-f="desc" value="${esc(l.desc)}" placeholder="ex.: ajuda compensatória + cesta" style="min-width:190px;text-align:left"></td>
+      <td class="num calc">${brl(l.qtd*l.ben)}</td>
+      <td class="num tot">${l.nMeses ? brl(l.total) : '<span class="badge b-warn">sem mês</span>'}</td>
+      <td><button class="btn d" data-fatrm="${l.ix}">Remover</button></td></tr>`).join("")
+      : `<tr><td colspan="${NM+7}" class="calc">Nenhuma função no FAT. Use o botão abaixo para incluir.</td></tr>`) +
+    `<tr><td class="tot">TOTAL NO FAT</td><td class="num tot">${fmt(F.pico)}</td>` +
+    F.qtdMes.map((q,j)=>`<td class="num tot ${clsMes(j)}">${q?fmt(q):"—"}</td>`).join("") +
+    `<td></td><td></td><td></td><td class="num tot">${brl(F.total)}</td><td></td></tr></tbody>`;
+  $("#bl_fat_sub").textContent = F.total>0 ? `${fmt(F.pico)} pessoas no pico · ${brl(F.total)}` : "";
 }
 
 

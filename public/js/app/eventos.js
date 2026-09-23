@@ -9,15 +9,15 @@ import { CFG } from '../dados/cfg.js';
 import { buscarAgrofit, bulaDoProduto } from '../io/agrofit.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
-import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TERC_SUB, TERC_DET, setTERC_DET, TPESS, TRATC, TRAT_ATIVO, TRAT_NOME, TRAT_OBS, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, atividadesLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE, setREF_BUSCA, setREF_AG, setREF_FAM, setREF_FROTA, setREF_PROP,
+import { FAT, MO_APOIO, REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TERC_SUB, TERC_DET, setTERC_DET, TPESS, TRATC, TRAT_ATIVO, TRAT_NOME, TRAT_OBS, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, atividadesLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE, setREF_BUSCA, setREF_AG, setREF_FAM, setREF_FROTA, setREF_PROP,
   setGR_INICIO, setGR_FIM, setGR_EMPRESA, setGR_ESP, setGR_AG, setGR_COMP, setGR_FROTA, setGR_PROP, setGR_REFORMA } from '../nucleo/estado.js';
 import { AGROFIT_BUSCA, DIM_DET, FITO_ABERTO, PLANO_ABERTO, FROTA_ABERTO, FROTA_UN, INS_EDIT, INS_FICHA, MAQ, setAGROFIT_BUSCA, setDIM_DET, setFROTA_DEST, setFROTA_ORIG, setINS_EDIT, setINS_FICHA } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { exportarTabela, filtrarPorNome } from '../ui/componentes.js';
 import { marcarAtivNovo, marcarAtivRemovido, marcarAtivSujo, salvarAtiv } from '../ui/atividades-cad.js';
-import { alternarFam, aplicarFamIns, buscaExigeRedesenho, marcarInsSujo, marcarInsNovo, marcarInsRemovido,
+import { alternarFam, alternarUsos, aplicarFamIns, buscaExigeRedesenho, marcarInsSujo, marcarInsNovo, marcarInsRemovido,
   marcarTratSujo, marcarTratNovo, marcarTratRenomeado, marcarTratRemovido, recolherTodas, salvarIns, salvarTrat, todasRecolhidas } from '../ui/insumos.js';
-import { alternarMesLinha } from '../ui/dimensionamento.js';
+import { alternarFrenteLinha, alternarMesItem, alternarMesLinha } from '../ui/dimensionamento.js';
 import { lerPremissas } from '../ui/premissas.js';
 import { leve, render, renderAgrofit, renderDimDet, renderEditIns, renderFichaIns, renderRastro, renderRendMensal, renderTercDet } from './ciclo.js';
 import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarBuscaItem, filtrarRastro, voltarRastro } from '../ui/rastro.js';
@@ -97,6 +97,13 @@ document.addEventListener("input",e=>{
   // operadores por equipamento, ajustado na atividade; em branco volta ao cadastro.
   // leve() em vez de render(): render() reconstroi a tabela e derruba o foco de
   // quem esta digitando no modal
+  /* Quantas estruturas de apoio a frente usa: equipamentos, ou pessoas por
+     turno em item de gente. Em branco vale uma, que e o padrao da frente. */
+  if(t.dataset.apfr!==undefined){ const c=t.dataset.apfr, k=t.dataset.erp;
+    DIM[c]=DIM[c]||{}; DIM[c].apoio=DIM[c].apoio||{};
+    const v=num(t.value); if(v>0) DIM[c].apoio[k]=v; else delete DIM[c].apoio[k];
+    if(!Object.keys(DIM[c].apoio).length) delete DIM[c].apoio;
+    salvar(); leve(); return; }
   if(t.dataset.ops!==undefined){ const c=t.dataset.ops; DIM[c]=DIM[c]||{};
     const v=num(t.value); if(v>0) DIM[c].ops=v; else delete DIM[c].ops;
     salvar(); leve(); return; }
@@ -176,6 +183,11 @@ document.addEventListener("input",e=>{
     marcarAtivSujo(a); leve(); return; }
   if(t.dataset.atu!==undefined){ const a=atividadesLista()[+t.dataset.atu]; a.util = num(t.value)/100;
     marcarAtivSujo(a); leve(); return; }
+  // FAT (aba Mao de Obra) e apoio operacional (Dimensionamento)
+  if(t.dataset.fat!==undefined){ const l=FAT[+t.dataset.fat], f=t.dataset.f; if(!l) return;
+    l[f] = f==="desc" ? t.value : num(t.value); salvar(); leve(); return; }
+  if(t.dataset.moa!==undefined){ const l=MO_APOIO[+t.dataset.moa], f=t.dataset.f; if(!l) return;
+    l[f] = f==="frente" ? t.value : num(t.value); salvar(); leve(); return; }
   if(t.dataset.mx!==undefined){ const c=t.dataset.mx;
     PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""};
     PLANO[c].mix=PLANO[c].mix||{}; PLANO[c].mix[t.dataset.mo]=num(t.value);
@@ -236,6 +248,13 @@ document.addEventListener("input",e=>{
 });
 document.addEventListener("change",e=>{
   const t=e.target;
+  // FAT e apoio operacional: funcao da linha e meses marcados
+  if(t.dataset.fatf!==undefined){ const l=FAT[+t.dataset.fatf]; if(l){ l.fcod=t.value; salvar(); render(); } return; }
+  if(t.dataset.moaf!==undefined){ const l=MO_APOIO[+t.dataset.moaf]; if(l){ l.fcod=t.value; salvar(); render(); } return; }
+  if(t.dataset.fatm!==undefined || t.dataset.moam!==undefined){
+    const l = t.dataset.fatm!==undefined ? FAT[+t.dataset.fatm] : MO_APOIO[+t.dataset.moam]; if(!l) return;
+    l.m = Array.from({length:NM}, (_,i)=> Array.isArray(l.m) ? (num(l.m[i])>0?1:0) : 0);
+    l.m[+t.dataset.m] = t.checked ? 1 : 0; salvar(); render(); return; }
   // marca/desmarca um lancamento do ERP no rastro do gasto real da reforma —
   // o total do conjunto (e da especialidade) so soma o que estiver marcado
   // (ver itensReforma() em calculo/reforma.js). Item do mapeamento automatico
@@ -272,6 +291,13 @@ document.addEventListener("change",e=>{
     marcarAtivSujo(a); render(); return; }
   // ativa/inativa a atividade — some das buscas de vinculo novo (ver
   // buscaTratAtiv em ui/insumos.js), sem mexer no que ja esta lancado
+  /* Equipamento sem gente escalada: continua contando como frota e sai da conta
+     de pessoal. Guarda a marcacao explicita (true/false) para nao depender do
+     padrao da especialidade depois que alguem decidiu na tela. */
+  if(t.dataset.apsp!==undefined){ const c=t.dataset.apsp, k=t.dataset.erp;
+    DIM[c]=DIM[c]||{}; DIM[c].apoioSP=DIM[c].apoioSP||{};
+    DIM[c].apoioSP[k]=t.checked;
+    salvar(); render(); return; }
   if(t.dataset.atativo!==undefined){ const a=atividadesLista()[+t.dataset.atativo]; a.ativo = t.checked;
     marcarAtivSujo(a); render(); return; }
   // ativa/inativa o produto — some da busca de adicionar numa composicao NOVA
@@ -475,6 +501,13 @@ document.addEventListener("click",e=>{
   const faixa = e.target.closest && e.target.closest("#t_ins tr.stage[data-fam]");
   if(faixa){ alternarFam(faixa.dataset.fam); render(); return; }
   if(e.target.id === "btn_ins_recolher"){ recolherTodas(!todasRecolhidas()); render(); return; }
+  // cadastro de insumos: "N trat." abre embaixo da linha os tratamentos que usam
+  // o produto, e cada um leva a composicao dele na aba Insumos
+  const usosBtn = e.target.closest && e.target.closest("[data-inusos]");
+  if(usosBtn){ alternarUsos(usosBtn.dataset.inusos); render(); return; }
+  const abreTrat = e.target.closest && e.target.closest("[data-abretrat]");
+  if(abreTrat){ setTRAT_SEL(abreTrat.dataset.abretrat); render();
+    abrirDestino({aba:"insumos", alvos:["#t_comp"]}); return; }
   // filtro de periodo do rastro (ano todo / safra / entressafra) — checa antes do
   // data-rastro geral, pois os botoes do filtro moram dentro do proprio modal
   // filtro global de periodo, na barra superior
@@ -544,6 +577,12 @@ document.addEventListener("click",e=>{
   // abrir a linha de meses e visao: nao grava e nao mexe em numero nenhum
   const dm = e.target.closest && e.target.closest("[data-dimmes]");
   if(dm){ alternarMesLinha(dm.dataset.dimmes); render(); return; }
+  // abre a frente inteira (nucleo + apoio) na linha da atividade
+  const df = e.target.closest && e.target.closest("[data-dimfrente]");
+  if(df){ alternarFrenteLinha(df.dataset.dimfrente); render(); return; }
+  // meses de um item da frente, na propria linha dele
+  const am = e.target.closest && e.target.closest("[data-apmes]");
+  if(am){ alternarMesItem(am.dataset.apmes); render(); return; }
   const dd = e.target.closest && e.target.closest("[data-dimdet]");
   if(dd){ setDIM_DET({cod: dd.dataset.dimdet, aba: dd.dataset.aba || "oper"});
     renderDimDet(); return; }
@@ -649,6 +688,8 @@ document.addEventListener("click",e=>{
   }
   const t=e.target;
   if(t.dataset.rm!==undefined){ ESPOR.splice(+t.dataset.rm,1); salvar(); render(); return; }
+  if(t.dataset.fatrm!==undefined){ FAT.splice(+t.dataset.fatrm,1); salvar(); render(); return; }
+  if(t.dataset.moarm!==undefined){ MO_APOIO.splice(+t.dataset.moarm,1); salvar(); render(); return; }
   if(t.dataset.admrm!==undefined){ const l=admLista()[+t.dataset.admrm];
     if(!confirm(`Remover "${l.desc}" dos custos administrativos?`)) return;
     admLista().splice(+t.dataset.admrm,1); salvar(); render(); return; }
@@ -700,6 +741,19 @@ document.addEventListener("click",e=>{
     if(!r.ok){ alert(r.erro); return; }
     salvar(); render(); return; }
 });
+
+/* FAT: linha nova ja com os meses da entressafra, que e quando o contrato
+   costuma ser suspenso; a funcao sugerida e a do operador de maquinas */
+const FUNCAO_PADRAO = () => (CFG.funcoes.find(f=>f.cod==="918") || CFG.funcoes[0] || {cod:""}).cod;
+$("#btn_fat_add").onclick=()=>{
+  FAT.push({fcod:FUNCAO_PADRAO(), qtd:1, ben:0, desc:"",
+            m:Array.from({length:NM}, (_,i)=> periodoMes(i)==="entressafra" ? 1 : 0)});
+  salvar(); render();
+};
+$("#btn_moa_add").onclick=()=>{
+  MO_APOIO.push({fcod:FUNCAO_PADRAO(), qtd:1, frente:"", m:Array(NM).fill(1)});
+  salvar(); render();
+};
 
 $("#btn_grp_add").onclick=()=>{
   const r = criarGrupoInsumo($("#in_grp_novo").value);

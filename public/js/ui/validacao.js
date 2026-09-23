@@ -27,8 +27,12 @@ const codDe = txt => String(txt||"").split(" ")[0];
 
 function validar(R){
   const v=[]; const add=(ok,t,d,destino)=>v.push({ok,t,d,ir:destino||null});
+  /* Atividade zerada no Plano Operacional e escolha, nao erro: num plano de
+     entressafra a colheita fica zerada, e o que nao roda no ano simplesmente
+     nao entra no calculo. Fica como informacao, sem virar pendencia. */
   const semVol=R.L.filter(r=>r.total===0).length;
-  add(semVol===0,"Atividades sem volume programado",semVol+" de "+R.L.length,
+  add(true,"Atividades sem volume no plano",
+      semVol ? semVol+" de "+R.L.length+" zeradas — ficam fora do cálculo (normal para o que não roda no período, como a colheita na entressafra)" : "",
       ir("plano", ...planoCod((R.L.find(r=>r.total===0)||{a:{}}).a.cod), "#t_plano"));
   // Janela de datas do Plano Operacional. Data que o cálculo não consegue usar
   // não dá erro: a atividade volta, em silêncio, para os meses com volume
@@ -73,9 +77,22 @@ function validar(R){
   const arrSemValor = R.AR.linhas.filter(l=>l.area>0 && l.rsHa<=0);
   add(arrSemValor.length===0,"Fazenda arrendada com área e sem valor de pagamento", arrSemValor.map(l=>l.faz).join(", "),
       ir("arrend", arrSemValor.length ? `#t_arr [data-arr="${R.AR.linhas.indexOf(arrSemValor[0])}"][data-f="qtd"]` : null, "#t_arr"));
+  // FAT e apoio operacional: linha sem pessoa ou sem mes entra com custo zero, calada
+  const nomeF = c => (R.MP.custoFuncao[c]||{nome:c||"sem função"}).nome;
+  const fatVazia = ((R.FT||{}).linhas||[]).find(l=>!(l.qtd>0) || !l.nMeses);
+  add(!fatVazia, "FAT: linha sem pessoas ou sem mês marcado", fatVazia ? nomeF(fatVazia.fcod) : "",
+      ir("mdo", fatVazia ? (fatVazia.qtd>0 ? `#t_fat [data-fatm="${fatVazia.ix}"][data-m="0"]` : `#t_fat [data-fat="${fatVazia.ix}"][data-f="qtd"]`) : null, "#t_fat"));
+  const fatSemBen = ((R.FT||{}).linhas||[]).find(l=>l.qtd>0 && l.nMeses && !(l.ben>0));
+  add(!fatSemBen, "FAT: função sem benefício por pessoa/mês", fatSemBen ? nomeF(fatSemBen.fcod)+" — o FAT entra no efetivo, mas com custo zero" : "",
+      ir("mdo", fatSemBen ? `#t_fat [data-fat="${fatSemBen.ix}"][data-f="ben"]` : null, "#t_fat"));
+  const moaVazia = ((R.MOA||{}).linhas||[]).find(l=>!(l.qtd>0) || !l.nMeses);
+  add(!moaVazia, "Apoio operacional: linha sem pessoas ou sem mês marcado", moaVazia ? nomeF(moaVazia.fcod)+(moaVazia.frente?" · "+moaVazia.frente:"") : "",
+      ir("dimens", moaVazia ? (moaVazia.qtd>0 ? `#t_moa [data-moam="${moaVazia.ix}"][data-m="0"]` : `#t_moa [data-moa="${moaVazia.ix}"][data-f="qtd"]`) : null, "#t_moa"));
   if(R.PS) add(Math.abs(R.PS.custo-R.mdoTotal)<=1,"Resumo de pessoas confere com o custo de mão de obra",
       Math.abs(R.PS.custo-R.mdoTotal)<=1 ? "" : "diferença de "+brl(R.PS.custo-R.mdoTotal), ir("pessoas", "#t_pes_dept"));
-  const semRend = R.L.find(r=>r.rend<=0);
+  // so atividade com volume: a zerada nao roda, e o transporte sem tonelada
+  // nao tem rendimento calculado -- nao e rendimento faltando
+  const semRend = R.L.find(r=>r.total>0 && r.rend<=0);
   add(!semRend,"Rendimento operacional zerado", semRend ? semRend.a.cod+" · "+semRend.a.nome : "",
       ir("dimens", semRend ? `#t_dim [data-r="${semRend.a.cod}"]` : null, "#t_dim"));
   const utilRuim = R.L.find(r=>r.util<=0||r.util>1);
@@ -161,10 +178,21 @@ function validar(R){
   add(R.total>0,"Plano gera custo calculável",brl(R.total), ir("plano","#t_plano"));
   // base física dos custos unitários (Premissas): em branco, o custo por ha cai
   // na soma das atividades, que conta cada passada como um hectare a mais
-  const basesVazias = Object.entries(PREMISSAS_BASE).filter(([id])=>!premissaBase(id)).map(([,b])=>b.nome.toLowerCase());
+  // so as bases das operacoes que tem volume no plano: sem colheita (plano de
+  // entressafra), area e volume de colheita em branco nao sao falta de nada
+  const temVol = f => R.L.some(r=>r.total>0 && f(r.a));
+  const usada = {
+    plantio:    temVol(a=>a.etapa==="PREPARO DE SOLO" || a.etapa==="PLANTIO"),
+    planta:     temVol(a=>a.etapa==="TRATOS CULTURAIS" && a.cultura==="Planta"),
+    soca:       temVol(a=>a.etapa==="TRATOS CULTURAIS" && a.cultura!=="Planta"),
+    colheitaHa: temVol(a=>a.etapa==="COLHEITA"),
+    colheita:   temVol(a=>a.etapa==="COLHEITA"),
+  };
+  const basesFalta = Object.entries(PREMISSAS_BASE).filter(([id])=>usada[id]!==false && !premissaBase(id));
+  const basesVazias = basesFalta.map(([,b])=>b.nome.toLowerCase());
   add(basesVazias.length===0,"Base física dos custos informada em Premissas",
       basesVazias.length ? "em branco: "+basesVazias.join(", ") : "",
-      ir("premissas", ...Object.entries(PREMISSAS_BASE).filter(([id])=>!premissaBase(id)).map(([,b])=>"#p_"+b.campo)));
+      ir("premissas", ...basesFalta.map(([,b])=>"#p_"+b.campo)));
   // volume de colheita da premissa x toneladas lançadas nas atividades de colheita
   const tonPrem = premissaBase("colheita"), tonPlano = (R.etapas["COLHEITA"]||{}).ton||0;
   const difTon = tonPrem && tonPlano>0 ? Math.abs(tonPrem-tonPlano)/tonPlano : 0;

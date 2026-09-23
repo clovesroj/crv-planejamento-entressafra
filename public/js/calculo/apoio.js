@@ -2,6 +2,8 @@ import { litrosDe } from './consumo.js';
 import { CFG } from '../dados/cfg.js';
 import { MESES, NM } from '../nucleo/calendario.js';
 import { APOIO_FIXO, apoioLista } from '../nucleo/estado.js';
+import { apoioDeFrente } from './apoio-frente.js';
+import { ESP_ERP } from '../dados/atividades-erp.js';
 import { num } from '../nucleo/formato.js';
 import { precoDiesel } from './diesel.js';
 import { custoDaFuncao } from './mao-de-obra.js';
@@ -39,13 +41,39 @@ function apoioCalc(MP){
     efetivo: linhas.reduce((s,l)=>s+l.efetivo,0)};
 }
 
-/* ================== FROTA DE APOIO ================== */
-function frotaApoio(){
-  const linhas = CFG.apoio.map(a=>{
-    const qtd = APOIO_FIXO[a.nome]!=null ? num(APOIO_FIXO[a.nome]) : a.qtd;
-    return {...a, qtd, nec: a.disp>0 ? qtd*a.util/a.disp : 0};
+/* ================== FROTA DE APOIO ==================
+   A frota de apoio nao e uma lista a parte: e a soma do que as FRENTES pedem.
+   A pipa que aparece no Plantio, na colheita e no herbicida manual e o mesmo
+   caminhao — cinco codigos de atividade no ERP, uma especialidade (327
+   CAMINHAO - BOMBEIRO), um numero. Enquanto eram duas listas, a tela do plano
+   dizia uma coisa e o resumo de frota dizia outra.
+
+   Junta por ESPECIALIDADE, que e como o ERP classifica o equipamento, e soma
+   MES A MES: o que precisa existir e o pico, porque frentes que rodam em meses
+   diferentes dividem o mesmo caminhao. Quantidade digitada a mao (APOIO_FIXO)
+   continua valendo por cima, para o caso em que o patio tem mais do que o plano
+   pede. */
+function frotaApoio(L){
+  const porEsp = {};
+  apoioDeFrente(L).filter(x=>x.frota>0).forEach(x=>{
+    const k = x.esp || "—";
+    const o = porEsp[k] = porEsp[k] || {esp:k, nome: ESP_ERP[k] || ("especialidade "+k),
+                                        itens:new Set(), ativs:new Set(), qtdMes:Array(NM).fill(0)};
+    o.itens.add(x.nome); o.ativs.add(x.cod+" · "+x.atividade);
+    x.qtdMes.forEach((v,i)=>{ o.qtdMes[i] += v; });
   });
-  return {linhas, total: linhas.reduce((s,l)=>s+l.nec,0)};
+  const linhas = Object.values(porEsp).map(o=>{
+    const pedido = Math.max(0, ...o.qtdMes);
+    const ajuste = APOIO_FIXO[o.esp];
+    const qtd = ajuste != null && ajuste !== "" ? num(ajuste) : pedido;
+    const iPico = o.qtdMes.indexOf(pedido);
+    return {esp:o.esp, nome:o.nome, qtd, pedido, ajustada: qtd !== pedido,
+            mes: pedido>0 ? MESES[iPico] : "", qtdMes:o.qtdMes,
+            itens:[...o.itens], ativs:[...o.ativs], nec: qtd};
+  }).sort((a,b)=> b.nec - a.nec || a.nome.localeCompare(b.nome));
+  return {linhas, total: linhas.reduce((s,l)=>s+l.nec,0),
+          // soma simultanea de cada mes, que e o que a frota tem de cobrir junto
+          porMes: MESES.map((m,i)=>linhas.reduce((s,l)=>s+l.qtdMes[i],0))};
 }
 
 

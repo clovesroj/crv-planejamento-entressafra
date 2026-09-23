@@ -11,6 +11,7 @@ import { comps, custoPorOperacao } from './custo-operacao.js';
 import { SEM_CONTA, contasValores, totaisContas } from './contas.js';
 import { baseEtapa, custoUnit, premissaBase, rotuloBase } from './base-fisica.js';
 import { reforma, itensReforma } from './reforma.js';
+import { fontesDaConta } from './fontes.js';
 
 // soma um array de NM meses respeitando o filtro de período (mesmo critério de R.PER)
 const somaPeriodo = (arr, periodo) => !arr ? 0
@@ -258,7 +259,7 @@ function rastroFixoVariavel(R, qual){
   const fixoSet = new Set(["Arrendamento","Administração","Depreciação"]);
   const itens = qual==="fixo" ? fixo
     : S.parcial
-      ? ["mdo","manut","diesel","insumo","terc","espor"].map(k=>[CAT_LBL[k]||k, somaMes(R.mesesCat[k]), null])
+      ? ["mdo","manut","diesel","insumo","irrig","terc","tpess","espor"].map(k=>[CAT_LBL[k]||k, somaMes(R.mesesCat[k]), "cat:"+k])
       : comps(R).filter(([n2])=>!fixoSet.has(n2)).map(([n2,v])=>[n2,v,null]);
   const tot = qual==="fixo" ? S.fixo : S.variavel;
   return {
@@ -296,7 +297,7 @@ function rastroPeriodo(R, p){
       {titulo:"Mês a mês", linhas: meses.map(i=>({rot:MESES[i], val:brl(R.meses[i]), ir:"mes:"+i}))},
       {titulo:"Por etapa", linhas: etapas.map(([e,v])=>({rot:e, val:brl(v), ir:"etapa:"+e,
         sub:fmt(o.total>0?v/o.total*100:0,1)+"% do período"}))},
-      {titulo:"Por grande conta", linhas: cats.map(([k,v])=>({rot:CAT_LBL[k]||k, val:brl(v),
+      {titulo:"Por grande conta", linhas: cats.map(([k,v])=>({rot:CAT_LBL[k]||k, val:brl(v), ir:"cat:"+k+":"+p,
         sub:fmt(o.total>0?v/o.total*100:0,1)+"% do período"}))},
       {titulo:"No ano", linhas:[{rot:"Participação no custo total", val:fmt(R.total>0?o.total/R.total*100:0,1)+"%",
         ir:"total", sub:brl(R.total)+" no ano"}]},
@@ -304,6 +305,93 @@ function rastroPeriodo(R, p){
     premissas: premissasGerais(),
     voltar:"total",
   };
+}
+
+/* ---------- grande conta, no ano ou num período ----------
+   Cada número da tabela de grandes contas abre aqui: de onde vem o valor
+   (calculo/fontes.js, fonte a fonte, com o critério que levou cada uma para
+   cada mês) e o valor de cada mês do período. */
+const NAT_DA_CONTA = {mdo:"nat:mdo", manut:"nat:manut", diesel:"nat:diesel", insumo:"nat:insumo",
+  terc:"nat:terc", tpess:"tpess", arrend:"nat:arrend", fixo:"fixo"};
+function mesesDoPeriodo(p){ return MESES.map((m,i)=>i).filter(i=>p==="todos" || periodoMes(i)===p); }
+function rastroConta(R, k, p){
+  if(!R.mesesCat[k]) return null;
+  const idx = mesesDoPeriodo(p);
+  const noP = arr => idx.reduce((s,i)=>s+num(arr[i]),0);
+  const tot = noP(R.mesesCat[k]);
+  const totConta = R.mesesCat[k].reduce((s,x)=>s+num(x),0);
+  const totPer = noP(R.meses);
+  const fontes = fontesDaConta(R, k).map(f=>({...f, v:noP(f.mes)})).filter(f=>Math.abs(f.v)>0.5).sort((a,b)=>b.v-a.v);
+  const nomeP = p==="todos" ? "no ano" : "na "+p;
+  return {
+    titulo: (CAT_LBL[k]||k) + (p==="todos" ? "" : " — "+p),
+    subtitulo: "Grande conta · "+(p==="todos" ? "ano todo" : PERIODOS[p]),
+    valor: brl(tot), temPeriodo:true,
+    blocos:[
+      {titulo:"De onde vem", linhas: fontes.length ? fontes.map(f=>({rot:f.rot, val:brl(f.v), ir:f.ir||undefined,
+          sub:fmt(tot>0?f.v/tot*100:0,1)+"% da conta · "+f.crit})) : [{rot:"Nada "+nomeP, val:"—"}]},
+      {titulo:"Mês a mês", linhas: idx.map(i=>({rot:MESES[i], val:brl(R.mesesCat[k][i]), ir:"mes:"+i,
+          sub:(R.meses[i]>0?fmt(R.mesesCat[k][i]/R.meses[i]*100,1)+"% do custo do mês · ":"")+(periodoMes(i)==="safra"?"safra":"entressafra")}))},
+      {titulo:"Peso", linhas:[
+        {rot:"Na conta do ano", val: totConta>0 ? fmt(tot/totConta*100,1)+"%" : "—", sub:brl(totConta)+" no ano"},
+        {rot:"No custo "+nomeP, val: totPer>0 ? fmt(tot/totPer*100,1)+"%" : "—", ir: p==="todos" ? "total" : "periodo:"+p,
+         sub:brl(totPer)+" "+nomeP},
+      ].concat(NAT_DA_CONTA[k] ? [{rot:"Detalhe da natureza, no ano", val:"›", ir:NAT_DA_CONTA[k]}] : [])},
+    ],
+    nota: "A soma das fontes de cada mês é o valor da conta naquele mês — a mesma distribuição da tabela de custo mensal.",
+    premissas: premissasGerais(), voltar: p==="todos" ? "total" : "periodo:"+p};
+}
+
+/* ---------- subtotal das operações ----------
+   Linhas de subtotal e total das tabelas de custo operacional e contábil:
+   a soma, operação a operação, com o caminho para cada uma. */
+function rastroSomaOperacoes(R, modo, quais){
+  const C = custoPorOperacao(R);
+  const lista = quais==="todas" ? C.principais.concat(C.outras) : C.principais;
+  const val = l => modo==="oper" ? l.oper.total : l.contabil;
+  const tot = lista.reduce((s,l)=>s+val(l),0);
+  return {
+    titulo: (quais==="todas" ? (modo==="oper" ? "Total operacional do plano" : "Custo total do plano")
+                             : "Subtotal das operações principais") + (modo==="oper" ? " — operacional" : " — contábil"),
+    subtitulo: modo==="oper" ? "O que custa fazer cada operação, sem rateios" : "Operação mais a parte dela nos rateios",
+    valor: brl(tot),
+    blocos:[{titulo:"Soma, operação a operação", linhas: lista.filter(l=>Math.abs(val(l))>0.5).map(l=>({
+      rot:l.nome, val:brl(val(l)), ir:"op:"+l.id+":"+modo, sub:fmt(tot>0?val(l)/tot*100:0,1)+"% da soma"}))}]
+      .concat(modo==="contabil" && quais==="todas" ? [{titulo:"No custo total", linhas:[{rot:"Custo total do plano", val:brl(R.total), ir:"total",
+        sub: Math.abs(R.total-tot)>1 ? "diferença de "+brl(R.total-tot)+": custos gerais sem operação para absorvê-los" : "confere"}]}] : []),
+    premissas: premissasGerais(), voltar:"total"};
+}
+
+/* ---------- etapa num período ----------
+   A tabela de etapas por período abre aqui: o custo da etapa em cada mês do
+   período (direto das atividades mais a parte dela nos rateios) e o caminho
+   para a composição completa da etapa. */
+function rastroEtapaPeriodo(R, etapa, p){
+  const serie = (R.etapaMes||{})[etapa];
+  if(!serie) return null;
+  const idx = mesesDoPeriodo(p);
+  const tot = idx.reduce((s,i)=>s+num(serie[i]),0), totAno = serie.reduce((s,x)=>s+num(x),0);
+  const totPer = idx.reduce((s,i)=>s+num(R.meses[i]),0);
+  const ativs = R.L.filter(r=>r.a.etapa===etapa && r.total>0).map(r=>{
+      const f = i => r.total>0 ? num(r.meses[i])/r.total : 0;
+      const v = idx.reduce((s,i)=>s+(r.direto-r.cDiesel-r.cMDO)*f(i)+num(r.dieselMes[i])+num((r.mdoMes||[])[i]),0);
+      return {r, v}; }).filter(x=>x.v>0.5).sort((a,b)=>b.v-a.v);
+  const direto = ativs.reduce((s,x)=>s+x.v,0);
+  return {
+    titulo: etapa+(p==="todos" ? "" : " — "+p), subtitulo:"Etapa · "+(p==="todos" ? "ano todo" : PERIODOS[p]),
+    valor: brl(tot), temPeriodo:true,
+    blocos:[
+      {titulo:"Como se chega nele", linhas:[
+        {rot:"Custo direto das atividades no período", val:brl(direto), sub:"diesel e equipe do mês, o resto pelo volume do mês"},
+        {rot:"Parte da etapa nos rateios do período", val:brl(tot-direto), sub:"arrendamento, administrativo e custos gerais do mês, pelo custo direto da etapa"},
+        {rot:"Custo da etapa no período", val:brl(tot), ir:"etapa:"+etapa, sub:fmt(totPer>0?tot/totPer*100:0,1)+"% do custo do período · composição completa ›"},
+      ]},
+      {titulo:"Atividades com lançamento no período", linhas: ativs.length ? ativs.map(x=>({rot:`${x.r.a.cod} · ${x.r.a.nome}`,
+          val:brl(x.v), ir:"ativ:"+x.r.a.cod})) : [{rot:"Nenhuma atividade lançada no período", val:"—"}]},
+      {titulo:"Mês a mês", linhas: idx.map(i=>({rot:MESES[i], val:brl(serie[i]), ir:"mes:"+i}))},
+      {titulo:"No ano", linhas:[{rot:"Parte do ano da etapa", val: totAno>0 ? fmt(tot/totAno*100,1)+"%" : "—", sub:brl(totAno)+" no ano"}]},
+    ],
+    premissas: premissasGerais(), voltar: p==="todos" ? "total" : "periodo:"+p};
 }
 
 /* ---------- nível 2: etapa (centro de custo) ---------- */
@@ -614,7 +702,7 @@ function rastroAtividade(R, cod){
       {rot:"Custo mensal do cargo, com encargos e benefícios", val:brl(cf.mensal||0,2)},
       {rot:"Encargos sobre a folha", val:fmt((R.MP.encTot||0)*100,1)+"%"},
       {rot:"Atualização de preço de insumos", val:fmt(P.ipreco,0)+"%"},
-      {rot:"Tarifa de terceirização", val:brl(tarifaTerc(cod),2)+"/ha"},
+      {rot:"Valor de terceirização", val:brl(tarifaTerc(cod),2)+"/ha"},
     ]),
     voltar:"etapa:"+r.a.etapa};
 }
@@ -635,6 +723,8 @@ function rastroNatureza(R, nat){
       {rot:"Equipamentos de apoio", val:brl(R.mdoApoio)},
       {rot:"Estrutura indireta", val:brl(R.mdoIndirT)},
       {rot:"Equipe de manutenção", val:brl(R.mdoManut)},
+      {rot:"Apoio operacional", val:brl(R.mdoApoioOper||0), sub:"lançado no Dimensionamento, nos meses marcados"},
+      {rot:"FAT — contrato suspenso", val:brl(R.mdoFat||0), sub:"benefício por pessoa nos meses marcados; fora da operação"},
     ]});
     return {titulo:NAT[nat]||nat, subtitulo:"Natureza de custo, somada no plano",
             valor: brl(nat==="mdo" ? R.mdoTotal : soma), blocos,
@@ -682,8 +772,9 @@ function rastroMes(R, i){
   const matMes = (R.MT.linhas||[]).filter(l=>l.mes===idx && l.total>0);
   return {titulo:MESES[idx], subtitulo:"Custo do mês", valor:brl(R.meses[idx]),
     blocos:[
-      {titulo:"Grandes contas do mês", linhas:Object.entries(R.mesesCat)
-        .map(([k,a])=>({rot:k, val:brl(a[idx])}))},
+      {titulo:"Grandes contas do mês", linhas:Object.entries(R.mesesCat).filter(([,a])=>Math.abs(a[idx])>0.5)
+        .map(([k,a])=>({rot:CAT_LBL[k]||k, val:brl(a[idx]), ir:"cat:"+k,
+          sub:fmt(R.meses[idx]>0?a[idx]/R.meses[idx]*100:0,1)+"% do mês"}))},
       {titulo:"Atividades com lançamento no mês", linhas: itens.length
         ? itens.map(x=>({rot:`${x.r.a.cod} · ${x.r.a.nome}`, val:brl(x.v), ir:"ativ:"+x.r.a.cod,
             sub:`${fmt(num(x.r.meses[idx]))} ${x.r.a.un.split("/")[0]} no mês`}))
@@ -924,6 +1015,11 @@ function rastro(R, chave, periodo){
   if(tipo==="fixo" || tipo==="variavel") return rastroFixoVariavel(R, tipo);
   if(tipo==="periodo") return rastroPeriodo(R, arg);
   if(tipo==="etapa") return rastroEtapa(R, arg);
+  // grande conta e etapa por período: o período da chave já abriu filtrado
+  // (ui/rastro.js); daqui em diante manda o filtro do modal
+  if(tipo==="cat") return rastroConta(R, arg.split(":")[0], p);
+  if(tipo==="opsoma"){ const [modo, quais] = arg.split(":"); return rastroSomaOperacoes(R, modo||"oper", quais||"principais"); }
+  if(tipo==="etapaper") return rastroEtapaPeriodo(R, arg.replace(/:(safra|entressafra|todos)$/,""), p);
   if(tipo==="ativ")  return rastroAtividade(R, arg);
   if(tipo==="nat")   return rastroNatureza(R, arg);
   if(tipo==="mes")   return rastroMes(R, arg);

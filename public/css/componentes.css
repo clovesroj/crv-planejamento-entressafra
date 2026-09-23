@@ -26,8 +26,6 @@ input.bad{border-color:var(--bad);background:var(--bad-bg)}
 /* mesmo combobox, por célula de tabela -- ver celulaBusca()/registrarCombo() em ui/componentes.js */
 .combo-cel{position:relative;display:block;min-width:110px}
 .combo-cel .combo-busca{width:100%;text-align:left}
-#anp_resultado .kpi{cursor:pointer}
-#anp_resultado .kpi:hover{border-color:var(--muted)}
 
 /* ---------- indicadores ---------- */
 /* inherits:true é obrigatório aqui — ::before/::after leem estas variáveis
@@ -297,6 +295,23 @@ td .btn{height:28px;padding:0 10px;font-size:12px}
    Barra plantada por reaplicarExportar() (ui/componentes.js) antes de toda
    <table id> do app — sem marcação nova em cada tela. */
 .tbl-export{display:flex;justify-content:flex-end;gap:6px;margin-bottom:6px}
+
+/* Item inativo nos cadastros (insumos, tratamentos, atividades): linha e texto
+   num tom mais claro. Checkbox e botões ficam como estão — é por eles que se
+   reativa ou se abre o item. */
+tr.inativo > td,
+#t_ativ tr.inativo > td:nth-child(1){background:color-mix(in srgb,var(--muted) 14%,var(--card));color:var(--muted)}
+tr.inativo input:not([type="checkbox"]), tr.inativo select{color:var(--muted);background:transparent;border-color:var(--line)}
+tr.inativo .etq, tr.inativo .badge, tr.inativo .hint{opacity:.6}
+
+/* tratamentos que usam o produto, abertos embaixo da linha no Cadastro de Insumos */
+.usos-ins{display:flex;flex-wrap:wrap;align-items:center;gap:6px;white-space:normal;
+  /* a celula ocupa a tabela inteira, e o botao que abre fica la na direita: sem
+     o sticky a lista nascia na ponta esquerda, fora da area rolada a vista */
+  position:sticky;left:12px;max-width:min(860px,calc(100vw - 140px))}
+/* celula da tabela de coluna fixa corta o excesso (overflow:hidden), e isso
+   prenderia o sticky a ela em vez da area rolada */
+#t_ins td.usos-cel{overflow:visible}
 
 /* ---------- miscelânea ---------- */
 .chart{width:100%;height:auto;display:block}
@@ -623,6 +638,19 @@ tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:under
   border:1px solid var(--line);border-left:3px solid var(--leaf);border-radius:var(--r-sm);
   padding:6px 10px;background:var(--card);font-size:11.5px;line-height:1.35}
 .dim-mes b{font-size:12px;color:var(--ink)}
+/* Item da frente aberta no Dimensionamento: nome, codigo do ERP e a quantidade
+   que a frente usa. Reaproveita a caixa do chip de mes, com largura maior
+   porque aqui o nome vem do ERP e e comprido. */
+/* Linha de item da frente, dentro da tabela do Dimensionamento: mesmas colunas
+   da atividade, para preencher descendo a coluna em vez de cacar campo dentro
+   de cartao. */
+#t_dim tr.frente-cab td{background:var(--leaf-soft);color:var(--leaf-strong);padding:6px 14px}
+#t_dim tr.frente-linha td{background:var(--sunk)}
+#t_dim tr.frente-linha:hover td{background:var(--leaf-soft)}
+#t_dim tr.frente-linha input[type=text],#t_dim tr.frente-linha input:not([type]){width:66px;min-width:0}
+.dim-sp{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--grey);
+  white-space:nowrap;cursor:pointer;margin:0}
+.dim-sp input{width:13px;height:13px;min-width:0;margin:0}
 .dim-mes .calc{font-size:10.5px}
 #t_dim tr.sub td{text-align:left}
 .dim-val{font-weight:700;color:var(--ink);font-size:14px}
@@ -880,3 +908,23 @@ table.pec tr.pec-a td:first-child{font-style:italic}
 #t_plano tr.acoplada td{background:color-mix(in srgb,var(--green) 5%,var(--card))}
 #t_plano tr.acoplada td:nth-child(2){padding-left:22px}
 #t_plano tr.acoplada .acop-seta{color:var(--grey);margin-right:6px}
+
+/* dica do rastro ao passar o mouse (ui/rastro.js) */
+.ra-dica{position:fixed;z-index:60;max-width:360px;min-width:240px;background:var(--card);color:var(--ink);
+  border:1px solid var(--line-strong);border-radius:var(--r);box-shadow:0 8px 24px rgba(15,25,40,.18);
+  padding:10px 12px;font-size:12px;pointer-events:none}
+.ra-dica-tit{font-weight:700;font-size:12.5px}
+.ra-dica-sub{color:var(--grey);font-size:11px;margin-top:1px}
+.ra-dica-val{font-weight:700;font-size:15px;margin:4px 0 6px}
+.ra-dica-bloco{color:var(--grey);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;border-top:1px solid var(--line);padding-top:6px;margin-bottom:3px}
+.ra-dica-l{display:flex;justify-content:space-between;gap:12px;padding:1px 0}
+.ra-dica-l span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ra-dica-l b{white-space:nowrap;font-weight:600}
+.ra-dica-mais{color:var(--muted);font-size:11px;margin-top:2px}
+.ra-dica-pe{color:var(--leaf);font-size:11px;font-weight:600;margin-top:6px}
+
+/* grafico de custo mensal por periodo (aba Custos) */
+.leg-periodo{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:6px;font-size:12px}
+.leg-per{display:inline-flex;align-items:center;gap:6px}
+.leg-per i{display:inline-block;width:12px;height:12px;border-radius:3px}
+#ch_per g[data-rastro]:hover rect:nth-child(2){opacity:.8}
