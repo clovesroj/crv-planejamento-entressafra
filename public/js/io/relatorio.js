@@ -163,7 +163,7 @@ document.addEventListener("keydown", e=>{
 });
 
 /* ---------- controles ---------- */
-// 21 relatorios num <select> nativo tambem era lista sem busca pra rolar --
+// 22 relatorios num <select> nativo tambem era lista sem busca pra rolar --
 // mesmo combobox pesquisavel do resto do app (ver ui/componentes.js).
 const buscaRel = ligarBuscaSelect("#busca_report_rel", "#lista_report_rel", "#sel_report_rel",
   () => RELATORIOS, r => r.nome, r => r.id);

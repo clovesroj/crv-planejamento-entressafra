@@ -122,3 +122,26 @@ export const FUNCAO_POR_ATIVIDADE = {
   "Adubação de socaria": "918",
   "Adubação de cobertura": "918"
 };
+
+/* Categoria operacional da funcao — para agrupar o efetivo por TIPO de gente.
+ *
+ * Motorista e operador de maquina sao quadros diferentes: habilitacao,
+ * treinamento, escala e negociacao sindical nao se misturam, e a contratacao se
+ * faz por um ou por outro, nunca pela soma. Na tela de pessoas eles apareciam
+ * embaralhados dentro da etapa, e quem monta escala tinha de separar no olho.
+ *
+ * A regra e por palavra no nome do cargo do ERP, NA ORDEM abaixo: a primeira
+ * que casar manda. Por isso "MOTORISTA LIDER" cai em Motoristas e nao em
+ * lideranca, e "OP. DE MAQUINAS AGRICOLAS LIDER" cai em Operadores. Cargo novo
+ * que nao casar com nenhuma cai em "Outras funcoes" — aparece na tela em vez de
+ * sumir, que e o lado seguro do erro.
+ */
+export const CATEGORIAS_FUNCAO = [
+  {nome:"Operadores de máquina",      tem:["OP. DE MAQUINAS", "OPERADOR"]},
+  {nome:"Motoristas",                 tem:["MOTORISTA"]},
+  {nome:"Manutenção",                 tem:["MECANICO"]},
+  {nome:"Equipe de campo",            tem:["TRABALHADOR RURAL", "AUXILIAR AGRICOLA", "EQUIPE MANUAL"]},
+  {nome:"Liderança e apoio técnico",  tem:["LIDER", "ENCARREGADO", "SUPERVISOR", "COORDENADOR", "GERENTE",
+                                           "FISCAL", "ASSISTENTE", "TOPOGRAF", "TECNICO", "ADMINISTRATIVO"]},
+];
+export const CATEGORIA_OUTRAS = "Outras funções";

@@ -2,12 +2,13 @@ import { CFG } from '../dados/cfg.js';
 import { FROTA_ESP, contaOrigem, destinoDe, opcoesDestino, rotuloItem } from '../calculo/crm.js';
 import { FROTA_ABERTO, FROTA_ORIG } from '../nucleo/estado.js';
 import { $, esc, fmt, num, pct } from '../nucleo/formato.js';
-import { kpi, th } from './componentes.js';
+import { kpi, ordenarPorEtapa, tdMeses, th, thMeses } from './componentes.js';
+import { NM } from '../nucleo/calendario.js';
+import { criterioMensal, frotaDaAtividade } from '../calculo/atividade.js';
 
 /* ---------- RESUMO DE FROTA ---------- */
 function pintarResumoFrota(R){
   const oper = [...R.crmFrotaL].filter(l=>l.qtd>0).sort((a,b)=> a.cat===b.cat ? b.qtd-a.qtd : a.cat.localeCompare(b.cat));
-  const apoioFixo = R.AP.linhas.filter(l=>l.nec>0);
   const tpess = R.TP.linhas.filter(l=>num(l.qtd)>0);
   const irrig = R.IR.linhas.filter(l=>l.area>0);
 
@@ -102,11 +103,42 @@ function pintarResumoFrota(R){
      <td class="num tot">${fmt(espsBase.reduce((s,e)=>s+unidadesDaEsp(e).filter(u=>destinoDe(u.cod)==="standby").length,0))}</td>
      <td class="num tot">${fmt(Object.values(nec).reduce((a,b)=>a+b,0))}</td><td></td><td></td></tr></tbody>`;
 
-  $("#t_rf_apoio").innerHTML = th([["Veículo / Máquina"],["Utilização",1],["Disponib.",1],["Necessidade",1],["Atividade"]])+"<tbody>"+
-    apoioFixo.map(a=>`<tr><td>${a.nome}</td><td class="num calc">${pct(a.util)}</td>
-      <td class="num calc">${pct(a.disp)}</td><td class="num tot">${a.nec.toFixed(2)}</td>
-      <td class="calc">${a.ativ}</td></tr>`).join("")+
-    "</tbody>";
+  /* Frota de apoio: a tabela EDITAVEL, que veio do Dimensionamento. Havia duas
+     quase iguais -- uma aqui, so de leitura, e outra la, com a quantidade
+     digitavel -- para a mesma pergunta e a mesma fonte (R.AP.linhas). Ficou a
+     que deixa ajustar. */
+  $("#t_apoio").innerHTML = th([["Veículo / Máquina"],["Qtd",1],["Utilização",1],["Disponib.",1],["Necessidade",1],["Atividade"]])+"<tbody>"+
+    R.AP.linhas.map(a=>`<tr><td>${esc(a.nome)}</td><td class="num"><input data-apf="${esc(a.nome)}" value="${a.qtd}" inputmode="decimal"></td>
+      <td class="num calc">${pct(a.util)}</td><td class="num calc">${pct(a.disp)}</td>
+      <td class="num tot">${a.nec.toFixed(2)}</td><td class="calc">${esc(a.ativ)}</td></tr>`).join("")+
+    `<tr><td class="tot">TOTAL</td><td colspan="3"></td><td class="num tot">${R.AP.total.toFixed(2)}</td><td></td></tr></tbody>`;
+
+  /* Necessidade de frota por MES, uma linha por atividade.
+     Veio do Dimensionamento: a pergunta "em que mes a frota aperta" e de frota,
+     e e aqui que estao as outras respostas sobre frota. A tabela por tipo de
+     maquina, que somava o ano inteiro, escondia justamente o mes que decide
+     compra e aluguel. */
+  const L = ordenarPorEtapa(R.L, r=>r.a.etapa);
+  $("#t_dim_frotames").innerHTML = th([["Cod"],["Atividade / frente"],["Máquina"],
+    ...thMeses(),["Pico",1]])+"<tbody>"+
+    (()=>{
+      const linhas = L.filter(r=>r.total>0 && !r.junto);
+      if(!linhas.length) return `<tr><td colspan="${NM+4}" class="calc">Sem atividade com volume lançado.</td></tr>`;
+      const porMes = Array(NM).fill(0);
+      const corpo = linhas.map(r=>{
+        const C = criterioMensal(r);
+        const F = frotaDaAtividade(r);
+        C.forEach((c,i)=>{ porMes[i] += c.n; });
+        return `<tr><td>${r.a.cod}</td><td>${esc(r.a.nome)}</td>
+          <td class="calc">${r.partes.length>1?"—":esc(r.maqEfetiva||"—")}</td>
+          ${tdMeses(C.map(c=>c.n), (v,i)=>v>0?fmt(v):'<span class="calc">—</span>')}
+          <td class="num tot">${fmt(F.pico)}${F.mes?` <span class="calc">${F.mes}</span>`:""}</td></tr>`;
+      }).join("");
+      return corpo + `<tr><td class="tot" colspan="3">SOMA DAS ATIVIDADES NO MÊS</td>` +
+        tdMeses(porMes, v=>fmt(v), "num tot") +
+        `<td class="num calc" title="Somar o pico de cada atividade nao da a frota da usina: atividades que picam em meses diferentes dividem a mesma maquina.">—</td></tr>`;
+    })()+"</tbody>";
+  $("#bl_frota_sub").textContent = `${fmt(R.frotaT)} equipamentos na operação · ${fmt(Math.ceil(R.AP.total))} de apoio`;
 
   $("#t_rf_tpess").innerHTML = th([["Rota"],["Veículo"],["Qtd",1],["Lugares",1]])+"<tbody>"+
     tpess.map(t=>`<tr><td>${esc(t.rota)}</td><td class="calc">${esc(t.veic)}</td>

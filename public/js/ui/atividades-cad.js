@@ -2,7 +2,7 @@ import { CFG } from '../dados/cfg.js';
 import { atividadesLista } from '../nucleo/estado.js';
 import { $, esc } from '../nucleo/formato.js';
 import { definirPatchItens, marcarRascunhoPendente } from '../io/persistencia.js';
-import { th } from './componentes.js';
+import { ordenarPorEtapa, th } from './componentes.js';
 
 /* Editar uma linha não grava mais sozinho — só quando a pessoa clica "Salvar
    alterações", no mesmo espírito do botão do Critério por Mês. E não manda
@@ -65,7 +65,11 @@ function pintarAtividadesCad(){
   const lista = atividadesLista();
   const fixos = new Set(CFG.atividades.map(a => a.cod));
 
-  const linhas = lista.map((a, i) => {
+  /* Sai na ordem da etapa, como o Plano e o Dimensionamento. Cada linha carrega
+     o indice ORIGINAL da lista em data-at -- ordenar a tela e escrever pela
+     posicao exibida editaria uma atividade e gravaria em outra, a mesma
+     armadilha ja conhecida do Cadastro de Insumos. */
+  const linhas = ordenarPorEtapa(lista.map((a, i) => ({a, i})), x => x.a.etapa).map(({a, i}) => {
     const fixo = fixos.has(a.cod);
     return `<tr>
       <td>${esc(a.cod)}</td>
@@ -81,16 +85,15 @@ function pintarAtividadesCad(){
       <td class="num"><input data-at="${i}" data-f="ops" value="${a.ops??1}" inputmode="decimal" style="width:55px"></td>
       <td class="num"><input data-at="${i}" data-f="turnos" value="${a.turnos??1}" inputmode="decimal" style="width:55px"></td>
       <td class="num"><input data-atu="${i}" value="${Math.round((a.util??0.8)*100)}" inputmode="decimal" style="width:55px" title="Utilização em %"></td>
-      <td class="num"><input type="checkbox" data-atmodo="${i}" ${a.modoOn?"checked":""}
-          title="Libera o mix de modos de execução (Manual/Trator/Uniport/Drone/Quadriciclo/Terceiro) para esta atividade no Plano Operacional"></td>
       <td class="num"><input type="checkbox" data-atativo="${i}" ${a.ativo===false?"":"checked"}
           title="Atividade inativa some das buscas de vínculo novo (ex.: 'atividade que usa este tratamento'), mas continua valendo normalmente onde já está lançada"></td>
-      <td class="calc">${fixo ? "Cadastro do sistema" : "Criado por você"}</td>
+      <td class="calc">${fixo ? "Cadastro do sistema" : "Criado por você"}${a.junto
+        ? `<br><span class="badge b-ok" title="Vai na mesma passada da ${esc(a.junto)}: a área, a máquina e a equipe são dela, e aqui só entra o tratamento">junto da ${esc(a.junto)}</span>` : ""}</td>
       <td>${fixo ? "" : `<button class="btn d" data-atrm="${esc(a.cod)}">Remover</button>`}</td></tr>`;
   }).join("");
 
   $("#t_ativ").innerHTML = th([["Código"],["Etapa"],["Nome"],["Unidade"],["Rendimento (por hora)",1],
-    ["Máquina"],["Implemento"],["Operadores",1],["Turnos",1],["Utilização %",1],["Modo de execução",1],["Ativo",1],["Origem"],[""]]) +
+    ["Máquina"],["Implemento"],["Operadores",1],["Turnos",1],["Utilização %",1],["Ativo",1],["Origem"],[""]]) +
     "<tbody>" + linhas + "</tbody>";
 }
 

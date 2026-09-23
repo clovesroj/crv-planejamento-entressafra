@@ -1,5 +1,281 @@
 # Histórico de mudanças
 
+## 2.40.0 — 2026-09-23 · A plantadora é de um operador
+
+Uma frente de 10 conjuntos de plantio, três turnos, escala 5x1 com folguista,
+mostrava **72 operadores onde precisa de 36** — e pagava os 72 na folha. A conta
+é `frota × operadores por equipamento × turnos × fator de escala`, e o
+"operadores por equipamento" da A10 estava **2** no cadastro base.
+
+- **Cadastro corrigido**: A10 (Plantio) passa de 2 para 1 operador. Como o merge
+  da base só acrescenta atividade nova, entra também na lista de correções, com a
+  versão subindo — só assim o plano já gravado recebe o conserto. Quem tiver
+  ajustado à mão para outro valor fica como está.
+- **A conta aparece no modal**: *"Como se chega ao efetivo: 10 × 1 × 3 × 1,20 =
+  36"*. O número saía de quatro fatores e nenhum deles estava na tela.
+- **Operadores por equipamento vira ajuste da atividade**, ao lado de escala e
+  turnos: em branco vale o do cadastro, preenchido vale o da frente — o mesmo
+  desenho de rendimento e utilização.
+
+**Impacto em custo:** no plano vazio nada muda (39.270.751,842344 antes e depois
+— sem volume, a frente não é paga). Num plano de teste com volume em toda
+atividade, o efetivo da A10 cai de 10 para 5, a mão de obra dela de R$ 292.018
+para R$ 146.009, e o total do plano cai o mesmo valor. No plano de verdade o
+efeito é proporcional à frota e aos turnos lançados no plantio.
+
+## 2.39.0 — 2026-09-23 · Quando a frente começa e termina, e motorista longe de operador
+
+Na tabela de necessidade por origem, duas coisas que a coluna de mês não contava.
+
+- **Início e fim.** Uma coluna cheia de gente dava a entender mês inteiro
+  ocupado, e não é: uma atividade acaba no dia 12 e a seguinte começa no 13, com
+  a mesma turma. Entraram duas colunas com o começo e o fim da frente — a data
+  lançada na atividade quando há; sem data, o primeiro e o último mês com gente.
+  E o mês que a janela corta no meio vem **marcado**, com o título dizendo
+  quantos dos dias do mês a frente cobre.
+- **Motorista não é operador.** Dentro da etapa, uma segunda faixa separa por
+  **tipo de gente**, com subtotal próprio: operadores de máquina, motoristas,
+  manutenção, equipe de campo, liderança e apoio técnico. São quadros diferentes
+  — habilitação, treinamento, escala e negociação não se misturam —, e a
+  contratação se faz por um ou por outro, nunca pela soma. Na colheita do
+  cenário de teste: 332 operadores e 112 motoristas, que antes eram só 444.
+- A categoria sai do nome do cargo do ERP, por palavra: "MOTORISTA LIDER" cai em
+  Motoristas e "OP. DE MAQUINAS AGRICOLAS LIDER" em Operadores. Cargo que não
+  casar com nenhuma aparece em "Outras funções", em vez de sumir.
+- A busca por nome aprendeu o segundo nível, e o relatório **Necessidade de
+  Pessoas** ganhou as mesmas colunas.
+
+## 2.38.0 — 2026-09-23 · Adubação de fundação e inseticida do plantio vão na plantadora
+
+A plantadora faz três coisas na mesma passada: planta (A10), aduba o sulco (A39,
+adubação de fundação) e aplica o inseticida sobre a muda (A19, tratos
+fitossanitários no plantio). O plano tratava as três como operações separadas,
+cada uma com a própria frota, equipe, diesel e manutenção. A mecanização era
+contada três vezes para uma máquina só.
+
+Agora A39 e A19 vão **junto da A10**:
+
+- **Área** — é a da A10, mês a mês. Não se lança mais área nelas.
+- **Mecanização** — uma só, a da A10. A39 e A19 ficam sem frota, horas, diesel,
+  mão de obra, manutenção e terceiro próprios.
+- **Tratamento** — continua em cada uma: é por ela que se escolhe o adubo da
+  fundação e o inseticida do plantio, e o custo do insumo é área da A10 ×
+  custo por hectare do tratamento.
+- **Plano Operacional** — A39 e A19 aparecem como linhas logo abaixo da A10
+  (↳, "junto da A10"), com o tratamento editável e, quando houver, a abertura
+  por tratamento com área própria. A linha da A10 mostra "+ A39, A19".
+- **A19 passa para PLANTIO.** Acontece no ato do plantio, não é trato de cana
+  planta. O custo sai de Tratos Culturais e entra em Plantio; a formação do
+  canavial (preparo + plantio + tratos de cana planta) não muda de composição.
+- **Dimensionamento, Resumo de Frota, metas e relatório de Dimensionamento** —
+  A39 e A19 saem: não têm máquina nem equipe para dimensionar. A A10 diz o que
+  leva junto.
+- **Aba Insumos** — ao abrir o tratamento da A39 ou da A19, a área e as datas
+  aparecem só para leitura (são as da A10), sem editor de modo de execução.
+- **Modo de execução** — liberado para toda atividade hoje (as 6 opções, `93554aa`), não
+  aparece na A39 nem na A19: a máquina é a da A10.
+- **ha-operação** — A39 e A19 não somam de novo o hectare que a A10 já contou.
+- **Rastro** da A39 e da A19 — mostra a área, o tratamento e aponta para a A10
+  como a atividade que tem a mecanização.
+
+Plano já salvo recebe a mudança na leitura (`ATIVIDADES_V` 5, campo `junto` e
+etapa da A19 em `CORRECOES_ATIVIDADE`). **Área lançada à parte na A39 ou na A19
+deixa de valer**: vale a da A10.
+
+Também corrigido: o rastro "Pico de mobilização" (Resumo de Pessoas) quebrava
+com `r is not defined` ao abrir.
+
+No plano de teste da auditoria, o total cai R$ 696.086 (de 223.524.240 para
+222.828.153): sai a mecanização da A39 (R$ 185.611) e da A19 (R$ 255.032), e o
+insumo passa a cobrir a área plantada (1.681 ha) em vez das áreas lançadas à
+parte (1.718 e 2.051 ha). Plano vazio segue 39.270.751,842344. 45 invariantes
+sem falha; 29 abas, 121 rastros e 132 relatórios sem erro nem resíduo.
+
+## 2.37.1 — 2026-09-23 · A22 (Dessecação) sai também do plano já salvo
+
+A A22 era a Dessecação em duplicata da A03: mesmo nome, mesma máquina (Uniport
+3030 / Drone), mesma barra de 24 m, 1,65 ha/h. Ela já tinha saído do cadastro
+base, mas isso não a tirava do documento gravado: o plano em uso continuava com
+ela, agora com o botão Remover na aba Cadastro de Atividades.
+
+Agora ela sai sozinha na leitura do documento, uma vez, com o que estiver
+lançado nela — Plano Operacional, Dimensionamento, tarifa e subtarefa de
+terceiro e realizado —, o mesmo que o botão Remover faz. A dessecação do plano
+fica na A03.
+
+- `dados/atividades.js` ganha `REMOCOES_ATIVIDADE` (hoje só `A22`), e
+  `ATIVIDADES_V` sobe para 4: é a versão que faz o documento gravado antes
+  receber a remoção.
+- Vale também para documento sem cadastro próprio de atividades: lançamento
+  órfão da A22 no `PLANO` sai do que é gravado.
+- **Área ou tratamento lançado na A22 sai do plano.** Se a dessecação estava
+  lançada nela e não na A03, lance na A03.
+
+Plano vazio segue 39.270.751,842344. Testado com um documento gravado na versão
+3 com a A22 lançada (600 ha): depois da leitura ela não está no cadastro, no
+Plano, no Dimensionamento, no realizado nem no motor; a A03 fica; e o total é
+idêntico ao do mesmo documento sem a A22. Auditoria com 45 invariantes sem
+falha, 29 abas e 132 relatórios sem erro, nenhuma "A22" na tela.
+
+## 2.37.0 — 2026-09-23 · A função da atividade passa a ser um campo
+
+- **Função editável no detalhe da atividade.** Era só leitura, e quando o código
+  não existia no cadastro de funções a linha virava "F02 — F02". Não era
+  cosmético: **função desconhecida não tem salário, então a atividade entrava
+  com mão de obra zero**. Medido na A05 (2ª Gradagem pesada, 11 pessoas): R$ 0
+  de MDO com "F02", R$ 240.915 depois de apontar para 918 — OP. DE MAQUINAS
+  AGRICOLAS II. Código fora do cadastro entra como primeira opção do select,
+  marcado, em vez de o campo mostrar outra função como se fosse a da atividade.
+- **"Frota fixa da atividade" saiu do modal.** A frota se ajusta mês a mês, no
+  botão **mês**; ter o mesmo número em dois lugares é o que faz um contradizer o
+  outro — o próprio campo já avisava "suspensa agora". O valor não some junto:
+  plano que já tem frota fixada mostra a leitura dela e um botão **remover**.
+- A permissão do campo de função acompanha o dado, não a tela: ele grava
+  `PLANO[cod].fcod`, então pede a permissão do Plano Operacional.
+
+## 2.36.1 — 2026-09-23 · Alteração não confirmada sobrevive ao recarregar
+
+Célula apagada no Plano Operacional voltava depois do F5. Não era a tela: era a
+gravação que nunca chegou ao servidor, e ninguém guardava o que ficou pelo
+caminho. Dois furos, o mesmo sintoma:
+
+- **A gravação em voo não contava como pendente.** `gravar()` zerava o sinal de
+  "há coisa para salvar" *antes* de esperar o servidor. Entre o disparo e a
+  resposta — no Render, com plano grande, mais de um segundo — a alteração só
+  existia na requisição; recarregar ali a cancelava, e o disparo de emergência
+  do `pagehide` saía na primeira linha porque o sinal já estava desligado.
+- **O beacon recusado caía num fetch que a navegação cancela.** `sendBeacon` não
+  aceita payload grande, e uma sessão que passou pelo cadastro de insumos manda
+  bem mais do que o limite.
+
+Agora a alteração é **marcada no navegador antes de ir ao fio** e só sai de lá
+quando o servidor confirma. Na abertura seguinte, o que ficou pendente é
+comparado com o documento do servidor: se ele já tem, a marca é apagada em
+silêncio; se não tem, é reaplicado, reenviado e anunciado. Cobre também rede
+fora, aba fechada no meio e navegador matando a aba.
+
+## 2.36.0 — 2026-09-23 · Cada leitura na tela que responde por ela
+
+Os três dimensionamentos na mesma tela viraram três telas empilhadas numa
+rolagem só: quem vinha ver frota passava por duas antes, e quem vinha ver gente
+passava por todas. Cada leitura foi morar ao lado das tabelas que já respondiam
+a mesma pergunta.
+
+- **Dimensionamento** fica com o planejamento da atividade, e só — sem blocos e
+  sem submenu, a tela abre na tabela.
+- **Resumo de Frota** ganha a página **Necessidade do plano**: a frota por mês em
+  cada atividade e o confronto com a frota cadastrada, por especialidade. E
+  perdeu uma duplicata — havia duas tabelas de frota de apoio, da mesma fonte,
+  uma só de leitura e outra com a quantidade digitável. Ficou a que deixa
+  ajustar.
+- **Resumo de Pessoas** ganha a página **Necessidade x quadro ativo**, que abre a
+  tela: o confronto por função com férias e demissões, e a necessidade mês a mês
+  contra o disponível.
+- **"Detalhe por origem" passa a ser mês a mês, sem custo e com subtotal por
+  etapa.** Eram efetivo, meses mobilizado e custo — três números que não dizem em
+  *que* mês a gente é necessária. Agora é uma coluna por mês, e a faixa de cada
+  etapa é o subtotal dela, na mesma coluna das linhas que soma. O custo saiu:
+  tem tabela própria no Fluxo mensal.
+- **Permissões**: `QUADRO` ganhou `pessoas` como aba dona e `APOIO_FIXO` ganhou
+  `resumofrota`; as duas continuam em `dimens`, porque uma chave pode ter mais de
+  uma aba dona — assim nenhum perfil existente perde edição.
+
+## 2.35.0 — 2026-09-23 · De onde vem cada pessoa do quadro
+
+O quadro por função responde *quantos* motoristas é preciso ter. Faltava a
+pergunta que vem logo depois, e que é a que monta escala: **de onde vem cada um
+deles** — em que etapa, em que atividade, em que mês. 174 motoristas não viram
+escala sem saber que 44 são do transbordo em outubro e nenhum em fevereiro.
+
+- **Necessidade por etapa, atividade e função, mês a mês**, no Dimensionamento
+  de pessoas: uma linha por atividade e função, faixa por etapa com o pico da
+  etapa, uma coluna por mês e o pico fechando a linha. Mês sem volume no Plano
+  Operacional vem vazio, porque a frente não opera. Busca por atividade ou
+  função, e o filtro de período do topo recorta as colunas.
+- **Relatório "Necessidade de Pessoas"** (novo; 22 no total), e a mesma folha
+  dentro do Orçamento de Mão de Obra e do anual detalhado, com o código da
+  função e o custo de MDO do período em cada linha.
+- Não recalcula nada: agrupa os itens que a conta de pessoas já monta, os
+  mesmos que somam o custo de mão de obra. Por isso **fecha** — a soma das
+  linhas bate mês a mês com a necessidade total, o efetivo somado bate com o
+  total e o custo bate com a mão de obra do plano. Apoio, manutenção e
+  estrutura agrícola aparecem nas suas próprias faixas, sem código de
+  atividade, porque não vêm de atividade do plano.
+
+### Corrigido
+
+- **"Necessidade mês a mês x disponível" estava vazia desde a 2.33.x.** Ao tirar
+  os cartões do Dimensionamento, o painter da tabela foi junto, e ficaram só o
+  título e as duas linhas de explicação. Restaurada como era: função,
+  disponível, os doze meses com a célula em vermelho onde a necessidade passa o
+  disponível, o mês de pico em negrito e a linha "a contratar no mês".
+
+## 2.34.0 — 2026-09-22 · Um número só para a mesma pergunta
+
+Auditoria pedida depois que a frota do Plano Operacional discordava da do
+Dimensionamento: **44 numa tela, 70 na outra, para o mesmo transbordo**. O mesmo
+erro estava em mais quatro lugares, e a raiz é sempre a mesma — quem *mostra* o
+número recalculava por conta própria, com premissa diferente de quem o *calcula*.
+
+### Frota e equipe
+
+- **A frota da atividade é uma só em todo lugar.** Plano, Dimensionamento,
+  modal, rastro, metas por gerência, os 21 relatórios e o CSV mostram a frota do
+  **mês que mais pede** — a que tem de existir no pátio. Onde o número é a média
+  da janela (a que rateia custo) ele está rotulado como média: no rastro as duas
+  aparecem lado a lado, e o relatório de Dimensionamento ganhou uma coluna para
+  cada, com o mês do pico.
+- **A equipe do mês segue a frota do mês.** A linha do transbordo dizia 207
+  pessoas e o mês aberto logo abaixo dela dizia 154. A série mensal de pessoas
+  passa a sair da frota de cada mês; o custo não passa por aí — a folha continua
+  vindo do efetivo médio do motor. No cenário de teste o pico do quadro cai de
+  542 para 490, que é o número certo: 542 contratava gente para uma frota que
+  aquele mês não tem.
+
+### Premissas de transporte
+
+- **O transporte explica o próprio número com as premissas dele.** O motor sempre
+  dimensionou o caminhão com jornada e disponibilidade próprias (20 h), mas a
+  meta, o critério por mês, o rastro e o modal usavam as gerais (16,8 h): o modal
+  do transbordo acusava o mês de não caber enquanto o motor dizia que cabia.
+  Agora há uma função só — `premissasDe()` — e as duas falam a mesma língua. No
+  TR3, Out/26 passa de 14.192 h para **16.896 h** de capacidade.
+- **A capacidade do transporte ficava sem a eficiência operacional.** A hora
+  efetiva é jornada × disponibilidade × utilização × eficiência, e o transporte
+  perdia o último fator: chuva encolhia o dia da colhedora e não o do caminhão.
+  Com eficiência em 100% (o padrão, e o que está gravado) **não muda número
+  nenhum** — medido, total idêntico até a última casa. Com eficiência em 80%, o
+  transbordo vai de 59 para 73 equipamentos e o total sobe R$ 1.674.010,84
+  (+2,17%).
+
+### Ordem e layout
+
+- **Ordem da etapa.** A correção da muda para PLANTIO deixou a lista alternando
+  COLHEITA / PLANTIO / COLHEITA: o Plano pintava **12 faixas de grupo para 6
+  etapas**. Plano, Dimensionamento e Cadastro de Atividades saem na ordem em que
+  o ano acontece — preparo, plantio, tratos, colheita, apoio. Dentro da etapa
+  nada muda de lugar, e o Manejo Fitossanitário fica sempre no fim dos tratos.
+- **O cabeçalho cai no eixo do dado, nas 86 tabelas.** O `th` era centralizado em
+  toda tabela enquanto a célula ia para a esquerda (texto) ou para a direita
+  (número): **616 colunas em 68 tabelas** com o rótulo fora do eixo do próprio
+  conteúdo. Agora a regra é uma só, por CSS. Onde a célula é campo de digitação
+  ou célula composta — Plano Operacional e Dimensionamento — as duas ficam ao
+  centro.
+- **13 colunas em que o cabeçalho contradizia a célula** apareceram quando o
+  centro saiu da frente, e foram corrigidas na origem: "Usado em" no Cadastro de
+  Insumos, as seis colunas da tabela CTTA no Painel, "Atividades" no
+  Acompanhamento e a coluna da seta nas duas tabelas do Manejo Fitossanitário.
+
+**Conferido** — plano vazio em 39.270.751,842344, igual ao contrato de
+regressão; cenário de teste com eficiência em 100% com total idêntico antes e
+depois (76.791.211,82345276); 8 invariantes do motor num plano com volume em
+toda atividade (total = variável + fixo = soma dos meses = safra + entressafra =
+soma das etapas, CRM por etapa, mão de obra, custo direto por atividade, frentes
+somando a atividade); as 29 abas sem `NaN`, `undefined` ou `Infinity`; 68
+rastros limpos; 21 relatórios nos dois níveis com toda linha do tamanho do
+cabeçalho; auditoria automática de alinhamento nas 86 tabelas com 0 divergência,
+contra 616 antes.
+
 ## 2.33.1 — 2026-09-22 · Nome da referência fora das telas
 
 Nenhuma tela, rastro ou relatório cita mais "PECEGE" ou "modelo PECEGE". O

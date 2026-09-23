@@ -1,4 +1,5 @@
 import { composicao, doseBase, etapasNoPlano, familiaDe, freteEfetivo, insumosPorFamilia, precoInsumo, todasFamilias, tratCodigos, tratEtapas, tratListaTodos, usosTrat } from '../calculo/insumos.js';
+import { modoLiberado } from '../calculo/atividade.js';
 import { TRAT_ETAPAS } from '../dados/insumos.js';
 import { ATIV_TRAT_SEL, DIM, INSUMO, INS_EDIT, INS_FICHA, P, PLANO, TRATC, TRAT_ATIVO, TRAT_ETAPA, TRAT_NOME, TRAT_OBS, TRAT_SEL, atividadesLista, insLista } from '../nucleo/estado.js';
 import { $, brl, esc, fmt, num, urlWeb } from '../nucleo/formato.js';
@@ -226,7 +227,7 @@ function pintarInsumos(R){
     `<colgroup>${COLS.map(w=>`<col style="width:${w}px">`).join("")}</colgroup>` +
     th([["Código"],["Nome comercial"],["Princípio ativo"],["Un."],
     ["Concentração"],["Classe agronômica"],["Grupo"],["Volume dem.",1],["Estoque",1],["Preço base",1],
-    ["Preço corrigido",1],["Necessidade",1],["Custo de aquisição",1],["Usado em"],["Ativo",1],["Bula"],[""],[""],[""]])+"<tbody>"+
+    ["Preço corrigido",1],["Necessidade",1],["Custo de aquisição",1],["Usado em",1],["Ativo",1],["Bula"],[""],[""],[""]])+"<tbody>"+
     // quebra por família e, dentro dela, ordem alfabética de princípio ativo.
     // O `ix` que vai na linha é a posição original em insLista() — é por ele que
     // a edição acha o produto, então reordenar a tela não pode reordenar o índice.
@@ -442,21 +443,26 @@ function pintarTratPeriodo(R){
   // linha() em calculo/atividade.js) — só leitura; edição desce pro bloco de
   // tratamentos extras logo abaixo, onde cada um tem área própria.
   const temExtras = !!(linha && linha.tratsDetalhe);
-  const meses = temExtras ? linha.meses : (p.m || Array(NM).fill(0));
+  // junto de outra atividade (A39 e A19 na plantadora da A10): a area e a dela
+  const junto = !!(linha && linha.junto);
+  const meses = (temExtras || junto) ? linha.meses : (p.m || Array(NM).fill(0));
   const totalArea = temExtras ? linha.total : meses.reduce((s,q)=>s+num(q),0);
   $("#t_trat_periodo").innerHTML = th([["Início"],["Fim"],["Un."],...MESES.map((m,j)=>[m,1,clsMes(j)]),
       ["Total planejado",1],["Modo de execução"]])+
     `<tbody><tr>
+      ${junto ? `<td class="calc" colspan="2">na janela da ${esc(linha.junto)}</td>` : `
       <td><input type="date" data-dt="${esc(exibindo)}" data-f="ini" value="${d.ini||""}" max="${d.fim||""}" title="Início da execução"></td>
-      <td><input type="date" data-dt="${esc(exibindo)}" data-f="fim" value="${d.fim||""}" min="${d.ini||""}" title="Fim da execução"></td>
+      <td><input type="date" data-dt="${esc(exibindo)}" data-f="fim" value="${d.fim||""}" min="${d.ini||""}" title="Fim da execução"></td>`}
       <td class="calc">${esc(a.un||"")}</td>` +
-    meses.map((q,j)=> temExtras
-      ? `<td class="num calc ${clsMes(j)}" title="Soma dos tratamentos — edite no bloco abaixo">${q?fmt(num(q)):""}</td>`
+    meses.map((q,j)=> (temExtras || junto)
+      ? `<td class="num calc ${clsMes(j)}" title="${junto ? "Área da "+esc(linha.junto)+", que executa esta na mesma passada" : "Soma dos tratamentos — edite no bloco abaixo"}">${q?fmt(num(q)):""}</td>`
       : `<td class="num ${clsMes(j)}"><input data-c="${esc(exibindo)}" data-m="${j}" value="${q||""}" inputmode="decimal"></td>`).join("") +
     `<td class="num ${temExtras?"calc":""} tot">${fmt(totalArea)}</td>
-     <td>${a.modoOn && linha ? mixEditor(linha) : '<span class="calc">—</span>'}</td>` +
+     <td>${modoLiberado(a) && linha ? mixEditor(linha) : '<span class="calc">—</span>'}</td>` +
     `</tr></tbody>`;
-  $("#trat_periodo_hint").textContent = p.trat===TRAT_SEL
+  $("#trat_periodo_hint").textContent = junto
+    ? `${a.cod} — ${a.nome} vai na mesma passada da ${linha.junto}: a área e as datas são as dela, e aqui só se escolhe o tratamento.`
+    : p.trat===TRAT_SEL
     ? `Lançando para ${a.cod} — ${a.nome}. Início e fim distribuem a área pelos meses automaticamente; os meses continuam editáveis à mão.`
     : `${a.cod} — ${a.nome} ainda usa outro tratamento (${p.trat || "nenhum"}). Escolher esta atividade acima substitui o vínculo.`;
   pintarTratExtras(exibindo, p, linha);

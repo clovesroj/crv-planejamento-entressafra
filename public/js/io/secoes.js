@@ -1,8 +1,9 @@
+import { frotaDaAtividade, pessoasDaAtividade } from '../calculo/atividade.js';
 import { agDeLinha, contaOrigem, rotuloItem } from '../calculo/crm.js';
 import { ADM_CRITERIOS, ADM_GRUPOS } from '../dados/administrativo.js';
 import { ARR_FORMAS, ETAPAS_ORD, arrRat } from '../calculo/arrendamento.js';
 import { FORN_MODALIDADES } from '../dados/fornecedores.js';
-import { deptIdx } from '../calculo/pessoas.js';
+import { deptIdx, janelaDaLinha, necessidadePorAtividade } from '../calculo/pessoas.js';
 import { GERENCIAS, criterioPorMes, excecoes, execucao, metasDeFrota, metasPorAtividade, porGerencia } from '../calculo/acompanhamento.js';
 import { CFG } from '../dados/cfg.js';
 import { CAT_LBL, MESES, NM, PERIODOS, periodoMes } from '../nucleo/calendario.js';
@@ -105,8 +106,13 @@ const horasP = R => REC.parcial
   : R.horasT;
 const totEtapas = R => Object.values(R.etapas).reduce((s,e)=>s+e.total,0)||1;
 const ativosDe = (R, etapa) => R.L.filter(r=>r.a.etapa===etapa && r.total>0);
+/* Frota e efetivo da folha impressa sao os mesmos das telas: o do mes que mais
+   pede, que e o que tem de existir. A media da janela -- a que rateia o custo
+   -- fica no relatorio de Dimensionamento, que e o tecnico, com as duas
+   colunas lado a lado. Folha e tela discordando sobre a mesma atividade e o
+   tipo de coisa que para uma reuniao. */
 const linhaAtiv = r => [r.a.cod, r.a.nome, r.a.un.split("/")[0], fmt(r.total), fmt(r.horas),
-  r.frotaR||0, fmt(r.efetivo), brl(r.cDiesel), brl(r.cMDO), brl(r.cManut), brl(r.cInsumo),
+  frotaDaAtividade(r).pico||0, fmt(pessoasDaAtividade(r).pico), brl(r.cDiesel), brl(r.cMDO), brl(r.cManut), brl(r.cInsumo),
   brl(r.cTerc), brl(r.direto), r.total>0?brl(r.direto/r.total,2):"—"];
 const CAB_ATIV = ["Cod","Atividade","Un","Volume","Horas","Frota","Efetivo","Diesel","Mão de obra",
   "Manutenção","Insumos","Terceiros","Custo direto","R$/un"];
@@ -277,6 +283,20 @@ const pessoasDept = R => secP("Pessoas por depto","Pessoas por departamento",
   R.PS ? Object.entries(R.PS.porDept).sort((a,b)=>deptIdx(a[0])-deptIdx(b[0]))
     .map(([d,o])=>[d, fmt(o.qtd), fmt(picoP(o.qtdMes)), brl(noPer(o.custoMes))])
     .concat([["TOTAL", fmt(R.PS.qtd), fmt(picoP(R.PS.qtdMes)), brl(noPer(R.PS.custoMes))]]) : []);
+/* Necessidade de gente por etapa, atividade e funcao, mes a mes.
+   O quadro por funcao diz quantos; esta folha diz de onde vem cada um e em que
+   mes -- e a folha com que se monta escala e se justifica contratacao. Sai de
+   necessidadePorAtividade(), a mesma fonte da tabela da tela: a reuniao nao
+   pode ter uma conta impressa e outra na tela. */
+const pessoasAtividade = R => secP("Pessoas por atividade",
+  "Necessidade de pessoas — etapa, atividade e função, mês a mês",
+  ["Etapa","Tipo de gente","Cod","Atividade ou origem","Cod função","Função","Início","Fim",
+   ...REC.meses.map(i=>MESES[i]), REC.parcial?"Pico no período":"Pico","Custo MDO no período"],
+  R.PS ? necessidadePorAtividade(R.PS).map(l=>{ const j = janelaDaLinha(l);
+      return [l.dept, l.categoria, l.cod||"—", l.origem, l.fcod, l.fnome, j.ini, j.fim,
+        ...REC.meses.map(i=>fmt(l.qtdMes[i])), fmt(picoP(l.qtdMes)), brl(noPer(l.custoMes))]; })
+    .concat([["TOTAL","","","","","","","", ...REC.meses.map(i=>fmt(R.PS.qtdMes[i])),
+      fmt(picoP(R.PS.qtdMes)), brl(noPer(R.PS.custoMes))]]) : []);
 const fluxoMdo = R => secP("Fluxo MDO","Fluxo mensal — pessoas e custo de mão de obra",
   ["Mês","Período","Pessoas","Custo MDO","Acumulado"],
   R.PS ? (()=>{ let ac=0; return REC.meses.map(i=>{ ac+=R.PS.custoMes[i];
@@ -581,12 +601,16 @@ const planoOperacional = R => secP("Plano Operacional","Plano Operacional",
    horas do período, e a frota e o efetivo dimensionados. */
 const dimensionamento = R => secP("Dimensionamento","Dimensionamento por atividade",
   ["Cod","Atividade",REC.parcial?"Volume no período":"Volume","Rendimento","Utilização",
-   REC.parcial?"Horas no período":"Horas",REC.parcial?"Frota (dimensionada)":"Frota","Turnos","Escala","Fator",
-   REC.parcial?"Efetivo (dimensionado)":"Efetivo","Máquina","Implemento"],
-  R.L.map(r=>[r, ativP(r)]).filter(([,p])=>p.total>0).map(([r,p])=>[r.a.cod, r.a.nome, fmt(p.total),
-    fmt(r.rend,2), pct(r.util), fmt(p.horas), r.frotaR,
-    (r.partes[0]?r.partes[0].turnosEf:r.a.turnos)+"t", r.escala||"padrão",
-    fmt(r.fator,2), fmt(r.efetivo), r.maqEfetiva, r.impEfetivo]));
+   REC.parcial?"Horas no período":"Horas","Frota a ter (pico)","Mês do pico","Frota média (rateio)",
+   "Turnos","Escala","Fator","Equipe a ter (pico)","Efetivo médio (folha)","Máquina","Implemento"],
+  // A39 e A19 vao na plantadora da A10: sem frota nem equipe proprias, nao se dimensionam
+  R.L.filter(r=>!r.junto).map(r=>[r, ativP(r)]).filter(([,p])=>p.total>0).map(([r,p])=>{
+    const F = frotaDaAtividade(r), PE = pessoasDaAtividade(r);
+    return [r.a.cod, r.a.nome, fmt(p.total),
+      fmt(r.rend,2), pct(r.util), fmt(p.horas), F.pico, F.mes||"—", F.media,
+      (r.partes[0]?r.partes[0].turnosEf:r.a.turnos)+"t", r.escala||"padrão",
+      fmt(r.fator,2), fmt(PE.pico), fmt(PE.media), r.maqEfetiva, r.impEfetivo];
+  }));
 
 const combustivel = R => {
   const lit = noPer(R.CB.litrosOperMes) + noPer(R.CB.litrosApoioMes);
@@ -659,7 +683,7 @@ const SECOES = {
   tratos:  porEtapa("Tratos","Orçamento de tratos culturais","TRATOS CULTURAIS"),
   colheita:porEtapa("Colheita","Orçamento de colheita","COLHEITA"),
   apoioEtapa: porEtapa("Apoio e Conservação","Orçamento de apoio e conservação","APOIO E CONSERVAÇÃO"),
-  transporte, frota, frotaBase, modelos, manutencao, maoDeObra, pessoasDept, fluxoMdo, insumos,
+  transporte, frota, frotaBase, modelos, manutencao, maoDeObra, pessoasDept, pessoasAtividade, fluxoMdo, insumos,
   tratamentos,
   arrendamentos, fornecedores, administracao, custoEtapa, natureza, mensal, periodos,
   contas, fluxo, cenarios, validacao, porFazenda, porCentroCusto, porAtividade,
@@ -787,7 +811,8 @@ const RELATORIOS = [
   {id:"colheita",nome:"Orçamento de Colheita",        secoes:["colheita","transporte","combustivel","dimensionamento"]},
   {id:"log",     nome:"Orçamento de Logística",       secoes:["logistica","transporte","combustivel"]},
   {id:"frota",   nome:"Orçamento de Frota",           secoes:["frota","frotaBase","manutencao","apoio","combustivel"]},
-  {id:"mdo",     nome:"Orçamento de Mão de Obra",     secoes:["maoDeObra","pessoasDept","fluxoMdo"]},
+  {id:"mdo",     nome:"Orçamento de Mão de Obra",     secoes:["maoDeObra","pessoasDept","pessoasAtividade","fluxoMdo"]},
+  {id:"pessoas", nome:"Necessidade de Pessoas",        secoes:["pessoasAtividade","pessoasDept","maoDeObra","fluxoMdo","dimensionamento"]},
   {id:"arrend",  nome:"Orçamento de Arrendamentos",   secoes:["arrendamentos","porFazenda"]},
   {id:"forn",    nome:"Orçamento de Fornecedores",    secoes:["fornecedores","producao","logistica"]},
   {id:"caixa",   nome:"Fluxo de Caixa Agrícola",      secoes:["fluxo","mensal","periodos"]},
@@ -801,7 +826,7 @@ const RELATORIOS = [
 
 /* Seções extras que só saem no nível detalhado do relatório anual. */
 const DETALHE = ["custoOperacional","custoContabil","planoOperacional","dimensionamento","porAtividade","porCentroCusto","porFazenda",
-  "mensal","periodos","natureza","combustivel","apoio","irrigacao","pessoasDept","fluxoMdo",
+  "mensal","periodos","natureza","combustivel","apoio","irrigacao","pessoasDept","pessoasAtividade","fluxoMdo",
   "logistica","indicadores","frotaBase","modelos","preparo","apoioEtapa","tratamentos"];
 
 function montarSecoes(R, relId, nivel, periodo){

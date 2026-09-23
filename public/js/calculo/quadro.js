@@ -1,4 +1,6 @@
 import { FUNCIONARIOS_BASE } from '../dados/funcionarios-base.js';
+import { QUADRO } from '../nucleo/estado.js';
+import { num } from '../nucleo/formato.js';
 
 /* ================== QUADRO ATIVO ==================
    Consolida a base de pessoal do ERP por função do dimensionamento.
@@ -20,4 +22,17 @@ function quadroBase(){
   return {porFuncao, semFuncao, afastados, mapeado, total, linhas:FUNCIONARIOS_BASE};
 }
 
-export { quadroBase };
+/* Quadro ativo de uma funcao: o ajuste digitado na tela manda; em branco,
+   vale o que veio do ERP. Mora aqui, e nao numa tela, porque duas telas
+   precisam da mesma resposta -- o quadro por funcao no Resumo de Pessoas e o
+   bloco de pessoas do detalhe da atividade, no Dimensionamento. */
+function ajusteQuadro(f){
+  const v = (QUADRO[f] || {}).ativo;
+  return v != null && v !== "" ? num(v) : null;
+}
+function ativoDe(f, base){
+  const v = ajusteQuadro(f);
+  return v != null ? v : ((base.porFuncao || {})[f] || 0);
+}
+
+export { ajusteQuadro, ativoDe, quadroBase };

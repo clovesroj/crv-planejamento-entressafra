@@ -11,14 +11,15 @@ import { salvar } from '../io/persistencia.js';
 import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
 import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TERC_SUB, TERC_DET, setTERC_DET, TPESS, TRATC, TRAT_ATIVO, TRAT_NOME, TRAT_OBS, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, atividadesLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE, setREF_BUSCA, setREF_AG, setREF_FAM, setREF_FROTA, setREF_PROP,
   setGR_INICIO, setGR_FIM, setGR_EMPRESA, setGR_ESP, setGR_AG, setGR_COMP, setGR_FROTA, setGR_PROP, setGR_REFORMA } from '../nucleo/estado.js';
-import { AGROFIT_BUSCA, FITO_ABERTO, PLANO_ABERTO, FROTA_ABERTO, FROTA_UN, INS_EDIT, INS_FICHA, MAQ, setAGROFIT_BUSCA, setFROTA_DEST, setFROTA_ORIG, setINS_EDIT, setINS_FICHA } from '../nucleo/estado.js';
+import { AGROFIT_BUSCA, DIM_DET, FITO_ABERTO, PLANO_ABERTO, FROTA_ABERTO, FROTA_UN, INS_EDIT, INS_FICHA, MAQ, setAGROFIT_BUSCA, setDIM_DET, setFROTA_DEST, setFROTA_ORIG, setINS_EDIT, setINS_FICHA } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { exportarTabela, filtrarPorNome } from '../ui/componentes.js';
 import { marcarAtivNovo, marcarAtivRemovido, marcarAtivSujo, salvarAtiv } from '../ui/atividades-cad.js';
-import { alternarFam, aplicarFamIns, buscaExigeRedesenho, marcarInsSujo, marcarTratSujo,
-  recolherTodas, salvarIns, salvarTrat, todasRecolhidas } from '../ui/insumos.js';
+import { alternarFam, aplicarFamIns, buscaExigeRedesenho, marcarInsSujo, marcarInsNovo, marcarInsRemovido,
+  marcarTratSujo, marcarTratNovo, marcarTratRenomeado, marcarTratRemovido, recolherTodas, salvarIns, salvarTrat, todasRecolhidas } from '../ui/insumos.js';
+import { alternarMesLinha } from '../ui/dimensionamento.js';
 import { lerPremissas } from '../ui/premissas.js';
-import { leve, render, renderAgrofit, renderEditIns, renderFichaIns, renderRastro, renderRendMensal, renderTercDet } from './ciclo.js';
+import { leve, render, renderAgrofit, renderDimDet, renderEditIns, renderFichaIns, renderRastro, renderRendMensal, renderTercDet } from './ciclo.js';
 import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarBuscaItem, filtrarRastro, voltarRastro } from '../ui/rastro.js';
 import { abrirRendMensal, aberto as rendMensalAberto, descartarRascunho, editarRascunho,
   fecharRendMensal, pendencias, salvarRascunho } from '../ui/rendmensal.js';
@@ -89,8 +90,15 @@ document.addEventListener("input",e=>{
   if(t.dataset.u!==undefined){ DIM[t.dataset.u]=DIM[t.dataset.u]||{}; DIM[t.dataset.u].util=num(t.value)/100; salvar(); leve(); return; }
   // frota alvo: em branco volta a sair do rendimento, e por isso e apagada em vez
   // de guardada como zero -- zero seria uma frota fixada em nenhuma maquina
-  if(t.dataset.fr!==undefined){ const c=t.dataset.fr; DIM[c]=DIM[c]||{};
-    const v=num(t.value); if(v>0) DIM[c].frota=v; else delete DIM[c].frota;
+  // data-fr (campo "frota fixa da atividade") saiu do modal: a frota se ajusta
+  // no criterio por mes, e ter o mesmo numero em dois lugares era o que fazia
+  // um contradizer o outro. Quem remove um valor ja lancado e o botao
+  // data-frlimpar, no clique.
+  // operadores por equipamento, ajustado na atividade; em branco volta ao cadastro.
+  // leve() em vez de render(): render() reconstroi a tabela e derruba o foco de
+  // quem esta digitando no modal
+  if(t.dataset.ops!==undefined){ const c=t.dataset.ops; DIM[c]=DIM[c]||{};
+    const v=num(t.value); if(v>0) DIM[c].ops=v; else delete DIM[c].ops;
     salvar(); leve(); return; }
   if(t.dataset.fs!==undefined){ const f=CFG.funcoes.find(x=>x.cod===t.dataset.fs);
     if(f) f.sal=num(t.value);
@@ -261,11 +269,6 @@ document.addEventListener("change",e=>{
     else MAQ[m][k]=num(t.value);
     salvar(); render(); return; }
   if(t.dataset.at!==undefined && t.tagName==="SELECT"){ const a=atividadesLista()[+t.dataset.at]; a[t.dataset.f]=t.value;
-    marcarAtivSujo(a); render(); return; }
-  // libera/tranca o mix de modos (M/T/U/D/Q/3º) no Plano Operacional para
-  // esta atividade — atividade criada pelo usuário nascia sem isso, e sem
-  // controle na tela não dava pra ligar depois
-  if(t.dataset.atmodo!==undefined){ const a=atividadesLista()[+t.dataset.atmodo]; a.modoOn = t.checked;
     marcarAtivSujo(a); render(); return; }
   // ativa/inativa a atividade — some das buscas de vinculo novo (ver
   // buscaTratAtiv em ui/insumos.js), sem mexer no que ja esta lancado
@@ -536,6 +539,23 @@ document.addEventListener("click",e=>{
   // so o modal, porque nenhum numero das abas muda ao abrir ou fechar.
   if((e.target.closest && e.target.closest("#fx_fechar")) || e.target.id==="fichains_fundo"){
     setINS_FICHA(null); renderFichaIns(); return; }
+  // detalhe do dimensionamento: abrir, trocar de bloco e fechar sao visao, nao
+  // dado — redesenham so o modal
+  // abrir a linha de meses e visao: nao grava e nao mexe em numero nenhum
+  const dm = e.target.closest && e.target.closest("[data-dimmes]");
+  if(dm){ alternarMesLinha(dm.dataset.dimmes); render(); return; }
+  const dd = e.target.closest && e.target.closest("[data-dimdet]");
+  if(dd){ setDIM_DET({cod: dd.dataset.dimdet, aba: dd.dataset.aba || "oper"});
+    renderDimDet(); return; }
+  // remove a frota fixa que ficou de um ajuste antigo — o campo nao existe mais
+  const frl = e.target.closest && e.target.closest("[data-frlimpar]");
+  if(frl){ const c = frl.dataset.frlimpar;
+    if(DIM[c]) delete DIM[c].frota;
+    salvar(); render(); renderDimDet(); return; }
+  const ddAba = e.target.closest && e.target.closest("[data-ddaba]");
+  if(ddAba && DIM_DET){ setDIM_DET({...DIM_DET, aba: ddAba.dataset.ddaba}); renderDimDet(); return; }
+  if((e.target.closest && e.target.closest("#dd_fechar")) || e.target.id==="dimdet_fundo"){
+    setDIM_DET(null); renderDimDet(); return; }
   const fx = e.target.closest && e.target.closest("[data-infx]");
   if(fx){ setINS_FICHA(fx.dataset.infx === INS_FICHA ? null : fx.dataset.infx);
     renderFichaIns(); return; }

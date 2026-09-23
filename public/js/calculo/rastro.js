@@ -5,7 +5,7 @@ import { CAT_LBL, MESES, NM, PERIODOS, periodoMes } from '../nucleo/calendario.j
 import { P, insLista } from '../nucleo/estado.js';
 import { brl, fmt, num, pct } from '../nucleo/formato.js';
 import { ETAPAS_ORD, arrRat } from './arrendamento.js';
-import { criterioMensal, tarifaTerc } from './atividade.js';
+import { criterioMensal, frotaDaAtividade, pessoasDaAtividade, premissasDe, tarifaTerc } from './atividade.js';
 import { tratCusto } from './insumos.js';
 import { comps, custoPorOperacao } from './custo-operacao.js';
 import { SEM_CONTA, contasValores, totaisContas } from './contas.js';
@@ -35,6 +35,16 @@ const NAT = {
   arrend: "Arrendamento", admin: "Administração",
 };
 
+/* Premissas de UMA atividade: o transporte roda com jornada e disponibilidade
+   proprias, e o rastro que explica o numero dele tem de citar as que o motor
+   usou -- citar 16,8 h para um caminhao que foi dimensionado com 20 h era
+   explicar a conta com o dado errado. */
+function premissasDaAtividade(a){
+  const pr = premissasDe(a);
+  return premissasGerais().map(l =>
+    l.rot === "Horas efetivas por dia"   ? {...l, val: fmt(pr.hDia,1)+" h"+(pr.transp?" (transporte)":"")} :
+    l.rot === "Disponibilidade mecânica" ? {...l, val: fmt(pr.disp*100,0)+"%"+(pr.transp?" (transporte)":"")} : l);
+}
 function premissasGerais(){
   return [
     {rot:"Dias efetivos por mês",        val:fmt(P.dias)},
@@ -373,8 +383,9 @@ function apresentacao(r, un){
     nota: "Diesel entra pelo preço de cada mês; o restante do custo direto acompanha a quantidade lançada — o mesmo critério que distribui o custo no tempo em Custos.",
   } : null;
 
+  const pr = premissasDe(r.a);
   const dias = num(P.dias) * r.janela.meses;
-  const efic = num(P.efic) > 0 ? num(P.efic)/100 : 1;
+  const efic = pr.efic;
   // dias de calendario da janela, contra os dias de operacao acima
   const diasCal = r.janela.dias > 0 ? r.janela.dias : dias;
 
@@ -402,7 +413,7 @@ function apresentacao(r, un){
     rodape: ["No período", fmt(hPeriodo,0)+" h", fmt(qPeriodo,0)+" "+un,
              fmt(r.horas,0)+" h", fmt(total,0)+" "+un],
     nota: `Hora produtiva é o tempo de máquina efetivamente operando: ${un} ÷ rendimento de ${fmt(r.rend,2)} ${un}/h. `+
-          `Cabe nas ${fmt(num(P.hdia)*(num(P.disp)/100)*efic,1)} h efetivas por dia — ${fmt(P.hdia,1)} h de jornada × ${pct(num(P.disp)/100)} de disponibilidade mecânica × ${pct(efic)} de eficiência operacional. `+
+          `Cabe nas ${fmt(pr.hDia*pr.disp*efic,1)} h efetivas por dia — ${fmt(pr.hDia,1)} h de jornada${pr.transp?" de transporte":""} × ${pct(pr.disp)} de disponibilidade mecânica × ${pct(efic)} de eficiência operacional. `+
           `A folga é a utilização de ${pct(r.util)} premissada mais o arredondamento da frota, e é ela que absorve chuva, quebra e deslocamento. `+
           `As duas leituras de "por dia": a efetiva divide pelos ${fmt(dias,0)} dias de operação da janela `+
           `(${fmt(P.dias)} por mês × ${fmt(jm,1)} meses) e é a meta; a corrida divide pelos ${fmt(diasCal,0)} dias `+
@@ -430,7 +441,7 @@ function apresentacao(r, un){
     nota: `As quatro últimas colunas são alternativas, não se somam: cada uma mostra o que aquele `+
       `critério teria de ser sozinho, com os outros dois parados na premissa do mês. `+
       `São duas leituras da mesma produção: por dia efetivo divide pelos ${fmt(num(P.dias))} dias de operação `+
-      `do mês, de ${fmt(num(P.hdia),1)} h cada, e é a meta; por dia corrido divide pelos dias do calendário, `+
+      `do mês, de ${fmt(pr.hDia,1)} h cada, e é a meta; por dia corrido divide pelos dias do calendário, `+
       `e é o termômetro de prazo. Os dias de cada mês saem da janela da atividade — mês marcado `+
       `como parcial é o que a janela corta no meio, e vale só os dias cobertos. `+
       (apertados
@@ -440,19 +451,28 @@ function apresentacao(r, un){
         : `Nenhum mês pede mais do que o critério entrega.`),
   } : null;
 
+  const FR = frotaDaAtividade(r);
+  const PES = pessoasDaAtividade(r);
   const destaques = [
     {rot: r.ehHa ? "Área" : "Volume", val: fmt(total)+" "+un,
      sub: r.janela.fonte==="datas" ? `de ${r.janela.ini} a ${r.janela.fim}`
         : `${fmt(r.janela.meses,1)} meses de execução`},
     {rot: "Custo por "+un, val: total > 0 ? brl(custo/total, 2) : "—",
      sub: brl(custo)+" no total"},
-    {rot: "Frota", val: (r.frotaR || 0)+" equip.",
-     sub: (r.frotaAlvo ? "frota fixada · rendimento veio dela — " : "") + (r.maqEfetiva || "—")},
+    // junto de outra atividade (A39 e A19 na plantadora): maquina e equipe sao dela
+    r.junto ? {rot: "Frota", val: "na "+r.junto, ir: "ativ:"+r.junto,
+     sub: "mesma passada da "+r.junto+": a máquina, o diesel e a manutenção são dela"} :
+    {rot: "Frota", val: (FR.pico || 0)+" equip.",
+     sub: (r.frotaAlvo ? "frota fixada · rendimento veio dela — " : "")
+        + (FR.difere ? `média da janela ${fmt(FR.media)} · ` : "") + (r.maqEfetiva || "—")},
     {rot: "Meta por dia efetivo", val: dias > 0 ? fmt(total/dias, 1)+" "+un : "—",
      sub: dias > 0 ? `${fmt(dias,0)} dias de operação · ${fmt(total/diasCal,1)} ${un} por dia corrido (${fmt(diasCal,0)} dias)`
                    : "sem janela definida"},
-    {rot: "Efetivo", val: fmt(r.efetivo)+" pessoas",
-     sub: (r.partes[0] ? r.partes[0].turnosEf : r.a.turnos)+" turno(s) · fator "+fmt(r.fator,2)},
+    r.junto ? {rot: "Efetivo", val: "na "+r.junto, ir: "ativ:"+r.junto,
+     sub: "a equipe da plantadora faz as três operações"} :
+    {rot: "Efetivo", val: fmt(PES.pico)+" pessoas",
+     sub: (PES.difere ? `média da janela ${fmt(PES.media)} · ` : "")
+        + (r.partes[0] ? r.partes[0].turnosEf : r.a.turnos)+" turno(s) · fator "+fmt(r.fator,2)},
   ];
   return {destaques, tabelas: [porEquip, tabCriterio, tabela].filter(Boolean)};
 }
@@ -467,9 +487,10 @@ function apresentacao(r, un){
    sobra que absorve chuva, quebra e deslocamento. */
 function metaDiaria(r, un){
   if(!(r.total > 0) || !(r.frotaR > 0)) return null;
+  const pr = premissasDe(r.a);
   const diasJanela = num(P.dias) * r.janela.meses;        // dias efetivos na janela
   if(!(diasJanela > 0)) return null;
-  const hDisp = num(P.hdia) * (num(P.disp)/100) * (num(P.efic)>0?num(P.efic)/100:1);   // hora efetiva por dia
+  const hDisp = pr.hDia * pr.disp * pr.efic;              // hora efetiva por dia
   if(!(hDisp > 0)) return null;
   const hEquipDia  = r.horas / r.frotaR / diasJanela;
   const unDia      = r.total / diasJanela;
@@ -497,6 +518,8 @@ function rastroAtividade(R, cod){
   const mesesComQtd = r.meses.map((q,i)=>({i, q:num(q)})).filter(x=>x.q>0);
   const escala = r.escala ? (ESCALAS[r.escala]||{}).nome || r.escala : "padrão das premissas";
   const trat = r.trat ? tratCusto(r.trat) : 0;
+  const FRa = frotaDaAtividade(r);
+  const PESa = pessoasDaAtividade(r);
   const meta = metaDiaria(r, un);
   const apres = apresentacao(r, un);
 
@@ -524,11 +547,17 @@ function rastroAtividade(R, cod){
           : r.janela.fonte==="meses do plano" ? "meses com volume lançado; defina datas para ajustar"
           : "sem data nem volume: dimensionado sobre o ano"},
       {rot:"Capacidade de 1 equipamento na janela", val:fmt((r.capMes||0)*r.janela.meses)+" "+un},
-      {rot:"Frota necessária", val:(r.frotaR||0)+" equip.",
-       sub:`${fmt(r.horas)} h ÷ (${fmt(r.capMes||0)} ${un}/mês × ${fmt(r.janela.meses,1)} meses) = ${fmt(r.frota||0,2)}, arredondado para cima`},
+      {rot:"Frota média da janela", val:(r.frotaR||0)+" equip.",
+       sub:`${fmt(r.horas)} h ÷ (${fmt(r.capMes||0)} ${un}/mês × ${fmt(r.janela.meses,1)} meses) = ${fmt(r.frota||0,2)}, arredondado para cima. É a que rateia o custo.`},
+      {rot:"Frota a ter no pátio", val:(FRa.pico||0)+" equip.",
+       sub: FRa.difere
+         ? `o mês que mais pede${FRa.mes?" ("+FRa.mes+")":""} — média não estaciona no pátio. É este o número que aparece no Plano e no Dimensionamento.`
+         : `todo mês pede o mesmo; é também a média da janela`},
       {rot:"Turnos", val:(r.partes[0]?r.partes[0].turnosEf:r.a.turnos)+"t"},
       {rot:"Escala", val:escala+" · fator "+fmt(r.fator,2)},
-      {rot:"Efetivo", val:fmt(r.efetivo)+" pessoas"},
+      {rot:"Efetivo médio — o que paga a folha", val:fmt(r.efetivo)+" pessoas"},
+      {rot:"Equipe a ter", val:fmt(PESa.pico)+" pessoas",
+       sub: PESa.difere ? `o mês que mais pede${PESa.mes?" ("+PESa.mes+")":""}` : "todo mês pede o mesmo"},
     ]},
     {titulo:"Equipamento e consumo, por frente", linhas: r.partes.map(p=>p.terc
       ? {rot:(p.modo||"Terceiro")+" · prestador de serviço", val:brl(p.cTerc),
@@ -552,6 +581,29 @@ function rastroAtividade(R, cod){
     ]},
   ];
 
+  /* Atividade que vai junto de outra (A39 e A19 na plantadora da A10): nao
+     ha horas, frota, meta nem consumo proprios para explicar -- e a mesma
+     passada da outra. Fica o que e dela: onde entra, a area e o tratamento. */
+  if(r.junto){
+    const rj = R.L.find(x=>x.a.cod===r.junto);
+    blocos.splice(2, blocos.length-2,
+      {titulo:"Mecanização — na "+r.junto, linhas:[
+        {rot:"Executada junto com", val:r.junto+(rj?" · "+rj.a.nome:""), ir:"ativ:"+r.junto,
+         sub:"mesma passada: a área é a dela, mês a mês, e a máquina, a equipe, o diesel e a manutenção também"},
+        {rot:"Custo da mecanização na "+r.junto, val:rj?brl(rj.direto-rj.cInsumo):"—",
+         sub:"contado uma vez só, na atividade que executa"},
+      ]},
+      {titulo:"Custo desta linha", linhas:[
+        {rot:"Insumos", val:brl(r.cInsumo),
+         sub:r.trat ? `tratamento ${r.trat} a ${brl(trat,2)}/ha × ${fmt(r.total)} ${un}` : "sem tratamento vinculado"},
+        {rot:"CUSTO DIRETO DA ATIVIDADE", val:brl(r.direto)},
+      ]});
+    return {largo:true, destaques:apres.destaques, tabelas:[],
+      titulo:`${r.a.cod} · ${r.a.nome}`, subtitulo:"Tratamento aplicado na plantadora, junto da "+r.junto,
+      valor:brl(r.direto), blocos,
+      premissas: premissasGerais().concat([{rot:"Atualização de preço de insumos", val:fmt(P.ipreco,0)+"%"}]),
+      voltar:"etapa:"+r.a.etapa};
+  }
   const cf = R.MP.custoFuncao[r.fcod] || {};
   return {
     largo:true, destaques:apres.destaques, tabelas:apres.tabelas,

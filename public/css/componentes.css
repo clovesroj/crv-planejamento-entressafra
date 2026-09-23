@@ -84,7 +84,15 @@ input.bad{border-color:var(--bad);background:var(--bad-bg)}
 /* tabela aninhada (frota de um modelo, por exemplo) nao disputa o topo com a de fora */
 .tblwrap table table th{position:static}
 table{border-collapse:collapse;width:100%;font-size:13px;min-width:640px}
-th{background:var(--th-bg);color:var(--th-ink);font-weight:600;text-align:center;padding:9px 12px;font-size:11.5px;
+/* PADRAO DE TABELA: o cabecalho cai no eixo do dado.
+   O th era centralizado em toda tabela do app enquanto a celula ia para a
+   esquerda (texto) ou para a direita (numero) -- 616 colunas em 68 tabelas com
+   rotulo fora do eixo do proprio conteudo, medido. Agora o rotulo segue a
+   celula: texto a esquerda, numero a direita (th.num, o mesmo flag que ja
+   marcava a coluna numerica em th()). Onde a celula e campo ou celula composta
+   -- Plano Operacional e Dimensionamento -- as duas vao ao centro, pela regra
+   com id la embaixo. */
+th{background:var(--th-bg);color:var(--th-ink);font-weight:600;text-align:left;padding:9px 12px;font-size:11.5px;
   text-transform:uppercase;letter-spacing:.5px;position:sticky;top:0;z-index:2;white-space:nowrap;
   border-bottom:1px solid var(--line-strong)}
 td{padding:7px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
@@ -95,10 +103,21 @@ tbody tr:has(> td.tot:first-child) td{background:var(--sunk);border-top:1px soli
 tr.stage td{background:var(--leaf-strong);color:#fff;font-family:var(--f-display);font-weight:600;font-size:13px;
   text-transform:uppercase;letter-spacing:.9px;padding:7px 12px}
 tbody tr.stage:hover td{background:var(--leaf-strong)}
+/* Faixa de subgrupo: um nivel abaixo da faixa de etapa, dentro dela. Mais clara
+   e recuada, para o olho ler "isto esta dentro daquilo" sem precisar contar
+   linha. Usada no Resumo de Pessoas para separar operador de motorista dentro
+   da mesma etapa. */
+tr.stage2 td{background:var(--leaf-soft);color:var(--leaf-strong);font-weight:700;font-size:11.5px;
+  text-transform:uppercase;letter-spacing:.6px;padding:5px 12px;
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+tbody tr.stage2:hover td{background:var(--leaf-soft)}
+tr.stage2 td:first-child{padding-left:26px}
+/* marca de mes parcial: a janela da atividade cobre so parte do mes */
+.parc{color:var(--warn);font-size:9px;margin-left:3px;vertical-align:super;cursor:help}
 /* faixa que dobra o grupo: o cursor avisa que ela e clicavel */
 tr.stage[data-fam] td{cursor:pointer;user-select:none}
 tr.stage[data-fam]:focus-visible td{outline:2px solid #fff;outline-offset:-3px}
-td.num{text-align:right}
+td.num,th.num{text-align:right}
 td input{height:28px;padding:0 8px;font-size:13px;text-align:right;min-width:70px;
   background:var(--edit-bg);border-color:var(--edit-line);color:var(--edit-ink)}
 td input:focus{background:var(--card)}
@@ -181,6 +200,50 @@ th.th-arrasta.sobre{box-shadow:inset 0 0 0 2px var(--leaf)}
    a linha inteira (senão a rolagem "corta" o fundo antes do rótulo aparecer) */
 #t_plano tr.stage td>span{position:sticky;left:0;display:inline-block;padding:7px 12px}
 #plano .tblwrap{scrollbar-width:auto}
+/* Cabecalho e dado no mesmo eixo — a mesma regra do Dimensionamento (#t_dim).
+   O th do app e centralizado e a celula numerica ia para a direita: o rotulo do
+   mes flutuava no meio da coluna e o numero encostava na borda dela, entao
+   cabecalho e conteudo nunca caiam na mesma linha vertical. As duas primeiras
+   colunas sao identificacao e vao a esquerda; da terceira em diante e data,
+   numero ou seletor, e vao ao centro — inclusive o que se digita, senao o
+   valor lancado ficaria fora do eixo do mes que o encima. */
+#t_plano th:nth-child(-n+2),#t_plano td:nth-child(-n+2){text-align:left}
+#t_plano th:nth-child(n+3),#t_plano td:nth-child(n+3){text-align:center}
+#t_plano td:nth-child(n+3) input{text-align:center}
+#t_plano .mix{justify-content:center}
+#t_plano td{vertical-align:middle}
+
+/* Colunas congeladas — Necessidade por origem (Resumo de Pessoas).
+   Doze meses mais o pico rolam na horizontal, e sem a identificação parada o mês
+   que se lê no fim da rolagem fica sem dono: não dá para saber de que atividade
+   e de que função são aquelas pessoas. Congela até o Fim, que é onde termina a
+   identificação da frente (cód., origem, função, início, fim).
+
+   Mesma técnica do Plano Operacional: position:sticky não funciona com
+   border-collapse:collapse, então esta tabela isola o próprio border-spacing.
+   Só a linha de dado (.pes-linha) tem as cinco colunas; faixa de etapa, faixa de
+   tipo e total ocupam a linha inteira com um colspan, e nelas quem gruda é o
+   rótulo, como no Plano. */
+#t_pes_det{border-collapse:separate;border-spacing:0}
+#t_pes_det td{border-bottom:1px solid var(--line)}
+#t_pes_det th:nth-child(1),#t_pes_det tr.pes-linha td:nth-child(1){position:sticky;left:0;width:78px;min-width:78px;max-width:78px}
+#t_pes_det th:nth-child(2),#t_pes_det tr.pes-linha td:nth-child(2){position:sticky;left:78px;width:200px;min-width:200px;max-width:200px}
+#t_pes_det th:nth-child(3),#t_pes_det tr.pes-linha td:nth-child(3){position:sticky;left:278px;width:262px;min-width:262px;max-width:262px}
+#t_pes_det th:nth-child(4),#t_pes_det tr.pes-linha td:nth-child(4){position:sticky;left:540px;width:82px;min-width:82px;max-width:82px}
+#t_pes_det th:nth-child(5),#t_pes_det tr.pes-linha td:nth-child(5){position:sticky;left:622px;width:82px;min-width:82px;max-width:82px}
+#t_pes_det th:nth-child(-n+5){z-index:3}
+#t_pes_det tr.pes-linha td:nth-child(-n+5){z-index:1;background:var(--card)}
+#t_pes_det tr.pes-linha td:nth-child(2),#t_pes_det tr.pes-linha td:nth-child(3){overflow:hidden;text-overflow:ellipsis}
+#t_pes_det th:nth-child(5),#t_pes_det tr.pes-linha td:nth-child(5){box-shadow:3px 0 6px -2px rgba(0,0,0,.14)}
+#t_pes_det tbody tr.pes-linha:hover td:nth-child(-n+5){background:var(--leaf-soft)}
+/* Faixa e total: o rótulo ocupa as cinco colunas congeladas num colspan só, e é
+   essa célula que gruda — não um span dentro dela. Com o span, a célula (que
+   acaba onde acabam as cinco colunas) rolava para fora e levava o rótulo junto;
+   grudando a célula inteira, o rótulo fica parado sobre a mesma faixa em que os
+   subtotais dos meses passam por baixo. */
+#t_pes_det tr.stage td:first-child,#t_pes_det tr.stage2 td:first-child,
+#t_pes_det td.tot:first-child{position:sticky;left:0;z-index:2}
+#t_pes_det tr.stage2 td:first-child>span{padding-left:14px}
 
 /* coluna congelada — Cadastro de Atividades: mesmo motivo do Plano Operacional
    (muita coluna pra rolar sem perder de vista qual atividade é qual) */
@@ -500,6 +563,76 @@ tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:under
 #rendm_fundo[hidden]{display:none}
 #rendm{position:fixed;inset:0;z-index:95;display:flex;align-items:center;justify-content:center;padding:24px}
 #rendm[hidden]{display:none}
+/* Detalhe do dimensionamento: tres blocos, um por leitura da mesma atividade.
+   O que era coluna de tabela virou par rotulo/valor, que e como se le detalhe
+   de um registro so -- coluna serve para comparar registros, nao para abrir um. */
+#dimdet_fundo{position:fixed;inset:0;z-index:90;background:rgba(10,17,12,.5);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);animation:raFundoIn .2s ease-out}
+#dimdet_fundo[hidden]{display:none}
+#dimdet{position:fixed;inset:0;z-index:95;display:flex;align-items:center;justify-content:center;padding:24px}
+#dimdet[hidden]{display:none}
+.dd-modal{width:min(980px,100%)}
+.dd-abas{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+.dd-abas button{border:1px solid var(--line);background:var(--card);color:var(--grey);
+  font:600 12px var(--f-body);padding:6px 14px;border-radius:999px;cursor:pointer}
+.dd-abas button:hover{background:var(--leaf-soft);color:var(--ink)}
+.dd-abas button.on{background:var(--leaf);border-color:var(--leaf);color:var(--on-accent)}
+.dd-bloco{border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;margin-bottom:14px;background:var(--card)}
+.dd-bloco:last-child{margin-bottom:0}
+.dd-tit{font-family:var(--f-display);font-size:16px;font-weight:600;color:var(--ink);margin-bottom:10px}
+.dd-grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:9px 20px}
+.dd-linha{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+  padding:5px 0;border-bottom:1px dashed var(--line);font-size:12.5px;color:var(--grey);min-width:0}
+.dd-linha b{color:var(--ink);font-weight:700;text-align:right;overflow-wrap:anywhere}
+/* campo editavel dentro do modal: rotulo em cima, como no resto do app */
+.dd-campo{display:flex;flex-direction:column;gap:3px;padding:5px 0}
+.dd-campo label{font-size:11px;color:var(--grey);font-weight:600;margin:0}
+.dd-campo .calc{font-size:10.5px;line-height:1.35}
+/* leitura de um valor antigo com o botao que o remove, dentro de um dd-campo */
+.dd-fixa{display:flex;align-items:center;gap:10px;padding:2px 0}
+.dd-bloco .ra-tbl{margin-top:12px}
+@media (max-width:640px){#dimdet{padding:0}
+  .dd-modal{width:100%;height:100%;max-height:100%;border-radius:0}
+  .dd-grade{grid-template-columns:1fr}}
+@media print{#dimdet,#dimdet_fundo{display:none!important}}
+
+/* Celula do Dimensionamento: valor, unidade e acoes na mesma linha, sempre na
+   mesma ordem e alinhados a direita. Antes cada coluna montava a celula de um
+   jeito -- input solto aqui, botao embaixo ali -- e a tabela parecia tres
+   tabelas. O alinhamento a direita e o que deixa comparar linha com linha. */
+/* Titulo de secao dentro de um bloco: quando o bloco perdeu os cartoes, este
+   titulo passou a ser o primeiro texto da area e precisa ter peso de titulo,
+   nao de rotulo de tabela. */
+.h-secao{font-family:var(--f-display);font-size:19px;font-weight:600;letter-spacing:.2px;
+  color:var(--ink);margin:0 0 12px}
+
+/* Cabecalho e dado na mesma posicao. O th do app e centralizado e a celula
+   numerica era alinhada a direita: o rotulo flutuava no meio da coluna e o
+   numero encostava na borda, e era isso que saia do lugar. Aqui as duas
+   primeiras colunas sao texto e vao a esquerda, as outras vao ao centro --
+   cabecalho e conteudo pelo mesmo eixo. */
+#t_dim th:nth-child(-n+3),#t_dim td:nth-child(-n+3){text-align:left}
+#t_dim th:nth-child(n+4),#t_dim td:nth-child(n+4){text-align:center}
+.dim-cel{display:flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap}
+/* linha de meses aberta na propria tabela: um chip por mes com lancamento */
+.dim-meses{display:flex;flex-wrap:wrap;gap:8px;padding:2px 0}
+.dim-mes{display:flex;flex-direction:column;gap:1px;min-width:132px;
+  border:1px solid var(--line);border-left:3px solid var(--leaf);border-radius:var(--r-sm);
+  padding:6px 10px;background:var(--card);font-size:11.5px;line-height:1.35}
+.dim-mes b{font-size:12px;color:var(--ink)}
+.dim-mes .calc{font-size:10.5px}
+#t_dim tr.sub td{text-align:left}
+.dim-val{font-weight:700;color:var(--ink);font-size:14px}
+.dim-val.calc{font-weight:600;color:var(--grey)}
+.dim-un{font-size:10.5px;color:var(--muted);letter-spacing:.2px}
+/* acao da celula: discreta em repouso, visivel no hover da linha — ela nao
+   compete com o numero, que e o que se le primeiro */
+.dim-cel .btn.xs{opacity:.55;transition:opacity .12s,border-color .12s,background-color .12s}
+tbody tr:hover .dim-cel .btn.xs,.dim-cel .btn.xs:focus-visible{opacity:1}
+#t_dim td{padding:10px 14px;vertical-align:middle}
+#t_dim th{padding:11px 14px}
+#t_dim tbody tr:hover td{background:var(--leaf-soft)}
+
 .rm-modal{width:min(1180px,100%)}
 /* barra de acao do modal de criterio: digitar nao grava, o botao e que grava */
 .rm-acoes{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
@@ -739,3 +872,8 @@ table.pec tr.pec-n1 td:first-child{padding-left:22px}
 table.pec tr.pec-n2 td:first-child{padding-left:40px}
 table.pec tr.pec-n3 td:first-child{padding-left:58px}
 table.pec tr.pec-a td:first-child{font-style:italic}
+
+/* Plano Operacional: atividade que vai junto de outra (A39 e A19 na plantadora da A10) */
+#t_plano tr.acoplada td{background:color-mix(in srgb,var(--green) 5%,var(--card))}
+#t_plano tr.acoplada td:nth-child(2){padding-left:22px}
+#t_plano tr.acoplada .acop-seta{color:var(--grey);margin-right:6px}

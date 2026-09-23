@@ -1,4 +1,4 @@
-import { criterioMensal, metaDe } from './atividade.js';
+import { criterioMensal, frotaDaAtividade, metaDe, pessoasDaAtividade } from './atividade.js';
 import { CFG } from '../dados/cfg.js';
 import { MESES, NM } from '../nucleo/calendario.js';
 import { REAL } from '../nucleo/estado.js';
@@ -41,13 +41,21 @@ function gerenciaDe(a){
  * Metas por atividade, com a gerencia que responde por ela.
  * So entra atividade com volume lancado -- meta de atividade vazia nao existe.
  */
+// atividade que vai junto de outra (A39 e A19 na plantadora) nao tem meta
+// propria: a meta e a da atividade que executa
 function metasPorAtividade(R){
-  return R.L.filter(r => r.total > 0).map(r=>{
+  return R.L.filter(r => r.total > 0 && !r.junto).map(r=>{
     const m = metaDe(r);
     return {
       cod: r.a.cod, nome: r.a.nome, etapa: r.a.etapa, un: r.a.un.split("/")[0],
       gerencia: gerenciaDe(r.a),
-      total: r.total, horas: r.horas, rend: r.rend, frota: r.frotaR, efetivo: r.efetivo,
+      total: r.total, horas: r.horas, rend: r.rend,
+      /* Frota e efetivo da reuniao sao os do mes que mais pede -- o que tem de
+         existir no patio e na escala. A media da janela, que e a que rateia
+         custo, vai junto: gerente que pergunta "mas o orcamento contou
+         quantas?" tem a resposta na mesma linha, sem abrir outra tela. */
+      frota: frotaDaAtividade(r).pico, frotaMedia: r.frotaR,
+      efetivo: pessoasDaAtividade(r).pico, efetivoMedio: r.efetivo,
       maq: r.maqEfetiva, imp: r.impEfetivo,
       janela: r.janela, custo: r.direto, meta: m,
       // dias de calendario da janela, ao lado dos dias de operacao que metaDe usa
@@ -70,7 +78,7 @@ function metasPorAtividade(R){
    onde a conversa comeca. */
 function criterioPorMes(R, ger){
   const linhas = [];
-  R.L.filter(r => r.total > 0).forEach(r=>{
+  R.L.filter(r => r.total > 0 && !r.junto).forEach(r=>{
     const g = gerenciaDe(r.a);
     if(ger && g !== ger) return;
     const un = r.a.un.split("/")[0];
@@ -94,7 +102,7 @@ function criterioPorMes(R, ger){
 function execucao(R, ateMes, mesesOk){
   const lim = ateMes == null ? NM - 1 : Math.max(0, Math.min(NM - 1, ateMes));
   const noPeriodo = i => !mesesOk || mesesOk.includes(i);
-  const linhas = R.L.filter(r => r.total > 0).map(r=>{
+  const linhas = R.L.filter(r => r.total > 0 && !r.junto).map(r=>{
     const real = realDe(r.a.cod);
     // A aderencia compara o que foi medido com o plano DAQUELES meses. Somar o
     // plano de meses sem lancamento fazia um plano em andamento parecer um

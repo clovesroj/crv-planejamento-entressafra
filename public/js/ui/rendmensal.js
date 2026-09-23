@@ -1,4 +1,4 @@
-import { criterioMensal } from '../calculo/atividade.js';
+import { criterioMensal, frotaDaAtividade, premissasDe } from '../calculo/atividade.js';
 import { MESES, NM } from '../nucleo/calendario.js';
 import { DIM, P } from '../nucleo/estado.js';
 import { $, fmt, num, pct } from '../nucleo/formato.js';
@@ -98,8 +98,13 @@ function pintarRendMensal(R){
   // se move quando um mes ganha criterio proprio, e o placeholder passaria a
   // sugerir um numero que o motor nao usa para os meses em branco
   const padrao = r.rendPremissa > 0 ? r.rendPremissa : r.rend;
-  const eficPad = num(P.efic) > 0 ? num(P.efic)/100 : 1;
+  /* Jornada e disponibilidade DESTA atividade: transporte tem as suas nas
+     Premissas, e e com elas que o motor dimensiona o caminhao. O modal citava
+     as gerais e mostrava um dia de 16,8 h para quem o plano faz rodar 20 h. */
+  const pr = premissasDe(r.a);
+  const eficPad = pr.efic;
   const C = criterioMensal(r);
+  const FR = frotaDaAtividade(r);
   const comVolume = C.filter(c=>c.temVolume);
   const apertados = comVolume.filter(c=>!c.cabe).length;
 
@@ -122,9 +127,9 @@ function pintarRendMensal(R){
         <button class="btn p" id="rm_salvar" ${pend?"":"disabled"}>Salvar critério</button>
       </div>
       <div class="ra-subtit">Critério por mês · padrão ${fmt(padrao,2)} ${un}/h ·
-        ${r.frotaR||0} ${r.frotaR===1?"equipamento":"equipamentos"} ·
-        ${pct(num(P.disp)/100)} de disponibilidade · ${pct(r.util)} de utilização ·
-        ${pct(eficPad)} de eficiência</div>
+        ${FR.pico||0} ${FR.pico===1?"equipamento":"equipamentos"}${FR.difere?` · <span class="calc">média da janela ${fmt(FR.media)}</span>`:""} ·
+        ${pct(pr.disp)} de disponibilidade · ${pct(r.util)} de utilização ·
+        ${pct(eficPad)} de eficiência${pr.transp?" · jornada de transporte":""}</div>
     </div>
     <div class="ra-corpo">
       <div class="hint" style="margin-bottom:12px">
@@ -132,7 +137,7 @@ function pintarRendMensal(R){
         Campo em branco herda o critério da atividade — preencha só o mês que foge dele.
         <b>Preenchendo a frota, o rendimento do mês passa a ser calculado</b>: com aquelas máquinas,
         naquele critério, é o ${un}/h que o volume do mês exige.
-        A hora efetiva do dia sai de ${fmt(P.hdia,1)} h de jornada × disponibilidade × utilização × eficiência —
+        A hora efetiva do dia sai de ${fmt(pr.hDia,1)} h de jornada${pr.transp?" de transporte":""} × disponibilidade × utilização × eficiência —
         é por aí que dezembro chuvoso encolhe o dia sem que a máquina tenha quebrado.
         <b>Os dias de cada mês saem da janela da atividade</b>: mês que a janela corta no meio vale
         só os dias cobertos, e aparece marcado como <i>mês parcial</i>.
@@ -178,30 +183,34 @@ function pintarRendMensal(R){
           <b>${fmt(c.qDiaCorrido,1)} ${un}</b> <span class="calc">÷ ${fmt(c.diasCorridos)} dias</span></span>
         <span title="${fmt(c.qDia,1)} ${un}/dia ÷ ${fmt(c.n)} equipamento(s)">Por equip./dia
           <b>${fmt(c.qDiaEquip,1)} ${un}</b></span>
+        <span title="${fmt(c.n)} equipamento(s) × operadores × turnos × fator de escala. Muda junto com a frota do mês.">Pessoas
+          <b>${fmt(c.pessoas)}</b></span>
         <span title="${fmt(c.q)} ${un} ÷ ${fmt(c.rend,2)} ${un}/h">Horas <b>${fmt(c.horas)} h</b></span>
       </div>`}
       <div class="rm-campos">
         <label>Frota
           <input data-frotam="${cod}" data-i="${i}" value="${frotaM[i]||""}"
-                 inputmode="decimal" placeholder="${r.frotaR||"—"}" title="Equipamentos neste mês">
+                 inputmode="decimal" placeholder="${vazio ? "0" : (FR.media||"—")}"
+                 title="${vazio ? "Mês sem volume no plano: não opera, então não tem frota nem efetivo. O critério lançado aqui passa a valer se o mês receber quantidade."
+                               : "Equipamentos neste mês"}">
         </label>
         <label>Rend. (${un}/h)
           ${c.daFrota
             ? `<span class="rm-calc" title="Calculado a partir da frota deste mês">${fmt(c.rend,2)}</span>`
             : `<input data-rendm="${cod}" data-i="${i}" value="${rendM[i]||""}"
-                      inputmode="decimal" placeholder="${fmt(padrao,2)}">`}
+                      inputmode="decimal" placeholder="${vazio ? "—" : fmt(padrao,2)}">`}
         </label>
         <label>Disponib. %
           <input data-dispm="${cod}" data-i="${i}" value="${dispM[i]||""}"
-                 inputmode="decimal" placeholder="${fmt(num(P.disp),0)}" title="Disponibilidade mecânica — manutenção">
+                 inputmode="decimal" placeholder="${vazio ? "—" : fmt(pr.disp*100,0)}" title="Disponibilidade mecânica — manutenção">
         </label>
         <label>Utiliz. %
           <input data-utilm="${cod}" data-i="${i}" value="${utilM[i]||""}"
-                 inputmode="decimal" placeholder="${fmt(r.util*100,0)}" title="Utilização — quanto do tempo disponível vai para a operação">
+                 inputmode="decimal" placeholder="${vazio ? "—" : fmt(r.util*100,0)}" title="Utilização — quanto do tempo disponível vai para a operação">
         </label>
         <label>Efic. %
           <input data-eficm="${cod}" data-i="${i}" value="${eficM[i]||""}"
-                 inputmode="decimal" placeholder="${fmt(eficPad*100,0)}"
+                 inputmode="decimal" placeholder="${vazio ? "—" : fmt(eficPad*100,0)}"
                  title="Eficiência operacional — quanto do tempo em campo é produtivo. Desconta chuva, manobra, espera e abastecimento.">
         </label>
       </div>
