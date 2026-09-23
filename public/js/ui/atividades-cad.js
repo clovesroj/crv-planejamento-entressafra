@@ -1,7 +1,7 @@
 import { CFG } from '../dados/cfg.js';
 import { atividadesLista } from '../nucleo/estado.js';
 import { $, esc } from '../nucleo/formato.js';
-import { th } from './componentes.js';
+import { ordenarPorEtapa, th } from './componentes.js';
 
 const ETAPAS = ["PREPARO DE SOLO", "PLANTIO", "TRATOS CULTURAIS", "COLHEITA", "APOIO E CONSERVAÇÃO"];
 /* A unidade que o cadastro mostra é a do RENDIMENTO, que é por hora: 45 t/h,
@@ -22,7 +22,11 @@ function pintarAtividadesCad(){
   const lista = atividadesLista();
   const fixos = new Set(CFG.atividades.map(a => a.cod));
 
-  const linhas = lista.map((a, i) => {
+  /* Sai na ordem da etapa, como o Plano e o Dimensionamento. Cada linha carrega
+     o indice ORIGINAL da lista em data-at -- ordenar a tela e escrever pela
+     posicao exibida editaria uma atividade e gravaria em outra, a mesma
+     armadilha ja conhecida do Cadastro de Insumos. */
+  const linhas = ordenarPorEtapa(lista.map((a, i) => ({a, i})), x => x.a.etapa).map(({a, i}) => {
     const fixo = fixos.has(a.cod);
     return `<tr>
       <td>${esc(a.cod)}</td>

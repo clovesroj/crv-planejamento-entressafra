@@ -84,7 +84,15 @@ input.bad{border-color:var(--bad);background:var(--bad-bg)}
 /* tabela aninhada (frota de um modelo, por exemplo) nao disputa o topo com a de fora */
 .tblwrap table table th{position:static}
 table{border-collapse:collapse;width:100%;font-size:13px;min-width:640px}
-th{background:var(--th-bg);color:var(--th-ink);font-weight:600;text-align:center;padding:9px 12px;font-size:11.5px;
+/* PADRAO DE TABELA: o cabecalho cai no eixo do dado.
+   O th era centralizado em toda tabela do app enquanto a celula ia para a
+   esquerda (texto) ou para a direita (numero) -- 616 colunas em 68 tabelas com
+   rotulo fora do eixo do proprio conteudo, medido. Agora o rotulo segue a
+   celula: texto a esquerda, numero a direita (th.num, o mesmo flag que ja
+   marcava a coluna numerica em th()). Onde a celula e campo ou celula composta
+   -- Plano Operacional e Dimensionamento -- as duas vao ao centro, pela regra
+   com id la embaixo. */
+th{background:var(--th-bg);color:var(--th-ink);font-weight:600;text-align:left;padding:9px 12px;font-size:11.5px;
   text-transform:uppercase;letter-spacing:.5px;position:sticky;top:0;z-index:2;white-space:nowrap;
   border-bottom:1px solid var(--line-strong)}
 td{padding:7px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
@@ -98,7 +106,7 @@ tbody tr.stage:hover td{background:var(--leaf-strong)}
 /* faixa que dobra o grupo: o cursor avisa que ela e clicavel */
 tr.stage[data-fam] td{cursor:pointer;user-select:none}
 tr.stage[data-fam]:focus-visible td{outline:2px solid #fff;outline-offset:-3px}
-td.num{text-align:right}
+td.num,th.num{text-align:right}
 td input{height:28px;padding:0 8px;font-size:13px;text-align:right;min-width:70px;
   background:var(--edit-bg);border-color:var(--edit-line);color:var(--edit-ink)}
 td input:focus{background:var(--card)}

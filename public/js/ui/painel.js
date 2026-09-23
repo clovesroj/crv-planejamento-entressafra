@@ -158,7 +158,7 @@ function pintarModeloPecege(R){
     ["locacao","Locação"],["outros","Outros"],["apoio","Apoio (equipamentos e custos gerais)","a"],
     ["admin","Administrativo","a"],["deprec","Depreciação","a"]];
   $("#t_pec_colh").innerHTML = `<thead><tr><th class="pec-rot">Parâmetro</th>${COLS.map(([k,n])=>
-    `<th class="pec-c-${k}">${n}</th>`).join("")}</tr></thead><tbody>`+
+    `<th class="num pec-c-${k}">${n}</th>`).join("")}</tr></thead><tbody>`+
     LIN.map(([k,rot,tipo])=>`<tr class="${tipo==="tot"?"pec-tot":tipo==="a"?"pec-n1 pec-a":"pec-n1"}"><td>${rot}</td>${
       COLS.map(([c])=>{ const v = valor(c,k); return `<td class="num pec-c-${c}">${v==null?"-":t1(v)}</td>`; }).join("")}</tr>`).join("")+
     "</tbody>";

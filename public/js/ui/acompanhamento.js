@@ -58,7 +58,7 @@ function pintarAcomp(R){
     "</tbody>";
 
   // ===== resumo por gerência =====
-  $("#t_acomp_ger").innerHTML = th([["Gerência"],["Atividades"],["Medidas",1],["Aderência",1],
+  $("#t_acomp_ger").innerHTML = th([["Gerência"],["Atividades",1],["Medidas",1],["Aderência",1],
     ["Fora da meta",1],["Sem apontamento",1],["Atraso em R$",1],["Custo no plano",1]])+"<tbody>"+
     ger.map(g=>`<tr>
       <td class="tot">${g.nome}</td>

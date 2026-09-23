@@ -113,7 +113,7 @@ function pintarInsumos(R){
     `<colgroup>${COLS.map(w=>`<col style="width:${w}px">`).join("")}</colgroup>` +
     th([["Código"],["Nome comercial"],["Princípio ativo"],["Un."],
     ["Concentração"],["Classe agronômica"],["Grupo"],["Volume dem.",1],["Estoque",1],["Preço base",1],
-    ["Preço corrigido",1],["Necessidade",1],["Custo de aquisição",1],["Usado em"],["Ativo",1],["Bula"],[""],[""],[""]])+"<tbody>"+
+    ["Preço corrigido",1],["Necessidade",1],["Custo de aquisição",1],["Usado em",1],["Ativo",1],["Bula"],[""],[""],[""]])+"<tbody>"+
     // quebra por família e, dentro dela, ordem alfabética de princípio ativo.
     // O `ix` que vai na linha é a posição original em insLista() — é por ele que
     // a edição acha o produto, então reordenar a tela não pode reordenar o índice.

@@ -93,7 +93,7 @@ const fmtVolume = vs => vs.length
 
 function tabelaOndas(linhas){
   if(!linhas.length) return '<p class="calc">Nenhuma atividade cadastrada.</p>';
-  return th([["",1],["Atividade"],["Tratamento"],["Área/ano (ha)",1],["Volume de insumo"],["Insumo (R$)",1],
+  return th([["",0,"fito-seta"],["Atividade"],["Tratamento"],["Área/ano (ha)",1],["Volume de insumo"],["Insumo (R$)",1],
       ["Serviço terceiro (R$)",1],["Custo total (R$)",1],["Valor/ha (R$)",1]]) +
     "<tbody>" + linhas.map(r => {
       const aberto = !!FITO_ABERTO[r.a.cod];
