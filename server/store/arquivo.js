@@ -81,7 +81,11 @@ function storeArquivo() {
       const st = await fsp.stat(arq);
       return { data: d, updated_at: st.mtime.toISOString() };
     },
-    mesclar: doc => enfileirar(async () => paraDisco({ ...(await doDisco()), ...doc })),
+    // P funde campo a campo, como no Postgres (ver postgres.js, mesclar)
+    mesclar: doc => enfileirar(async () => { const atual = (await doDisco()) || {};
+      const novo = { ...atual, ...doc };
+      if (doc && doc.P && typeof doc.P === 'object') novo.P = { ...(atual.P || {}), ...doc.P };
+      return paraDisco(novo); }),
     substituir: doc => enfileirar(() => paraDisco(doc)),
     // Merge por item (ver server/mesclaItens.js) — a fila (enfileirar) já
     // serializa leitura+escrita pra este arquivo, o mesmo papel que o SELECT

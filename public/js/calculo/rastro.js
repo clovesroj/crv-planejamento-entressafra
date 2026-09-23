@@ -7,7 +7,7 @@ import { brl, fmt, num, pct } from '../nucleo/formato.js';
 import { ETAPAS_ORD, arrRat } from './arrendamento.js';
 import { criterioMensal, frotaDaAtividade, pessoasDaAtividade, premissasDe, tarifaTerc } from './atividade.js';
 import { tratCusto } from './insumos.js';
-import { comps, custoPorOperacao } from './custo-operacao.js';
+import { comps, custoCorte, custoPorOperacao } from './custo-operacao.js';
 import { SEM_CONTA, contasValores, totaisContas } from './contas.js';
 import { baseEtapa, custoUnit, premissaBase, rotuloBase } from './base-fisica.js';
 import { reforma, itensReforma } from './reforma.js';
@@ -213,25 +213,24 @@ function rastroOperacao(R, id, modo){
    a parte do corte no indireto e no arrendamento da colheita. Abria a etapa
    inteira; aqui a mesma conta do cartão. */
 function rastroCorte(R){
-  const colh = R.etapas["COLHEITA"];
-  const corte = R.L.filter(r=>r.a.cod==="A01"||r.a.cod==="A02");
-  const dir = corte.reduce((s,r)=>s+r.direto,0);
-  // pelo volume colhido informado em Premissas; sem ele, as toneladas do corte
-  const ton = premissaBase("colheita") || corte.reduce((s,r)=>s+r.total,0);
-  const ind = R.indiretoPool*(dir/(R.diretoSum||1));
-  const arr = colh && colh.direto>0 ? colh.arrend*(dir/colh.direto) : 0;
-  const tot = dir+ind+arr;
+  // a mesma conta do cartão do Painel (calculo/custo-operacao.js, custoCorte)
+  const CC = custoCorte(R), corte = CC.ativs, colh = R.etapas["COLHEITA"];
+  const dir = CC.direto, ton = CC.base.q;
+  const ind = CC.rat.indireto, arr = CC.rat.arrend, adm = CC.rat.admin;
+  const tot = CC.total;
   const porT = v => ton>0 ? brl(v/ton,2)+"/t" : "—";
+  const pct = fmt(CC.fracao*100,1)+"% do custo direto da colheita";
   return {
     titulo:"Custo de colheita — só o corte",
-    subtitulo:"corte (A01 e A02), sem transporte nem transbordo · por tonelada cortada",
+    subtitulo:"corte ("+(CC.cods.join(", ")||"—")+"), sem transporte nem transbordo · por tonelada",
     valor: porT(tot),
     blocos:[
       {titulo:"A conta", linhas:[
-        {rot:"Custo direto do corte", val:brl(dir), sub:porT(dir)},
-        {rot:"Parte do corte no custo indireto", val:brl(ind), sub:"pelo custo direto · "+porT(ind)},
+        {rot:"Custo direto do corte", val:brl(dir), sub:porT(dir)+" · "+pct},
         {rot:"Parte do corte no arrendamento da colheita", val:brl(arr), sub:"pelo custo direto · "+porT(arr)},
-        {rot:"Custo do corte", val:brl(tot), sub:porT(tot)+" · "+fmt(ton)+(premissaBase("colheita")?" t colhidas (premissa)":" t cortadas nas atividades")},
+        {rot:"Parte do corte no administrativo da colheita", val:brl(adm), sub:"pelo custo direto · "+porT(adm)},
+        {rot:"Parte do corte no custo indireto da colheita", val:brl(ind), sub:"pelo custo direto · "+porT(ind)},
+        {rot:"Custo do corte", val:brl(tot), sub:porT(tot)+" · "+fmt(ton)+(CC.base.fonte==="premissa"?" t colhidas (premissa)":" t cortadas nas atividades")},
       ]},
       {titulo:"Atividades", linhas: corte.map(r=>({rot:r.a.cod+" · "+r.a.nome, val:brl(r.direto),
         ir:"ativ:"+r.a.cod, sub:fmt(r.total)+" t · "+(r.total>0?brl(r.direto/r.total,2)+"/t":"—")}))},

@@ -201,7 +201,7 @@ function pintarCustos(R){
   const etapasOrd = Object.entries(R.etapas).sort((a,b)=>b[1].total-a[1].total);
   const totalEtapas = etapasOrd.reduce((s,[,d])=>s+d.total,0)||1;
   const OPS = Object.fromEntries(custoPorOperacao(R).principais.map(l=>[l.id, l]));
-  $("#t_unit").innerHTML = th([["Etapa"],["Diesel",1],["Mão de obra",1],["Manutenção",1],["Insumos",1],
+  $("#t_unit").innerHTML = th([["Etapa"],["Diesel",1],["Mão de obra",1],["Manutenção",1],["Insumos",1],["Irrigação",1],
     ["Terceirização",1],["Arrendamento",1],["Administrativo",1],["Indireto",1],["Total",1],["% do total",1],["Base física",1],["Custo unitário",1]])+"<tbody>"+
     etapasOrd.map(([e,d])=>{
       const b = baseEtapa(R, e);
@@ -209,7 +209,7 @@ function pintarCustos(R){
       let h = `<tr data-rastro="etapa:${e}"><td>${e}</td>
         <td class="num calc">${brl(d.diesel)}</td><td class="num calc">${brl(d.mdo)}</td>
         <td class="num calc">${brl(d.manut)}</td>
-        <td class="num calc">${brl(d.insumo+(d.irrig||0))}</td><td class="num calc">${brl(d.terc)}</td>
+        <td class="num calc">${brl(d.insumo)}</td><td class="num calc">${d.irrig?brl(d.irrig):"—"}</td><td class="num calc">${brl(d.terc)}</td>
         <td class="num calc">${brl(d.arrend)}</td><td class="num calc">${brl(d.admin||0)}</td>
         <td class="num calc">${brl(d.indireto)}</td>
         <td class="num tot">${brl(d.total)}</td>
@@ -221,7 +221,7 @@ function pintarCustos(R){
       if(e==="TRATOS CULTURAIS"){
         [["soca","Soca"],["planta","Planta"]].forEach(([id,c])=>{const x=OPS[id]; if(!x) return;
           h += `<tr class="sub" data-rastro="op:${id}:contabil"><td class="calc">↳ Cana ${c.toLowerCase()}</td>
-            <td colspan="5"></td>
+            <td colspan="6"></td>
             <td class="num calc">${brl(x.rateio.arrend)}</td><td class="num calc">${brl(x.rateio.admin)}</td>
             <td class="num calc">${brl(x.rateio.deprec+x.rateio.gerais)}</td>
             <td class="num calc">${brl(x.contabil)}</td><td></td>
@@ -233,7 +233,8 @@ function pintarCustos(R){
      <td class="num tot">${brl(etapasOrd.reduce((s,[,d])=>s+d.diesel,0))}</td>
      <td class="num tot">${brl(etapasOrd.reduce((s,[,d])=>s+d.mdo,0))}</td>
      <td class="num tot">${brl(etapasOrd.reduce((s,[,d])=>s+d.manut,0))}</td>
-     <td class="num tot">${brl(etapasOrd.reduce((s,[,d])=>s+d.insumo+(d.irrig||0),0))}</td>
+     <td class="num tot">${brl(etapasOrd.reduce((s,[,d])=>s+d.insumo,0))}</td>
+     <td class="num tot">${brl(etapasOrd.reduce((s,[,d])=>s+(d.irrig||0),0))}</td>
      <td class="num tot">${brl(etapasOrd.reduce((s,[,d])=>s+d.terc,0))}</td>
      <td class="num tot">${brl(etapasOrd.reduce((s,[,d])=>s+d.arrend,0))}</td>
      <td class="num tot">${brl(etapasOrd.reduce((s,[,d])=>s+(d.admin||0),0))}</td>

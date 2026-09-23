@@ -1,5 +1,5 @@
 import { linha } from '../calculo/atividade.js';
-import { custoHaPlantado, custoPorOperacao } from '../calculo/custo-operacao.js';
+import { custoCorte, custoHaPlantado, custoPorOperacao } from '../calculo/custo-operacao.js';
 import { tabelaColheita, tabelaHa } from '../calculo/modelo-pecege.js';
 import { baseEtapa, custoUnit, premissaBase, rotuloBase } from '../calculo/base-fisica.js';
 import { CRM_COMP } from '../calculo/crm.js';
@@ -13,23 +13,16 @@ import { comps } from './custos.js';
 function pintarPainel(R){
   pintarModeloPecege(R);
   const ha=P.plantio||1, colh=R.etapas["COLHEITA"], tonEtapa=colh?colh.ton:0;
-  // custo de colheita em sentido estrito (corte, A01+A02) — exclui transporte e transbordo (TR1-TR4),
-  // que também pertencem à etapa COLHEITA mas são um custo de logística, não de colheita propriamente.
-  const corte = R.L.filter(r=>r.a.cod==="A01"||r.a.cod==="A02");
-  const corteDireto = corte.reduce((s,r)=>s+r.direto,0), corteTon = corte.reduce((s,r)=>s+r.total,0);
-  // o corte recebe o indireto e a parte do arrendamento da colheita na proporção do seu custo direto
-  const corteTotal = corteDireto + R.indiretoPool*(corteDireto/R.diretoSum)
-    + (colh && colh.direto>0 ? colh.arrend*(corteDireto/colh.direto) : 0);
-  // corte pelo volume colhido (premissa); sem ela, pelas toneladas das atividades de corte
-  const tonPrem = premissaBase("colheita");
-  const baseCorte = tonPrem ? {q:tonPrem, un:"t", rot:"t colhidas", fonte:"premissa"}
-                            : {q:corteTon, un:"t", rot:"t", fonte:"atividades"};
+  // custo de colheita em sentido estrito: o corte, sem transporte nem transbordo
+  // (calculo/custo-operacao.js, custoCorte -- a mesma conta do rastro)
+  const CC = custoCorte(R);
   const bColh = baseEtapa(R, "COLHEITA");
+  const noFat = R.PS && R.PS.fat ? R.PS.fat.pico : 0;
   $("#k_painel").innerHTML =
     kpi("Custo total","",brl(R.SEL.total), R.SEL.parcial?R.SEL.rotulo:"","total") +
     kpi("Custo / ha plantado","t",brl(custoHaPlantado(R).valor), custoHaPlantado(R).nota+(R.SEL.parcial?" · ano todo":""),"custoha") +
-    kpi("Custo de colheita","g",custoUnit(corteTotal, baseCorte),"só corte (A01+A02), sem transporte · "+rotuloBase(baseCorte),"corte") +
-    kpi("Efetivo total","a",fmt(R.efetivoTotal)+" pessoas","","pessoas:total") +
+    kpi("Custo de colheita","g",custoUnit(CC.total, CC.base),"só corte ("+(CC.cods.join(", ")||"—")+"), sem transporte · "+rotuloBase(CC.base),"corte") +
+    kpi("Efetivo total","a",fmt(R.efetivoTotal)+" pessoas", noFat ? "+ "+fmt(noFat)+" no FAT, fora da operação" : "","pessoas:total") +
     kpi("Custo na safra","g",brl(R.PER.safra.total),"abr a nov · "+R.PER.safra.meses.length+" meses no orçamento","periodo:safra") +
     kpi("Custo na entressafra","a",brl(R.PER.entressafra.total),"dez a mar · "+R.PER.entressafra.meses.length+" meses no orçamento","periodo:entressafra");
   // planta x soca pela divisão que inclui a irrigação de cada cultura (aba
@@ -72,17 +65,24 @@ function pintarPainel(R){
     `<td class="num tot" data-rastro="periodo:entressafra">${brl(R.PER.entressafra.total)}</td></tr></tbody>`;
   barrasH($("#ch_comp"),comps(R).filter(([,v])=>v>0).map(([l,v])=>({l,v})));
 
-  const ref=[["Operações (MDO + manutenção + diesel)",R.mdoTotal+R.manutT+R.dieselT,52],
+  /* Os quatro grupos têm de somar o custo total: antes a terceirização de
+     aplicações e o transporte de pessoal não entravam em grupo nenhum, e o
+     percentual projetado não fechava 100%. Aplicação terceirizada é operação
+     feita por outro; transporte de pessoal vai com os demais custos. */
+  const ref=[["Operações (MDO + manutenção + diesel + aplicações terceirizadas)",R.mdoTotal+R.manutT+R.dieselT+R.tercAtivT,52],
     ["Insumos (agronômicos + irrigação)",R.insumoT+R.irrT,25],
     ["Arrendamento",R.arrT,17],
-    ["Outros (admin + depreciação + terceiros)",R.admT+R.depT+R.tercT+R.espT,6]];
+    ["Outros (admin + depreciação + contratos de terceiros + transporte de pessoal + esporádicos)",R.admT+R.depT+R.tercT+R.tpessT+R.espT,6]];
+  const refTot = ref.reduce((s,[,v])=>s+v,0);
   $("#t_bench").innerHTML = th([["Componente"],["Projetado",1],["% projetado",1],["% referência",1],["Desvio",1],["Leitura"]])+"<tbody>"+
     ref.map(([n,v,r])=>{const p=R.total>0?v/R.total*100:0,dv=p-r;
       const cls=Math.abs(dv)<=5?"b-ok":(dv>5?"b-bad":"b-warn");
       const tx=Math.abs(dv)<=5?"Aderente":(dv>5?"Acima":"Abaixo");
       return `<tr><td>${n}</td><td class="num">${brl(v)}</td><td class="num calc">${fmt(p,1)}%</td>
         <td class="num calc">${r},0%</td><td class="num">${fmt(dv,1)} p.p.</td>
-        <td><span class="badge ${cls}">${tx}</span></td></tr>`;}).join("")+"</tbody>";
+        <td><span class="badge ${cls}">${tx}</span></td></tr>`;}).join("")+
+    `<tr data-rastro="total"><td class="tot">TOTAL</td><td class="num tot">${brl(refTot)}</td>
+      <td class="num tot">${fmt(R.total>0?refTot/R.total*100:0,1)}%</td><td class="num tot">100,0%</td><td></td><td></td></tr></tbody>`;
 }
 
 

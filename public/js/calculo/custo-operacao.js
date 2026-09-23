@@ -19,7 +19,7 @@
    que é o critério com que o motor reparte esse rateio entre as etapas. Assim
    planta + soca fecha com tratos no centavo. */
 import { num } from '../nucleo/formato.js';
-import { baseOperacao, comAlternativa } from './base-fisica.js';
+import { baseOperacao, comAlternativa, premissaBase } from './base-fisica.js';
 
 /* As operações do painel, na ordem do ciclo da cana. `formacao` marca as que
    põem o canavial de pé — preparo de solo, plantio e tratos de cana planta:
@@ -143,6 +143,31 @@ function custoHaPlantado(R){
           nota: "preparo + plantio + tratos de cana planta"};
 }
 
+/* ---------- custo de colheita, so o corte ----------
+   O cartao "Custo de colheita" do Painel e o rastro dele liam a conta cada um
+   por si, e os dois somavam A01 + A02. A A02 (colheita de muda) e PLANTIO desde
+   a 2.36: misturava muda na colheita e repartia o arrendamento da colheita por
+   uma proporcao que incluia uma atividade de fora dela. E deixava de fora a
+   parte do administrativo da etapa.
+
+   Agora: corte = atividades da etapa COLHEITA que nao sao transporte nem
+   transbordo; o custo dele e o direto mais a parte dele em TODO o custo nao
+   direto da etapa (arrendamento, administrativo e indireto), pela participacao
+   no custo direto da etapa -- o mesmo criterio com que a etapa recebe os
+   rateios. Base: o volume colhido da premissa, ou as toneladas cortadas. */
+function custoCorte(R){
+  const colh = R.etapas["COLHEITA"] || null;
+  const ativs = R.L.filter(r=>r.a.etapa==="COLHEITA" && r.a.tipo!=="transp");
+  const direto = ativs.reduce((s,r)=>s+r.direto,0);
+  const f = colh && colh.direto>0 ? direto/colh.direto : 0;
+  const rat = {arrend:(colh?colh.arrend||0:0)*f, admin:(colh?colh.admin||0:0)*f, indireto:(colh?colh.indireto||0:0)*f};
+  const total = direto + rat.arrend + rat.admin + rat.indireto;
+  const tonPrem = premissaBase("colheita"), ton = ativs.reduce((s,r)=>s+r.total,0);
+  const base = tonPrem ? {q:tonPrem, un:"t", rot:"t colhidas", fonte:"premissa"}
+                       : {q:ton, un:"t", rot:"t cortadas", fonte:"atividades"};
+  return {ativs, direto, rat, total, fracao:f, base, cods: ativs.map(r=>r.a.cod)};
+}
+
 /* Natureza fina do custo total. Mora aqui para a aba Custos, o Painel, o
    relatório e o rastro lerem a mesma lista: natureza nova entra num lugar só. */
 function comps(R){
@@ -155,4 +180,4 @@ function comps(R){
     ["Administração",R.admT],["Depreciação",R.depT]];
 }
 
-export { OPERACOES, OUTRAS, comps, culturaIrr, custoHaPlantado, custoPorOperacao };
+export { OPERACOES, OUTRAS, comps, culturaIrr, custoCorte, custoHaPlantado, custoPorOperacao };

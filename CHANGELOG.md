@@ -1,5 +1,66 @@
 # Histórico de mudanças
 
+## 2.43.1 — 2026-09-23 · Premissa que "não salvava", e auditoria do Painel e de Custos
+
+### Premissas voltando ao valor antigo
+
+A área de tratos digitada em Premissas era gravada, mas podia voltar ao valor
+antigo. A tela estava certa; o defeito era na gravação:
+
+- **O navegador mandava as premissas inteiras** (`P`) sempre que uma mudava, e
+  o servidor mesclava o documento só no primeiro nível. Qualquer outra sessão
+  aberta — outro usuário, ou o mesmo em outra aba — que mexesse em qualquer
+  premissa regravava **todas** com o que tinha carregado. A área de tratos
+  digitada aqui voltava a zero quando alguém mudava o preço do diesel lá.
+  Agora o navegador manda só os campos de `P` que mudou, e o servidor os funde
+  campo a campo no `P` gravado — no Postgres, dentro do próprio `UPDATE`
+  (`server/store/postgres.js`); também no armazenamento em arquivo, na mescla
+  por item (`server/api.js`) e no modo Artifact. Navegador ainda com o código
+  antigo (P inteiro) continua funcionando.
+- **Alteração pendente reaplicada por cima de mudança mais nova.** Gravação que
+  não chegou ao servidor fica guardada no navegador e é reaplicada na abertura
+  seguinte (2.36.1). Ela trazia o `P` inteiro e o reaplicava sem olhar se
+  alguém tinha mudado depois. Agora a pendência guarda o valor de antes da
+  edição, e cada campo só volta se o servidor ainda tem esse valor — se tem
+  outro, a mudança mais nova fica.
+
+Testado: o SQL do servidor rodado num Postgres de verdade (PGlite) — sessão A
+grava a soca, sessão B aberta antes muda só o diesel, a soca continua; gravação
+sem premissa não mexe nelas; P inteiro de navegador antigo continua valendo. A
+recuperação de pendência nos quatro casos: não chegou (reaplica), já chegou
+(só limpa), outra pessoa mudou depois (fica a mais nova), pendência antiga sem
+base (como antes).
+
+### Painel e Custos: auditoria
+
+Toda tabela das duas abas foi conferida pelo que está na tela, nos três
+recortes (ano todo, safra, entressafra): cada linha de total fecha, coluna a
+coluna, com a soma das linhas, e os cartões batem com o motor. Fecham todas.
+Três inconsistências de conceito, corrigidas:
+
+- **Custo de colheita (Painel)** somava A01 + A02, mas a A02 (colheita de muda)
+  é PLANTIO desde a 2.36: misturava muda na colheita e repartia o arrendamento
+  da colheita por uma proporção que incluía uma atividade de fora dela. E
+  deixava de fora a parte do administrativo da etapa. Agora o corte são as
+  atividades da colheita que não são transporte nem transbordo, com a parte
+  delas em todo o custo não direto da etapa (arrendamento, administrativo e
+  indireto). Uma conta só (`custoCorte`, em `calculo/custo-operacao.js`) para o
+  cartão e o rastro. No plano de teste: R$ 15,21/t → R$ 15,15/t.
+- **Aderência à referência setorial (Painel)**: os quatro grupos não somavam o
+  custo total — terceirização de aplicações e transporte de pessoal não
+  entravam em nenhum, e o percentual projetado não fechava 100%. Aplicações
+  terceirizadas vão com Operações; transporte de pessoal com Outros; e a tabela
+  ganhou linha de total (100%).
+- **Efetivo total (Painel e Capa)** não contava o apoio operacional lançado no
+  Dimensionamento — gente que opera e usa o transporte de pessoal. Entra pelo
+  mês que mais pede. O FAT fica fora (não opera), e o cartão mostra "+ N no FAT".
+
+Custo por etapa (Custos): Insumos e Irrigação em colunas separadas, como nas
+grandes contas.
+
+Plano vazio segue 39.270.751,842344. 52 invariantes sem falha; 29 abas, 178
+rastros e os relatórios sem erro.
+
 ## 2.43.0 — 2026-09-23 · Grandes contas separadas, rastro em todo número de custo e gráfico por período
 
 ### Grandes contas

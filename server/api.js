@@ -266,7 +266,10 @@ async function api(req, res, rota) {
           doc = r.doc; ignorados = r.ignorados;
         }
         if (!Object.keys(doc).some(k => k !== 'v')) return null;
-        return { ...(atual || {}), ...doc };
+        const novo = { ...(atual || {}), ...doc };
+        // P chega parcial (só os campos mudados): funde no P gravado
+        if (doc.P && typeof doc.P === 'object') novo.P = { ...((atual || {}).P || {}), ...doc.P };
+        return novo;
       });
       return json(res, 200, { armazenamento: store.tipo, duravel: store.duravel, updated_at: d.updated_at, ignorados });
     }

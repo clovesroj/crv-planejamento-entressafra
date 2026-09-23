@@ -111,10 +111,15 @@ function alteracoes(){
   const cru = estadoCru(), doc = {v: cru.v};
   Object.keys(cru).forEach(k=>{
     if(k==="v" || CHAVES_SEM_DIFF.has(k)) return;
+    /* Premissas vão campo a campo: só o que esta sessão mudou. Mandar o P
+       inteiro fazia qualquer outra sessão aberta (outro usuário, ou outra aba)
+       regravar todas as premissas com o que tinha carregado — a área de tratos
+       digitada aqui voltava a zero quando alguém mexia no preço do diesel lá.
+       O servidor funde este P parcial no P gravado (server/store). */
     if(k==="P"){
-      const pMudou = Object.keys(cru.P).some(c =>
+      const mud = Object.keys(cru.P).filter(c =>
         canonJSON(cru.P[c]) !== (("P."+c) in BASE_GRAVACAO ? BASE_GRAVACAO["P."+c] : canonJSON(undefined)));
-      if(pMudou) doc.P = cru.P;
+      if(mud.length){ doc.P = {}; mud.forEach(c=>{ doc.P[c] = cru.P[c]; }); }
       return;
     }
     const base = k in BASE_GRAVACAO ? BASE_GRAVACAO[k] : canonJSON(undefined);
@@ -200,7 +205,10 @@ async function abrirArtifact(){
     duravel: true,
     async ler(){ const d = await doc.get(); return d && d.exists ? d.data() : null; },
     // update() mescla campo a campo; se o documento ainda não existe, set() o cria.
-    async mesclar(e){ try{ await doc.update(e); }catch(err){ await doc.set(e); } },
+    // o armazenamento do artifact mescla so no primeiro nivel: o P parcial da
+    // gravacao (alteracoes) vai completo, com o que esta sessao tem na memoria
+    async mesclar(e){ if(e && e.P) e = {...e, P:{...P, ...e.P}};
+      try{ await doc.update(e); }catch(err){ await doc.set(e); } },
     substituir: e => doc.set(e)
   };
 }
@@ -374,8 +382,24 @@ let salvePendente = false;
    sessao mudou), entao o risco de pisar em outra sessao nao muda. */
 const CHAVE_PEND = "crv_plano_pendente";
 const VALIDADE_PEND = 7*24*60*60*1000;   // uma semana: pendencia mais velha que isso e lixo
+/* Junto da alteracao vai o valor de ANTES dela (a base desta sessao). Na
+   reabertura, um campo so e reaplicado se o servidor ainda tem esse valor de
+   antes -- ou seja, se a alteracao de fato nao chegou. Se o servidor tem outro
+   valor, alguem mudou depois, e a mudanca mais nova fica: reaplicar a
+   pendencia antiga por cima dela desfazia o trabalho de outra pessoa (era um
+   dos caminhos pelos quais uma premissa salva "voltava"). */
+function basePendente(doc){
+  if(!BASE_GRAVACAO) return null;
+  const b = {};
+  Object.keys(doc).forEach(k=>{
+    if(k==="v" || k in CHAVES_COM_PATCH) return;
+    if(k==="P"){ b.P = {}; Object.keys(doc.P||{}).forEach(c=>{ if(("P."+c) in BASE_GRAVACAO) b.P[c] = BASE_GRAVACAO["P."+c]; }); return; }
+    if(k in BASE_GRAVACAO) b[k] = BASE_GRAVACAO[k];
+  });
+  return b;
+}
 function marcarPendente(doc){
-  try{ localStorage.setItem(CHAVE_PEND, JSON.stringify({ts:Date.now(), doc})); }catch(err){}
+  try{ localStorage.setItem(CHAVE_PEND, JSON.stringify({ts:Date.now(), doc, base:basePendente(doc)})); }catch(err){}
 }
 function limparPendente(){ try{ localStorage.removeItem(CHAVE_PEND); }catch(err){} }
 function lerPendente(){
@@ -400,13 +424,32 @@ async function recuperarPendente(doServidor){
   const p = lerPendente();
   if(!p) return;
   const doc = doServidor || {};
-  const faltando = Object.keys(p.doc).filter(k =>
-    k !== "v" && canonJSON(valorDaChave(p.doc, k)) !== canonJSON(valorDaChave(doc, k)));
-  if(!faltando.length){ limparPendente(); return; }
-  aplicar(p.doc);
+  const B = p.base || null;   // pendencia antiga, sem base: reaplica como antes
+  /* Reaplica o que nao chegou: o servidor nao tem o valor pendente, e ainda tem
+     o valor de antes da edicao. Com outro valor no servidor, alguem mudou
+     depois -- fica o mais novo. P vai campo a campo (a pendencia pode trazer so
+     os campos mudados). Patch de item (Insumos, Atividades...) sempre volta: o
+     servidor o mescla item a item. */
+  const naoChegou = (pend, serv, base) => canonJSON(pend) !== canonJSON(serv)
+    && (!B || base === undefined || canonJSON(serv) === base);
+  const reenvio = {v: p.doc.v};
+  Object.keys(p.doc).forEach(k=>{
+    if(k === "v") return;
+    if(k in CHAVES_COM_PATCH){ reenvio[k] = p.doc[k]; return; }
+    if(k === "P"){
+      const campos = Object.keys(p.doc.P||{}).filter(c =>
+        naoChegou(p.doc.P[c], (doc.P||{})[c], B && B.P ? B.P[c] : undefined));
+      if(campos.length){ reenvio.P = {}; campos.forEach(c=>{ reenvio.P[c] = p.doc.P[c]; }); }
+      return;
+    }
+    if(naoChegou(valorDaChave(p.doc, k), valorDaChave(doc, k), B ? B[k] : undefined)) reenvio[k] = p.doc[k];
+  });
+  if(!Object.keys(reenvio).some(k=>k!=="v")){ limparPendente(); return; }
+  // o P parcial entra por cima do P carregado, nunca no lugar dele
+  aplicar(reenvio.P ? {...reenvio, P:{...P, ...reenvio.P}} : reenvio);
   if(!REMOTO) return;   // sem servidor, o rascunho local ja e o estado
   try{
-    await REMOTO.mesclar(p.doc);
+    await REMOTO.mesclar(reenvio);
     limparPendente();
     mostrarToast("Alteração pendente da sessão anterior foi enviada");
   }catch(err){ /* fica marcada para a proxima abertura */ }
