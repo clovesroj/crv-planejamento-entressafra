@@ -1,7 +1,44 @@
 import { CFG } from '../dados/cfg.js';
 import { atividadesLista } from '../nucleo/estado.js';
 import { $, esc } from '../nucleo/formato.js';
+import { definirPatchItens, marcarRascunhoPendente } from '../io/persistencia.js';
 import { th } from './componentes.js';
+
+/* Editar uma linha não grava mais sozinho — só quando a pessoa clica "Salvar
+   alterações", no mesmo espírito do botão do Critério por Mês. E não manda
+   mais a lista inteira: guarda só QUAIS atividades (pelo código, que aqui
+   nunca muda) foram tocadas nesta leva, e no Salvar monta um patch com elas
+   -- o servidor mescla item a item contra o que está gravado agora, então
+   duas pessoas criando/editando atividades diferentes ao mesmo tempo não se
+   apagam (ver server/mesclaItens.js). */
+let SUJO = false;
+const TOCADOS = new Map();   // cod -> referência viva do item
+const NOVOS = [];            // itens criados nesta leva (ainda não existem no servidor)
+const REMOVIDOS = new Set(); // cods removidos nesta leva
+
+function marcarAtivSujo(item){
+  if(item && !NOVOS.includes(item) && !TOCADOS.has(item.cod)) TOCADOS.set(item.cod, item);
+  SUJO = true;
+  marcarRascunhoPendente();
+}
+function marcarAtivNovo(item){ NOVOS.push(item); SUJO = true; marcarRascunhoPendente(); }
+function marcarAtivRemovido(cod){
+  const ixNovo = NOVOS.findIndex(x=>x.cod===cod);
+  if(ixNovo>=0) NOVOS.splice(ixNovo,1);
+  else { TOCADOS.delete(cod); REMOVIDOS.add(cod); }
+  SUJO = true;
+  marcarRascunhoPendente();
+}
+/** Monta e registra o patch pendente; diz se havia algo pra salvar (chamador decide gravar). */
+function salvarAtiv(){
+  if(!SUJO) return false;
+  const upsert = [...TOCADOS.entries()].map(([chave,item])=>({chave, item:{...item}}))
+    .concat(NOVOS.map(item=>({chave:null, item:{...item}})));
+  definirPatchItens("ATVX_PATCH", {upsert, remover:[...REMOVIDOS]});
+  TOCADOS.clear(); NOVOS.length = 0; REMOVIDOS.clear();
+  SUJO = false;
+  return true;
+}
 
 const ETAPAS = ["PREPARO DE SOLO", "PLANTIO", "TRATOS CULTURAIS", "COLHEITA", "APOIO E CONSERVAÇÃO"];
 /* A unidade que o cadastro mostra é a do RENDIMENTO, que é por hora: 45 t/h,
@@ -19,6 +56,12 @@ const unRend = un => String(un||"").split("/")[0] + "/h";
    rendimento/utilização por safra sem tocar este valor base — os dois não
    se sobrepõem, um é o padrão, o outro o ajuste do período. */
 function pintarAtividadesCad(){
+  const acoes = $("#ativ_acoes");
+  if(acoes) acoes.innerHTML = `<div class="rasc-acoes">
+    <span class="rasc-pend${SUJO?" tem":""}">${SUJO?"há alterações não salvas":"tudo salvo"}</span>
+    <button class="btn p" id="ativ_salvar" ${SUJO?"":"disabled"}>Salvar alterações</button>
+  </div>`;
+
   const lista = atividadesLista();
   const fixos = new Set(CFG.atividades.map(a => a.cod));
 
@@ -51,4 +94,4 @@ function pintarAtividadesCad(){
     "<tbody>" + linhas + "</tbody>";
 }
 
-export { pintarAtividadesCad };
+export { pintarAtividadesCad, marcarAtivSujo, marcarAtivNovo, marcarAtivRemovido, salvarAtiv };

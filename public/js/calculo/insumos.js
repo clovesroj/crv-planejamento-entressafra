@@ -1,6 +1,6 @@
 import { CFG } from '../dados/cfg.js';
 import { CLASSES_GRUPO, FAMILIAS_INSUMO, TRAT_ETAPAS } from '../dados/insumos.js';
-import { FAM_CLASSE, FAM_NOME, INSUMO, P, PLANO, TRATC, TRAT_DEL, TRAT_ETAPA, TRAT_NOME, TRAT_OBS, insLista, gruposInsLista, atividadesLista } from '../nucleo/estado.js';
+import { FAM_CLASSE, FAM_NOME, INSUMO, P, PLANO, TRATC, TRAT_ATIVO, TRAT_DEL, TRAT_ETAPA, TRAT_NOME, TRAT_OBS, insLista, gruposInsLista, atividadesLista } from '../nucleo/estado.js';
 import { num } from '../nucleo/formato.js';
 import { fatorParaBase } from '../nucleo/unidades.js';
 
@@ -270,6 +270,7 @@ function renomearTrat(de, para){
   delete TRATC[de]; delete TRAT_DEL[novo];
   if(TRAT_NOME[de]!=null){ TRAT_NOME[novo]=TRAT_NOME[de]; delete TRAT_NOME[de]; }
   if(TRAT_ETAPA[de]){ TRAT_ETAPA[novo]=TRAT_ETAPA[de]; delete TRAT_ETAPA[de]; }
+  if(TRAT_ATIVO[de]===false){ TRAT_ATIVO[novo]=false; delete TRAT_ATIVO[de]; }
   if(CFG.trat_det.some(t=>t.trat===de)) TRAT_DEL[de] = true;
   Object.values(PLANO).forEach(p=>{ if(p.trat===de) p.trat = novo; });
   return true;

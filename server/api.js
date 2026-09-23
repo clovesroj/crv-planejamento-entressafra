@@ -23,6 +23,7 @@ const { erroHTTP, json, lerCorpo } = require('./http');
 const { SERVICO } = require('./config');
 const auth = require('./auth');
 const perms = require('./permissoes');
+const itens = require('./mesclaItens');
 const agrofit = require('./agrofit');
 const anp = require('./anp');
 
@@ -298,10 +299,32 @@ async function api(req, res, rota) {
     if (!corpo || typeof corpo !== 'object' || Array.isArray(corpo)) {
       throw erroHTTP(400, 'esperado um objeto JSON');
     }
+    const perm = await perms.permissoesDe(sessao, store);
+
+    // Insumos, Atividades e Tratamentos não mandam mais o array/objeto
+    // inteiro — só o item que mudou (ver ui/insumos.js e ui/atividades-cad.js,
+    // e server/mesclaItens.js pro porquê). Mescla com a linha travada, pra
+    // duas gravações concorrentes não lerem o mesmo "antes" e uma apagar a
+    // outra — é isso que fecha a lacuna que o merge raso (só no primeiro
+    // nível) deixava quando duas pessoas editavam a mesma tabela ao mesmo tempo.
+    if (req.method !== 'PUT' && itens.temPatch(corpo)) {
+      let ignorados = [];
+      const d = await store.mesclarItens(atual => {
+        const efetivo = itens.aplicarPatches(corpo, atual || {});
+        let doc = efetivo;
+        if (!perm.tudo) {
+          const r = perms.filtrarGravacao(efetivo, atual || {}, perm, false);
+          doc = r.doc; ignorados = r.ignorados;
+        }
+        if (!Object.keys(doc).some(k => k !== 'v')) return null;
+        return { ...(atual || {}), ...doc };
+      });
+      return json(res, 200, { armazenamento: store.tipo, duravel: store.duravel, updated_at: d.updated_at, ignorados });
+    }
+
     // Ler é livre para quem está logado; gravar passa pelo perfil. O que o perfil
     // não pode alterar é descartado aqui, e volta em `ignorados` só o que chegou
     // diferente do banco (o navegador manda o documento inteiro a cada gravação).
-    const perm = await perms.permissoesDe(sessao, store);
     let doc = corpo, ignorados = [];
     if (!perm.tudo) {
       const atual = await store.ler();

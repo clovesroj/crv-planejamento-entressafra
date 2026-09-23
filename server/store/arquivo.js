@@ -83,6 +83,19 @@ function storeArquivo() {
     },
     mesclar: doc => enfileirar(async () => paraDisco({ ...(await doDisco()), ...doc })),
     substituir: doc => enfileirar(() => paraDisco(doc)),
+    // Merge por item (ver server/mesclaItens.js) — a fila (enfileirar) já
+    // serializa leitura+escrita pra este arquivo, o mesmo papel que o SELECT
+    // ... FOR UPDATE faz no Postgres: a próxima gravação só roda depois desta
+    // terminar, nunca lê o "antes" no meio de outra escrita.
+    mesclarItens: aplicar => enfileirar(async () => {
+      const atual = (await doDisco()) || {};
+      const novo = aplicar(atual);
+      if (novo == null) {
+        const st = await fsp.stat(arq).catch(() => null);
+        return { data: atual, updated_at: st ? st.mtime.toISOString() : new Date().toISOString() };
+      }
+      return paraDisco(novo);
+    }),
     async checar() { await fsp.mkdir(dir, { recursive: true }); },
 
     // ---------- usuários ----------

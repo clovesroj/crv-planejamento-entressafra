@@ -508,6 +508,16 @@ tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:under
 .rm-acoes .btn:disabled{opacity:.45;cursor:default}
 .rm-acoes .btn:disabled:hover{background:var(--card);border-color:var(--line-strong)}
 .rm-acoes .btn.p:disabled:hover{background:var(--leaf);border-color:var(--leaf)}
+/* mesma barra de acao, reaproveitada nos cadastros de Atividades, Insumos e
+   Tratamentos: editar a linha nao grava mais sozinho, so o botao (ver
+   marcarAtivSujo() em ui/atividades-cad.js e marcarInsSujo()/marcarTratSujo()
+   em ui/insumos.js) */
+.rasc-acoes{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.rasc-pend{font-size:11.5px;color:var(--muted);margin-right:auto}
+.rasc-pend.tem{color:var(--warn);font-weight:600}
+.rasc-acoes .btn:disabled{opacity:.45;cursor:default}
+.rasc-acoes .btn:disabled:hover{background:var(--card);border-color:var(--line-strong)}
+.rasc-acoes .btn.p:disabled:hover{background:var(--leaf);border-color:var(--leaf)}
 /* input,select tem width:100% global — ao lado de um botao isso disputa espaco
    de um jeito que o auto-layout da tabela nao resolve direito (o botao ficava
    atras da coluna vizinha). Bloco flex com o input em largura fixa faz a coluna

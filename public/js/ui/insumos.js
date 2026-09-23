@@ -1,14 +1,117 @@
 import { composicao, doseBase, etapasNoPlano, familiaDe, freteEfetivo, insumosPorFamilia, precoInsumo, todasFamilias, tratCodigos, tratEtapas, tratListaTodos, usosTrat } from '../calculo/insumos.js';
 import { TRAT_ETAPAS } from '../dados/insumos.js';
-import { ATIV_TRAT_SEL, DIM, INSUMO, INS_EDIT, INS_FICHA, P, PLANO, TRATC, TRAT_ATIVO, TRAT_NOME, TRAT_OBS, TRAT_SEL, atividadesLista, insLista } from '../nucleo/estado.js';
+import { ATIV_TRAT_SEL, DIM, INSUMO, INS_EDIT, INS_FICHA, P, PLANO, TRATC, TRAT_ATIVO, TRAT_ETAPA, TRAT_NOME, TRAT_OBS, TRAT_SEL, atividadesLista, insLista } from '../nucleo/estado.js';
 import { $, brl, esc, fmt, num, urlWeb } from '../nucleo/formato.js';
 import { unidadesDaFamilia } from '../nucleo/unidades.js';
+import { definirPatchItens, marcarRascunhoPendente } from '../io/persistencia.js';
 import { kpi, ligarBuscaSelect, th } from './componentes.js';
 import { mixEditor } from './plano.js';
 import { setTRAT_SEL } from '../nucleo/estado.js';
 import { MESES, NM, clsMes } from '../nucleo/calendario.js';
 
 /* ---------- INSUMOS ---------- */
+
+/* Cadastro de Insumos e Cadastro de Tratamentos (a lista, não a composição
+   nem o vínculo com atividade — esses continuam gravando sozinhos, o motivo
+   está em app/eventos.js) não gravam mais a cada campo/checkbox, e não mandam
+   mais o cadastro inteiro quando gravam: só o item tocado, num patch que o
+   servidor mescla contra o que está gravado agora (ver server/mesclaItens.js)
+   — é isso que faz duas pessoas editando produtos ou tratamentos diferentes
+   ao mesmo tempo não se apagarem mais. Rastreia por chave ORIGINAL (prod ou
+   cod, capturada no primeiro toque desta leva) porque os dois podem ser
+   renomeados no meio da edição — sem isso o patch procuraria pelo nome novo,
+   que ainda não existe no servidor, e duplicaria a linha em vez de atualizar. */
+let INS_SUJO = false, TRAT_SUJO = false;
+const INS_TOCADOS = new Map();    // prod original -> item (referência viva)
+const INS_NOVOS = [];             // itens criados nesta leva
+const INS_REMOVIDOS = new Set();  // prods originais removidos nesta leva
+
+function marcarInsSujo(item){
+  if(item && !INS_NOVOS.includes(item)){
+    let jaTocado = false;
+    for(const ref of INS_TOCADOS.values()) if(ref===item){ jaTocado=true; break; }
+    if(!jaTocado) INS_TOCADOS.set(item.prod, item);
+  }
+  INS_SUJO = true; marcarRascunhoPendente();
+}
+function marcarInsNovo(item){ INS_NOVOS.push(item); INS_SUJO = true; marcarRascunhoPendente(); }
+function marcarInsRemovido(item){
+  const ixNovo = INS_NOVOS.indexOf(item);
+  if(ixNovo>=0) INS_NOVOS.splice(ixNovo,1);
+  else{
+    let chave = null;
+    for(const [k,ref] of INS_TOCADOS) if(ref===item){ chave=k; INS_TOCADOS.delete(k); break; }
+    INS_REMOVIDOS.add(chave==null ? item.prod : chave);
+  }
+  INS_SUJO = true; marcarRascunhoPendente();
+}
+function salvarIns(){
+  if(!INS_SUJO) return false;
+  const upsert = [...INS_TOCADOS.entries()].map(([chave,item])=>({chave, item:{...item}}))
+    .concat(INS_NOVOS.map(item=>({chave:null, item:{...item}})));
+  definirPatchItens("INSX_PATCH", {upsert, remover:[...INS_REMOVIDOS]});
+  // preço/estoque moram numa sobreposição à parte (INSUMO[prod], ver
+  // calculo/insumos.js) — anda junto do mesmo rastreamento de prod original
+  // acima, pra também não se perder num rename e também mesclar por item.
+  const upsertOverlay = {};
+  INS_TOCADOS.forEach((item, origProd)=>{
+    upsertOverlay[origProd] = { novoProd: item.prod!==origProd ? item.prod : undefined, overlay: INSUMO[item.prod]||null };
+  });
+  INS_NOVOS.forEach(item=>{ if(INSUMO[item.prod]) upsertOverlay[item.prod] = { overlay: INSUMO[item.prod] }; });
+  definirPatchItens("INSUMO_PATCH", {upsert: upsertOverlay, remover:[...INS_REMOVIDOS]});
+  INS_TOCADOS.clear(); INS_NOVOS.length = 0; INS_REMOVIDOS.clear();
+  INS_SUJO = false;
+  return true;
+}
+
+const TRAT_TOCADOS = new Map();   // cod original -> cod atual (idem, por causa do renomear)
+const TRAT_NOVOS = new Set();     // cods criados nesta leva
+const TRAT_REMOVIDOS = new Set(); // cods originais removidos nesta leva
+
+function marcarTratSujo(cod){
+  if(cod && !TRAT_NOVOS.has(cod)){
+    let jaTocado = TRAT_TOCADOS.has(cod);
+    if(!jaTocado) for(const atual of TRAT_TOCADOS.values()) if(atual===cod){ jaTocado=true; break; }
+    if(!jaTocado) TRAT_TOCADOS.set(cod, cod);
+  }
+  TRAT_SUJO = true; marcarRascunhoPendente();
+}
+function marcarTratNovo(cod){ TRAT_NOVOS.add(cod); TRAT_SUJO = true; marcarRascunhoPendente(); }
+function marcarTratRenomeado(de, para){
+  if(TRAT_NOVOS.has(de)){ TRAT_NOVOS.delete(de); TRAT_NOVOS.add(para); }
+  else{
+    let orig = de;
+    for(const [o,atual] of TRAT_TOCADOS) if(atual===de){ orig=o; break; }
+    TRAT_TOCADOS.set(orig, para);
+  }
+  TRAT_SUJO = true; marcarRascunhoPendente();
+}
+function marcarTratRemovido(cod){
+  if(TRAT_NOVOS.has(cod)) TRAT_NOVOS.delete(cod);
+  else{
+    let orig = cod;
+    for(const [o,atual] of TRAT_TOCADOS) if(atual===cod){ orig=o; TRAT_TOCADOS.delete(o); break; }
+    TRAT_REMOVIDOS.add(orig);
+  }
+  TRAT_SUJO = true; marcarRascunhoPendente();
+}
+function salvarTrat(){
+  if(!TRAT_SUJO) return false;
+  const upsert = {};
+  TRAT_TOCADOS.forEach((atual, orig)=>{
+    upsert[orig] = { novoCod: atual!==orig ? atual : undefined,
+      nome: TRAT_NOME[atual]||null, obs: TRAT_OBS[atual]||null,
+      etapa: TRAT_ETAPA[atual]||[], ativo: TRAT_ATIVO[atual]!==false };
+  });
+  TRAT_NOVOS.forEach(cod=>{
+    upsert[cod] = { nome: TRAT_NOME[cod]||null, obs: TRAT_OBS[cod]||null,
+      etapa: TRAT_ETAPA[cod]||[], ativo: TRAT_ATIVO[cod]!==false };
+  });
+  definirPatchItens("TRAT_PATCH", {upsert, remover:[...TRAT_REMOVIDOS]});
+  TRAT_TOCADOS.clear(); TRAT_NOVOS.clear(); TRAT_REMOVIDOS.clear();
+  TRAT_SUJO = false;
+  return true;
+}
 
 // unidades de venda do cadastro; "—" cobre o produto antigo que não tem unidade
 const UNIDADES = ["", "kg", "lt", "ton", "pc", "un"];
@@ -81,7 +184,17 @@ const buscaTratAtiv = ligarBuscaSelect("#busca_trat_ativ", "#lista_trat_ativ", "
   () => atividadesLista().filter(a => a.ativo!==false || usosTrat(TRAT_SEL).includes(a.cod)),
   a => `${a.cod} — ${a.nome}${usosTrat(TRAT_SEL).includes(a.cod) ? " (vinculada)" : ""}`, a => a.cod);
 
+function barraRascunho(sujo, idBotao){
+  return `<div class="rasc-acoes">
+    <span class="rasc-pend${sujo?" tem":""}">${sujo?"há alterações não salvas":"tudo salvo"}</span>
+    <button class="btn p" id="${idBotao}" ${sujo?"":"disabled"}>Salvar alterações</button>
+  </div>`;
+}
+
 function pintarInsumos(R){
+  const acoesIns = $("#ins_acoes"); if(acoesIns) acoesIns.innerHTML = barraRascunho(INS_SUJO, "ins_salvar");
+  const acoesTrat = $("#trat_acoes"); if(acoesTrat) acoesTrat.innerHTML = barraRascunho(TRAT_SUJO, "trat_salvar");
+
   const TL = tratListaTodos();
   const custom = Object.keys(TRATC).length;
   const comPa = insLista().filter(i=>i.pa).length;
@@ -481,7 +594,8 @@ function pintarEditIns(){
       <div class="ra-nav"><div></div>
         <button class="ghost-btn" id="inedit_fechar" title="Fechar" aria-label="Fechar">✕</button></div>
       <div class="ra-tit">${esc(i.prod)}</div>
-      <div class="ra-subtit">As alterações salvam sozinhas, assim como na tabela.</div>
+      <div class="ra-subtit">As alterações entram no cadastro assim que você digita, mas só gravam no
+        servidor quando clicar em "Salvar alterações" na tela de Insumos.</div>
     </div>
     <div class="ra-corpo">
       <div class="fx-grade">
@@ -509,4 +623,5 @@ function pintarEditIns(){
 }
 
 export { pintarInsumos, pintarFichaIns, pintarEditIns, alternarFam, aplicarFamIns, buscaExigeRedesenho,
-  recolherTodas, todasRecolhidas };
+  recolherTodas, todasRecolhidas, marcarInsSujo, marcarInsNovo, marcarInsRemovido,
+  marcarTratSujo, marcarTratNovo, marcarTratRenomeado, marcarTratRemovido, salvarIns, salvarTrat };

@@ -14,7 +14,9 @@ import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, 
 import { AGROFIT_BUSCA, FITO_ABERTO, PLANO_ABERTO, FROTA_ABERTO, FROTA_UN, INS_EDIT, INS_FICHA, MAQ, setAGROFIT_BUSCA, setFROTA_DEST, setFROTA_ORIG, setINS_EDIT, setINS_FICHA } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { exportarTabela, filtrarPorNome } from '../ui/componentes.js';
-import { alternarFam, aplicarFamIns, buscaExigeRedesenho, recolherTodas, todasRecolhidas } from '../ui/insumos.js';
+import { marcarAtivNovo, marcarAtivRemovido, marcarAtivSujo, salvarAtiv } from '../ui/atividades-cad.js';
+import { alternarFam, aplicarFamIns, buscaExigeRedesenho, marcarInsSujo, marcarTratSujo,
+  recolherTodas, salvarIns, salvarTrat, todasRecolhidas } from '../ui/insumos.js';
 import { lerPremissas } from '../ui/premissas.js';
 import { leve, render, renderAgrofit, renderEditIns, renderFichaIns, renderRastro, renderRendMensal, renderTercDet } from './ciclo.js';
 import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarBuscaItem, filtrarRastro, voltarRastro } from '../ui/rastro.js';
@@ -136,6 +138,10 @@ document.addEventListener("input",e=>{
     l[f] = ["rota","veic"].includes(f) ? t.value : num(t.value);
     salvar(); leve(); return; }
   if(t.dataset.in!==undefined){ const i=insLista()[+t.dataset.in], f=t.dataset.f;
+    // registra a chave original ANTES de qualquer mutação (inclusive
+    // renomear, logo abaixo) -- é essa chave que o patch de gravação usa pra
+    // achar o produto no servidor (ver marcarInsSujo(), ui/insumos.js)
+    marcarInsSujo(i);
     if(f==="prod"){
       const antigo=i.prod, novo=t.value;
       // renomear mantém o vínculo: acompanha tratamentos, preços e estoques.
@@ -151,7 +157,7 @@ document.addEventListener("input",e=>{
       i.prod=novo;
     } else if(["un","pa","conc","cod","classe","fam"].includes(f)){ i[f]=t.value; }
     else i[f]=num(t.value);
-    salvar(); leve(); return; }
+    leve(); return; }
   if(t.dataset.mt!==undefined){ const l=matLista()[+t.dataset.mt], f=t.dataset.f;
     // mês de alocação: índice da janela, ou vazio para distribuir no ano
     if(f==="mes"){ l.mes = t.value==="" ? "" : +t.value; salvar(); render(); return; }
@@ -159,15 +165,17 @@ document.addEventListener("input",e=>{
     salvar(); leve(); return; }
   if(t.dataset.at!==undefined && t.tagName==="INPUT"){ const a=atividadesLista()[+t.dataset.at], f=t.dataset.f;
     a[f] = ["nome","maq","imp"].includes(f) ? t.value : num(t.value);
-    salvar(); leve(); return; }
-  if(t.dataset.atu!==undefined){ atividadesLista()[+t.dataset.atu].util = num(t.value)/100;
-    salvar(); leve(); return; }
+    marcarAtivSujo(a); leve(); return; }
+  if(t.dataset.atu!==undefined){ const a=atividadesLista()[+t.dataset.atu]; a.util = num(t.value)/100;
+    marcarAtivSujo(a); leve(); return; }
   if(t.dataset.mx!==undefined){ const c=t.dataset.mx;
     PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""};
     PLANO[c].mix=PLANO[c].mix||{}; PLANO[c].mix[t.dataset.mo]=num(t.value);
     salvar(); leve(); return; }
-  if(t.dataset.ip!==undefined){ INSUMO[t.dataset.ip]=INSUMO[t.dataset.ip]||{}; INSUMO[t.dataset.ip].preco=num(t.value); salvar(); leve(); return; }
-  if(t.dataset.ie!==undefined){ INSUMO[t.dataset.ie]=INSUMO[t.dataset.ie]||{}; INSUMO[t.dataset.ie].est=num(t.value); salvar(); leve(); return; }
+  if(t.dataset.ip!==undefined){ INSUMO[t.dataset.ip]=INSUMO[t.dataset.ip]||{}; INSUMO[t.dataset.ip].preco=num(t.value);
+    marcarInsSujo(insLista().find(x=>x.prod===t.dataset.ip)); leve(); return; }
+  if(t.dataset.ie!==undefined){ INSUMO[t.dataset.ie]=INSUMO[t.dataset.ie]||{}; INSUMO[t.dataset.ie].est=num(t.value);
+    marcarInsSujo(insLista().find(x=>x.prod===t.dataset.ie)); leve(); return; }
   if(t.dataset.ex!==undefined){ ESPOR[+t.dataset.ex][t.dataset.f]=t.dataset.f==="valor"?num(t.value):t.value; salvar(); leve(); return; }
   if(t.dataset.td!==undefined){ const c=destravar(TRAT_SEL); c[+t.dataset.td].dose=num(t.value); salvar(); leve(); return; }
   // frete de uma linha da composicao: valor (R$/un ou total pago) e a
@@ -176,12 +184,12 @@ document.addEventListener("input",e=>{
     l.frete = l.frete || {}; l.frete.valor = num(t.value); salvar(); leve(); return; }
   if(t.dataset.tfreteqtd!==undefined){ const c=destravar(TRAT_SEL), l=c[+t.dataset.tfreteqtd];
     l.frete = l.frete || {}; l.frete.qtd = num(t.value); salvar(); leve(); return; }
-  if(t.id==="in_trat_nome"){ TRAT_NOME[TRAT_SEL]=t.value; salvar(); leve(); return; }
-  if(t.id==="in_trat_obs"){ TRAT_OBS[TRAT_SEL]=t.value; salvar(); leve(); return; }
+  if(t.id==="in_trat_nome"){ TRAT_NOME[TRAT_SEL]=t.value; marcarTratSujo(TRAT_SEL); leve(); return; }
+  if(t.id==="in_trat_obs"){ TRAT_OBS[TRAT_SEL]=t.value; marcarTratSujo(TRAT_SEL); leve(); return; }
   // nome do tratamento editado na propria linha do cadastro
-  if(t.dataset.trn!==undefined){ TRAT_NOME[t.dataset.trn]=t.value; salvar(); leve(); return; }
+  if(t.dataset.trn!==undefined){ TRAT_NOME[t.dataset.trn]=t.value; marcarTratSujo(t.dataset.trn); leve(); return; }
   // observacao do tratamento (recomendacao, instrucao de uso)
-  if(t.dataset.tro!==undefined){ TRAT_OBS[t.dataset.tro]=t.value; salvar(); leve(); return; }
+  if(t.dataset.tro!==undefined){ TRAT_OBS[t.dataset.tro]=t.value; marcarTratSujo(t.dataset.tro); leve(); return; }
   // campo vazio volta ao preço base; null (e não delete) para a limpeza chegar ao servidor no merge
   if(t.dataset.dm!==undefined){ const v=t.value.trim(); DIESEL_MES[t.dataset.dm] = v==="" ? null : num(v);
     salvar(); leve(); return; }
@@ -252,25 +260,25 @@ document.addEventListener("change",e=>{
     else if(t.value.trim()==="") delete MAQ[m][k];
     else MAQ[m][k]=num(t.value);
     salvar(); render(); return; }
-  if(t.dataset.at!==undefined && t.tagName==="SELECT"){ atividadesLista()[+t.dataset.at][t.dataset.f]=t.value;
-    salvar(); render(); return; }
+  if(t.dataset.at!==undefined && t.tagName==="SELECT"){ const a=atividadesLista()[+t.dataset.at]; a[t.dataset.f]=t.value;
+    marcarAtivSujo(a); render(); return; }
   // libera/tranca o mix de modos (M/T/U/D/Q/3º) no Plano Operacional para
   // esta atividade — atividade criada pelo usuário nascia sem isso, e sem
   // controle na tela não dava pra ligar depois
-  if(t.dataset.atmodo!==undefined){ atividadesLista()[+t.dataset.atmodo].modoOn = t.checked;
-    salvar(); render(); return; }
+  if(t.dataset.atmodo!==undefined){ const a=atividadesLista()[+t.dataset.atmodo]; a.modoOn = t.checked;
+    marcarAtivSujo(a); render(); return; }
   // ativa/inativa a atividade — some das buscas de vinculo novo (ver
   // buscaTratAtiv em ui/insumos.js), sem mexer no que ja esta lancado
-  if(t.dataset.atativo!==undefined){ atividadesLista()[+t.dataset.atativo].ativo = t.checked;
-    salvar(); render(); return; }
+  if(t.dataset.atativo!==undefined){ const a=atividadesLista()[+t.dataset.atativo]; a.ativo = t.checked;
+    marcarAtivSujo(a); render(); return; }
   // ativa/inativa o produto — some da busca de adicionar numa composicao NOVA
   // (ver buscaProd em ui/insumos.js), sem mexer no que ja esta lancado
-  if(t.dataset.inativo!==undefined){ insLista()[+t.dataset.inativo].ativo = t.checked;
-    salvar(); render(); return; }
+  if(t.dataset.inativo!==undefined){ const i=insLista()[+t.dataset.inativo]; i.ativo = t.checked;
+    marcarInsSujo(i); render(); return; }
   // ativa/inativa o tratamento — some das buscas de vincular a uma atividade
   // nova ou como extra (ver sel_trat_extra e o select do Plano Operacional)
   if(t.dataset.tra!==undefined){ TRAT_ATIVO[t.dataset.tra] = t.checked;
-    salvar(); render(); return; }
+    marcarTratSujo(t.dataset.tra); render(); return; }
   if(t.dataset.grpclasse!==undefined){
     const r = setClasseGrupo(t.dataset.grpclasse, t.value);
     if(!r.ok){ alert(r.erro); render(); return; }
@@ -299,11 +307,12 @@ document.addEventListener("change",e=>{
     if(renomearTrat(de, para)){
       if(TRAT_SEL===de) setTRAT_SEL(para);
       if(usos.length) avisoPlano(usos, "renomeado");
+      marcarTratRenomeado(de, para);
     }
-    salvar(); render(); return; }
+    render(); return; }
   // etapa em que o tratamento e usado
   if(t.dataset.tre!==undefined){
-    marcarEtapa(t.dataset.tre, t.dataset.e, t.checked); salvar(); render(); return; }
+    marcarEtapa(t.dataset.tre, t.dataset.e, t.checked); marcarTratSujo(t.dataset.tre); render(); return; }
   if(t.dataset.t!==undefined){
     const c=t.dataset.t; PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""};
     PLANO[c].trat=t.value; salvar(); render(); return; }
@@ -509,6 +518,15 @@ document.addEventListener("click",e=>{
     return; }
   if(e.target.closest && e.target.closest("#rm_descartar")){
     descartarRascunho(); renderRendMensal(); return; }
+  // botao "Salvar alteracoes" dos cadastros de Atividades, Insumos e
+  // Tratamentos (ver marcarAtivSujo()/marcarInsSujo()/marcarTratSujo()):
+  // editar a linha so grava de verdade quando este botao e clicado
+  if(e.target.closest && e.target.closest("#ativ_salvar")){
+    if(salvarAtiv()){ salvar(); render(); } return; }
+  if(e.target.closest && e.target.closest("#ins_salvar")){
+    if(salvarIns()){ salvar(); render(); } return; }
+  if(e.target.closest && e.target.closest("#trat_salvar")){
+    if(salvarTrat()){ salvar(); render(); } return; }
   // fechar com campo digitado e nao salvo perderia o que foi digitado: avisa
   if((e.target.closest && e.target.closest("#rm_fechar")) || e.target.id==="rendm_fundo"){
     const n = pendencias();
@@ -569,7 +587,9 @@ document.addEventListener("click",e=>{
     i.agrofit_titular = p.titular_registro;
     i.bula_url = bula.url;
     setAGROFIT_BUSCA(null);
-    salvar(); render();
+    // "Vincular" sempre gravou na hora (não espera o botão "Salvar
+    // alterações" de Insumos) — monta o patch (salvarIns) e já manda.
+    marcarInsSujo(i); salvarIns(); salvar(); render();
     return;
   }
   const ab = e.target.closest && e.target.closest("[data-abrefrota]");
@@ -625,7 +645,7 @@ document.addEventListener("click",e=>{
     if(!codigoTratValido(novo.trim())){ alert(MSG_COD_TRAT); return; }
     if(!duplicarTrat(de, novo.trim())){ alert(`Já existe um tratamento com o código "${novo.trim()}".`); return; }
     setTRAT_SEL(novo.trim());
-    salvar(); render(); return; }
+    marcarTratNovo(novo.trim()); render(); return; }
   if(t.dataset.trrm!==undefined){ const cod=t.dataset.trrm, usos=usosTrat(cod);
     if(!confirm(usos.length
       ? `Remover o tratamento "${cod}"? As atividades ${usos.join(", ")} ficam sem tratamento.`
@@ -633,7 +653,7 @@ document.addEventListener("click",e=>{
     removerTrat(cod);
     if(TRAT_SEL===cod) setTRAT_SEL(null);
     if(usos.length) avisoPlano(usos, "removido");
-    salvar(); render(); return; }
+    marcarTratRemovido(cod); render(); return; }
   if(t.dataset.aprm!==undefined){ apoioLista().splice(+t.dataset.aprm,1); salvar(); render(); return; }
   if(t.dataset.mtrm!==undefined){ matLista().splice(+t.dataset.mtrm,1); salvar(); render(); return; }
   if(t.dataset.tprm!==undefined){ tpessLista().splice(+t.dataset.tprm,1); salvar(); render(); return; }
@@ -641,7 +661,7 @@ document.addEventListener("click",e=>{
     const i=insLista()[+t.dataset.inrm];
     const usos=tratCodigos().filter(c=>composicao(c).some(l=>l.prod===i.prod));
     if(usos.length && !confirm(`"${i.prod}" é usado em ${usos.length} tratamento(s). Remover assim mesmo?`)) return;
-    insLista().splice(+t.dataset.inrm,1); salvar(); render(); return; }
+    insLista().splice(+t.dataset.inrm,1); marcarInsRemovido(i); render(); return; }
   if(t.dataset.grprm!==undefined){
     const r = removerGrupoInsumo(t.dataset.grprm);
     if(!r.ok){ alert(r.erro); return; }
@@ -651,7 +671,7 @@ document.addEventListener("click",e=>{
     const emUso = p && (p.trat || (p.m||[]).some(v=>num(v)>0));
     if(emUso && !confirm(`"${cod}" tem área/tonelada ou tratamento lançado no Plano Operacional. Remover assim mesmo?`)) return;
     if(!removerAtividade(cod)){ alert("Essa atividade não pode ser removida aqui."); return; }
-    salvar(); render(); return; }
+    marcarAtivRemovido(cod); render(); return; }
   if(t.dataset.grpren!==undefined){
     const id = t.dataset.grpren, g = todasFamilias().find(x=>x.id===id);
     const nome = prompt("Novo nome do grupo:", g ? g.nome : "");
@@ -674,7 +694,7 @@ $("#btn_ativ_add").onclick=()=>{
   if(!codigoAtividadeValido(cod)){ alert("Código inválido: use letras, números, espaço, ponto, hífen, barra, +, %, vírgula ou parênteses."); return; }
   if(!criarAtividade(cod)){ alert(`Já existe uma atividade com o código "${cod}".`); return; }
   $("#in_ativ_novo").value="";
-  salvar(); render();
+  marcarAtivNovo(atividadesLista().find(a=>a.cod===cod)); render();
 };
 
 $("#btn_trat_add").onclick=()=>{
@@ -683,7 +703,7 @@ $("#btn_trat_add").onclick=()=>{
   if(!codigoTratValido(cod)){ alert(MSG_COD_TRAT); return; }
   if(!criarTrat(cod)){ alert(`Já existe um tratamento com o código "${cod}".`); return; }
   setTRAT_SEL(cod); $("#in_trat_novo").value="";
-  salvar(); render();
+  marcarTratNovo(cod); render();
 };
 
 $("#btn_add_prod").onclick=()=>{
@@ -713,13 +733,22 @@ $("#btn_tp_reset").onclick=()=>{
 };
 
 $("#btn_ins_add").onclick=()=>{
-  insLista().push({prod:"Novo insumo", un:"kg", pa:"", conc:"", est:0, preco:0});
-  salvar(); render();
+  const novo = {prod:"Novo insumo", un:"kg", pa:"", conc:"", est:0, preco:0};
+  insLista().push(novo);
+  marcarInsNovo(novo); render();
 };
 $("#btn_ins_sinc").onclick=()=>{
   const r = mesclarBaseInsumos();
   setINSX_V(CFG.insumos_v);
-  salvar(); render();
+  // mesclarBaseInsumos() pode mudar varios produtos de uma vez (completar
+  // classificacao tecnica, trazer produto novo da base) sem dizer quais --
+  // mais simples e seguro marcar o cadastro inteiro, mesmo que mande upsert
+  // de produto que na verdade nao mudou. E uma acao rara e deliberada, nao
+  // edicao corrente, entao o patch um pouco maior aqui nao pesa. Essa acao
+  // sempre gravou na hora (nao espera o botao "Salvar alteracoes"), entao
+  // monta o patch (salvarIns) e ja manda (salvar), em vez de so marcar sujo.
+  insLista().forEach(i=>marcarInsSujo(i));
+  salvarIns(); salvar(); render();
   alert(r.novos || r.completados
     ? `Cadastro atualizado: ${r.novos} produto(s) novo(s) e ${r.completados} com a classificação técnica `+
       `completada. São ${r.total} produtos no cadastro.`
@@ -727,7 +756,16 @@ $("#btn_ins_sinc").onclick=()=>{
 };
 $("#btn_ins_reset").onclick=()=>{
   if(!confirm("Restaurar o cadastro original de insumos? Preços e estoques ajustados são mantidos.")) return;
-  setINSX(CFG.insumos.map(i=>({...i}))); salvar(); render();
+  // troca a lista inteira -- marca cada produto novo como tocado, e quem
+  // sumiu (nao existe mais no cadastro base) como removido, senao o patch de
+  // gravacao ficaria vazio e o "restaurar" nao chegaria no servidor
+  const antigos = insLista().map(i=>i.prod);
+  const nova = CFG.insumos.map(i=>({...i}));
+  setINSX(nova);
+  const aindaExiste = new Set(nova.map(i=>i.prod));
+  antigos.filter(p=>!aindaExiste.has(p)).forEach(p=>marcarInsRemovido({prod:p}));
+  nova.forEach(i=>marcarInsSujo(i));
+  render();
 };
 
 $("#btn_mat_add").onclick=()=>{

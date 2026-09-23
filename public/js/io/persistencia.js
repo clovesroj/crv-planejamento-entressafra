@@ -85,6 +85,22 @@ function marcarBaseGravacao(){
 // sem base marcada (antes da primeira pintura), qualquer ignorado conta
 const mudouDesdeBase = (doc, k) => !BASE_GRAVACAO || canonJSON(valorDaChave(doc,k)) !== (k in BASE_GRAVACAO ? BASE_GRAVACAO[k] : canonJSON(undefined));
 
+/* Insumos, Atividades e Tratamentos não mandam mais o array/objeto inteiro
+   (ver ui/insumos.js e ui/atividades-cad.js): só o item que mudou, num patch
+   {upsert, remover} guardado aqui até a próxima gravação. Essas chaves saem
+   do diff normal — a sessão nunca mais manda o valor inteiro delas — e o
+   servidor mescla o patch item a item contra o que está gravado agora, com a
+   linha travada (server/mesclaItens.js), não contra o que está na memória
+   desta aba. É o que fecha a lacuna que sobrava mesmo depois do diff por
+   chave: duas pessoas editando produtos diferentes do mesmo cadastro ao
+   mesmo tempo não se apagam mais. */
+const CHAVES_COM_PATCH = { INSX_PATCH: ["INSX"], ATVX_PATCH: ["ATVX"], INSUMO_PATCH: ["INSUMO"],
+  TRAT_PATCH: ["TRAT_NOME","TRAT_OBS","TRAT_ETAPA","TRAT_ATIVO"] };
+const CHAVES_SEM_DIFF = new Set(Object.values(CHAVES_COM_PATCH).flat());
+const patchesPendentes = {};
+/** Registra o patch de item pendente de uma tela (ver salvarIns()/salvarAtiv()/salvarTrat()). */
+function definirPatchItens(chavePatch, patch){ patchesPendentes[chavePatch] = patch; }
+
 /* Documento com só o que esta sessão de fato alterou desde a última gravação
    (ou desde a abertura, se ainda não gravou nada) -- é o que vai pro servidor
    a cada salvar(). Sem base marcada ainda (carregando), manda o estado
@@ -94,7 +110,7 @@ function alteracoes(){
   if(!BASE_GRAVACAO) return estado();
   const cru = estadoCru(), doc = {v: cru.v};
   Object.keys(cru).forEach(k=>{
-    if(k==="v") return;
+    if(k==="v" || CHAVES_SEM_DIFF.has(k)) return;
     if(k==="P"){
       const pMudou = Object.keys(cru.P).some(c =>
         canonJSON(cru.P[c]) !== (("P."+c) in BASE_GRAVACAO ? BASE_GRAVACAO["P."+c] : canonJSON(undefined)));
@@ -108,7 +124,16 @@ function alteracoes(){
     // composição customizada de um tratamento), e isso precisa chegar.
     if(canonJSON(vazia(cru[k]) ? undefined : cru[k]) !== base) doc[k] = cru[k];
   });
+  Object.entries(patchesPendentes).forEach(([k,p])=>{ doc[k] = p; });
   return doc;
+}
+/** Depois de uma gravação aceita, os patches enviados saem da fila pendente
+ *  -- exceto o que o servidor ignorou (sem permissão), que continua tentando. */
+function limparPatchesEnviados(doc, ignorados){
+  const ignor = new Set(ignorados || []);
+  Object.entries(CHAVES_COM_PATCH).forEach(([chavePatch, chaves])=>{
+    if(chavePatch in doc && !chaves.some(c=>ignor.has(c))) delete patchesPendentes[chavePatch];
+  });
 }
 /* Depois de uma gravação aceita, a base avança para o que foi de fato
    persistido -- assim a próxima só manda o que mudar dali pra frente, não a
@@ -119,7 +144,7 @@ function atualizarBaseComEnviado(doc, ignorados){
   if(!BASE_GRAVACAO) return;
   const ignor = new Set(ignorados || []);
   Object.keys(doc).forEach(k=>{
-    if(k==="v") return;
+    if(k==="v" || k in CHAVES_COM_PATCH) return;
     if(k==="P"){
       Object.keys(doc.P).forEach(c=>{ if(!ignor.has("P."+c)) BASE_GRAVACAO["P."+c] = canonJSON(doc.P[c]); });
       return;
@@ -347,6 +372,7 @@ async function gravar(){
       // conta o que o usuário mudou desde a última gravação (ver BASE_GRAVACAO).
       const ignorados = (resp && Array.isArray(resp.ignorados) ? resp.ignorados : []).filter(k=>mudouDesdeBase(doc,k));
       atualizarBaseComEnviado(doc, ignorados);
+      limparPatchesEnviados(doc, ignorados);
       if(ignorados.length){
         setStatus("Salvo — sem permissão para alterar: "+ignorados.slice(0,3).join(", ")
           +(ignorados.length>3?"…":""), "warn");
@@ -369,6 +395,13 @@ function salvar(){
   clearTimeout(saveTimer);
   saveTimer=setTimeout(gravar,700);
 }
+/* Cadastros de Atividades, Insumos e Tratamentos não gravam mais sozinhos a
+   cada campo/checkbox -- só quando a pessoa clica no "Salvar" da própria tela
+   (ver ui/atividades-cad.js e ui/insumos.js). Editar só marca a sessão como
+   tendo alteração pendente, sem agendar a gravação: se a aba for fechada ou
+   perder o foco antes do clique, flushSalvar() ainda pega essa alteração (o
+   mesmo caminho de sempre) — só não sai sozinha 700ms depois de cada tecla. */
+function marcarRascunhoPendente(){ setEDITADO(true); salvePendente = true; }
 // sair da página com uma gravação pendente perdia a alteração — força a gravação antes
 function flushSalvar(){
   if(!salvePendente) return;
@@ -381,7 +414,7 @@ function flushSalvar(){
   // navegador aceitou entregar, não que o servidor já processou — mesmo grau
   // de certeza que salvePendente=false já assumia aqui antes desta mudança.
   if(temMudanca && REMOTO && REMOTO.beacon && REMOTO.beacon(doc)){
-    atualizarBaseComEnviado(doc, []); salvePendente = false; return;
+    atualizarBaseComEnviado(doc, []); limparPatchesEnviados(doc, []); salvePendente = false; return;
   }
   gravar();
 }
@@ -390,4 +423,5 @@ window.addEventListener("pagehide",flushSalvar);
 window.addEventListener("blur",flushSalvar);
 
 
-export { abrirArtifact, abrirServidor, aplicar, carregar, estado, flushSalvar, gravar, marcarBaseGravacao, pedirAPI, salvar, salvePendente, setStatus, statusRemoto };
+export { abrirArtifact, abrirServidor, aplicar, carregar, definirPatchItens, estado, flushSalvar, gravar,
+  marcarBaseGravacao, marcarRascunhoPendente, pedirAPI, salvar, salvePendente, setStatus, statusRemoto };

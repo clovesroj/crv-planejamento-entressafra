@@ -77,6 +77,38 @@ function storePostgres(url) {
          RETURNING data, updated_at`,
         [DOC_ID, JSON.stringify(doc)]));
     },
+    // Merge por item (Insumos, Atividades, Tratamentos — ver server/mesclaItens.js):
+    // `aplicar(atual)` é síncrona e pura, sem I/O — o SELECT ... FOR UPDATE trava
+    // a linha até o COMMIT, então uma segunda gravação concorrente para a mesma
+    // linha espera aqui, em vez de ler o "antes" desatualizado e mesclar por cima.
+    // `aplicar` devolve null quando não há nada permitido pra gravar (mesmo
+    // critério do fluxo antigo): não escreve, só devolve o que já está.
+    async mesclarItens(aplicar) {
+      await garantirTabela();
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query(
+          `INSERT INTO plano (id, data) VALUES ($1, '{}'::jsonb) ON CONFLICT (id) DO NOTHING`, [DOC_ID]);
+        const r = await client.query('SELECT data, updated_at FROM plano WHERE id = $1 FOR UPDATE', [DOC_ID]);
+        const atual = r.rows[0] ? r.rows[0].data : {};
+        const novo = aplicar(atual);
+        if (novo == null) {
+          await client.query('COMMIT');
+          return { data: atual, updated_at: r.rows[0] ? r.rows[0].updated_at : null };
+        }
+        const r2 = await client.query(
+          `UPDATE plano SET data = $2::jsonb, updated_at = now() WHERE id = $1 RETURNING data, updated_at`,
+          [DOC_ID, JSON.stringify(novo)]);
+        await client.query('COMMIT');
+        return { data: r2.rows[0].data, updated_at: r2.rows[0].updated_at };
+      } catch (e) {
+        await client.query('ROLLBACK').catch(() => {});
+        throw e;
+      } finally {
+        client.release();
+      }
+    },
     async checar() { await garantirTabela(); await pool.query('SELECT 1'); },
 
     // ---------- usuários ----------
