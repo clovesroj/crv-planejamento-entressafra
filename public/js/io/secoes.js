@@ -4,7 +4,7 @@ import { ADM_CRITERIOS, ADM_GRUPOS } from '../dados/administrativo.js';
 import { ARR_FORMAS, ETAPAS_ORD, arrRat } from '../calculo/arrendamento.js';
 import { FORN_MODALIDADES } from '../dados/fornecedores.js';
 import { GRUPOS_ORD, deptIdx, janelaDaLinha, necessidadePorAtividade, visaoPlanilha } from '../calculo/pessoas.js';
-import { comparativoQuadro } from '../calculo/quadro-comparativo.js';
+import { COLUNAS_QUADRO, comparativoQuadro } from '../calculo/quadro-comparativo.js';
 import { QUADRO_FONTE } from '../dados/quadro-fixo.js';
 import { GERENCIAS, criterioPorMes, excecoes, execucao, metasDeFrota, metasPorAtividade, porGerencia } from '../calculo/acompanhamento.js';
 import { CFG } from '../dados/cfg.js';
@@ -342,11 +342,10 @@ const fluxoMdo = R => {
       ["TOTAL","", ...gs.map(()=>""), "", "", ...gs.map(g=>brl((V.grupos.find(x=>x.grupo===g)||{custo:0}).custo)), brl(T.custo), ""]]));
 };
 
-/* Quadro ADM e oficina, previsto × realizado AA -- o Painel das planilhas de
+/* Quadro ADM e oficina, previsto × realizado no ano anterior -- o Painel das planilhas de
    justificativa da folha, pela média de dez/26 a mar/27 (os meses lançados) e
    mês a mês. Sai de calculo/quadro-comparativo.js, o mesmo da aba Mão de Obra. */
-const CAB_QF_REL = ["Qtde AA","Qtde Prev.","Δ Qtde","Sal. méd. AA","Sal. méd. Prev.","Δ Sal. méd.",
-  "Realizado AA","Previsto","Δ R$","Δ %","Ef. Qtde (R$)","Ef. Salário (R$)","Fator principal","Custo no plano"];
+const CAB_QF_REL = COLUNAS_QUADRO;   // os mesmos títulos da tela
 const colsQF = o => [fmt(o.qa,1), fmt(o.qp,1), fmt(o.dq,1), o.sa?brl(o.sa,2):"—", o.sp?brl(o.sp,2):"—",
   o.dsal?fmt(o.dsal*100,1)+"%":"—", brl(o.va), brl(o.vp), brl(o.dv), o.va?fmt(o.pct*100,1)+"%":"—",
   brl(o.efQ), brl(o.efS), o.fator||"", brl(o.cp)];
@@ -359,7 +358,7 @@ const quadroAdmOficina = R => {
     d.filhas.forEach(f=>linhas.push(["Função", "      ↳ "+f.nome+" ["+f.fcod+"]", "", ...colsQF(f)]));
   });
   linhas.push(["", "TOTAL", "", ...colsQF(C.total)]);
-  return sec("Quadro ADM e oficina","Quadro ADM agrícola e oficina — previsto × realizado AA, média mensal dez/26–mar/27",
+  return sec("Quadro ADM e oficina","Quadro ADM agrícola e oficina — folha prevista × realizada no ano anterior, média mensal dez/26–mar/27 (ano anterior: dez/25–mar/26)",
     ["Nível","Departamento / Função","Quadro", ...CAB_QF_REL], linhas);
 };
 const quadroAdmOficinaMes = R => {

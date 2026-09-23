@@ -1,5 +1,23 @@
 # Histórico de mudanças
 
+## 2.44.2 — 2026-09-23 · Quadro ADM e oficina: títulos sem a sigla "AA"
+
+Na página "Quadro ADM e oficina" (aba Mão de Obra) e no relatório do quadro, os
+títulos do realizado do ano anterior diziam só "AA" (a sigla da planilha). Agora
+dizem por extenso, e o lado do previsto acompanha:
+
+| Antes | Agora |
+|---|---|
+| Qtde AA · Qtde Prev. · Δ Qtde | Qtde realizada (ano anterior) · Qtde prevista · Δ Qtde (prevista − ano anterior) |
+| Sal. méd. AA · Sal. méd. Prev. · Δ Sal. méd. | Salário médio realizado (ano anterior) · Salário médio previsto · Δ Salário médio |
+| Realizado AA · Previsto · Δ R$ · Δ % | Folha realizada (ano anterior) · Folha prevista · Δ Folha (R$) · Δ Folha (%) |
+| Ef. Qtde (R$) · Ef. Salário (R$) | Efeito quantidade (R$) · Efeito salário (R$) |
+
+O cartão do realizado diz o mês com que compara: "Folha realizada no ano
+anterior — Fev/26" (e "média dez/25–mar/26" na média). Os títulos moram numa
+lista só (`COLUNAS_QUADRO`, em `calculo/quadro-comparativo.js`), usada pela tela
+e pelo relatório. Nenhum número muda.
+
 ## 2.44.1 — 2026-09-23 · Quadro ADM e oficina lançado só de dezembro a março
 
 O quadro previsto da controladoria (ADM agrícola e oficina) passa a entrar no

@@ -2,7 +2,7 @@ import { benVal, encPct, gratif } from '../calculo/mao-de-obra.js';
 import { CFG } from '../dados/cfg.js';
 import { MESES, NM, clsMes } from '../nucleo/calendario.js';
 import { BEN, ENC, FUN_SEL, GRAT, QF_GRUPO, QF_MES } from '../nucleo/estado.js';
-import { comparativoQuadro } from '../calculo/quadro-comparativo.js';
+import { COLUNAS_QUADRO, comparativoQuadro, mesAnoAnterior } from '../calculo/quadro-comparativo.js';
 import { QUADRO_FONTE } from '../dados/quadro-fixo.js';
 import { $, brl, esc, fmt, num, pct } from '../nucleo/formato.js';
 import { kpi, ligarBuscaSelect, th } from './componentes.js';
@@ -123,8 +123,8 @@ function colsQuadro(o, rotulo, cls){
     <td class="num calc">${brlS(o.efQ)}</td><td class="num calc">${brlS(o.efS)}</td>
     <td class="calc">${o.fator||""}</td><td class="num">${brl(o.cp)}</td></tr>`;
 }
-const CAB_QF = [["Qtde AA",1],["Qtde Prev.",1],["Δ Qtde",1],["Sal. méd. AA",1],["Sal. méd. Prev.",1],["Δ Sal. méd.",1],
-  ["Realizado AA",1],["Previsto",1],["Δ R$",1],["Δ %",1],["Ef. Qtde (R$)",1],["Ef. Salário (R$)",1],["Fator principal"],["Custo no plano",1]];
+// títulos em calculo/quadro-comparativo.js (os mesmos do relatório); só "Fator principal" é texto
+const CAB_QF = COLUNAS_QUADRO.map(t=>[t, t==="Fator principal" ? 0 : 1]);
 function pintarQuadro(R){
   const QF = R.QF; if(!QF) return;
   const C = comparativoQuadro(QF, QF_GRUPO, QF_MES);
@@ -135,9 +135,10 @@ function pintarQuadro(R){
   $("#qf_fonte").textContent = "Fonte: "+Object.values(QUADRO_FONTE).map(f=>f.arquivo+" (revisão "+f.revisao+")").join(" · ");
   const T = C.total;
   $("#k_qf").innerHTML =
-    kpi("Previsto — "+nomeMes,"",brl(T.vp), fmt(T.qp,0)+" pessoas · sal. médio "+(T.sp?brl(T.sp):"—"),"cat:mdo") +
-    kpi("Realizado AA","t",brl(T.va), fmt(T.qa,0)+" pessoas · sal. médio "+(T.sa?brl(T.sa):"—"),"") +
-    kpi("Variação","a",brlS(T.dv), (T.va?pctF(T.pct):"—")+" · "+(T.dq>0?"+":"")+fmt(T.dq,0)+" pessoas · "+(T.fator||"—"),"") +
+    kpi("Folha prevista — "+nomeMes,"",brl(T.vp), fmt(T.qp,0)+" pessoas previstas · salário médio "+(T.sp?brl(T.sp):"—"),"cat:mdo") +
+    kpi("Folha realizada no ano anterior — "+(QF_MES==="media" ? "média dez/25–mar/26" : mesAnoAnterior(MESES[QF_MES])),"t",brl(T.va),
+        fmt(T.qa,0)+" pessoas realizadas · salário médio "+(T.sa?brl(T.sa):"—"),"") +
+    kpi("Variação: prevista − ano anterior","a",brlS(T.dv), (T.va?pctF(T.pct):"—")+" · "+(T.dq>0?"+":"")+fmt(T.dq,0)+" pessoas · "+(T.fator||"—"),"") +
     kpi("Custo no plano — "+nomeMes,"g",brl(T.cp), "folha + contribuições + benefícios","cat:mdo");
   $("#t_qf_evol").innerHTML = th([["Mês"],...CAB_QF])+"<tbody>"+
     C.evolucao.map(e=>colsQuadro(e, `<td data-rastro="mes:${e.i}">${e.mes}</td>`, e.i===QF_MES?"qf-sel":"")).join("")+
