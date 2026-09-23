@@ -1,4 +1,5 @@
 import { composicao, doseBase, etapasNoPlano, familiaDe, freteEfetivo, insumosPorFamilia, precoInsumo, todasFamilias, tratCodigos, tratEtapas, tratListaTodos, usosTrat } from '../calculo/insumos.js';
+import { modoLiberado } from '../calculo/atividade.js';
 import { TRAT_ETAPAS } from '../dados/insumos.js';
 import { ATIV_TRAT_SEL, DIM, INSUMO, INS_EDIT, INS_FICHA, P, PLANO, TRATC, TRAT_ATIVO, TRAT_NOME, TRAT_OBS, TRAT_SEL, atividadesLista, insLista } from '../nucleo/estado.js';
 import { $, brl, esc, fmt, num, urlWeb } from '../nucleo/formato.js';
@@ -341,7 +342,7 @@ function pintarTratPeriodo(R){
       ? `<td class="num calc ${clsMes(j)}" title="Soma dos tratamentos — edite no bloco abaixo">${q?fmt(num(q)):""}</td>`
       : `<td class="num ${clsMes(j)}"><input data-c="${esc(exibindo)}" data-m="${j}" value="${q||""}" inputmode="decimal"></td>`).join("") +
     `<td class="num ${temExtras?"calc":""} tot">${fmt(totalArea)}</td>
-     <td>${a.modoOn && linha ? mixEditor(linha) : '<span class="calc">—</span>'}</td>` +
+     <td>${modoLiberado(a) && linha ? mixEditor(linha) : '<span class="calc">—</span>'}</td>` +
     `</tr></tbody>`;
   $("#trat_periodo_hint").textContent = p.trat===TRAT_SEL
     ? `Lançando para ${a.cod} — ${a.nome}. Início e fim distribuem a área pelos meses automaticamente; os meses continuam editáveis à mão.`

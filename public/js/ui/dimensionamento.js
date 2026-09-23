@@ -4,7 +4,7 @@ import { $, brl, fmt } from '../nucleo/formato.js';
 import { ordenarPorEtapa, th } from './componentes.js';
 import { ESCALAS } from '../dados/escalas.js';
 import { ativoDe, quadroBase } from '../calculo/quadro.js';
-import { criterioMensal, frotaDaAtividade, pessoasDaAtividade, temCriterioMensal } from '../calculo/atividade.js';
+import { criterioMensal, frotaDaAtividade, modoLiberado, pessoasDaAtividade, temCriterioMensal } from '../calculo/atividade.js';
 
 /* ---------- DIMENSIONAMENTO ---------- */
 /* Botao do criterio mensal. O ponto avisa que algum mes ja foge do padrao da
@@ -144,7 +144,7 @@ function pintarDimDetalhe(R){
         <div class="dd-campo"><label for="dd_util">Utilização (%)</label>
           <input id="dd_util" data-u="${r.a.cod}" value="${Math.round(r.util*100)}" inputmode="decimal">
           <span class="calc">quanto do tempo disponível vai para esta atividade</span></div>
-        ${linha("Modo de execução", multi ? r.partes.length+" frentes" : (r.a.modoOn?"padrão":"—"))}
+        ${linha("Modo de execução", multi ? r.partes.length+" frentes" : (modoLiberado(r.a)?"padrão":"—"))}
       </div>
       ${multi ? `<div class="tblwrap ra-tbl"><table>${th([["Frente"],["%",1],["Área",1],["Rend.",1],["Horas",1]])}
         <tbody>${r.partes.map(p=>`<tr><td>${p.modo}${p.terc?' <span class="badge b-warn">terceiro</span>':""}</td>

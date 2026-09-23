@@ -42,8 +42,6 @@ function pintarAtividadesCad(){
       <td class="num"><input data-at="${i}" data-f="ops" value="${a.ops??1}" inputmode="decimal" style="width:55px"></td>
       <td class="num"><input data-at="${i}" data-f="turnos" value="${a.turnos??1}" inputmode="decimal" style="width:55px"></td>
       <td class="num"><input data-atu="${i}" value="${Math.round((a.util??0.8)*100)}" inputmode="decimal" style="width:55px" title="Utilização em %"></td>
-      <td class="num"><input type="checkbox" data-atmodo="${i}" ${a.modoOn?"checked":""}
-          title="Libera o mix de modos de execução (Manual/Trator/Uniport/Drone/Quadriciclo/Terceiro) para esta atividade no Plano Operacional"></td>
       <td class="num"><input type="checkbox" data-atativo="${i}" ${a.ativo===false?"":"checked"}
           title="Atividade inativa some das buscas de vínculo novo (ex.: 'atividade que usa este tratamento'), mas continua valendo normalmente onde já está lançada"></td>
       <td class="calc">${fixo ? "Cadastro do sistema" : "Criado por você"}</td>
@@ -51,7 +49,7 @@ function pintarAtividadesCad(){
   }).join("");
 
   $("#t_ativ").innerHTML = th([["Código"],["Etapa"],["Nome"],["Unidade"],["Rendimento (por hora)",1],
-    ["Máquina"],["Implemento"],["Operadores",1],["Turnos",1],["Utilização %",1],["Modo de execução",1],["Ativo",1],["Origem"],[""]]) +
+    ["Máquina"],["Implemento"],["Operadores",1],["Turnos",1],["Utilização %",1],["Ativo",1],["Origem"],[""]]) +
     "<tbody>" + linhas + "</tbody>";
 }
 

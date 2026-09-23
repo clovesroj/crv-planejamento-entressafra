@@ -255,11 +255,6 @@ document.addEventListener("change",e=>{
     salvar(); render(); return; }
   if(t.dataset.at!==undefined && t.tagName==="SELECT"){ atividadesLista()[+t.dataset.at][t.dataset.f]=t.value;
     salvar(); render(); return; }
-  // libera/tranca o mix de modos (M/T/U/D/Q/3º) no Plano Operacional para
-  // esta atividade — atividade criada pelo usuário nascia sem isso, e sem
-  // controle na tela não dava pra ligar depois
-  if(t.dataset.atmodo!==undefined){ atividadesLista()[+t.dataset.atmodo].modoOn = t.checked;
-    salvar(); render(); return; }
   // ativa/inativa a atividade — some das buscas de vinculo novo (ver
   // buscaTratAtiv em ui/insumos.js), sem mexer no que ja esta lancado
   if(t.dataset.atativo!==undefined){ atividadesLista()[+t.dataset.atativo].ativo = t.checked;

@@ -37,17 +37,17 @@ function tarifaTercDe(cod){
   return chaves.reduce((s,m)=>s+(num(sub[m].pct)/soma)*num(sub[m].tar),0);
 }
 
-/* Modos que a atividade aceita. Sem a lista, vale o cardapio inteiro; com ela,
-   a atividade so oferece o que faz sentido — aplicacao de calcario, por exemplo,
-   e trator proprio ou prestador de servico, nunca drone. */
-function modosDe(a){
-  const l = Array.isArray(a.modos) ? a.modos.filter(m=>CFG.modos[m]) : [];
-  return l.length ? l : MODOS_ORD;
-}
+/* Toda atividade oferece o cardapio inteiro de modos — decisao do usuario: a
+   restricao por atividade (a.modos) e a chave liga/desliga (a.modoOn) deixaram
+   de valer. Documento antigo ainda traz esses campos no ATVX; sao ignorados.
+   Transporte fica de fora: o custo dele sai do ciclo de viagem (cicloTransporte),
+   e um modo de pulverizacao ali trocaria o caminhao por trator/uniport. */
+const modoLiberado = a => a.tipo !== "transp";
+function modosDe(a){ return MODOS_ORD; }
 
 // divisão da área entre modos de aplicação. Sem mix definido, roda 100% no padrão.
 function mixDe(a, p){
-  if(!a.modoOn) return null;
+  if(!modoLiberado(a)) return null;
   const mx = p.mix || {};
   const soma = modosDe(a).reduce((s,m)=>s+num(mx[m]),0);
   if(soma<=0) return null;
@@ -543,11 +543,8 @@ function criarAtividade(cod){
   const c = String(cod||"").trim();
   const lista = atividadesLista();
   if(!codigoAtividadeValido(c) || lista.some(a=>a.cod===c)) return false;
-  // modoOn:true libera o mix de modos (M/T/U/D/Q/3º) no Plano Operacional —
-  // sem isso a atividade nova nascia sem nenhuma forma de marcar o modo de
-  // execução, diferente da maioria do catálogo base
   lista.push({cod:c, etapa:"TRATOS CULTURAIS", nome:"Nova atividade", un:"ha/mês",
-              rend:1, maq:"", imp:"", ops:1, turnos:1, util:0.8, modoOn:true});
+              rend:1, maq:"", imp:"", ops:1, turnos:1, util:0.8});
   return true;
 }
 // atividade do cadastro base nao se remove aqui (outras telas e o proprio
@@ -562,6 +559,6 @@ function removerAtividade(cod){
   return true;
 }
 
-export { MODOS_ORD, criterioMensal, diasDoMes, fatorDe, frotaDaAtividade, modosDe, linha, mixDe, pessoasDaAtividade,
+export { MODOS_ORD, criterioMensal, diasDoMes, fatorDe, frotaDaAtividade, modoLiberado, modosDe, linha, mixDe, pessoasDaAtividade,
          premissasDe, tarifaTerc, tarifaTercDe, temDetalheTerc, metaDe,
   temCriterioMensal, mesclarBaseAtividades, codigoAtividadeValido, criarAtividade, removerAtividade };

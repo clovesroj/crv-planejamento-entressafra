@@ -1,4 +1,4 @@
-import { MODOS_ORD, frotaDaAtividade, modosDe, temDetalheTerc } from '../calculo/atividade.js';
+import { MODOS_ORD, frotaDaAtividade, modoLiberado, modosDe, temDetalheTerc } from '../calculo/atividade.js';
 import { tratListaTodos } from '../calculo/insumos.js';
 import { CFG } from '../dados/cfg.js';
 import { TERC_MODOS } from '../dados/modos.js';
@@ -18,7 +18,7 @@ const grupoPlano = a => COD_FITOSSANITARIO.has(a.cod) ? "MANEJO FITOSSANITÁRIO"
 // editor compacto do mix de modos: percentuais numa célula só
 function mixEditor(r){
   const mx = r.mix || {};
-  const modos = modosDe(r.a);   // so os modos que a atividade aceita
+  const modos = modosDe(r.a);
   const soma = modos.reduce((s,m)=>s+num(mx[m]),0);
   const cor = soma===0 ? "var(--grey)" : (Math.abs(soma-100)<0.01 ? "var(--green)" : "var(--red)");
   const sigla = {Manual:"M",Trator:"T",Uniport:"U",Drone:"D",Quadriciclo:"Q",Terceiro:"3º"};
@@ -167,7 +167,7 @@ function pintarPlano(R){
             dentro(j)?"":' title="Fora da janela de datas desta atividade — o valor continua contando no total"'}></td>`).join("")+
       `<td class="num tot" style="color:${totalNoFiltro(r, SEL)>0?'var(--green)':'var(--grey)'}"${
           parcial && r.total>0 ? ` title="No ano: ${fmt(r.total)}"` : ""}>${fmt(totalNoFiltro(r, SEL))}</td>
-       <td>${r.a.modoOn ? mixEditor(r) : '<span class="calc">—</span>'}</td>
+       <td>${modoLiberado(r.a) ? mixEditor(r) : '<span class="calc">—</span>'}</td>
        ${celFrota(r)}
        <td><select data-t="${r.a.cod}" ${r.ehHa?"":"disabled"}>${opts}</select></td>
        <td class="num calc">${r.cInsumo?brl(r.cInsumo):"—"}</td></tr>`;
