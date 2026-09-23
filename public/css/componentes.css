@@ -549,6 +549,14 @@ tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:under
 #t_dim th:nth-child(-n+3),#t_dim td:nth-child(-n+3){text-align:left}
 #t_dim th:nth-child(n+4),#t_dim td:nth-child(n+4){text-align:center}
 .dim-cel{display:flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap}
+/* linha de meses aberta na propria tabela: um chip por mes com lancamento */
+.dim-meses{display:flex;flex-wrap:wrap;gap:8px;padding:2px 0}
+.dim-mes{display:flex;flex-direction:column;gap:1px;min-width:132px;
+  border:1px solid var(--line);border-left:3px solid var(--leaf);border-radius:var(--r-sm);
+  padding:6px 10px;background:var(--card);font-size:11.5px;line-height:1.35}
+.dim-mes b{font-size:12px;color:var(--ink)}
+.dim-mes .calc{font-size:10.5px}
+#t_dim tr.sub td{text-align:left}
 .dim-val{font-weight:700;color:var(--ink);font-size:14px}
 .dim-val.calc{font-weight:600;color:var(--grey)}
 .dim-un{font-size:10.5px;color:var(--muted);letter-spacing:.2px}

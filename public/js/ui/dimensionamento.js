@@ -11,6 +11,12 @@ import { criterioMensal, frotaDaAtividade, temCriterioMensal } from '../calculo/
 /* ---------- DIMENSIONAMENTO ---------- */
 /* Botao do criterio mensal. O ponto avisa que algum mes ja foge do padrao da
    atividade -- sem ele, o ajuste ficaria escondido atras de um clique. */
+/* Linha de meses aberta na tabela: e so leitura, e so aparece mes que tem
+   lancamento. Ver "quando essa atividade acontece" nao deveria custar abrir um
+   modal -- e a pergunta que se faz percorrendo a lista, nao parando nela. */
+const MES_ABERTO = {};
+function alternarMesLinha(cod){ if(MES_ABERTO[cod]) delete MES_ABERTO[cod]; else MES_ABERTO[cod]=true; }
+
 const btnMes = cod => `<button class="btn xs" data-rendmes="${cod}"
   title="Critério por mês: produção, frota, disponibilidade e utilização">${
   temCriterioMensal(cod) ? "mês •" : "mês"}</button>`;
@@ -50,6 +56,9 @@ function pintarDim(R){
             <span class="dim-val">${fmt(r.rend,2)}</span>
             <span class="dim-un">${un}/h</span>
             ${btnMes(r.a.cod)}
+            <button class="btn xs" data-dimmes="${r.a.cod}"
+              title="Ver mês a mês, só os meses com lançamento"
+              aria-expanded="${MES_ABERTO[r.a.cod]?"true":"false"}">${MES_ABERTO[r.a.cod]?"▴":"▾"}</button>
             <button class="btn xs" data-dimdet="${r.a.cod}" data-aba="oper">detalhe ›</button>
           </div></td>
         <td>
@@ -64,7 +73,7 @@ function pintarDim(R){
           <div class="dim-cel">
             <span class="dim-val">${r.efetivo||"—"}</span>
             <button class="btn xs" data-dimdet="${r.a.cod}" data-aba="pessoas">detalhe ›</button>
-          </div></td></tr>`;
+          </div></td></tr>` + (MES_ABERTO[r.a.cod] ? linhaDosMeses(r, un) : "");
     }).join("")+
     `<tr><td class="tot" colspan="4">TOTAL DAS ATIVIDADES</td>
      <td class="tot">${fmt(R.L.reduce((s,r)=>s+r.horas,0))} h</td>
@@ -174,6 +183,20 @@ function pintarDimPessoas(R){
    frota costuma querer conferir o efetivo logo em seguida, e voltar a tabela
    para clicar de novo seria o mesmo vai e volta que tirou as colunas daqui. */
 const ABAS_DET = [["oper","Operação"],["frota","Frota"],["pessoas","Pessoas"]];
+
+/* Um chip por mes com lancamento: mes, volume, frota e pessoas daquele mes.
+   Mes sem volume nao entra -- listar doze meses para mostrar tres seria o
+   mesmo ruido que a tabela larga tinha. */
+function linhaDosMeses(r, un){
+  const C = criterioMensal(r).filter(c=>c.temVolume);
+  const corpo = C.length
+    ? C.map(c=>`<span class="dim-mes">
+        <b>${c.mes}</b>${c.parcial?' <span class="badge b-warn">parcial</span>':""}
+        <span>${fmt(c.q)} ${un}</span>
+        <span class="calc">${fmt(c.n)} equip. · ${fmt(c.pessoas)} pess.</span></span>`).join("")
+    : `<span class="calc">Sem mês com volume lançado no Plano Operacional.</span>`;
+  return `<tr class="sub"><td colspan="7"><div class="dim-meses">${corpo}</div></td></tr>`;
+}
 
 function pintarDimDetalhe(R){
   const cont = $("#dimdet"), fundo = $("#dimdet_fundo");
@@ -286,4 +309,4 @@ function pintarDimDetalhe(R){
   if(alvo) alvo.scrollIntoView({block:"start"});
 }
 
-export { pintarDimDetalhe, pintarDim, pintarDimPessoas };
+export { alternarMesLinha, pintarDimDetalhe, pintarDim, pintarDimPessoas };

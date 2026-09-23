@@ -260,7 +260,8 @@ function aplicar(d){
   if(d.ATVX && ATVX_V < CFG.atividades_v){
     const r = mesclarBaseAtividades();
     setATVX_V(CFG.atividades_v);
-    if(r.novas) console.info(`cadastro de atividades atualizado: +${r.novas} atividade(s), ${r.total} no total`);
+    if(r.novas || r.corrigidas)
+      console.info(`cadastro de atividades atualizado: +${r.novas} atividade(s), ${r.corrigidas} corrigida(s), ${r.total} no total`);
   } else if(!d.ATVX) setATVX_V(CFG.atividades_v);
   if(d.GRUPOS_INS) setGRUPOS_INS(d.GRUPOS_INS);
   if(d.FAM_NOME) setFAM_NOME(d.FAM_NOME);

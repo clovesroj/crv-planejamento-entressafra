@@ -22,16 +22,34 @@
      1  cadastro base, 48 atividades (44 originais + A40-A43 da importacao
         de herbicida) — ponto de partida da aba Cadastro de Atividades
      2  A44-A53, Controle Fitossanitario (Broca e Cigarrinha) da planilha
-        Plano Inseticida — 58 atividades no total */
-export const ATIVIDADES_V = 2;
+        Plano Inseticida — 58 atividades no total
+     3  A02, TR2 e TR4 (muda) passam de COLHEITA para PLANTIO — ver
+        CORRECOES_ATIVIDADE abaixo */
+export const ATIVIDADES_V = 3;
+
+/* Correcao de campo de atividade que JA existe no documento salvo.
+   O merge da base so acrescenta atividade nova; nunca mexe em atividade que ja
+   esta la, para nao apagar o que o usuario ajustou no Cadastro de Atividades.
+   Mas cadastro errado precisa de conserto, e um plano gravado antes nunca o
+   receberia. Esta lista e o conserto, aplicado uma vez na virada de versao.
+
+   Muda nao e colheita: cortar, transportar e transbordar muda e etapa de
+   PLANTIO -- a cana sai do viveiro para ser plantada, nao para ir a moenda.
+   Com a etapa errada, o custo da muda entrava em COLHEITA e o custo por
+   tonelada colhida saia inflado, enquanto o plantio saia barato demais. */
+export const CORRECOES_ATIVIDADE = [
+  {cod:"A02", campo:"etapa", de:"COLHEITA", para:"PLANTIO"},
+  {cod:"TR2", campo:"etapa", de:"COLHEITA", para:"PLANTIO"},
+  {cod:"TR4", campo:"etapa", de:"COLHEITA", para:"PLANTIO"},
+];
 
 export const ATIVIDADES = [
   {"cod":"A01","etapa":"COLHEITA","nome":"Colheita safra 2026","un":"ton/mês","rend":45,"maq":"Colhedora CH570 / John Deere","imp":"Transbordo 2 eixos","ops":1,"turnos":3,"util":1},
-  {"cod":"A02","etapa":"COLHEITA","nome":"Colheita muda","un":"ton/mês","rend":35,"maq":"Colhedora de muda","imp":"Transbordo 2 eixos","ops":1,"turnos":2,"util":0.6},
+  {"cod":"A02","etapa":"PLANTIO","nome":"Colheita muda","un":"ton/mês","rend":35,"maq":"Colhedora de muda","imp":"Transbordo 2 eixos","ops":1,"turnos":2,"util":0.6},
   {"cod":"TR1","etapa":"COLHEITA","nome":"Transporte de cana colheita","un":"ton/mês","rend":0,"maq":"Caminhão Volvo FMX 540","imp":"Rodotrem canavieiro","ops":1,"turnos":3,"util":1,"tipo":"transp","src":"A01","modo":"caminhao"},
-  {"cod":"TR2","etapa":"COLHEITA","nome":"Transporte de cana muda","un":"ton/mês","rend":0,"maq":"Caminhão Volvo FMX 540","imp":"Carroceria canavieira","ops":1,"turnos":2,"util":0.7,"tipo":"transp","src":"A02","modo":"caminhao"},
+  {"cod":"TR2","etapa":"PLANTIO","nome":"Transporte de cana muda","un":"ton/mês","rend":0,"maq":"Caminhão Volvo FMX 540","imp":"Carroceria canavieira","ops":1,"turnos":2,"util":0.7,"tipo":"transp","src":"A02","modo":"caminhao"},
   {"cod":"TR3","etapa":"COLHEITA","nome":"Transbordo colheita","un":"ton/mês","rend":0,"maq":"Trator 4x4 230 CV","imp":"Transbordo 2 eixos","ops":1,"turnos":3,"util":1,"tipo":"transp","src":"A01","modo":"transbordo"},
-  {"cod":"TR4","etapa":"COLHEITA","nome":"Transbordo muda","un":"ton/mês","rend":0,"maq":"Trator 4x4 230 CV","imp":"Transbordo 2 eixos","ops":1,"turnos":2,"util":0.7,"tipo":"transp","src":"A02","modo":"transbordo"},
+  {"cod":"TR4","etapa":"PLANTIO","nome":"Transbordo muda","un":"ton/mês","rend":0,"maq":"Trator 4x4 230 CV","imp":"Transbordo 2 eixos","ops":1,"turnos":2,"util":0.7,"tipo":"transp","src":"A02","modo":"transbordo"},
   {"cod":"A03","etapa":"PREPARO DE SOLO","nome":"Dessecação","un":"ha/mês","rend":1.65,"maq":"Uniport 3030 / Drone","imp":"Barra de pulverização 24 m","ops":1,"turnos":3,"util":0.8,"modoOn":true},
   {"cod":"A04","etapa":"PREPARO DE SOLO","nome":"1ª Gradagem pesada","un":"ha/mês","rend":0.7,"maq":"Trator 4x4 230 CV","imp":"Grade controle remoto 20 discos 32\"","ops":1,"turnos":3,"util":0.9},
   {"cod":"A05","etapa":"PREPARO DE SOLO","nome":"2ª Gradagem pesada","un":"ha/mês","rend":0.7,"maq":"Trator 4x4 230 CV","imp":"Grade controle remoto 20 discos 32\"","ops":1,"turnos":3,"util":0.9},

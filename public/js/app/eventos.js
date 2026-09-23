@@ -15,6 +15,7 @@ import { AGROFIT_BUSCA, DIM_DET, FITO_ABERTO, PLANO_ABERTO, FROTA_ABERTO, FROTA_
 import { $, num } from '../nucleo/formato.js';
 import { exportarTabela, filtrarPorNome } from '../ui/componentes.js';
 import { alternarFam, aplicarFamIns, buscaExigeRedesenho, recolherTodas, todasRecolhidas } from '../ui/insumos.js';
+import { alternarMesLinha } from '../ui/dimensionamento.js';
 import { lerPremissas } from '../ui/premissas.js';
 import { leve, render, renderAgrofit, renderDimDet, renderEditIns, renderFichaIns, renderRastro, renderRendMensal, renderTercDet } from './ciclo.js';
 import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarBuscaItem, filtrarRastro, voltarRastro } from '../ui/rastro.js';
@@ -520,6 +521,9 @@ document.addEventListener("click",e=>{
     setINS_FICHA(null); renderFichaIns(); return; }
   // detalhe do dimensionamento: abrir, trocar de bloco e fechar sao visao, nao
   // dado — redesenham so o modal
+  // abrir a linha de meses e visao: nao grava e nao mexe em numero nenhum
+  const dm = e.target.closest && e.target.closest("[data-dimmes]");
+  if(dm){ alternarMesLinha(dm.dataset.dimmes); render(); return; }
   const dd = e.target.closest && e.target.closest("[data-dimdet]");
   if(dd){ setDIM_DET({cod: dd.dataset.dimdet, aba: dd.dataset.aba || "oper"});
     renderDimDet(); return; }

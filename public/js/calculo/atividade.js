@@ -1,6 +1,7 @@
 import { maqDe } from './crm.js';
 import { litrosDe } from './consumo.js';
 import { CFG } from '../dados/cfg.js';
+import { CORRECOES_ATIVIDADE } from '../dados/atividades.js';
 import { fatorEscala } from '../dados/escalas.js';
 import { MESES, NM, diasCorridos, diasNoMesEntre, mesesEntre } from '../nucleo/calendario.js';
 import { DIM, P, PLANO, REAL, TERC_SUB, TERC_TAR, atividadesLista } from '../nucleo/estado.js';
@@ -468,7 +469,16 @@ function mesclarBaseAtividades(){
   CFG.atividades.forEach(base=>{
     if(!jaTem.has(base.cod)){ lista.push({...base}); novas++; }
   });
-  return {novas, total:lista.length};
+  /* Conserto de cadastro errado numa atividade que JA existe no documento.
+     Acrescentar atividade nova nao basta: um plano gravado antes carrega a
+     propria copia, e nunca receberia a correcao. So troca quando o valor ainda
+     e o errado -- quem ja ajustou a mao fica como esta. */
+  let corrigidas = 0;
+  CORRECOES_ATIVIDADE.forEach(c=>{
+    const a = lista.find(x=>x.cod===c.cod);
+    if(a && a[c.campo] === c.de){ a[c.campo] = c.para; corrigidas++; }
+  });
+  return {novas, corrigidas, total:lista.length};
 }
 // mesmo alfabeto de codigoTratValido (calculo/insumos.js): texto de tela, valor
 // de <option> e atributo data-*, sem nada que feche aspa ou abra marcacao
