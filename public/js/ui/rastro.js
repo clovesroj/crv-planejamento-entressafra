@@ -1,5 +1,7 @@
 import { rastro } from '../calculo/rastro.js';
-import { $, esc } from '../nucleo/formato.js';
+import { chaveItemReforma } from '../calculo/reforma.js';
+import { itensDoEquipamento } from '../calculo/gasto-real.js';
+import { $, brl, esc } from '../nucleo/formato.js';
 
 /* ---------- MODAL DE RASTRO ----------
    Explica um KPI ou custo descendo a cadeia: total, centro de custo,
@@ -11,16 +13,19 @@ let pilha = [];        // chaves visitadas; a última é a que está na tela
 let periodo = "todos";  // 'todos' | 'safra' | 'entressafra' — filtro do nível atual
 let jaAberto = false;   // controla a animação de entrada: só toca ao abrir, não a cada render()
 let ultimoR = null;     // R do último render(), pra trocar o filtro sem recalcular o plano inteiro
+let buscaItem = "";     // texto da caixa "incluir outro lançamento" (ver buscaAdicionar, calculo/rastro.js)
 
 const aberto = () => pilha.length > 0;
 
 function abrirRastro(chave){
   if(!chave) return;
-  if(pilha[pilha.length-1] !== chave) { pilha.push(chave); periodo = "todos"; }
+  if(pilha[pilha.length-1] !== chave) { pilha.push(chave); periodo = "todos"; buscaItem = ""; }
 }
-function voltarRastro(){ pilha.pop(); periodo = "todos"; }
-function fecharRastro(){ pilha = []; jaAberto = false; }
+function voltarRastro(){ pilha.pop(); periodo = "todos"; buscaItem = ""; }
+function fecharRastro(){ pilha = []; jaAberto = false; buscaItem = ""; }
 function filtrarRastro(p){ periodo = p; if(ultimoR) pintarRastro(ultimoR); }
+/** Digitar na busca de "incluir outro lançamento" só repinta o modal (rápido), não o app inteiro. */
+function filtrarBuscaItem(texto){ buscaItem = texto; if(ultimoR) pintarRastro(ultimoR); }
 
 function pintarRastro(R){
   const cont = $("#rastro"), fundo = $("#rastro_fundo");
@@ -33,14 +38,56 @@ function pintarRastro(R){
 
   // Tudo que vem de calculo/rastro.js é texto puro e pode citar nome de insumo,
   // equipamento ou rota digitados pelo usuário — por isso passa por esc().
-  const linha = l => `<div class="ra-linha${l.ir?" ra-ir":""}"${l.ir?` data-rastro="${esc(l.ir)}" tabindex="0" role="button"`:""}>
+  // linha normal, ou linha com checkbox pra marcar/desmarcar um lancamento do
+  // ERP que conta (ou nao) no orcamento -- ver rastroReformaBiItem() em calculo/rastro.js
+  const linha = l => l.flag ? `<label class="ra-linha ra-linha-flag">
+      <input type="checkbox" data-flag-cod="${esc(l.flag.cod)}" data-flag-conjunto="${esc(l.flag.conjunto)}"
+        data-flag-chave="${esc(l.flag.chave)}" data-flag-origem="${esc(l.flag.origem)}"${l.flag.ligado?" checked":""}>
+      <div class="ra-flag-corpo">
+        <div class="ra-rot">${esc(l.rot)}${l.sub?`<span class="ra-sub">${esc(l.sub)}</span>`:""}</div>
+        <div class="ra-val">${esc(l.val)}</div>
+      </div>
+    </label>` : `<div class="ra-linha${l.ir?" ra-ir":""}"${l.ir?` data-rastro="${esc(l.ir)}" tabindex="0" role="button"`:""}>
       <div class="ra-rot">${esc(l.rot)}${l.sub?`<span class="ra-sub">${esc(l.sub)}</span>`:""}</div>
       <div class="ra-val">${esc(l.val)}${l.ir?'<span class="ra-seta">›</span>':""}</div>
     </div>`;
 
+  // caixa "incluir outro lançamento" -- so existe quando o rastro e de um
+  // conjunto de reforma (ver buscaAdicionar em rastroReformaBiItem(),
+  // calculo/rastro.js). Busca entre os lancamentos do PROPRIO equipamento,
+  // de qualquer tag -- e como "insere item na celula do Power BI" fica
+  // possivel mesmo quando o mapeamento automatico nao bateu.
+  const blocoBusca = r.buscaAdicionar ? (()=>{
+    const {cod, conjunto} = r.buscaAdicionar;
+    const jaContam = new Set((r.blocos||[]).flatMap(b=>b.linhas).map(l=>l.flag && l.flag.chave).filter(Boolean));
+    const termo = buscaItem.trim().toLowerCase();
+    const candidatos = itensDoEquipamento(cod)
+      .filter(it => !jaContam.has(chaveItemReforma(cod, it.compartimento, it)))
+      .filter(it => !termo || it.desc.toLowerCase().includes(termo))
+      .sort((a,b)=>b.valor-a.valor).slice(0, 30);
+    return `<div class="ra-bloco">
+      <div class="ra-bloco-tit">Incluir outro lançamento deste equipamento</div>
+      <input type="text" class="ra-busca-item" data-flag-busca="1" placeholder="Buscar por descrição..." value="${esc(buscaItem)}">
+      <div class="ra-busca-lista">${candidatos.length ? candidatos.map(it=>{
+        const chave = chaveItemReforma(cod, it.compartimento, it);
+        return `<div class="ra-busca-item-linha" tabindex="0" role="button"
+          data-flag-add-cod="${esc(cod)}" data-flag-add-conjunto="${esc(conjunto)}" data-flag-add-chave="${esc(chave)}">
+          <div class="ra-rot">${esc(it.compartimento)} — ${esc(it.desc)}<span class="ra-sub">${esc(fmtDataCurta(it.data))}${
+            it.empresa ? ` · ${esc(it.empresa)}` : ""}</span></div>
+          <div class="ra-val">${esc(brl(it.valor))}</div>
+        </div>`;
+      }).join("") : `<div class="hint" style="padding:6px 0">${termo ? "Nada encontrado com esse termo." : "Nenhum outro lançamento deste equipamento pra incluir."}</div>`}</div>
+    </div>`;
+  })() : "";
+
   // anima só na transição fechado→aberto — senão pisca a cada tecla digitada em qualquer campo
   const entrando = !jaAberto;
   jaAberto = true;
+  // a busca de incluir item repinta o modal a cada tecla (pra filtrar a lista);
+  // sem isso o campo perderia o foco e o cursor a cada letra digitada
+  const foco = document.activeElement;
+  const eraBusca = foco && foco.matches && foco.matches("[data-flag-busca]");
+  const selecao = eraBusca ? foco.selectionStart : null;
 
   cont.innerHTML = `
     <div class="ra-modal${r.largo?" ra-largo":""}${entrando?" pop-in":""}">
@@ -82,6 +129,7 @@ function pintarRastro(R){
         <div class="ra-bloco-tit">${esc(b.titulo)}</div>
         ${b.linhas.map(linha).join("")}
       </div>`).join("")}
+      ${blocoBusca}
       ${(r.premissas||[]).length ? `<div class="ra-bloco ra-prem">
         <div class="ra-bloco-tit">Premissas usadas</div>
         ${r.premissas.map(p=>`<div class="ra-linha"><div class="ra-rot">${esc(p.rot)}</div>
@@ -90,8 +138,18 @@ function pintarRastro(R){
       ${r.nota ? `<div class="hint" style="margin-top:10px">${esc(r.nota)}</div>` : ""}
     </div>
     </div>`;
+  if(eraBusca){
+    const novo = cont.querySelector("[data-flag-busca]");
+    if(novo){ novo.focus(); try{ novo.setSelectionRange(selecao, selecao); }catch(err){} }
+  }
   cont.hidden = false;
   fundo.hidden = false;
+}
+
+/** "2026-04-01" -> "01/04/2026" */
+function fmtDataCurta(iso){
+  const [a,m,d] = String(iso||"").split("-");
+  return a ? `${d}/${m}/${a}` : "";
 }
 
 function nomeCurto(chave){
@@ -106,4 +164,4 @@ function nomeCurto(chave){
   return chave;
 }
 
-export { abrirRastro, aberto, fecharRastro, filtrarRastro, pintarRastro, voltarRastro };
+export { abrirRastro, aberto, fecharRastro, filtrarRastro, filtrarBuscaItem, pintarRastro, voltarRastro };

@@ -56,7 +56,11 @@ input.bad{border-color:var(--bad);background:var(--bad-bg)}
 .kpi .l{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:600;text-transform:uppercase;
   letter-spacing:.8px;color:var(--grey)}
 .kpi .l::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--leaf);flex:none}
-.kpi.t .l::before{background:var(--sky)}
+/* "t" e decorativo como o padrao, e vai no azul escuro — com o acento ja azul,
+   var(--sky) repetiria a cor do padrao. Ja g/a/r continuam sendo status ("em
+   dia", "atencao", "critico"): a aba de Acompanhamento escolhe entre eles pelo
+   numero, e em azul o cartao perderia o aviso que existe para dar. */
+.kpi.t .l::before{background:var(--leaf-strong)}
 .kpi.g .l::before{background:var(--ok)}
 .kpi.a .l::before{background:var(--straw)}
 .kpi.r .l::before{background:var(--bad)}
@@ -80,7 +84,15 @@ input.bad{border-color:var(--bad);background:var(--bad-bg)}
 /* tabela aninhada (frota de um modelo, por exemplo) nao disputa o topo com a de fora */
 .tblwrap table table th{position:static}
 table{border-collapse:collapse;width:100%;font-size:13px;min-width:640px}
-th{background:var(--th-bg);color:var(--th-ink);font-weight:600;text-align:center;padding:9px 12px;font-size:11.5px;
+/* PADRAO DE TABELA: o cabecalho cai no eixo do dado.
+   O th era centralizado em toda tabela do app enquanto a celula ia para a
+   esquerda (texto) ou para a direita (numero) -- 616 colunas em 68 tabelas com
+   rotulo fora do eixo do proprio conteudo, medido. Agora o rotulo segue a
+   celula: texto a esquerda, numero a direita (th.num, o mesmo flag que ja
+   marcava a coluna numerica em th()). Onde a celula e campo ou celula composta
+   -- Plano Operacional e Dimensionamento -- as duas vao ao centro, pela regra
+   com id la embaixo. */
+th{background:var(--th-bg);color:var(--th-ink);font-weight:600;text-align:left;padding:9px 12px;font-size:11.5px;
   text-transform:uppercase;letter-spacing:.5px;position:sticky;top:0;z-index:2;white-space:nowrap;
   border-bottom:1px solid var(--line-strong)}
 td{padding:7px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
@@ -94,10 +106,30 @@ tbody tr.stage:hover td{background:var(--leaf-strong)}
 /* faixa que dobra o grupo: o cursor avisa que ela e clicavel */
 tr.stage[data-fam] td{cursor:pointer;user-select:none}
 tr.stage[data-fam]:focus-visible td{outline:2px solid #fff;outline-offset:-3px}
-td.num{text-align:right}
+td.num,th.num{text-align:right}
 td input{height:28px;padding:0 8px;font-size:13px;text-align:right;min-width:70px;
   background:var(--edit-bg);border-color:var(--edit-line);color:var(--edit-ink)}
 td input:focus{background:var(--card)}
+
+/* Célula com gasto real (ERP/Power BI): troca o campo de orçamento por um
+   valor grande e travado -- não tem mais o que editar, o número já veio de
+   fora. Clicável (abre o rastro com os lançamentos), mesma cor de destaque
+   dos totais calculados (.tot) só que com fundo próprio pra não confundir
+   com uma célula de soma comum. */
+.ref-real{display:block;height:28px;line-height:26px;padding:0 10px;border-radius:var(--r-sm);
+  border:1px solid var(--leaf); background:var(--leaf-soft); color:var(--leaf-strong);
+  font-size:15px;font-weight:700;text-align:right;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;cursor:pointer;min-width:70px}
+.ref-real:hover,.ref-real:focus-visible{background:var(--leaf);color:var(--on-accent);outline:none}
+/* lupa sobre o campo digitado à mão, pra abrir o rastro e buscar/incluir um
+   lançamento do ERP deste equipamento -- mesma técnica do olho de senha
+   (.campo-senha/.olho-senha) */
+.ref-busca-wrap{position:relative;display:block}
+.ref-busca-wrap input{padding-right:24px}
+.ref-buscar{position:absolute;right:1px;top:50%;transform:translateY(-50%);width:22px;height:22px;
+  border:0;background:transparent;cursor:pointer;font-size:12px;line-height:1;display:grid;place-items:center;
+  border-radius:4px;color:var(--grey)}
+.ref-buscar:hover,.ref-buscar:focus-visible{background:var(--sunk);color:var(--leaf);outline:none}
 td select{height:28px;padding:0 8px;font-size:12.5px;min-width:110px}
 .calc{color:var(--grey)}
 .tot{font-weight:700;color:var(--ink)}
@@ -157,6 +189,18 @@ th.th-arrasta.sobre{box-shadow:inset 0 0 0 2px var(--leaf)}
    a linha inteira (senão a rolagem "corta" o fundo antes do rótulo aparecer) */
 #t_plano tr.stage td>span{position:sticky;left:0;display:inline-block;padding:7px 12px}
 #plano .tblwrap{scrollbar-width:auto}
+/* Cabecalho e dado no mesmo eixo — a mesma regra do Dimensionamento (#t_dim).
+   O th do app e centralizado e a celula numerica ia para a direita: o rotulo do
+   mes flutuava no meio da coluna e o numero encostava na borda dela, entao
+   cabecalho e conteudo nunca caiam na mesma linha vertical. As duas primeiras
+   colunas sao identificacao e vao a esquerda; da terceira em diante e data,
+   numero ou seletor, e vao ao centro — inclusive o que se digita, senao o
+   valor lancado ficaria fora do eixo do mes que o encima. */
+#t_plano th:nth-child(-n+2),#t_plano td:nth-child(-n+2){text-align:left}
+#t_plano th:nth-child(n+3),#t_plano td:nth-child(n+3){text-align:center}
+#t_plano td:nth-child(n+3) input{text-align:center}
+#t_plano .mix{justify-content:center}
+#t_plano td{vertical-align:middle}
 
 /* coluna congelada — Cadastro de Atividades: mesmo motivo do Plano Operacional
    (muita coluna pra rolar sem perder de vista qual atividade é qual) */
@@ -248,42 +292,42 @@ footer{display:flex;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;co
 
 /* ---------- capa ---------- */
 .hero{position:relative;overflow:hidden;border-radius:var(--r);padding:26px 28px;display:flex;align-items:center;
-  gap:22px;flex-wrap:wrap;color:#EEF3EA;background:linear-gradient(115deg,#132117 0%,#1F3A26 58%,#2D5A33 100%);
+  gap:22px;flex-wrap:wrap;color:#E9EFF8;background:linear-gradient(115deg,#0F2035 0%,#1B3C6E 58%,#2A57A0 100%);
   --glow-x:50%;--glow-y:50%;--glow-o:0;transition:--glow-o .5s ease}
 /* brilho que segue o cursor — só spotlight, sem tilt (banner, não é card) */
 .hero::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
   background:radial-gradient(480px circle at var(--glow-x) var(--glow-y),
-    rgba(214,180,110,.22) 0%, rgba(111,174,110,.10) 40%, transparent 70%);
+    rgba(111,160,216,.26) 0%, rgba(42,87,160,.12) 40%, transparent 70%);
   opacity:var(--glow-o)}
 /* linhas de plantio vistas do alto, esmaecendo para a esquerda */
 .hero::after{content:"";position:absolute;inset:0 0 0 42%;pointer-events:none;
-  background:repeating-linear-gradient(-62deg,rgba(214,180,110,.17) 0 2px,transparent 2px 13px);
+  background:repeating-linear-gradient(-62deg,rgba(111,160,216,.16) 0 2px,transparent 2px 13px);
   -webkit-mask-image:linear-gradient(90deg,transparent,#000 65%);mask-image:linear-gradient(90deg,transparent,#000 65%)}
 .hero img,.hero .ht{position:relative;z-index:1}
 .hero img{height:52px;width:auto;background:#fff;padding:8px 13px;border-radius:7px;position:relative;z-index:1}
 .hero img[data-variante="branco"]{height:58px;background:none;padding:0;border-radius:0}
 .hero .ht{position:relative;z-index:1;min-width:0}
-.hero .eyebrow{font-size:11.5px;text-transform:uppercase;letter-spacing:1.4px;color:#D6B46E;font-weight:600;margin-bottom:3px}
+.hero .eyebrow{font-size:11.5px;text-transform:uppercase;letter-spacing:1.4px;color:var(--side-on-light);font-weight:600;margin-bottom:3px}
 .hero h1{font-family:var(--f-display);font-size:36px;font-weight:600;line-height:1.05;margin:0 0 6px;letter-spacing:-.3px;
   color:#fff;text-wrap:balance}
-.hero p{margin:0;color:#B7C7B3;font-size:13.5px}
+.hero p{margin:0;color:#B0C2DA;font-size:13.5px}
 
 /* ---------- login ---------- */
 /* mesmo gradiente do .hero — é a mesma identidade, tela de entrada */
 .tela-login{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(115deg,#132117 0%,#1F3A26 58%,#2D5A33 100%);overflow:hidden}
+  background:linear-gradient(115deg,#0F2035 0%,#1B3C6E 58%,#2A57A0 100%);overflow:hidden}
 /* especificidade de .tela-login empataria com [hidden] do navegador, e regra
    de autor vence a do UA — sem isto, hidden=true não escondia a tela */
 .tela-login[hidden]{display:none}
 .tela-login canvas{position:absolute;inset:0;width:100%;height:100%}
 .login-card{position:relative;z-index:1;width:100%;max-width:360px;margin:0 18px;padding:30px 28px 26px;
-  border-radius:var(--r);background:rgba(19,33,23,.72);border:1px solid rgba(255,255,255,.1);
+  border-radius:var(--r);background:rgba(15,32,53,.74);border:1px solid rgba(255,255,255,.1);
   box-shadow:0 24px 60px -12px rgba(0,0,0,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 .login-card img{height:40px;width:auto;background:#fff;padding:7px 11px;border-radius:7px;margin-bottom:16px}
 .login-card img[data-variante="branco"]{height:44px;background:none;padding:0;border-radius:0}
-.login-card .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:1.3px;color:#D6B46E;font-weight:600;margin-bottom:4px}
+.login-card .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:1.3px;color:var(--side-on-light);font-weight:600;margin-bottom:4px}
 .login-card h1{font-family:var(--f-display);font-size:24px;font-weight:600;line-height:1.15;margin:0 0 20px;color:#fff}
-.login-card label{color:#B7C7B3;margin-top:12px}
+.login-card label{color:#B0C2DA;margin-top:12px}
 .login-card label:first-of-type{margin-top:0}
 .login-card input{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.16);color:#fff}
 .login-card input:focus{background:rgba(255,255,255,.1)}
@@ -299,7 +343,7 @@ footer{display:flex;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;co
 #t_plano td.mes-entressafra{background:color-mix(in srgb,var(--straw-soft) 55%,var(--card))}
 #t_plano tbody tr:hover td.mes-safra{background:var(--leaf-soft)}
 #t_plano tbody tr:hover td.mes-entressafra{background:var(--straw-soft)}
-#t_plano td.mes-safra input{border-color:#B9CDB6}
+#t_plano td.mes-safra input{border-color:#AEC2DF}
 #t_plano td.mes-entressafra input{border-color:var(--edit-line)}
 /* o filtro apenas esconde as colunas do outro período */
 /* O filtro de periodo da barra superior esconde as colunas dos meses de fora.
@@ -373,6 +417,21 @@ footer{display:flex;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;co
 .ra-ir:focus-visible{outline:none;box-shadow:var(--focus)}
 .ra-seta{color:var(--leaf);margin-left:7px;font-weight:700}
 .ra-prem .ra-val{font-weight:500;color:var(--grey)}
+/* linha do rastro com checkbox -- marca/desmarca um lancamento do ERP no
+   orcamento da reforma (ver rastroReformaBiItem() em calculo/rastro.js) */
+.ra-linha-flag{display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:7px 0}
+.ra-linha-flag input{width:17px;height:17px;flex:none;margin-top:4px;cursor:pointer}
+.ra-flag-corpo{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex:1;min-width:0}
+.ra-linha-flag:has(input:not(:checked)){opacity:.5}
+.ra-linha-flag:has(input:not(:checked)) .ra-val{text-decoration:line-through}
+/* caixa "incluir outro lançamento" dentro do rastro do conjunto (busca entre
+   os lançamentos do próprio equipamento, de qualquer tag do ERP) */
+.ra-busca-item{margin:2px 0 8px}
+.ra-busca-lista{max-height:220px;overflow-y:auto}
+.ra-busca-item-linha{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  padding:7px 8px;margin:0 -8px;border-radius:6px;cursor:pointer;border-bottom:1px solid var(--line)}
+.ra-busca-item-linha:last-child{border-bottom:0}
+.ra-busca-item-linha:hover,.ra-busca-item-linha:focus-visible{background:var(--leaf-soft);outline:none}
 /* valor ou KPI que abre o rastro */
 [data-rastro]{cursor:pointer}
 tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:underline dotted;text-underline-offset:3px}
@@ -461,7 +520,82 @@ tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:under
 #rendm_fundo[hidden]{display:none}
 #rendm{position:fixed;inset:0;z-index:95;display:flex;align-items:center;justify-content:center;padding:24px}
 #rendm[hidden]{display:none}
+/* Detalhe do dimensionamento: tres blocos, um por leitura da mesma atividade.
+   O que era coluna de tabela virou par rotulo/valor, que e como se le detalhe
+   de um registro so -- coluna serve para comparar registros, nao para abrir um. */
+#dimdet_fundo{position:fixed;inset:0;z-index:90;background:rgba(10,17,12,.5);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);animation:raFundoIn .2s ease-out}
+#dimdet_fundo[hidden]{display:none}
+#dimdet{position:fixed;inset:0;z-index:95;display:flex;align-items:center;justify-content:center;padding:24px}
+#dimdet[hidden]{display:none}
+.dd-modal{width:min(980px,100%)}
+.dd-abas{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+.dd-abas button{border:1px solid var(--line);background:var(--card);color:var(--grey);
+  font:600 12px var(--f-body);padding:6px 14px;border-radius:999px;cursor:pointer}
+.dd-abas button:hover{background:var(--leaf-soft);color:var(--ink)}
+.dd-abas button.on{background:var(--leaf);border-color:var(--leaf);color:var(--on-accent)}
+.dd-bloco{border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;margin-bottom:14px;background:var(--card)}
+.dd-bloco:last-child{margin-bottom:0}
+.dd-tit{font-family:var(--f-display);font-size:16px;font-weight:600;color:var(--ink);margin-bottom:10px}
+.dd-grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:9px 20px}
+.dd-linha{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+  padding:5px 0;border-bottom:1px dashed var(--line);font-size:12.5px;color:var(--grey);min-width:0}
+.dd-linha b{color:var(--ink);font-weight:700;text-align:right;overflow-wrap:anywhere}
+/* campo editavel dentro do modal: rotulo em cima, como no resto do app */
+.dd-campo{display:flex;flex-direction:column;gap:3px;padding:5px 0}
+.dd-campo label{font-size:11px;color:var(--grey);font-weight:600;margin:0}
+.dd-campo .calc{font-size:10.5px;line-height:1.35}
+.dd-bloco .ra-tbl{margin-top:12px}
+@media (max-width:640px){#dimdet{padding:0}
+  .dd-modal{width:100%;height:100%;max-height:100%;border-radius:0}
+  .dd-grade{grid-template-columns:1fr}}
+@media print{#dimdet,#dimdet_fundo{display:none!important}}
+
+/* Celula do Dimensionamento: valor, unidade e acoes na mesma linha, sempre na
+   mesma ordem e alinhados a direita. Antes cada coluna montava a celula de um
+   jeito -- input solto aqui, botao embaixo ali -- e a tabela parecia tres
+   tabelas. O alinhamento a direita e o que deixa comparar linha com linha. */
+/* Titulo de secao dentro de um bloco: quando o bloco perdeu os cartoes, este
+   titulo passou a ser o primeiro texto da area e precisa ter peso de titulo,
+   nao de rotulo de tabela. */
+.h-secao{font-family:var(--f-display);font-size:19px;font-weight:600;letter-spacing:.2px;
+  color:var(--ink);margin:0 0 12px}
+
+/* Cabecalho e dado na mesma posicao. O th do app e centralizado e a celula
+   numerica era alinhada a direita: o rotulo flutuava no meio da coluna e o
+   numero encostava na borda, e era isso que saia do lugar. Aqui as duas
+   primeiras colunas sao texto e vao a esquerda, as outras vao ao centro --
+   cabecalho e conteudo pelo mesmo eixo. */
+#t_dim th:nth-child(-n+3),#t_dim td:nth-child(-n+3){text-align:left}
+#t_dim th:nth-child(n+4),#t_dim td:nth-child(n+4){text-align:center}
+.dim-cel{display:flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap}
+/* linha de meses aberta na propria tabela: um chip por mes com lancamento */
+.dim-meses{display:flex;flex-wrap:wrap;gap:8px;padding:2px 0}
+.dim-mes{display:flex;flex-direction:column;gap:1px;min-width:132px;
+  border:1px solid var(--line);border-left:3px solid var(--leaf);border-radius:var(--r-sm);
+  padding:6px 10px;background:var(--card);font-size:11.5px;line-height:1.35}
+.dim-mes b{font-size:12px;color:var(--ink)}
+.dim-mes .calc{font-size:10.5px}
+#t_dim tr.sub td{text-align:left}
+.dim-val{font-weight:700;color:var(--ink);font-size:14px}
+.dim-val.calc{font-weight:600;color:var(--grey)}
+.dim-un{font-size:10.5px;color:var(--muted);letter-spacing:.2px}
+/* acao da celula: discreta em repouso, visivel no hover da linha — ela nao
+   compete com o numero, que e o que se le primeiro */
+.dim-cel .btn.xs{opacity:.55;transition:opacity .12s,border-color .12s,background-color .12s}
+tbody tr:hover .dim-cel .btn.xs,.dim-cel .btn.xs:focus-visible{opacity:1}
+#t_dim td{padding:10px 14px;vertical-align:middle}
+#t_dim th{padding:11px 14px}
+#t_dim tbody tr:hover td{background:var(--leaf-soft)}
+
 .rm-modal{width:min(1180px,100%)}
+/* barra de acao do modal de criterio: digitar nao grava, o botao e que grava */
+.rm-acoes{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+.rm-pend{font-size:11.5px;color:var(--muted);margin-right:auto}
+.rm-pend.tem{color:var(--warn);font-weight:600}
+.rm-acoes .btn:disabled{opacity:.45;cursor:default}
+.rm-acoes .btn:disabled:hover{background:var(--card);border-color:var(--line-strong)}
+.rm-acoes .btn.p:disabled:hover{background:var(--leaf);border-color:var(--leaf)}
 /* input,select tem width:100% global — ao lado de um botao isso disputa espaco
    de um jeito que o auto-layout da tabela nao resolve direito (o botao ficava
    atras da coluna vizinha). Bloco flex com o input em largura fixa faz a coluna
@@ -651,3 +785,35 @@ tr.formacao td{background:var(--leaf-soft);border-top:1px solid var(--leaf);bord
 
 /* consumo por equipamento: valor ainda no padrão (não informado pelo usuário) */
 input.padrao{font-style:italic;color:var(--grey)}
+
+/* Validação: pendência vira botão que leva ao ponto de correção */
+tr.val-pend td{background:color-mix(in srgb,var(--bad-bg,#fdecea) 45%,var(--card))}
+.val-ir{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;
+  background:none;border:1px solid transparent;border-radius:var(--r-sm);padding:4px 8px;margin:-4px -8px;
+  font:inherit;color:var(--ink);cursor:pointer}
+.val-ir:hover,.val-ir:focus-visible{border-color:var(--line-strong);background:var(--card)}
+.val-ir .val-dest{flex:none;font-size:12px;font-weight:700;color:var(--accent,var(--leaf));white-space:nowrap}
+.val-ir:hover .val-dest{text-decoration:underline}
+/* o ponto de correção pisca ao chegar */
+@keyframes destaquePulso{0%{box-shadow:0 0 0 0 rgba(215,120,40,.0)}20%{box-shadow:0 0 0 4px rgba(215,120,40,.55)}100%{box-shadow:0 0 0 0 rgba(215,120,40,0)}}
+.destaque{animation:destaquePulso 1.1s ease-out 3;outline:2px solid rgba(215,120,40,.8);outline-offset:2px;border-radius:4px}
+tr.destaque td{background:color-mix(in srgb,#f5b342 22%,var(--card)) !important}
+
+/* tabelas no modelo PECEGE (Painel) */
+table.pec th{white-space:normal;line-height:1.2;vertical-align:bottom}
+table.pec th small{display:block;font-size:10.5px;font-weight:500;opacity:.8;margin-top:2px}
+table.pec th.pec-rot{text-align:left}
+table.pec th.pec-formacao,table.pec th.pec-c-ctta{background:#1f7a45;color:#fff}
+table.pec th.pec-soca{background:#1d5566;color:#fff}
+table.pec td.pec-formacao,table.pec td.pec-c-ctta{background:color-mix(in srgb,#1f7a45 9%,var(--card))}
+table.pec td.pec-soca{background:color-mix(in srgb,#1d5566 9%,var(--card))}
+table.pec td.pec-pct{color:var(--grey);font-size:12px}
+table.pec tr.pec-tot td{font-weight:700;border-bottom:1px solid var(--line-strong)}
+table.pec tr.pec-grp td{font-weight:700;background:var(--sunk)}
+table.pec tr.pec-grp td.pec-formacao{background:color-mix(in srgb,#1f7a45 18%,var(--card))}
+table.pec tr.pec-grp td.pec-soca{background:color-mix(in srgb,#1d5566 18%,var(--card))}
+table.pec tr.pec-sub td{font-style:italic;border-top:1px solid var(--line-strong)}
+table.pec tr.pec-n1 td:first-child{padding-left:22px}
+table.pec tr.pec-n2 td:first-child{padding-left:40px}
+table.pec tr.pec-n3 td:first-child{padding-left:58px}
+table.pec tr.pec-a td:first-child{font-style:italic}

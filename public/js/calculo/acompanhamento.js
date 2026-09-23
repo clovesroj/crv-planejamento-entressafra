@@ -1,4 +1,4 @@
-import { criterioMensal, metaDe } from './atividade.js';
+import { criterioMensal, frotaDaAtividade, metaDe, pessoasDaAtividade } from './atividade.js';
 import { CFG } from '../dados/cfg.js';
 import { MESES, NM } from '../nucleo/calendario.js';
 import { REAL } from '../nucleo/estado.js';
@@ -47,7 +47,13 @@ function metasPorAtividade(R){
     return {
       cod: r.a.cod, nome: r.a.nome, etapa: r.a.etapa, un: r.a.un.split("/")[0],
       gerencia: gerenciaDe(r.a),
-      total: r.total, horas: r.horas, rend: r.rend, frota: r.frotaR, efetivo: r.efetivo,
+      total: r.total, horas: r.horas, rend: r.rend,
+      /* Frota e efetivo da reuniao sao os do mes que mais pede -- o que tem de
+         existir no patio e na escala. A media da janela, que e a que rateia
+         custo, vai junto: gerente que pergunta "mas o orcamento contou
+         quantas?" tem a resposta na mesma linha, sem abrir outra tela. */
+      frota: frotaDaAtividade(r).pico, frotaMedia: r.frotaR,
+      efetivo: pessoasDaAtividade(r).pico, efetivoMedio: r.efetivo,
       maq: r.maqEfetiva, imp: r.impEfetivo,
       janela: r.janela, custo: r.direto, meta: m,
       // dias de calendario da janela, ao lado dos dias de operacao que metaDe usa

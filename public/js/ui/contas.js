@@ -66,7 +66,7 @@ function pintarContas(R){
   // o que não tem conta no plano aparece aqui, para a soma fechar com o custo total
   const semLinhas = Object.entries(SEM_CONTA).filter(([k])=>(CV[k]||0)>0.5);
   if(semLinhas.length){
-    ct += `<tr class="stage"><td colspan="7">Sem conta no plano de contas</td></tr>` +
+    ct += `<tr class="stage" id="contas_semconta"><td colspan="7">Sem conta no plano de contas</td></tr>` +
       semLinhas.map(([k,rot])=>`<tr><td class="calc">—</td><td>${rot}</td><td colspan="4"></td>
         <td class="num">${brl(CV[k])}</td></tr>`).join("");
   }

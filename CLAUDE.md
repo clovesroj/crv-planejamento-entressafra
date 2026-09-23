@@ -194,6 +194,10 @@ h(canon(R)) + ':' + canon(R).length;
 | Gerência (agrícola × logística) de uma atividade | `public/js/calculo/acompanhamento.js` — a lista é a da agrícola; o resto é logística |
 | Família de insumo deduzida da classe | `public/js/dados/insumos.js` (`FAMILIAS_INSUMO`; a ordem é o desempate) |
 | Layout ou colunas de uma aba | `public/js/ui/<aba>.js` |
+| Alinhamento de coluna nova | nada de CSS: o flag `1` em `th([...])` marca a coluna numérica, e o cabeçalho cai sozinho no eixo do dado (`th`/`th.num` em `componentes.css`). Flag errado agora aparece na tela, não fica escondido atrás de um cabeçalho centralizado |
+| Frota ou efetivo mostrado numa tela | `frotaDaAtividade()` / `pessoasDaAtividade()` (`calculo/atividade.js`) — **`pico` é o que tem de existir, `media` é o que rateia custo**; nunca leia `r.frotaR`/`r.efetivo` direto para mostrar |
+| Jornada/disponibilidade de uma atividade | `premissasDe(a)` (`calculo/atividade.js`) — transporte tem as suas (`hDiaTr`, `dispTr`); não leia `P.hdia`/`P.disp` direto |
+| Ordem de uma lista de atividades | `ordenarPorEtapa()` (`ui/componentes.js`) — ordem agronômica, estável dentro da etapa |
 | Tabela mensal nova | `clsMes(i)` no `<th>` e no `<td>` de cada mês, e `somaSel()`/`maxSel()` no total — senão o filtro de período desalinha a tabela e o total não fecha |
 | Busca e coluna arrastável | só marcação (`<input class="tbl-busca" data-alvo="#tabela">`); `ui/componentes.js` aplica no fim de `render()` |
 | Relatório ou seção de relatório | `public/js/io/secoes.js` — leia as funções do cálculo, não recalcule |
@@ -295,6 +299,11 @@ Cada item abaixo já custou um bug. Vale ler antes de mexer na área.
 - **Critério por mês manda na frota alvo da atividade.** Com algum mês lançado, a
   frota da atividade fica suspensa (tarja *frota do mês manda*). Frota fixada só
   vale em atividade de frente única.
+- **Pico e média são respostas diferentes.** A frota (e a equipe) do mês que
+  mais pede é o que tem de existir; a média da janela é o que o motor usa para
+  ratear custo. Toda tela mostra o **pico**; onde aparecer a média, ela tem de
+  estar rotulada como média. Misturar as duas foi o que deixou 44 numa tela e 70
+  na outra para o mesmo transbordo.
 - **Tabela reordenada na tela carrega o índice original.** O cadastro de insumos
   sai por família, mas cada linha leva `data-in` com a posição em `insLista()`.
   Usar a posição exibida faz editar um produto e gravar em outro.

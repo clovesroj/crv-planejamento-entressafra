@@ -1,27 +1,38 @@
 /* =====================================================================
-   CRV · Planejamento de Entressafra — identidade "canavial"
-   folha (verde da cana) · palha (dourado seco) · latossolo (terra roxa)
-   céu (informação). Estrutura em neutros levemente puxados para o verde.
+   CRV · Planejamento de Entressafra — identidade "logo"
+   azul da marca (#2A57A0) como acento · palha (campo editável) · latossolo
+   (gráfico). Estrutura em neutros levemente puxados para o azul.
+
+   O menu lateral ja vinha no azul da logo; o acento do resto do app seguia
+   verde, e as duas metades da tela nao fechavam. Agora --leaf* guarda o mesmo
+   azul da marca. O nome --leaf* vem da identidade anterior e ficou: sao ~200
+   usos, e renomear tudo daria um diff que esconderia a mudanca real.
+
+   O que NAO virou azul, de proposito: --ok (verde), --warn (ambar) e --bad
+   (vermelho) sao status, nao identidade -- tudo azul apagaria a diferenca
+   entre "em dia", "atencao" e "erro". E --edit-* segue em palha, que e a
+   convencao de "aqui se digita" em todo o app: em azul, o campo editavel
+   ficaria igual a um elemento acentuado.
    ===================================================================== */
 
 /* ---------- tokens: tema claro ---------- */
 :root{
-  --leaf:#2D6A3A; --leaf-hover:#1F4F2A; --leaf-strong:#1F4F2A; --leaf-soft:#E6EFE3;
+  --leaf:#2A57A0; --leaf-hover:#22477F; --leaf-strong:#1B3C6E; --leaf-soft:#E7EDF8;
   --on-accent:#FFFFFF;
   --straw:#C9A45C; --straw-soft:#F7EFD9;
   --soil:#A5503A; --sky:#2F6FB2;
-  --bg:#F2F4EF; --card:#FFFFFF; --sunk:#F6F8F3; --line:#DCE2D5; --line-strong:#C3CCBB;
-  --ink:#17231A; --grey:#5C685E; --muted:#86918A;
-  --th-bg:#E8EDE3; --th-ink:#2F3D32;
+  --bg:#F1F3F8; --card:#FFFFFF; --sunk:#F5F7FB; --line:#D9DFEA; --line-strong:#BEC8D8;
+  --ink:#151D2B; --grey:#586274; --muted:#838D9D;
+  --th-bg:#E5EAF4; --th-ink:#2E394C;
   --edit-bg:#FBF5E4; --edit-line:#E3CF9C; --edit-ink:#2A2413;
   --ok:#2E8540; --warn:#A96F0B; --bad:#B8392B; --info:#2F6FB2;
   --ok-bg:rgba(46,133,64,.12); --warn-bg:rgba(201,138,18,.15); --bad-bg:rgba(184,57,43,.11); --info-bg:rgba(47,111,178,.10);
   --pop-shadow:0 12px 32px rgba(15,25,18,.20);
-  --focus:0 0 0 3px rgba(45,106,58,.24);
+  --focus:0 0 0 3px rgba(42,87,160,.26);
 
-  /* menu lateral: fundo escuro no azul da logo (#2A57A0 na marca), no lugar
-     do verde. Item selecionado sobe pro claro do mesmo azul, em gradiente —
-     cascata de tom, do fundo escuro até o item ativo. */
+  /* menu lateral: fundo escuro no azul da logo. Item selecionado sobe pro
+     claro do mesmo azul, em gradiente — cascata de tom, do fundo escuro até
+     o item ativo. */
   --side:#0F2035; --side-ink:#DCE6D8; --side-mute:#8DA1B8; --side-hover:rgba(255,255,255,.06);
   --side-on:#3E72AC; --side-on-light:#6FA0D8;
 
@@ -43,36 +54,36 @@
 /* ---------- tokens: tema escuro (sistema) ---------- */
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --leaf:#6FAE6E; --leaf-hover:#86C184; --leaf-strong:#2E5A36; --leaf-soft:#1C2B1F;
+    --leaf:#6FA0D8; --leaf-hover:#8CB6E4; --leaf-strong:#23446F; --leaf-soft:#16212F;
     --on-accent:#0D140F;
     --straw:#D6B46E; --straw-soft:#2A2616;
     --soil:#C9745A; --sky:#6FA3D8;
-    --bg:#0D140F; --card:#152018; --sunk:#111A13; --line:#26332A; --line-strong:#35463A;
-    --ink:#E3EBE0; --grey:#9AA99C; --muted:#748276;
-    --th-bg:#1B271E; --th-ink:#C9D6C8;
+    --bg:#0A1118; --card:#131C27; --sunk:#0F1720; --line:#223040; --line-strong:#31445A;
+    --ink:#E0E7F0; --grey:#95A4B6; --muted:#707F8F;
+    --th-bg:#192533; --th-ink:#C5D3E2;
     --edit-bg:#2A2515; --edit-line:#4E4327; --edit-ink:#EDE3C6;
     --ok:#5DBB72; --warn:#E0A83E; --bad:#E0705F; --info:#6FA3D8;
     --ok-bg:rgba(93,187,114,.16); --warn-bg:rgba(224,168,62,.16); --bad-bg:rgba(224,112,95,.16); --info-bg:rgba(111,163,216,.14);
     --pop-shadow:0 12px 32px rgba(0,0,0,.55);
-    --focus:0 0 0 3px rgba(111,174,110,.32);
+    --focus:0 0 0 3px rgba(111,160,216,.34);
     --side:#081420; --side-on:#25507F; --side-on-light:#3E72AC;
     color-scheme:dark;
   }
 }
 /* ---------- tokens: tema escuro (escolhido no botão) ---------- */
 :root[data-theme="dark"]{
-  --leaf:#6FAE6E; --leaf-hover:#86C184; --leaf-strong:#2E5A36; --leaf-soft:#1C2B1F;
+  --leaf:#6FA0D8; --leaf-hover:#8CB6E4; --leaf-strong:#23446F; --leaf-soft:#16212F;
   --on-accent:#0D140F;
   --straw:#D6B46E; --straw-soft:#2A2616;
   --soil:#C9745A; --sky:#6FA3D8;
-  --bg:#0D140F; --card:#152018; --sunk:#111A13; --line:#26332A; --line-strong:#35463A;
-  --ink:#E3EBE0; --grey:#9AA99C; --muted:#748276;
-  --th-bg:#1B271E; --th-ink:#C9D6C8;
+  --bg:#0A1118; --card:#131C27; --sunk:#0F1720; --line:#223040; --line-strong:#31445A;
+  --ink:#E0E7F0; --grey:#95A4B6; --muted:#707F8F;
+  --th-bg:#192533; --th-ink:#C5D3E2;
   --edit-bg:#2A2515; --edit-line:#4E4327; --edit-ink:#EDE3C6;
   --ok:#5DBB72; --warn:#E0A83E; --bad:#E0705F; --info:#6FA3D8;
   --ok-bg:rgba(93,187,114,.16); --warn-bg:rgba(224,168,62,.16); --bad-bg:rgba(224,112,95,.16); --info-bg:rgba(111,163,216,.14);
   --pop-shadow:0 12px 32px rgba(0,0,0,.55);
-  --focus:0 0 0 3px rgba(111,174,110,.32);
+  --focus:0 0 0 3px rgba(111,160,216,.34);
   --side:#081420; --side-on:#25507F; --side-on-light:#3E72AC;
   color-scheme:dark;
 }

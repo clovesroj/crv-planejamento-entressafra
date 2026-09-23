@@ -5,12 +5,12 @@ import { CAT_LBL, MESES, NM, PERIODOS, periodoMes } from '../nucleo/calendario.j
 import { P, insLista } from '../nucleo/estado.js';
 import { brl, fmt, num, pct } from '../nucleo/formato.js';
 import { ETAPAS_ORD, arrRat } from './arrendamento.js';
-import { criterioMensal, tarifaTerc } from './atividade.js';
+import { criterioMensal, frotaDaAtividade, pessoasDaAtividade, premissasDe, tarifaTerc } from './atividade.js';
 import { tratCusto } from './insumos.js';
 import { comps, custoPorOperacao } from './custo-operacao.js';
 import { SEM_CONTA, contasValores, totaisContas } from './contas.js';
 import { baseEtapa, custoUnit, premissaBase, rotuloBase } from './base-fisica.js';
-import { reforma } from './reforma.js';
+import { reforma, itensReforma } from './reforma.js';
 
 // soma um array de NM meses respeitando o filtro de período (mesmo critério de R.PER)
 const somaPeriodo = (arr, periodo) => !arr ? 0
@@ -35,6 +35,16 @@ const NAT = {
   arrend: "Arrendamento", admin: "Administração",
 };
 
+/* Premissas de UMA atividade: o transporte roda com jornada e disponibilidade
+   proprias, e o rastro que explica o numero dele tem de citar as que o motor
+   usou -- citar 16,8 h para um caminhao que foi dimensionado com 20 h era
+   explicar a conta com o dado errado. */
+function premissasDaAtividade(a){
+  const pr = premissasDe(a);
+  return premissasGerais().map(l =>
+    l.rot === "Horas efetivas por dia"   ? {...l, val: fmt(pr.hDia,1)+" h"+(pr.transp?" (transporte)":"")} :
+    l.rot === "Disponibilidade mecânica" ? {...l, val: fmt(pr.disp*100,0)+"%"+(pr.transp?" (transporte)":"")} : l);
+}
 function premissasGerais(){
   return [
     {rot:"Dias efetivos por mês",        val:fmt(P.dias)},
@@ -84,39 +94,54 @@ function rastroTotal(R){
    O cartão mostra custo total ÷ área de plantio; o rastro tem de explicar essa
    divisão, e não o custo total — era o que abria antes. Segue o filtro de
    período da barra de cima, como o cartão. */
+// custo das atividades de muda (colheita, transbordo e transporte), com a parte
+// delas nos rateios da colheita — o mesmo critério da tabela do modelo PECEGE
+function custoDaMuda(R){
+  const ehMuda = a => a.cod==="A02" || a.src==="A02";
+  const colh = custoPorOperacao(R).principais.find(l=>l.id==="colheita");
+  const dirMuda = R.L.filter(r=>r.a.etapa==="COLHEITA" && ehMuda(r.a)).reduce((s,r)=>s+r.direto,0);
+  const dirColh = R.L.filter(r=>r.a.etapa==="COLHEITA").reduce((s,r)=>s+r.direto,0);
+  const rat = colh ? colh.rateio.apoio+colh.rateio.admin+colh.rateio.deprec+colh.rateio.gerais : 0;
+  return dirMuda + (dirColh>0 ? rat*dirMuda/dirColh : 0);
+}
 function rastroCustoHa(R){
-  const ha = num(P.plantio), S = R.SEL, tot = S.total;
+  const ha = num(P.plantio);
+  const C = custoPorOperacao(R);
+  const F = C.formacao;
+  const partes = C.principais.filter(l=>l.formacao);
   const porHa = v => ha>0 ? brl(v/ha)+"/ha" : "—";
-  const etapas = Object.entries(R.etapas)
-    .map(([e,d])=>[e, S.parcial && S.etapa ? (S.etapa[e]||0) : d.total])
-    .filter(([,v])=>v>0.5).sort((a,b)=>b[1]-a[1]);
-  const cats = Object.keys(CAT_LBL)
-    .map(k=>[k, S.parcial && S.cat ? (S.cat[k]||0) : (R.mesesCat[k]||[]).reduce((s,v)=>s+v,0)])
-    .filter(([,v])=>v>0.5).sort((a,b)=>b[1]-a[1]);
-  const F = custoPorOperacao(R).formacao;
+  const tot = F ? F.contabil : 0;
+  const S = R.SEL;
   const blocos = [
     {titulo:"A conta", linhas:[
-      {rot:"Custo total"+(S.parcial?" — "+S.rotulo:""), val:brl(tot), ir:"total",
-       sub:"todo o plano: operações, rateios, administrativo, depreciação"},
+      {rot:"Formação do canavial", val:brl(tot), ir:"op:formacao",
+       sub:"preparo de solo + plantio + tratos culturais de cana planta"},
       {rot:"Área de plantio", val:fmt(ha)+" ha", sub:"premissa, aba Premissas"},
-      {rot:"Custo por hectare plantado", val:porHa(tot), sub:"custo total ÷ área de plantio"},
+      {rot:"Custo por hectare plantado", val:porHa(tot), sub:"formação do canavial ÷ área de plantio"},
     ]},
-    {titulo:"Quanto cada etapa pesa no hectare plantado", linhas: etapas.map(([e,v])=>({
-      rot:e, val:porHa(v), ir:"etapa:"+e,
-      sub:brl(v)+" ÷ "+fmt(ha)+" ha · "+fmt(tot>0?v/tot*100:0,1)+"% do custo"}))},
-    {titulo:"Por grande conta", linhas: cats.map(([k,v])=>({
-      rot:CAT_LBL[k], val:porHa(v), sub:brl(v)}))},
+    {titulo:"As etapas que formam o canavial", linhas: partes.map(l=>({
+      rot:l.nome, val:porHa(l.contabil), ir:"op:"+l.id,
+      sub:brl(l.contabil)+" · "+fmt(tot>0?l.contabil/tot*100:0,1)+"% da formação"}))},
+    {titulo:"O que entra no hectare plantado", linhas: F ? [
+      {rot:"Operação — máquinas, mão de obra e insumos", val:porHa(F.oper.total), sub:brl(F.oper.total)},
+      {rot:"Rateios — apoio, arrendamento, administrativo, depreciação e gerais",
+       val:porHa(F.rateio.total), sub:brl(F.rateio.total)},
+    ] : []},
+    /* O que a cana soca, a colheita e o apoio custam não forma canavial: fica
+       fora deste indicador, e aparece aqui para a conta do plano fechar. A muda
+       é o caso de fronteira: no Plano Operacional a colheita e o transporte de
+       muda estão na etapa Colheita, e é lá que este indicador os deixa; a
+       tabela do modelo PECEGE, no Painel, os conta como insumo do plantio. */
+    {titulo:"Fora do hectare plantado (o resto do plano)", linhas: C.principais.concat(C.outras)
+      .filter(l=>!l.formacao).map(l=>({rot:l.nome, val:brl(l.contabil), ir:"op:"+l.id}))
+      .concat(custoDaMuda(R)>0.5 ? [{rot:"↳ dentro da colheita: mudas (colheita, transbordo e transporte)",
+        val:brl(custoDaMuda(R)), sub:(ha>0?brl(custoDaMuda(R)/ha)+"/ha · ":"")+"na tabela de custo por hectare do Painel entra no plantio"}] : [])
+      .concat([{rot:"Custo total do plano"+(S.parcial?" — "+S.rotulo:""), val:brl(S.total), ir:"total",
+        sub:ha>0 ? brl(S.total/ha)+"/ha de plantio, com o plano inteiro" : ""}])},
   ];
-  // a formação do canavial é a parte do hectare plantado que põe o canavial de pé
-  if(F && !S.parcial) blocos.push({titulo:"Formação do canavial (plantio + tratos de cana planta)", linhas:[
-    {rot:"Custo operacional", val:porHa(F.oper.total), sub:brl(F.oper.total)},
-    {rot:"Rateios", val:porHa(F.rateio.total),
-     sub:"apoio, arrendamento, administrativo, depreciação e custos gerais · "+brl(F.rateio.total)},
-    {rot:"Custo contábil da formação", val:porHa(F.contabil), sub:brl(F.contabil)+" ÷ "+fmt(ha)+" ha", ir:"op:formacao"},
-  ]});
   return {
     titulo:"Custo por hectare plantado",
-    subtitulo:(S.parcial ? S.rotulo+" · " : "")+"custo total do plano ÷ área de plantio",
+    subtitulo:"formação do canavial ÷ área de plantio",
     valor: porHa(tot),
     blocos,
     premissas:[{rot:"Área de plantio", val:fmt(ha)+" ha"}].concat(premissasGerais()),
@@ -139,7 +164,7 @@ function rastroOperacao(R, id, modo){
   const OPER = [["diesel","Diesel das máquinas da operação"],["mdo","Mão de obra"],["manut","Manutenção (CRM)"],
                 ["insumo","Insumos"],["irrig","Irrigação (energia, água, materiais)"],["terc","Terceirização"]];
   const RAT = [["apoio","Diesel dos equipamentos de apoio","pelos litros da operação"],
-               ["arrend","Arrendamento","percentual PECEGE/USP da aba Arrendamentos"],
+               ["arrend","Arrendamento","percentual de referência da aba Arrendamentos"],
                ["admin","Administrativo","critério de cada linha, aba Custos Administrativos"],
                ["deprec","Depreciação","pelo custo direto da operação"],
                ["gerais","Demais custos gerais","apoio, estrutura indireta, manutenção, transporte de pessoal…"]];
@@ -171,7 +196,7 @@ function rastroOperacao(R, id, modo){
     sub: b.fonte==="premissa" ? "premissa, bloco Base física dos custos" : "premissa em branco — soma das atividades"}];
   return {
     titulo: l.nome,
-    subtitulo: id==="formacao" ? "plantio + tratos culturais de cana planta · por hectare plantado"
+    subtitulo: id==="formacao" ? "preparo de solo + plantio + tratos de cana planta · por hectare plantado"
                                : "custo operacional e rateios · base "+rotBase,
     // o número de cabeça é o do cartão que abriu: custo operacional, custo
     // contábil ou o custo contábil por unidade (Painel)
@@ -305,7 +330,7 @@ function rastroEtapa(R, etapa){
     ]},
     {titulo:"Rateios que a etapa recebe", linhas:[
       {rot:"Arrendamento", val:brl(d.arrend||0),
-       sub:somaPct>0 ? `${fmt(arrRat(etapa)/somaPct*100,1)}% do arrendamento, pela referência PECEGE/USP` : "sem percentual informado"},
+       sub:somaPct>0 ? `${fmt(arrRat(etapa)/somaPct*100,1)}% do arrendamento, pela referência setorial` : "sem percentual informado"},
       {rot:"Administrativo", val:brl(d.admin||0),
        sub:admLinhas.length ? admLinhas.length+" linha(s) administrativa(s) rateada(s)" : "nada rateado"},
       {rot:"Indireto do plano", val:brl(d.indireto||0),
@@ -358,8 +383,9 @@ function apresentacao(r, un){
     nota: "Diesel entra pelo preço de cada mês; o restante do custo direto acompanha a quantidade lançada — o mesmo critério que distribui o custo no tempo em Custos.",
   } : null;
 
+  const pr = premissasDe(r.a);
   const dias = num(P.dias) * r.janela.meses;
-  const efic = num(P.efic) > 0 ? num(P.efic)/100 : 1;
+  const efic = pr.efic;
   // dias de calendario da janela, contra os dias de operacao acima
   const diasCal = r.janela.dias > 0 ? r.janela.dias : dias;
 
@@ -387,7 +413,7 @@ function apresentacao(r, un){
     rodape: ["No período", fmt(hPeriodo,0)+" h", fmt(qPeriodo,0)+" "+un,
              fmt(r.horas,0)+" h", fmt(total,0)+" "+un],
     nota: `Hora produtiva é o tempo de máquina efetivamente operando: ${un} ÷ rendimento de ${fmt(r.rend,2)} ${un}/h. `+
-          `Cabe nas ${fmt(num(P.hdia)*(num(P.disp)/100)*efic,1)} h efetivas por dia — ${fmt(P.hdia,1)} h de jornada × ${pct(num(P.disp)/100)} de disponibilidade mecânica × ${pct(efic)} de eficiência operacional. `+
+          `Cabe nas ${fmt(pr.hDia*pr.disp*efic,1)} h efetivas por dia — ${fmt(pr.hDia,1)} h de jornada${pr.transp?" de transporte":""} × ${pct(pr.disp)} de disponibilidade mecânica × ${pct(efic)} de eficiência operacional. `+
           `A folga é a utilização de ${pct(r.util)} premissada mais o arredondamento da frota, e é ela que absorve chuva, quebra e deslocamento. `+
           `As duas leituras de "por dia": a efetiva divide pelos ${fmt(dias,0)} dias de operação da janela `+
           `(${fmt(P.dias)} por mês × ${fmt(jm,1)} meses) e é a meta; a corrida divide pelos ${fmt(diasCal,0)} dias `+
@@ -415,7 +441,7 @@ function apresentacao(r, un){
     nota: `As quatro últimas colunas são alternativas, não se somam: cada uma mostra o que aquele `+
       `critério teria de ser sozinho, com os outros dois parados na premissa do mês. `+
       `São duas leituras da mesma produção: por dia efetivo divide pelos ${fmt(num(P.dias))} dias de operação `+
-      `do mês, de ${fmt(num(P.hdia),1)} h cada, e é a meta; por dia corrido divide pelos dias do calendário, `+
+      `do mês, de ${fmt(pr.hDia,1)} h cada, e é a meta; por dia corrido divide pelos dias do calendário, `+
       `e é o termômetro de prazo. Os dias de cada mês saem da janela da atividade — mês marcado `+
       `como parcial é o que a janela corta no meio, e vale só os dias cobertos. `+
       (apertados
@@ -425,19 +451,23 @@ function apresentacao(r, un){
         : `Nenhum mês pede mais do que o critério entrega.`),
   } : null;
 
+  const FR = frotaDaAtividade(r);
+  const PES = pessoasDaAtividade(r);
   const destaques = [
     {rot: r.ehHa ? "Área" : "Volume", val: fmt(total)+" "+un,
      sub: r.janela.fonte==="datas" ? `de ${r.janela.ini} a ${r.janela.fim}`
         : `${fmt(r.janela.meses,1)} meses de execução`},
     {rot: "Custo por "+un, val: total > 0 ? brl(custo/total, 2) : "—",
      sub: brl(custo)+" no total"},
-    {rot: "Frota", val: (r.frotaR || 0)+" equip.",
-     sub: (r.frotaAlvo ? "frota fixada · rendimento veio dela — " : "") + (r.maqEfetiva || "—")},
+    {rot: "Frota", val: (FR.pico || 0)+" equip.",
+     sub: (r.frotaAlvo ? "frota fixada · rendimento veio dela — " : "")
+        + (FR.difere ? `média da janela ${fmt(FR.media)} · ` : "") + (r.maqEfetiva || "—")},
     {rot: "Meta por dia efetivo", val: dias > 0 ? fmt(total/dias, 1)+" "+un : "—",
      sub: dias > 0 ? `${fmt(dias,0)} dias de operação · ${fmt(total/diasCal,1)} ${un} por dia corrido (${fmt(diasCal,0)} dias)`
                    : "sem janela definida"},
-    {rot: "Efetivo", val: fmt(r.efetivo)+" pessoas",
-     sub: (r.partes[0] ? r.partes[0].turnosEf : r.a.turnos)+" turno(s) · fator "+fmt(r.fator,2)},
+    {rot: "Efetivo", val: fmt(PES.pico)+" pessoas",
+     sub: (PES.difere ? `média da janela ${fmt(PES.media)} · ` : "")
+        + (r.partes[0] ? r.partes[0].turnosEf : r.a.turnos)+" turno(s) · fator "+fmt(r.fator,2)},
   ];
   return {destaques, tabelas: [porEquip, tabCriterio, tabela].filter(Boolean)};
 }
@@ -452,9 +482,10 @@ function apresentacao(r, un){
    sobra que absorve chuva, quebra e deslocamento. */
 function metaDiaria(r, un){
   if(!(r.total > 0) || !(r.frotaR > 0)) return null;
+  const pr = premissasDe(r.a);
   const diasJanela = num(P.dias) * r.janela.meses;        // dias efetivos na janela
   if(!(diasJanela > 0)) return null;
-  const hDisp = num(P.hdia) * (num(P.disp)/100) * (num(P.efic)>0?num(P.efic)/100:1);   // hora efetiva por dia
+  const hDisp = pr.hDia * pr.disp * pr.efic;              // hora efetiva por dia
   if(!(hDisp > 0)) return null;
   const hEquipDia  = r.horas / r.frotaR / diasJanela;
   const unDia      = r.total / diasJanela;
@@ -482,6 +513,8 @@ function rastroAtividade(R, cod){
   const mesesComQtd = r.meses.map((q,i)=>({i, q:num(q)})).filter(x=>x.q>0);
   const escala = r.escala ? (ESCALAS[r.escala]||{}).nome || r.escala : "padrão das premissas";
   const trat = r.trat ? tratCusto(r.trat) : 0;
+  const FRa = frotaDaAtividade(r);
+  const PESa = pessoasDaAtividade(r);
   const meta = metaDiaria(r, un);
   const apres = apresentacao(r, un);
 
@@ -509,11 +542,17 @@ function rastroAtividade(R, cod){
           : r.janela.fonte==="meses do plano" ? "meses com volume lançado; defina datas para ajustar"
           : "sem data nem volume: dimensionado sobre o ano"},
       {rot:"Capacidade de 1 equipamento na janela", val:fmt((r.capMes||0)*r.janela.meses)+" "+un},
-      {rot:"Frota necessária", val:(r.frotaR||0)+" equip.",
-       sub:`${fmt(r.horas)} h ÷ (${fmt(r.capMes||0)} ${un}/mês × ${fmt(r.janela.meses,1)} meses) = ${fmt(r.frota||0,2)}, arredondado para cima`},
+      {rot:"Frota média da janela", val:(r.frotaR||0)+" equip.",
+       sub:`${fmt(r.horas)} h ÷ (${fmt(r.capMes||0)} ${un}/mês × ${fmt(r.janela.meses,1)} meses) = ${fmt(r.frota||0,2)}, arredondado para cima. É a que rateia o custo.`},
+      {rot:"Frota a ter no pátio", val:(FRa.pico||0)+" equip.",
+       sub: FRa.difere
+         ? `o mês que mais pede${FRa.mes?" ("+FRa.mes+")":""} — média não estaciona no pátio. É este o número que aparece no Plano e no Dimensionamento.`
+         : `todo mês pede o mesmo; é também a média da janela`},
       {rot:"Turnos", val:(r.partes[0]?r.partes[0].turnosEf:r.a.turnos)+"t"},
       {rot:"Escala", val:escala+" · fator "+fmt(r.fator,2)},
-      {rot:"Efetivo", val:fmt(r.efetivo)+" pessoas"},
+      {rot:"Efetivo médio — o que paga a folha", val:fmt(r.efetivo)+" pessoas"},
+      {rot:"Equipe a ter", val:fmt(PESa.pico)+" pessoas",
+       sub: PESa.difere ? `o mês que mais pede${PESa.mes?" ("+PESa.mes+")":""}` : "todo mês pede o mesmo"},
     ]},
     {titulo:"Equipamento e consumo, por frente", linhas: r.partes.map(p=>p.terc
       ? {rot:(p.modo||"Terceiro")+" · prestador de serviço", val:brl(p.cTerc),
@@ -672,7 +711,7 @@ function rastroPessoasPico(R, periodo){
   return {titulo:"Pico de mobilização", subtitulo:"Maior necessidade simultânea de pessoas", valor:fmt(pico)+" pessoas",
     blocos:[{titulo:"Pessoas mobilizadas, por mês", linhas: idxs.map(i=>({rot:MESES[i], val:fmt(PS.qtdMes[i])+" pessoas"}))}],
     nota: iPico!=null&&pico>0 ? `Pico em ${MESES[iPico]}.` : "",
-    premissas:premissasGerais(), temPeriodo:true};
+    premissas:premissasDaAtividade(r.a), temPeriodo:true};
 }
 
 /* ---------- frota: horas, equipamentos, CRM ---------- */
@@ -747,6 +786,34 @@ function rastroReforma(){
     ],
     nota:"Marque o destino de cada equipamento em Manutenção de Frota — botão + do modelo, opção \"Vai reformar\".",
     premissas:premissasGerais()};
+}
+
+/* ---------- gasto real (ERP/Power BI) de um equipamento num conjunto ----------
+   Lista o que conta hoje (mapeado por tag, ou incluido a mao) com checkbox pra
+   desmarcar, e devolve buscaAdicionar pra ui/rastro.js montar a caixa de busca
+   que inclui outro lancamento deste equipamento -- de qualquer tag, nao so a
+   mapeada pro conjunto (e o caminho pra "inserir item na celula do Power BI"). */
+function rastroReformaBiItem(familia, cod, conjunto){
+  const {itens, total} = itensReforma(cod, conjunto, familia);
+  itens.sort((a,b)=>b.valor-a.valor);
+  return {
+    titulo: conjunto,
+    subtitulo: `Gasto real no ERP — equipamento ${cod}`,
+    valor: brl(total),
+    largo: true,
+    blocos: [{titulo:"Lançamentos — desmarque o que não deve entrar no orçamento", linhas: itens.length ? itens.map(it=>({
+      rot: it.desc, val: brl(it.valor), sub: fmtDataCurta(it.data)+(it.origem==="manual"?" · incluído à mão":""),
+      flag: {cod, conjunto, chave: it.chave, ligado: it.ligado, origem: it.origem}}))
+      : [{rot:"Nenhum lançamento neste compartimento ainda", val:"—"}]}],
+    buscaAdicionar: {cod, conjunto},
+    nota: (itens.length ? `${itens.length} lançamento${itens.length>1?"s":""} contando no orçamento desta unidade. `+
+      `Desmarque o que não deve entrar` : `Nada contando ainda nesta unidade.`)+
+      ` — busque abaixo pra incluir outro lançamento do ERP deste equipamento, mesmo de outra tag.`,
+  };
+}
+function fmtDataCurta(iso){
+  const [a,m,d] = String(iso||"").split("-");
+  return a ? `${d}/${m}/${a}` : "";
 }
 
 /* ---------- diesel ---------- */
@@ -847,6 +914,10 @@ function rastro(R, chave, periodo){
     if(arg==="crm") return rastroCRM(R);
     if(arg==="crmexced") return rastroCRMExced(R);
     if(arg==="reforma") return rastroReforma();
+  }
+  if(tipo==="reformabi"){
+    const [familia, cod, conjunto] = arg.split("|");
+    return rastroReformaBiItem(familia, cod, conjunto);
   }
   if(tipo==="diesel") return rastroDiesel(R, p);
   if(tipo==="insumos") return rastroInsumos(R);

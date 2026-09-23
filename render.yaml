@@ -23,6 +23,11 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22"
+      # sem isso, "npm install" no build tambem instala as devDependencies
+      # (playwright, so usado pelo script manual de extracao do gasto real) --
+      # baixaria o Chromium (~300MB) a toa a cada deploy, sem uso nenhum aqui.
+      - key: NODE_ENV
+        value: "production"
       - key: DATABASE_URL
         fromDatabase:
           name: crv-planejamento-db

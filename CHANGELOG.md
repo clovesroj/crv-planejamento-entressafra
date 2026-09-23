@@ -1,5 +1,270 @@
 # Histórico de mudanças
 
+## 2.36.0 — 2026-09-23 · Cada leitura na tela que responde por ela
+
+Os três dimensionamentos na mesma tela viraram três telas empilhadas numa
+rolagem só: quem vinha ver frota passava por duas antes, e quem vinha ver gente
+passava por todas. Cada leitura foi morar ao lado das tabelas que já respondiam
+a mesma pergunta.
+
+- **Dimensionamento** fica com o planejamento da atividade, e só — sem blocos e
+  sem submenu, a tela abre na tabela.
+- **Resumo de Frota** ganha a página **Necessidade do plano**: a frota por mês em
+  cada atividade e o confronto com a frota cadastrada, por especialidade. E
+  perdeu uma duplicata — havia duas tabelas de frota de apoio, da mesma fonte,
+  uma só de leitura e outra com a quantidade digitável. Ficou a que deixa
+  ajustar.
+- **Resumo de Pessoas** ganha a página **Necessidade x quadro ativo**, que abre a
+  tela: o confronto por função com férias e demissões, e a necessidade mês a mês
+  contra o disponível.
+- **"Detalhe por origem" passa a ser mês a mês, sem custo e com subtotal por
+  etapa.** Eram efetivo, meses mobilizado e custo — três números que não dizem em
+  *que* mês a gente é necessária. Agora é uma coluna por mês, e a faixa de cada
+  etapa é o subtotal dela, na mesma coluna das linhas que soma. O custo saiu:
+  tem tabela própria no Fluxo mensal.
+- **Permissões**: `QUADRO` ganhou `pessoas` como aba dona e `APOIO_FIXO` ganhou
+  `resumofrota`; as duas continuam em `dimens`, porque uma chave pode ter mais de
+  uma aba dona — assim nenhum perfil existente perde edição.
+
+## 2.35.0 — 2026-09-23 · De onde vem cada pessoa do quadro
+
+O quadro por função responde *quantos* motoristas é preciso ter. Faltava a
+pergunta que vem logo depois, e que é a que monta escala: **de onde vem cada um
+deles** — em que etapa, em que atividade, em que mês. 174 motoristas não viram
+escala sem saber que 44 são do transbordo em outubro e nenhum em fevereiro.
+
+- **Necessidade por etapa, atividade e função, mês a mês**, no Dimensionamento
+  de pessoas: uma linha por atividade e função, faixa por etapa com o pico da
+  etapa, uma coluna por mês e o pico fechando a linha. Mês sem volume no Plano
+  Operacional vem vazio, porque a frente não opera. Busca por atividade ou
+  função, e o filtro de período do topo recorta as colunas.
+- **Relatório "Necessidade de Pessoas"** (novo; 22 no total), e a mesma folha
+  dentro do Orçamento de Mão de Obra e do anual detalhado, com o código da
+  função e o custo de MDO do período em cada linha.
+- Não recalcula nada: agrupa os itens que a conta de pessoas já monta, os
+  mesmos que somam o custo de mão de obra. Por isso **fecha** — a soma das
+  linhas bate mês a mês com a necessidade total, o efetivo somado bate com o
+  total e o custo bate com a mão de obra do plano. Apoio, manutenção e
+  estrutura agrícola aparecem nas suas próprias faixas, sem código de
+  atividade, porque não vêm de atividade do plano.
+
+### Corrigido
+
+- **"Necessidade mês a mês x disponível" estava vazia desde a 2.33.x.** Ao tirar
+  os cartões do Dimensionamento, o painter da tabela foi junto, e ficaram só o
+  título e as duas linhas de explicação. Restaurada como era: função,
+  disponível, os doze meses com a célula em vermelho onde a necessidade passa o
+  disponível, o mês de pico em negrito e a linha "a contratar no mês".
+
+## 2.34.0 — 2026-09-22 · Um número só para a mesma pergunta
+
+Auditoria pedida depois que a frota do Plano Operacional discordava da do
+Dimensionamento: **44 numa tela, 70 na outra, para o mesmo transbordo**. O mesmo
+erro estava em mais quatro lugares, e a raiz é sempre a mesma — quem *mostra* o
+número recalculava por conta própria, com premissa diferente de quem o *calcula*.
+
+### Frota e equipe
+
+- **A frota da atividade é uma só em todo lugar.** Plano, Dimensionamento,
+  modal, rastro, metas por gerência, os 21 relatórios e o CSV mostram a frota do
+  **mês que mais pede** — a que tem de existir no pátio. Onde o número é a média
+  da janela (a que rateia custo) ele está rotulado como média: no rastro as duas
+  aparecem lado a lado, e o relatório de Dimensionamento ganhou uma coluna para
+  cada, com o mês do pico.
+- **A equipe do mês segue a frota do mês.** A linha do transbordo dizia 207
+  pessoas e o mês aberto logo abaixo dela dizia 154. A série mensal de pessoas
+  passa a sair da frota de cada mês; o custo não passa por aí — a folha continua
+  vindo do efetivo médio do motor. No cenário de teste o pico do quadro cai de
+  542 para 490, que é o número certo: 542 contratava gente para uma frota que
+  aquele mês não tem.
+
+### Premissas de transporte
+
+- **O transporte explica o próprio número com as premissas dele.** O motor sempre
+  dimensionou o caminhão com jornada e disponibilidade próprias (20 h), mas a
+  meta, o critério por mês, o rastro e o modal usavam as gerais (16,8 h): o modal
+  do transbordo acusava o mês de não caber enquanto o motor dizia que cabia.
+  Agora há uma função só — `premissasDe()` — e as duas falam a mesma língua. No
+  TR3, Out/26 passa de 14.192 h para **16.896 h** de capacidade.
+- **A capacidade do transporte ficava sem a eficiência operacional.** A hora
+  efetiva é jornada × disponibilidade × utilização × eficiência, e o transporte
+  perdia o último fator: chuva encolhia o dia da colhedora e não o do caminhão.
+  Com eficiência em 100% (o padrão, e o que está gravado) **não muda número
+  nenhum** — medido, total idêntico até a última casa. Com eficiência em 80%, o
+  transbordo vai de 59 para 73 equipamentos e o total sobe R$ 1.674.010,84
+  (+2,17%).
+
+### Ordem e layout
+
+- **Ordem da etapa.** A correção da muda para PLANTIO deixou a lista alternando
+  COLHEITA / PLANTIO / COLHEITA: o Plano pintava **12 faixas de grupo para 6
+  etapas**. Plano, Dimensionamento e Cadastro de Atividades saem na ordem em que
+  o ano acontece — preparo, plantio, tratos, colheita, apoio. Dentro da etapa
+  nada muda de lugar, e o Manejo Fitossanitário fica sempre no fim dos tratos.
+- **O cabeçalho cai no eixo do dado, nas 86 tabelas.** O `th` era centralizado em
+  toda tabela enquanto a célula ia para a esquerda (texto) ou para a direita
+  (número): **616 colunas em 68 tabelas** com o rótulo fora do eixo do próprio
+  conteúdo. Agora a regra é uma só, por CSS. Onde a célula é campo de digitação
+  ou célula composta — Plano Operacional e Dimensionamento — as duas ficam ao
+  centro.
+- **13 colunas em que o cabeçalho contradizia a célula** apareceram quando o
+  centro saiu da frente, e foram corrigidas na origem: "Usado em" no Cadastro de
+  Insumos, as seis colunas da tabela CTTA no Painel, "Atividades" no
+  Acompanhamento e a coluna da seta nas duas tabelas do Manejo Fitossanitário.
+
+**Conferido** — plano vazio em 39.270.751,842344, igual ao contrato de
+regressão; cenário de teste com eficiência em 100% com total idêntico antes e
+depois (76.791.211,82345276); 8 invariantes do motor num plano com volume em
+toda atividade (total = variável + fixo = soma dos meses = safra + entressafra =
+soma das etapas, CRM por etapa, mão de obra, custo direto por atividade, frentes
+somando a atividade); as 29 abas sem `NaN`, `undefined` ou `Infinity`; 68
+rastros limpos; 21 relatórios nos dois níveis com toda linha do tamanho do
+cabeçalho; auditoria automática de alinhamento nas 86 tabelas com 0 divergência,
+contra 616 antes.
+
+## 2.33.1 — 2026-09-22 · Nome da referência fora das telas
+
+Nenhuma tela, rastro ou relatório cita mais "PECEGE" ou "modelo PECEGE". O
+método não mudou: só o rótulo.
+
+- **Painel** — "Custo por hectare — modelo PECEGE" virou **Custo por hectare —
+  visão por operação**; "Sistema de colheita (R$/t) — modelo PECEGE" virou
+  **Sistema de colheita (R$/t)**; a linha "Base PECEGE" virou **Base de
+  comparação**; "Aderência PECEGE/USP" virou **Aderência à referência
+  setorial**.
+- **Arrendamentos e Custos** — "referência PECEGE/USP" virou **referência
+  setorial**, e "relatório de custos PECEGE/USP" virou **relatório de custos de
+  referência**.
+- **Rastros** — o percentual de rateio do arrendamento e a nota da muda passaram
+  a falar em referência setorial e na tabela de custo por hectare do Painel.
+
+Conferido com o plano montado: 29 abas, 124 rastros e os 126 relatórios sem
+nenhuma ocorrência do nome, e a auditoria segue com 45 invariantes sem falha.
+
+## 2.33.0 — 2026-09-22 · Custo por hectare plantado: só o que forma o canavial
+
+O indicador **Custo por ha plantado** dividia o custo do plano inteiro pela área
+de plantio: colheita, tratos de cana soca e apoio entravam na conta do hectare
+que foi plantado. Agora ele é a **formação do canavial ÷ área de plantio**, e a
+formação é o que o modelo PECEGE chama de formação: **preparo de solo + plantio
++ tratos culturais de cana planta**.
+
+No plano de referência o indicador sai de R$ 20.163/ha (custo total ÷ 2.400 ha)
+para R$ 29.971/ha (R$ 71.931.300 de formação ÷ 2.400 ha).
+
+### O que mudou
+
+- **Preparo de solo entrou na formação.** Antes a formação era plantio + tratos
+  de cana planta. O preparo acontece na área que vai ser plantada e é custo de
+  formação; agora conta, e a base física do preparo passou a ser a área de
+  plantio (antes era a soma das passadas das atividades, que contava o mesmo
+  talhão uma vez por operação).
+- **Cartões iguais nas três telas.** Painel, Capa e Custos mostram o mesmo
+  número, com a nota "preparo + plantio + tratos de cana planta".
+- **Relatórios.** O Resumo Executivo e os Indicadores trazem duas linhas
+  separadas: *Custo por hectare plantado (formação do canavial)* e *Custo do
+  plano por hectare de plantio*, que é a conta antiga — útil, mas outra coisa.
+- **Rastro reescrito.** Abre a conta ("Formação do canavial ÷ área de plantio"),
+  as três etapas que formam o canavial com o peso de cada uma, o que entra
+  (operação e rateios) e o que fica fora — cana soca, colheita e apoio —,
+  fechando com o custo total do plano.
+
+### Mudas
+
+A colheita, o transbordo e o transporte de muda estão na etapa Colheita do Plano
+Operacional, e é lá que este indicador os deixa. A tabela do modelo PECEGE, no
+Painel, os conta como insumo do plantio — é a diferença de R$ 736/ha entre a
+coluna Formação daquela tabela e o cartão. As duas telas agora dizem isso: o
+rastro mostra a linha da muda dentro da colheita e a nota da tabela explica a
+diferença.
+
+### Auditoria
+
+45 invariantes do motor sem falha, 29 abas e 124 rastros sem NaN, undefined ou
+Infinity, e os 126 relatórios (21 × 2 níveis × 3 períodos) sem resíduo. A soma
+das três etapas da formação fecha com as etapas PREPARO DE SOLO e PLANTIO mais
+a operação de tratos de cana planta, com diferença zero.
+
+## 2.32.0 — 2026-09-22 · Painel: tabelas no modelo PECEGE
+
+O Painel ganhou as duas tabelas do relatório de custos PECEGE/USP, montadas
+com os números do plano, logo abaixo dos indicadores de tratos.
+
+### Custo por hectare
+
+Colunas **Preparo · Plantio · Tratos planta · Formação do canavial · Tratos
+soca**, cada uma com R$/ha e o peso no total. Linhas como no modelo:
+Operação (Máq + mão de obra, Irrigação/Fertirrigação), Insumos (Mudas,
+Adubação corretiva, Fertilizantes, Defensivos — herbicidas, inseticidas,
+fungicidas, nematicidas —, Controle biológico, Maturador, Inibidor, Torta de
+filtro, Outros) e Administrativo (Administrativo, Royalties).
+
+Acrescentado o que o plano calcula e o modelo não mostra: **serviços
+terceirizados**, e o grupo **Outros custos (rateios)** — arrendamento,
+depreciação, diesel dos equipamentos de apoio e demais custos gerais. A linha
+**Base PECEGE** soma só operação, insumos e administrativo, para comparar com o
+relatório; o Total é o custo completo.
+
+- Formação do canavial = **preparo + plantio + tratos planta**, como no
+  modelo. (Na aba Custos, a formação continua plantio + tratos planta.)
+- Preparo, plantio e formação por hectare de plantio; tratos planta e soca pela
+  área de cada cultura — o bloco Base física dos custos, da aba Premissas.
+- Insumos pela classe agronômica do produto; os fertilizantes e corretivos sem
+  classe são reconhecidos pelo nome (fórmula NPK, ureia, KCl, calcário).
+- **Mudas**: colheita, transbordo e transporte de muda estão na etapa Colheita
+  do Plano Operacional; aqui, como no modelo, entram no plantio — custo direto
+  mais a parte delas nos rateios da colheita.
+
+### Sistema de colheita (R$/t)
+
+Colunas **Corte (C) · Transbordo (T) · C + T · Transporte (T) · Apoio + Adm (A)
+· CTTA**; linhas Operador, Diesel, Manutenção, Locação e Outros com o custo
+direto das atividades, e — acrescentado — o Apoio + Adm aberto em equipamentos
+de apoio e custos gerais, administrativo e depreciação. R$ por tonelada colhida
+(premissa de volume de colheita, ou as toneladas do corte). Colheita de muda
+fica no plantio; o arrendamento rateado à colheita aparece em nota, fora do
+CTTA.
+
+**Conferido:** cada coluna soma as suas linhas; as colunas batem com o custo
+por operação da aba Custos; formação = preparo + plantio + tratos planta; e
+plantio (com mudas) + CTTA + arrendamento da colheita = etapas Plantio +
+Colheita, no centavo.
+
+### Validação
+
+Nova pendência **Insumo usado no plano sem classe agronômica**: lista os
+produtos dos tratamentos lançados que caem em "Outros insumos" (e sem conta no
+Plano de Contas) e leva ao grupo "Outros" do cadastro de insumos, onde se
+escolhe o Grupo de cada um.
+
+## 2.31.0 — 2026-09-22 · Validação leva direto ao ponto de correção
+
+Na aba **Validação**, cada pendência virou um botão com o nome da aba onde se
+corrige ("Premissas →", "Plano Operacional →"…). O clique:
+
+- abre a aba e, quando ela tem páginas, a página certa;
+- rola até o ponto exato e o destaca por alguns segundos — o campo da
+  premissa, a linha do contrato, a linha da atividade, a linha do benefício;
+- põe o cursor no campo, quando o ponto é um campo.
+
+As pendências aparecem **no topo da lista**, antes das verificações que estão
+OK. O detalhe da pendência também ficou mais útil onde era só um número:
+"Atividade em ha sem tratamento" e "Atividade com mais de 12 equipamentos"
+passam a listar os códigos, e rendimento zerado, utilização fora da faixa e
+salário não preenchido dizem qual atividade ou função.
+
+Exemplos de destino: diesel, horas por dia, disponibilidade, bases físicas →
+campo em Premissas; velocidades e capacidade → aba Transporte; contrato sem
+valor ou sem pagamento → a linha na aba Arrendamentos; atividade sem
+tratamento → o seletor de tratamento dela no Plano Operacional; frota acima de
+12 → a atividade no Dimensionamento; benefício de transporte em dobro → a
+linha do benefício em Mão de Obra; custo sem conta → a linha "Sem conta" do
+Plano de Contas; área própria → o campo em Fornecedores de Cana.
+
+Das 51 verificações, 49 têm destino; as outras duas são informativas e nunca
+ficam pendentes. Quando a linha exata não está na tela (grupo recolhido, por
+exemplo), o destaque cai na tabela onde ela fica.
+
 ## 2.30.0 — 2026-09-22 · Mês de alocação dos materiais de manutenção
 
 Na aba Insumos, a tabela **Materiais de manutenção** ganhou a coluna **Mês de

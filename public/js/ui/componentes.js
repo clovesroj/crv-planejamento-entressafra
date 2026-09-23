@@ -1,3 +1,4 @@
+import { ETAPAS_ORD } from '../calculo/arrendamento.js';
 import { MESES, clsMes } from '../nucleo/calendario.js';
 import { $, brl, esc, fmt } from '../nucleo/formato.js';
 import { USUARIO } from '../nucleo/sessao.js';
@@ -27,6 +28,28 @@ const tdMeses = (arr, f, cls="num calc") =>
 const somaSel = (arr, SEL) => SEL.meses.reduce((s,i)=>s+(+arr[i]||0), 0);
 /** Pico de uma série mensal dentro do período filtrado. */
 const maxSel  = (arr, SEL) => SEL.meses.reduce((m,i)=>Math.max(m, +arr[i]||0), 0);
+
+/* ---------- ORDEM DAS ETAPAS ----------
+   Etapa é a ordem em que o ano acontece: prepara, planta, trata, colhe, e o
+   apoio corre por fora. A lista de atividades vem na ordem do cadastro, que é
+   a ordem em que cada uma foi criada — e corrigir a etapa de uma atividade (a
+   muda, que virou PLANTIO) deixou a tela alternando COLHEITA / PLANTIO /
+   COLHEITA. Numa tabela com faixa de grupo isso repete a faixa, e a mesma
+   etapa passa a aparecer três vezes como se fossem três grupos diferentes.
+
+   Ordenação estável: dentro da etapa, a ordem do cadastro fica de pé — é por
+   ela que A04 vem antes de A05, e não há por que inventar outra. `sub`
+   desempata antes disso, para o grupo que mora dentro de uma etapa (o Manejo
+   Fitossanitário, que é TRATOS CULTURAIS com faixa própria) ficar sempre no
+   fim dela, e não no meio, partindo a etapa em duas faixas. */
+const ordemEtapa = e => { const i = ETAPAS_ORD.indexOf(e); return i < 0 ? ETAPAS_ORD.length : i; };
+const ordenarPorEtapa = (lista, etapaDe, sub) => lista
+  .map((r, i) => [r, i])
+  .sort((a, b) => ordemEtapa(etapaDe(a[0])) - ordemEtapa(etapaDe(b[0]))
+               || (sub ? sub(a[0]) - sub(b[0]) : 0)
+               || a[1] - b[1])
+  .map(x => x[0]);
+
 
 /* ---------- BUSCA POR NOME EM TABELA ----------
    Genérica pra qualquer tabela pintada por th()+innerHTML neste app: esconde
@@ -360,7 +383,12 @@ function barras(el,dados,cor,un){
 }
 function barrasH(el,dados){
   // paleta do campo: folha, palha, céu, latossolo e tons intermediários
-  const cores=["#2D6A3A","#C9A45C","#3E7CB1","#A5503A","#7E9C6B","#5C6F7B","#8A8F3C","#2F8C83","#B98A3E","#6B8FB5","#9C6B4E","#A3AE9C"];
+  /* Rampa do azul da marca, do escuro ao claro. A barra e ordenada da maior
+     para a menor e cada uma tem o rotulo ao lado: quem identifica a categoria
+     e o texto, nao a cor — entao a cor pode ordenar em vez de distinguir, e o
+     grafico fica na mesma identidade do resto do app. */
+  const cores=["#12315C","#1B3C6E","#22497F","#2A57A0","#3A69B4","#4E7DC4","#6290D0","#77A2DA",
+               "#8DB3E3","#A3C3EB","#B9D2F1","#CFE0F7"];
   const tot=dados.reduce((s,d)=>s+d.v,0)||1, W=760,rh=24,H=dados.length*rh+10,ml=185;
   let s=`<svg viewBox="0 0 ${W} ${H}" class="chart">`;
   dados.forEach((d,i)=>{const y=i*rh+5,w=(W-ml-105)*(d.v/tot);
@@ -372,4 +400,4 @@ function barrasH(el,dados){
 
 
 export { barras, barrasH, exportarTabela, filtrarPorNome, habilitarReordenacao, kpi, ligarBuscaSelect, maxSel,
-         reaplicarBuscas, reaplicarExportar, somaSel, tdMeses, th, thMeses };
+         ordenarPorEtapa, reaplicarBuscas, reaplicarExportar, somaSel, tdMeses, th, thMeses };

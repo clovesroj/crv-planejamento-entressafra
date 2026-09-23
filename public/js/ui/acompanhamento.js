@@ -58,7 +58,7 @@ function pintarAcomp(R){
     "</tbody>";
 
   // ===== resumo por gerência =====
-  $("#t_acomp_ger").innerHTML = th([["Gerência"],["Atividades"],["Medidas",1],["Aderência",1],
+  $("#t_acomp_ger").innerHTML = th([["Gerência"],["Atividades",1],["Medidas",1],["Aderência",1],
     ["Fora da meta",1],["Sem apontamento",1],["Atraso em R$",1],["Custo no plano",1]])+"<tbody>"+
     ger.map(g=>`<tr>
       <td class="tot">${g.nome}</td>
@@ -119,8 +119,12 @@ function pintarAcomp(R){
         <td class="num tot">${fmt(m.total)} ${m.un}</td>
         <td class="calc">${janelaTxt(m.janela)}</td>
         <td class="num calc">${fmt(m.rend,2)} ${m.un}/h</td>
-        <td class="num tot">${m.frota||"—"}</td>
-        <td class="num calc">${fmt(m.efetivo)}</td>
+        <td class="num tot" title="${m.frota!==m.frotaMedia
+          ? `Frota do mês que mais pede. A média da janela, que rateia o custo, é ${fmt(m.frotaMedia)}.`
+          : "Frota da atividade"}">${m.frota||"—"}</td>
+        <td class="num calc" title="${m.efetivo!==m.efetivoMedio
+          ? `Equipe do mês que mais pede. Na média da janela são ${fmt(m.efetivoMedio)}, que é o efetivo com que o motor paga a folha.`
+          : "Frota × operadores × turnos × fator de escala"}">${fmt(m.efetivo)}</td>
         <td class="num ${m.meta?"tot":"calc"}">${m.meta
           ? fmt(m.meta.qEquipDia,1)+" "+m.un+" · "+fmt(m.meta.hEquipDia,1)+" h" : "—"}</td>
         <td class="num ${m.meta?"tot":"calc"}">${m.meta

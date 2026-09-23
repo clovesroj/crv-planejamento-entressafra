@@ -167,8 +167,8 @@
         <div class="hint" id="h_tonColheita"></div></div>
     </div>
     <div class="hint" style="margin-top:9px">Estas áreas e o volume são a base de todo custo por hectare e por tonelada
-    do sistema — Painel, Custos, Arrendamentos, Custos Administrativos e relatórios. Plantio e formação do canavial
-    dividem pela área de plantio; tratos de cana planta e de cana soca, pela área de cada cultura; colheita, pelo volume
+    do sistema — Painel, Custos, Arrendamentos, Custos Administrativos e relatórios. Preparo de solo, plantio e a
+    formação do canavial dividem pela área de plantio; tratos de cana planta e de cana soca, pela área de cada cultura; colheita, pelo volume
     colhido (e pela área colhida, quando informada). Em branco, a base cai na soma do que foi lançado nas atividades do
     Plano Operacional — que conta cada passada no mesmo talhão como um hectare a mais — e a aba Validação avisa.
     Preparo de solo e apoio e conservação seguem por hectare operado.</div></div>
@@ -298,73 +298,25 @@
 </section>
 
 <!-- ===== DIMENSIONAMENTO ===== -->
+<!-- So o planejamento da atividade. A leitura por frota foi para o Resumo de
+     Frota e a de pessoas para o Resumo de Pessoas, cada uma ao lado das tabelas
+     que ja respondiam a mesma pergunta -- aqui as tres viviam empilhadas numa
+     rolagem so, e quem vinha ver frota passava por duas telas antes. -->
 <section id="dimens">
   <h2>Dimensionamento</h2>
-  <p class="lead">Três dimensionamentos, um por página: atividade, frota e pessoas. Use o menu ao lado para trocar
-  de página.</p>
-
-  <details class="bloco" id="bl_dim_ativ" open>
-    <summary><span class="bl-tit">Dimensionamento por atividade</span>
-      <span class="bl-sub" id="bl_ativ_sub"></span></summary>
-    <div class="bloco-corpo">
-      <div class="grid g4" id="k_dim" style="margin-bottom:16px"></div>
-      <input type="search" class="tbl-busca" data-alvo="#t_dim" placeholder="Buscar atividade por cód. ou nome...">
-      <div class="tblwrap"><table id="t_dim"></table></div>
-      <div class="hint" style="margin-top:9px">Rendimento e utilização são editáveis. Atividade com mix de modos
-      abre uma frente por modo.</div>
-    </div>
-  </details>
-
-  <details class="bloco" id="bl_dim_frota">
-    <summary><span class="bl-tit">Dimensionamento de frota</span>
-      <span class="bl-sub" id="bl_frota_sub"></span></summary>
-    <div class="bloco-corpo">
-      <div class="panel"><h3>Frota por tipo de máquina</h3>
-        <input type="search" class="tbl-busca" data-alvo="#t_frota" placeholder="Buscar máquina por nome...">
-        <div class="tblwrap"><table id="t_frota"></table></div></div>
-      <div class="panel"><h3>Necessidade do plano x frota cadastrada, por especialidade</h3>
-        <input type="search" class="tbl-busca" data-alvo="#t_rf_base" placeholder="Buscar especialidade...">
-        <div class="tblwrap"><table id="t_rf_base"></table></div>
-        <div class="hint" style="margin-top:9px">"Cadastrada" vem da base de frota do ERP: unidades ativas, separadas
-        entre próprias e de terceiros. Folga negativa indica especialidade em que o plano pede mais equipamento do
-        que a empresa tem hoje.</div></div>
-      <div class="panel"><h3>Frota de apoio (utilização fixa)</h3>
-        <input type="search" class="tbl-busca" data-alvo="#t_apoio" placeholder="Buscar veículo ou máquina...">
-        <div class="tblwrap"><table id="t_apoio"></table></div></div>
-    </div>
-  </details>
-
-  <details class="bloco" id="bl_dim_pessoas">
-    <summary><span class="bl-tit">Dimensionamento de pessoas</span>
-      <span class="bl-sub" id="bl_pes_sub"></span></summary>
-    <div class="bloco-corpo">
-      <div class="grid g4" id="k_dim_pes" style="margin-bottom:16px"></div>
-      <div class="panel"><h3>Pessoas por atividade, especialidade e função</h3>
-        <input type="search" class="tbl-busca" data-alvo="#t_dim_pes" placeholder="Buscar atividade por cód. ou nome...">
-        <div class="tblwrap"><table id="t_dim_pes"></table></div>
-        <div class="hint" style="margin-top:9px">A especialidade vem da base de frota do ERP quando a máquina da
-        frente está cadastrada lá; equipe manual e prestador de serviço aparecem como tal.</div></div>
-      <div class="panel"><h3>Quadro ativo do ERP</h3>
-        <input type="search" class="tbl-busca" data-alvo="#t_pes_base" placeholder="Buscar cargo ou especialidade...">
-        <div class="tblwrap"><table id="t_pes_base"></table></div>
-        <div class="hint" style="margin-top:9px">Base de pessoal do ERP em 16/09/2026, por cargo e especialidade.
-        Só contagem: nome, matrícula e datas não entram no sistema. Cada cargo do ERP é uma função do plano,
-        então não há mais cargo sem equivalente. Afastados e desistentes aparecem à parte, porque contam no
-        quadro da empresa mas não estão disponíveis para a operação. A extração é da área agrícola: os três
-        cargos de oficina não vêm nela e aparecem com zero até serem informados no ajuste.</div></div>
-
-      <div class="panel"><h3>Necessidade x quadro ativo, por função</h3>
-        <input type="search" class="tbl-busca" data-alvo="#t_pes_quadro" placeholder="Buscar função...">
-        <div class="tblwrap"><table id="t_pes_quadro"></table></div>
-        <h3 style="margin-top:18px">Necessidade mês a mês x disponível</h3>
-        <div class="tblwrap"><table id="t_pes_mes"></table></div>
-        <div class="hint" style="margin-top:9px">Cada célula é a necessidade daquela função no mês. Célula em
-        vermelho é mês em que a necessidade passa o disponível informado acima; o mês de pico vem em negrito.</div>
-        <div class="hint" style="margin-top:9px">Informe o quadro ativo de hoje e o que já está programado de férias
-        e de demissão. Disponível = ativo − férias − demissões; a contratar compara o disponível com o pico mensal
-        do dimensionamento, que é o mês de maior necessidade daquela função.</div></div>
-    </div>
-  </details>
+  <p class="lead">Uma linha por atividade: área ou volume, rendimento, frota e efetivo que o plano exige.
+  A necessidade de <b>frota</b> mês a mês está no <b>Resumo de Frota</b>; a de <b>pessoas</b>,
+  no <b>Resumo de Pessoas</b>.</p>
+  <div class="row" style="justify-content:space-between;align-items:flex-end">
+    <input type="search" class="tbl-busca" data-alvo="#t_dim" placeholder="Buscar atividade por cód. ou nome...">
+    <span class="bl-sub" id="bl_ativ_sub"></span>
+  </div>
+  <div class="tblwrap"><table id="t_dim"></table></div>
+  <div class="hint" style="margin-top:9px">Uma linha por atividade, só para leitura e comparação.
+  O que se ajusta mês a mês — <b>rendimento</b>, frota, disponibilidade, utilização e eficiência — se lança
+  no botão <b>mês</b>. A <b>frota</b> da coluna é a do mês que mais pede, porque é essa que precisa existir
+  no pátio. <b>detalhe ›</b> abre operação, frota e pessoas, onde ficam o rendimento padrão da atividade e
+  os demais ajustes.</div>
 </section>
 
 <!-- ===== TRANSPORTE ===== -->
@@ -472,12 +424,63 @@
   que vão à bancada. Entra aqui a frota marcada como <b>vai reformar</b> na aba Manutenção de Frota — o que
   vai rodar carrega CRM de safra, não reforma.</p>
   <div class="grid g4" id="k_reforma" style="margin-bottom:16px"></div>
+  <p id="ref_bi_status" class="calc" style="margin:-10px 0 16px"></p>
+
+  <div class="panel"><h3>Análise do Gasto Real (ERP)</h3>
+    <p class="hint" style="margin:-4px 0 10px">Os mesmos lançamentos do relatório de origem (BI), agrupados aqui —
+      serviço e peça do mesmo conjunto somam juntos, em vez de aparecerem em linhas separadas. Filtre por qualquer
+      combinação de período, empresa, especialidade, agrupamento, compartimento, frota, próprio/terceiro e reforma.</p>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:14px">
+      <div><label>De</label><input type="date" id="gr_inicio"></div>
+      <div><label>Até</label><input type="date" id="gr_fim"></div>
+      <div><label>Empresa</label><select id="sel_gr_empresa"><option value="">Todas</option></select></div>
+      <div><label>Especialidade</label><select id="sel_gr_esp"><option value="">Todas</option></select></div>
+      <div><label>Agrupamento</label><select id="sel_gr_ag"><option value="">Todos</option></select></div>
+      <div><label>Compartimento</label><select id="sel_gr_comp"><option value="">Todos</option></select></div>
+      <div><label>Frota / Equipamento</label><input type="search" id="gr_frota" placeholder="Código ou modelo..."></div>
+      <div><label>Próprio</label>
+        <select id="sel_gr_prop">
+          <option value="">Todos</option>
+          <option value="proprio">Só próprios</option>
+          <option value="terceiro">Só de terceiros</option>
+        </select></div>
+      <div><label>Reforma (ERP)</label>
+        <select id="sel_gr_reforma">
+          <option value="">Todos</option>
+          <option value="SIM">Só marcado Reforma=SIM</option>
+          <option value="NAO">Só marcado Reforma=NÃO</option>
+        </select></div>
+    </div>
+    <div class="tblwrap"><table id="t_gr_esp"></table></div>
+  </div>
+
   <div class="panel"><h3>Resumo por especialidade</h3>
     <input type="search" class="tbl-busca" data-alvo="#t_ref_resumo" placeholder="Buscar especialidade...">
     <div class="tblwrap"><table id="t_ref_resumo"></table></div></div>
-  <div class="panel"><h3>Concentração por conjunto</h3>
-    <input type="search" class="tbl-busca" data-alvo="#t_ref_conj" placeholder="Buscar conjunto...">
-    <div class="tblwrap"><table id="t_ref_conj"></table></div></div>
+  <div class="panel"><h3>Filtrar especialidades e equipamentos</h3>
+    <p class="hint" style="margin:-4px 0 10px">Não muda o plano — é só o que você está vendo aqui, nos mesmos eixos do
+      relatório de origem (BI: Especialidade, Agrup. Área Equipamento, Frota/Equipamento, Próprio). Escolha o quanto
+      quiser, ou nenhum pra ver tudo.</p>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
+      <div><label>Buscar especialidade</label>
+        <input type="search" id="ref_busca" placeholder="Ex.: colhedora..."></div>
+      <div><label>Agrupamento</label>
+        <select id="sel_ref_ag"><option value="">Todos</option></select></div>
+      <div><label>Família</label>
+        <select id="sel_ref_fam">
+          <option value="">Todas</option>
+          <option value="colhedora">Colhedora e esteira</option>
+          <option value="geral">Frota geral</option>
+        </select></div>
+      <div><label>Frota / Equipamento</label>
+        <input type="search" id="ref_frota" placeholder="Código ou modelo..."></div>
+      <div><label>Próprio</label>
+        <select id="sel_ref_prop">
+          <option value="">Todos</option>
+          <option value="proprio">Só próprios</option>
+          <option value="terceiro">Só de terceiros</option>
+        </select></div>
+    </div></div>
   <div id="t_ref_detalhe"></div>
 </section>
 
@@ -756,7 +759,7 @@
 <section id="arrend">
   <h2>Arrendamentos</h2>
   <p class="lead">Fazendas ou grupos de fazendas arrendadas, com área e forma de pagamento. O custo é calculado
-  automaticamente, distribuído nos meses do orçamento e rateado entre as etapas pela referência PECEGE/USP.
+  automaticamente, distribuído nos meses do orçamento e rateado entre as etapas pela referência setorial.
   Alimenta Custos, Plano de Contas (ARR-01) e Painel. Três páginas — use o menu ao lado para trocar.</p>
   <div class="grid g4" id="k_arr" style="margin-bottom:16px"></div>
 
@@ -793,11 +796,11 @@
     <summary><span class="bl-tit">Rateio</span></summary>
     <div class="bloco-corpo">
       <div class="panel"><h3>Resumo por grupo de fazendas</h3><div class="tblwrap"><table id="t_arr_grupo"></table></div></div>
-      <div class="panel"><h3>Rateio por etapa — referência PECEGE/USP</h3>
+      <div class="panel"><h3>Rateio por etapa — referência setorial</h3>
         <div class="tblwrap"><table id="t_arr_rat"></table></div>
         <div class="row" style="margin-top:10px"><button class="btn" id="btn_arr_rat_reset">Restaurar percentuais de referência</button></div>
-        <div class="hint" style="margin-top:9px">Percentuais-padrão editáveis — confirme com o relatório de custos PECEGE/USP
-        adotado pela empresa. Se a soma não fechar 100%, os valores são normalizados e a aba Validação avisa. Em tratos
+        <div class="hint" style="margin-top:9px">Percentuais-padrão editáveis — confirme com o relatório de custos de
+        referência adotado pela empresa. Se a soma não fechar 100%, os valores são normalizados e a aba Validação avisa. Em tratos
         culturais, cana soca e cana planta dividem a parcela pela área tratada. O valor de cada etapa aparece na coluna
         Arrendamento da aba Custos.</div></div>
     </div>
@@ -892,7 +895,8 @@
         aplicações — e, em tratos, a irrigação (energia, água e materiais), atribuída a cana planta ou soca pela
         modalidade. <b>Não entra</b> nenhum rateio: diesel dos equipamentos de apoio, arrendamento, administrativo,
         depreciação e custos gerais estão na página <b>Custo total (contábil)</b>.
-        <b>Formação do canavial</b> = plantio + tratos culturais de cana planta. Plantio, tratos de cana planta e a
+        <b>Formação do canavial</b> = preparo de solo + plantio + tratos culturais de cana planta — é o que o
+        <b>custo por hectare plantado</b> mede no Painel e na Capa. Preparo, plantio, tratos de cana planta e a
         formação são divididos pela <b>área plantada</b> (premissa "Área de plantio"), não pela soma dos hectares das
         atividades — várias operações no mesmo talhão não são vários hectares; passe o mouse na base física para ver
         os hectares operados. Cana soca segue por hectare operado e colheita por tonelada.
@@ -908,7 +912,7 @@
         <div class="tblwrap"><table id="t_contabil"></table></div>
         <div class="hint" style="margin-top:9px">Custo contábil = custo operacional + rateios. <b>Diesel do apoio</b>:
         equipamentos de apoio, rateados pelos litros de cada operação. <b>Arrendamento</b>: percentuais de referência
-        PECEGE/USP da aba Arrendamentos; dentro de tratos, pela área tratada de cada cultura. <b>Administrativo</b>:
+        setorial da aba Arrendamentos; dentro de tratos, pela área tratada de cada cultura. <b>Administrativo</b>:
         cada linha pelo seu critério, na aba Custos Administrativos. <b>Depreciação</b> e <b>demais custos gerais</b>
         (equipamentos de apoio, estrutura indireta, equipe de manutenção, transporte de pessoal, terceirizações por
         contrato, esporádicos): rateados pelo custo direto de cada operação. A soma de todas as operações é o custo
@@ -940,7 +944,7 @@
         (apoio, irrigação, transporte de pessoal, terceirizações por contrato, esporádicos,
         administração e depreciação) são indiretos ao plano como um todo e rateados proporcionalmente ao custo
         direto de cada etapa. O arrendamento tem coluna própria: é distribuído entre as etapas pelos percentuais
-        de referência PECEGE/USP da aba Arrendamentos.</div></div>
+        de referência setorial da aba Arrendamentos.</div></div>
       <div class="panel"><h3>Composição por natureza</h3><div class="tblwrap"><table id="t_custo"></table></div></div>
     </div>
   </details>
@@ -1084,8 +1088,8 @@
 <section id="resumofrota">
   <h2>Resumo de Frota</h2>
   <p class="lead">Consolidado de toda a necessidade de veículos e equipamentos projetados pelo plano —
-  frota operacional, apoio de utilização fixa, transporte de pessoal e irrigação. Duas páginas — use o menu ao
-  lado para trocar.</p>
+  frota operacional, a necessidade mês a mês de cada atividade, apoio de utilização fixa, transporte de pessoal
+  e irrigação. Três páginas — use o menu ao lado para trocar.</p>
   <div class="grid g4" id="k_resfrota" style="margin-bottom:16px"></div>
 
   <details class="bloco" id="bl_rf_oper" open>
@@ -1099,12 +1103,35 @@
     </div>
   </details>
 
+  <details class="bloco" id="bl_rf_nec">
+    <summary><span class="bl-tit">Necessidade do plano</span>
+      <span class="bl-sub" id="bl_frota_sub"></span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3 class="h-secao">Necessidade de frota por mês, em cada atividade</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_dim_frotames" placeholder="Buscar atividade por cód. ou nome...">
+        <div class="tblwrap"><table id="t_dim_frotames"></table></div>
+        <div class="hint" style="margin-top:9px">Quantos equipamentos cada atividade exige em cada mês, do
+        critério lançado no botão <b>mês</b> do Dimensionamento. Mês sem volume não opera e vem zerado. A coluna
+        <b>Pico</b> é a frota que precisa existir no pátio; somar picos de atividades diferentes não dá a frota
+        da usina, porque atividades que picam em meses distintos dividem a mesma máquina.</div></div>
+      <div class="panel"><h3 class="h-secao">Necessidade do plano x frota cadastrada, por especialidade</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_rf_base" placeholder="Buscar especialidade...">
+        <div class="tblwrap"><table id="t_rf_base"></table></div>
+        <div class="hint" style="margin-top:9px">"Cadastrada" vem da base de frota do ERP: unidades ativas, separadas
+        entre próprias e de terceiros. Folga negativa indica especialidade em que o plano pede mais equipamento do
+        que a empresa tem hoje.</div></div>
+    </div>
+  </details>
+
   <details class="bloco" id="bl_rf_extra">
     <summary><span class="bl-tit">Apoio, pessoal e irrigação</span></summary>
     <div class="bloco-corpo">
       <div class="panel"><h3>Frota de apoio (utilização fixa)</h3>
-        <input type="search" class="tbl-busca" data-alvo="#t_rf_apoio" placeholder="Buscar veículo ou máquina...">
-        <div class="tblwrap"><table id="t_rf_apoio"></table></div></div>
+        <input type="search" class="tbl-busca" data-alvo="#t_apoio" placeholder="Buscar veículo ou máquina...">
+        <div class="tblwrap"><table id="t_apoio"></table></div>
+        <div class="hint" style="margin-top:9px">A quantidade é digitada aqui; utilização e disponibilidade vêm do
+        cadastro de apoio. <b>Necessidade</b> é o que o plano exige — era esta mesma tabela que ficava repetida no
+        Dimensionamento, uma editável e outra só de leitura.</div></div>
       <div class="panel"><h3>Transporte de pessoal</h3>
         <input type="search" class="tbl-busca" data-alvo="#t_rf_tpess" placeholder="Buscar rota...">
         <div class="tblwrap"><table id="t_rf_tpess"></table></div></div>
@@ -1117,12 +1144,29 @@
 <!-- ===== RESUMO DE PESSOAS ===== -->
 <section id="pessoas">
   <h2>Resumo de Pessoas</h2>
-  <p class="lead">Efetivo dimensionado pelo plano, por departamento e por função, com a mobilização e o custo
-  de mão de obra mês a mês. Departamento = etapa das atividades, mais as equipes de manutenção e a estrutura
-  agrícola indireta. Três páginas — use o menu ao lado para trocar.</p>
+  <p class="lead">Efetivo dimensionado pelo plano: o confronto com o quadro ativo, o recorte por departamento e
+  por função, e de onde vem cada pessoa, mês a mês. Departamento = etapa das atividades, mais as equipes de
+  manutenção e a estrutura agrícola indireta. Quatro páginas — use o menu ao lado para trocar.</p>
   <div class="grid g4" id="k_pes" style="margin-bottom:16px"></div>
 
-  <details class="bloco" id="bl_pes_depto" open>
+  <details class="bloco" id="bl_pes_quadro" open>
+    <summary><span class="bl-tit">Necessidade x quadro ativo</span>
+      <span class="bl-sub" id="bl_pes_sub"></span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3 class="h-secao">Necessidade x quadro ativo, por função</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_pes_quadro" placeholder="Buscar função...">
+        <div class="tblwrap"><table id="t_pes_quadro"></table></div>
+        <div class="hint" style="margin-top:9px">Informe o quadro ativo de hoje e o que já está programado de férias
+        e de demissão. Disponível = ativo − férias − demissões; a contratar compara o disponível com o pico mensal
+        do dimensionamento, que é o mês de maior necessidade daquela função.</div>
+        <h3 class="h-secao" style="margin-top:22px">Necessidade mês a mês x disponível</h3>
+        <div class="tblwrap"><table id="t_pes_mes"></table></div>
+        <div class="hint" style="margin-top:9px">Cada célula é a necessidade daquela função no mês. Célula em
+        vermelho é mês em que a necessidade passa o disponível informado acima; o mês de pico vem em negrito.</div></div>
+    </div>
+  </details>
+
+  <details class="bloco" id="bl_pes_depto">
     <summary><span class="bl-tit">Por departamento e função</span></summary>
     <div class="bloco-corpo">
       <div class="panel"><h3>Pessoas por departamento</h3>
@@ -1152,9 +1196,13 @@
   <details class="bloco" id="bl_pes_origem">
     <summary><span class="bl-tit">Detalhe por origem</span></summary>
     <div class="bloco-corpo">
-      <div class="panel"><h3>Detalhe por origem</h3>
+      <div class="panel"><h3 class="h-secao">Necessidade por etapa, origem e função, mês a mês</h3>
         <input type="search" class="tbl-busca" data-alvo="#t_pes_det" placeholder="Buscar função ou origem...">
-        <div class="tblwrap"><table id="t_pes_det"></table></div></div>
+        <div class="tblwrap"><table id="t_pes_det"></table></div>
+        <div class="hint" style="margin-top:9px">De onde vem cada pessoa do quadro: a etapa, a atividade que a
+        emprega e a função. Cada célula é quanta gente daquela função a origem pede naquele mês — mês sem volume
+        lançado no Plano Operacional não pede ninguém. A <b>faixa de cada etapa é o subtotal dela</b>, mês a mês, e
+        a soma das etapas fecha com a necessidade total. Sem custo: o custo de mão de obra está no Fluxo mensal.</div></div>
     </div>
   </details>
 </section>
@@ -1170,6 +1218,22 @@
   </div>
   <div class="panel"><h3>Tratos culturais e manutenção</h3>
     <div class="grid g4" id="k_tratos"></div></div>
+  <div class="panel"><h3>Custo por hectare — visão por operação</h3>
+    <div class="tblwrap"><table id="t_pec_ha" class="pec"></table></div>
+    <div class="hint" style="margin-top:9px">R$/ha de cada operação e o peso de cada item no total dela. Formação do
+    canavial = preparo + plantio + tratos de cana planta, como na referência setorial. Preparo, plantio e formação dividem pela área
+    de plantio; tratos de cana planta e de cana soca, pela área de cada cultura (bloco Base física dos custos, aba
+    Premissas). Além do que a referência mostra, a tabela traz o que o plano calcula: serviços terceirizados,
+    arrendamento, depreciação, diesel dos equipamentos de apoio e demais custos gerais; a linha "Base de comparação" soma só
+    operação, insumos e administrativo, para confrontar com o relatório de referência. Insumos pela classe agronômica do produto; produto
+    sem classe cai em "Outros insumos", exceto fertilizantes e corretivos reconhecidos pelo nome (fórmula NPK, ureia,
+    KCl, calcário). Royalties não têm dado no plano. <span id="pec_ha_nota"></span></div></div>
+  <div class="panel"><h3>Sistema de colheita (R$/t)</h3>
+    <div class="tblwrap"><table id="t_pec_colh" class="pec"></table></div>
+    <div class="hint" style="margin-top:9px">Corte, transbordo e transporte com o custo direto das atividades:
+    operador (equipe paga mês cheio), diesel, manutenção (CRM), locação (frentes terceirizadas) e outros. Apoio + Adm é
+    a parte do CTTA nos rateios da colheita — equipamentos de apoio, custos gerais, administrativo e depreciação —
+    pelo custo direto. <span id="pec_colh_nota"></span></div></div>
   <div class="panel"><h3>Custo mensal</h3><div id="ch_mes"></div></div>
   <div class="panel"><h3>Grandes contas por mês</h3><div class="tblwrap"><table id="t_grandes"></table></div>
     <div class="hint" style="margin-top:9px">Custos diretos (mão de obra, manutenção, diesel, insumos,
@@ -1177,7 +1241,7 @@
     (apoio, irrigação, estrutura, arrendamento, administração, depreciação) são distribuídos proporcionalmente
     à área operada de cada mês, o mesmo critério usado no gráfico de custo mensal.</div></div>
   <div class="panel"><h3>Composição do custo</h3><div id="ch_comp"></div></div>
-  <div class="panel"><h3>Aderência PECEGE/USP</h3><div class="tblwrap"><table id="t_bench"></table></div>
+  <div class="panel"><h3>Aderência à referência setorial</h3><div class="tblwrap"><table id="t_bench"></table></div>
     <div class="hint" style="margin-top:9px">A comparação só é significativa com o plano preenchido.</div></div>
 </section>
 
@@ -1304,7 +1368,7 @@
         <li>Salários e benefícios — usar a CCT do sindicato rural de Capinópolis/MG.</li>
         <li>Custo/hora de manutenção e consumo de diesel — médias de mercado, ajustar pela frota real.</li>
         <li>Depreciação e administração — substituir pelo orçamento oficial.</li>
-        <li>Fazendas arrendadas, formas de pagamento e percentuais de rateio por etapa — confirmar na aba Arrendamentos com o contrato e o relatório PECEGE/USP.</li>
+        <li>Fazendas arrendadas, formas de pagamento e percentuais de rateio por etapa — confirmar na aba Arrendamentos com o contrato e o relatório de custos de referência.</li>
         <li>Frota padronizada em Volvo FMX 540; colheita 100% mecanizada.</li>
       </ul>
     </div>
@@ -1407,6 +1471,8 @@
 <aside id="rastro" aria-label="Rastro do cálculo" hidden></aside>
 <div id="rendm_fundo" hidden></div>
 <aside id="rendm" aria-label="Rendimento por mês" hidden></aside>
+<div id="dimdet_fundo" hidden></div>
+<aside id="dimdet" aria-label="Detalhe do dimensionamento da atividade" hidden></aside>
 <div id="fichains_fundo" hidden></div>
 <aside id="fichains" aria-label="Ficha técnica do insumo" hidden></aside>
 <div id="insedit_fundo" hidden></div>
@@ -1456,6 +1522,7 @@
   </div>
 </aside>
 <div id="print_report"></div>
+<div id="toasts" class="toasts" aria-live="polite" aria-atomic="true"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script type="module" src="js/main.js"></script>

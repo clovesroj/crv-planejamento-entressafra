@@ -30,7 +30,10 @@ const VISUAIS = [
   '[data-abrefrota]', '[data-fitoabre]', '[data-planoabre]', '[data-infx]', '[data-rendmes]', '#rm_fechar', '[data-tercdet]', '#td_fechar',
   '#sel_fun', '#busca_fun', '#sel_cat', '#sel_orig', '#sel_dest', '#sel_trat', '#busca_trat', '#sel_acomp_mes',
   '#sel_crit_ger', '#sel_crit_cabe', '.tbl-busca',
+  '#ref_busca', '#sel_ref_ag', '#sel_ref_fam', '#ref_frota', '#sel_ref_prop',
+  '#gr_inicio', '#gr_fim', '#sel_gr_empresa', '#sel_gr_esp', '#sel_gr_ag', '#sel_gr_comp', '#gr_frota', '#sel_gr_prop', '#sel_gr_reforma',
   '#sel_ins_fam', '#btn_ins_recolher', '[data-fam]',
+  '[data-dimdet]', '[data-ddaba]', '#dd_fechar', '[data-dimmes]',
   '#btn_export', '#btn_theme',
   '#sel_anp_semana', '#busca_anp_mun', '#sel_anp_mun', '#sel_anp_prod',
 ].join(',');
@@ -39,11 +42,13 @@ const CONTROLES = 'input, select, textarea, button';
 
 /* Aba (área de permissão) dona de um elemento. O modal de rendimento mensal
    fica fora das abas e grava o dimensionamento. Abas sem nada editável (Capa,
-   Painel, Validação, Resumo de Pessoas) e a de Usuários — que tem regra
-   própria, só admin — não entram. */
+   Painel, Validação) e a de Usuários — que tem regra própria, só admin — não
+   entram. O Resumo de Pessoas passou a ter o quadro ativo, e por isso ganhou
+   área própria em server/permissoes.js. */
 function areaDe(el) {
   if (!el || !el.closest) return null;
   if (el.closest('#rendm')) return 'dimens';
+  if (el.closest('#dimdet')) return 'dimens';   // detalhe do dimensionamento grava utilizacao, escala e turnos
   // Cadastro de Insumos, Grupos de Insumos (Configurações), o modal de busca
   // na Agrofit e o de editar produto gravam chaves da área 'insumos' no
   // servidor — as telas usam a mesma permissão, sem um toggle à parte no

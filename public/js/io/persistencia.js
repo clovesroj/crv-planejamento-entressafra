@@ -15,26 +15,60 @@ import { PADRAO } from '../dados/padroes.js';
 /* Locais deste modulo: o destino remoto em uso e o timer do debounce de gravacao. */
 let REMOTO = null, saveTimer = null;
 /* ---------- persistência ---------- */
+// Todas as chaves do documento, sempre no valor atual desta sessão -- inclusive
+// as que ela nunca tocou (nula ou vazia). Só estado() e alteracoes() leem isto
+// direto; o resto do app usa estado().
+function estadoCru(){
+  return {P,PLANO,DIM,INSUMO,ESPOR,TRATC,TRAT_NOME,TRAT_OBS,TRAT_ETAPA,TRAT_DEL,TRAT_ATIVO,DIESEL_MES,ARREND,ARR_PAR,ARR_RAT,FORN,FORN_PAR,ENC,BEN,NIV,GRAT,APOIO,APOIO_FIXO,
+          TERC_TAR,TERC_SUB,CRM,CRM_ESP,MAQ,FROTA_UN,REAL,MATX,INSX,INSX_V,ATVX,ATVX_V,FROTA,TPESS,QUADRO,ADM,ADM_RAT,GRUPOS_INS,FAM_NOME,FAM_CLASSE,FUN:CFG.funcoes.map(f=>f.sal),v:10};
+}
+const vazia = v => v==null || (typeof v==="object" && !Array.isArray(v) && Object.keys(v).length===0);
 function estado(){
-  const s = {P,PLANO,DIM,INSUMO,ESPOR,TRATC,TRAT_NOME,TRAT_OBS,TRAT_ETAPA,TRAT_DEL,TRAT_ATIVO,DIESEL_MES,ARREND,ARR_PAR,ARR_RAT,FORN,FORN_PAR,ENC,BEN,NIV,GRAT,APOIO,APOIO_FIXO,
-             TERC_TAR,TERC_SUB,CRM,CRM_ESP,MAQ,FROTA_UN,REAL,MATX,INSX,INSX_V,ATVX,ATVX_V,FROTA,TPESS,QUADRO,ADM,ADM_RAT,GRUPOS_INS,FAM_NOME,FAM_CLASSE,FUN:CFG.funcoes.map(f=>f.sal),v:10};
+  const s = estadoCru();
   // Campos que esta sessão nunca tocou ficam nulos ou vazios em memória. Enviá-los
   // apagava no servidor o que outra sessão já tinha preenchido — por isso são omitidos.
-  Object.keys(s).forEach(k=>{
-    const v = s[k];
-    if(v==null) delete s[k];
-    else if(typeof v==="object" && !Array.isArray(v) && Object.keys(v).length===0) delete s[k];
-  });
+  Object.keys(s).forEach(k=>{ if(vazia(s[k])) delete s[k]; });
   return s;
 }
 function setStatus(t,c){ $("#stxt").textContent=t; $("#sdot").className="dot "+(c||""); }
 
+// Toast de confirmação: o chip "Salvo no servidor" no topo é discreto demais
+// pra quem quer ter certeza de que aquela gravação específica chegou no
+// banco -- aparece um instante e some sozinho, sem interromper nada. Só pra
+// gravação de verdade no servidor (não pro rascunho no localStorage nem pro
+// "sem permissão", que já tem aviso persistente próprio).
+const MAX_TOASTS = 4;
+function mostrarToast(texto){
+  const cont = $("#toasts");
+  if(!cont) return;
+  while(cont.children.length >= MAX_TOASTS) cont.firstElementChild.remove();
+  const el = document.createElement("div");
+  el.className = "toast";
+  el.innerHTML = `<span class="dot"></span><span>${texto}</span>`;
+  cont.appendChild(el);
+  setTimeout(()=>{
+    el.classList.add("toast-saindo");
+    el.addEventListener("animationend", ()=>el.remove(), {once:true});
+  }, 2600);
+}
+
 /* Base de gravação — o estado logo depois da primeira pintura com o plano
-   carregado. Ao abrir, o app cria ou normaliza listas (arrendamentos,
-   fornecedores, administrativo, salário de função nova) que ficam diferentes
-   do documento salvo. Para um perfil que não edita essas abas, o servidor
-   descarta e as devolve como ignoradas; isso não é tentativa do usuário e não
-   pode virar aviso de "sem permissão". Só avisa do que mudou depois da base. */
+   carregado, e reajustada a cada gravação aceita (ver atualizarBaseComEnviado).
+   Ao abrir, o app cria ou normaliza listas (arrendamentos, fornecedores,
+   administrativo, salário de função nova) que ficam diferentes do documento
+   salvo. Para um perfil que não edita essas abas, o servidor descarta e as
+   devolve como ignoradas; isso não é tentativa do usuário e não pode virar
+   aviso de "sem permissão". Só avisa do que mudou depois da base.
+
+   A mesma base decide o que sai no fio (ver alteracoes()): só a chave que esta
+   sessão de fato alterou desde a última gravação. O merge do servidor
+   substitui a chave inteira, não mescla por dentro (o `||` do jsonb é só no
+   primeiro nível — ver server/store/postgres.js) — mandar uma chave que a aba
+   nunca tocou, só porque ela ficou não-vazia em algum momento (ex.: INSX
+   carregado com o cadastro base assim que a tela precisa dele, mesmo sem abrir
+   Insumos), apagava por cima o que outra sessão tivesse gravado nela depois.
+   Foi assim que um cadastro de insumos inteiro se perdeu em 2026-09-22, com
+   várias pessoas editando o mesmo plano ao mesmo tempo. */
 let BASE_GRAVACAO = null;
 const canonJSON = v => v===null || typeof v!=="object" ? JSON.stringify(v===undefined?null:v)
   : Array.isArray(v) ? "["+v.map(canonJSON).join(",")+"]"
@@ -50,6 +84,49 @@ function marcarBaseGravacao(){
 }
 // sem base marcada (antes da primeira pintura), qualquer ignorado conta
 const mudouDesdeBase = (doc, k) => !BASE_GRAVACAO || canonJSON(valorDaChave(doc,k)) !== (k in BASE_GRAVACAO ? BASE_GRAVACAO[k] : canonJSON(undefined));
+
+/* Documento com só o que esta sessão de fato alterou desde a última gravação
+   (ou desde a abertura, se ainda não gravou nada) -- é o que vai pro servidor
+   a cada salvar(). Sem base marcada ainda (carregando), manda o estado
+   inteiro: não há com o que comparar, e é a mesma situação de sempre no
+   primeiro carregamento. */
+function alteracoes(){
+  if(!BASE_GRAVACAO) return estado();
+  const cru = estadoCru(), doc = {v: cru.v};
+  Object.keys(cru).forEach(k=>{
+    if(k==="v") return;
+    if(k==="P"){
+      const pMudou = Object.keys(cru.P).some(c =>
+        canonJSON(cru.P[c]) !== (("P."+c) in BASE_GRAVACAO ? BASE_GRAVACAO["P."+c] : canonJSON(undefined)));
+      if(pMudou) doc.P = cru.P;
+      return;
+    }
+    const base = k in BASE_GRAVACAO ? BASE_GRAVACAO[k] : canonJSON(undefined);
+    // normaliza vazio (null, {} ou []) como "nunca tocado" pra comparar igual
+    // à base — mas manda o valor cru quando muda, mesmo vazio: é a pessoa
+    // esvaziando de propósito um campo que tinha conteúdo (ex.: apagar a
+    // composição customizada de um tratamento), e isso precisa chegar.
+    if(canonJSON(vazia(cru[k]) ? undefined : cru[k]) !== base) doc[k] = cru[k];
+  });
+  return doc;
+}
+/* Depois de uma gravação aceita, a base avança para o que foi de fato
+   persistido -- assim a próxima só manda o que mudar dali pra frente, não a
+   mesma chave de novo. Chave que o servidor ignorou (sem permissão) fica de
+   fora: continua "diferente da base" de propósito, pra seguir tentando (e
+   avisando) nas próximas gravações, em vez de desistir em silêncio. */
+function atualizarBaseComEnviado(doc, ignorados){
+  if(!BASE_GRAVACAO) return;
+  const ignor = new Set(ignorados || []);
+  Object.keys(doc).forEach(k=>{
+    if(k==="v") return;
+    if(k==="P"){
+      Object.keys(doc.P).forEach(c=>{ if(!ignor.has("P."+c)) BASE_GRAVACAO["P."+c] = canonJSON(doc.P[c]); });
+      return;
+    }
+    if(!ignor.has(k)) BASE_GRAVACAO[k] = canonJSON(doc[k]);
+  });
+}
 
 /* Dois destinos remotos possíveis, mesma interface: a API deste servidor
    (hospedagem própria, ex.: Render) e o banco do Artifact da Claude. Falhando
@@ -183,7 +260,8 @@ function aplicar(d){
   if(d.ATVX && ATVX_V < CFG.atividades_v){
     const r = mesclarBaseAtividades();
     setATVX_V(CFG.atividades_v);
-    if(r.novas) console.info(`cadastro de atividades atualizado: +${r.novas} atividade(s), ${r.total} no total`);
+    if(r.novas || r.corrigidas)
+      console.info(`cadastro de atividades atualizado: +${r.novas} atividade(s), ${r.corrigidas} corrigida(s), ${r.total} no total`);
   } else if(!d.ATVX) setATVX_V(CFG.atividades_v);
   if(d.GRUPOS_INS) setGRUPOS_INS(d.GRUPOS_INS);
   if(d.FAM_NOME) setFAM_NOME(d.FAM_NOME);
@@ -246,26 +324,38 @@ function migrarJanela(d){
   return d;
 }
 let salvePendente = false;
-async function gravar(full){
+async function gravar(){
   salvePendente = false;
-  const e = estado();
-  // o rascunho local é gravado sempre e na hora: sobrevive a fechar a aba no meio da gravação
-  try{ localStorage.setItem("crv_plano_v10",JSON.stringify(e)); }catch(err){}
+  // rascunho local: sempre o estado inteiro (é o que sobra se o banco perder
+  // alguma coisa), sobrevive a fechar a aba no meio da gravação
+  try{ localStorage.setItem("crv_plano_v10",JSON.stringify(estado())); }catch(err){}
+  const doc = alteracoes();
+  // nada mudou desde a última gravação (ex.: campo editado e desfeito antes do
+  // debounce disparar) — não vale ir ao servidor só pra atualizar o relógio
+  if(!Object.keys(doc).some(k=>k!=="v")){
+    if(REMOTO) statusRemoto("Salvo no servidor"); else setStatus("Salvo neste navegador","warn");
+    return;
+  }
   if(REMOTO){
     try{
-      // mesclar() junta campo a campo — uma sessão nunca apaga o que outra preencheu.
-      // substituir() só em "restaurar padrões", onde limpar campos é justamente a intenção.
-      const resp = full ? await REMOTO.substituir(e) : await REMOTO.mesclar(e);
+      // sempre mescla, nunca substitui o documento inteiro: só manda quem de
+      // fato mudou nesta sessão (ver alteracoes()), então o `||` do jsonb no
+      // servidor só troca a chave que é realmente nova — o que outra aba ou
+      // outra pessoa gravou em qualquer outra chave segue intocado.
+      const resp = await REMOTO.mesclar(doc);
       // O servidor descarta o que o perfil não pode editar e devolve a lista.
       // Dizer só "salvo" esconderia que parte da alteração não entrou — mas só
-      // conta o que o usuário mudou desde a abertura (ver marcarBaseGravacao).
-      const ignorados = (resp && Array.isArray(resp.ignorados) ? resp.ignorados : []).filter(k=>mudouDesdeBase(e,k));
+      // conta o que o usuário mudou desde a última gravação (ver BASE_GRAVACAO).
+      const ignorados = (resp && Array.isArray(resp.ignorados) ? resp.ignorados : []).filter(k=>mudouDesdeBase(doc,k));
+      atualizarBaseComEnviado(doc, ignorados);
       if(ignorados.length){
         setStatus("Salvo — sem permissão para alterar: "+ignorados.slice(0,3).join(", ")
           +(ignorados.length>3?"…":""), "warn");
         return;
       }
-      statusRemoto("Salvo no servidor"); return;
+      statusRemoto("Salvo no servidor");
+      mostrarToast(REMOTO.duravel ? "Salvo no banco de dados" : "Salvo no servidor (temporário)");
+      return;
     }catch(err){
       // O rascunho local acima já segurou a alteração; dizer que está tudo salvo
       // esconderia do usuário que os outros ainda não estão vendo o que ele digitou.
@@ -274,23 +364,27 @@ async function gravar(full){
   }
   setStatus("Salvo neste navegador","warn");
 }
-function salvar(full){
+function salvar(){
   setEDITADO(true); salvePendente = true;
   setStatus("Salvando…","warn");
   clearTimeout(saveTimer);
-  saveTimer=setTimeout(()=>gravar(full),700);
+  saveTimer=setTimeout(gravar,700);
 }
 // sair da página com uma gravação pendente perdia a alteração — força a gravação antes
 function flushSalvar(){
   if(!salvePendente) return;
   clearTimeout(saveTimer);
-  const e = estado();
-  try{ localStorage.setItem("crv_plano_v10",JSON.stringify(e)); }catch(err){}
+  try{ localStorage.setItem("crv_plano_v10",JSON.stringify(estado())); }catch(err){}
+  const doc = alteracoes(), temMudanca = Object.keys(doc).some(k=>k!=="v");
   // O navegador cancela um fetch() em curso quando a aba fecha; o sendBeacon ele
   // se encarrega de entregar. Só existe contra servidor próprio — no Artifact e
-  // sem rede, gravar() faz o que dá.
-  if(REMOTO && REMOTO.beacon && REMOTO.beacon(e)){ salvePendente = false; return; }
-  gravar(false);
+  // sem rede, gravar() faz o que dá. Otimista: sendBeacon só confirma que o
+  // navegador aceitou entregar, não que o servidor já processou — mesmo grau
+  // de certeza que salvePendente=false já assumia aqui antes desta mudança.
+  if(temMudanca && REMOTO && REMOTO.beacon && REMOTO.beacon(doc)){
+    atualizarBaseComEnviado(doc, []); salvePendente = false; return;
+  }
+  gravar();
 }
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden") flushSalvar(); });
 window.addEventListener("pagehide",flushSalvar);

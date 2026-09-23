@@ -1,3 +1,5 @@
+import { abrirDestino } from '../ui/navegacao.js';
+import { destinoValida } from '../ui/validacao.js';
 import { ETAPAS_ORD, PAG_LIVRE, mesesPag } from '../calculo/arrendamento.js';
 import { AG_SEM_FROTA, FROTA_AG, FROTA_ESP, SEP_MOD, crmDe, espDe } from '../calculo/crm.js';
 import { codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, duplicarTrat, marcarEtapa, mesclarBaseInsumos, removerGrupoInsumo, removerTrat,
@@ -7,15 +9,18 @@ import { CFG } from '../dados/cfg.js';
 import { buscarAgrofit, bulaDoProduto } from '../io/agrofit.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
-import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TERC_SUB, TERC_DET, setTERC_DET, TPESS, TRATC, TRAT_ATIVO, TRAT_NOME, TRAT_OBS, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, atividadesLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE } from '../nucleo/estado.js';
-import { AGROFIT_BUSCA, FITO_ABERTO, PLANO_ABERTO, FROTA_ABERTO, FROTA_UN, INS_EDIT, INS_FICHA, MAQ, setAGROFIT_BUSCA, setFROTA_DEST, setFROTA_ORIG, setINS_EDIT, setINS_FICHA } from '../nucleo/estado.js';
+import { REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TERC_SUB, TERC_DET, setTERC_DET, TPESS, TRATC, TRAT_ATIVO, TRAT_NOME, TRAT_OBS, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, atividadesLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE, setREF_BUSCA, setREF_AG, setREF_FAM, setREF_FROTA, setREF_PROP,
+  setGR_INICIO, setGR_FIM, setGR_EMPRESA, setGR_ESP, setGR_AG, setGR_COMP, setGR_FROTA, setGR_PROP, setGR_REFORMA } from '../nucleo/estado.js';
+import { AGROFIT_BUSCA, DIM_DET, FITO_ABERTO, PLANO_ABERTO, FROTA_ABERTO, FROTA_UN, INS_EDIT, INS_FICHA, MAQ, setAGROFIT_BUSCA, setDIM_DET, setFROTA_DEST, setFROTA_ORIG, setINS_EDIT, setINS_FICHA } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { exportarTabela, filtrarPorNome } from '../ui/componentes.js';
 import { alternarFam, aplicarFamIns, buscaExigeRedesenho, recolherTodas, todasRecolhidas } from '../ui/insumos.js';
+import { alternarMesLinha } from '../ui/dimensionamento.js';
 import { lerPremissas } from '../ui/premissas.js';
-import { leve, render, renderAgrofit, renderEditIns, renderFichaIns, renderRastro, renderRendMensal, renderTercDet } from './ciclo.js';
-import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarRastro, voltarRastro } from '../ui/rastro.js';
-import { abrirRendMensal, aberto as rendMensalAberto, fecharRendMensal } from '../ui/rendmensal.js';
+import { leve, render, renderAgrofit, renderDimDet, renderEditIns, renderFichaIns, renderRastro, renderRendMensal, renderTercDet } from './ciclo.js';
+import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarBuscaItem, filtrarRastro, voltarRastro } from '../ui/rastro.js';
+import { abrirRendMensal, aberto as rendMensalAberto, descartarRascunho, editarRascunho,
+  fecharRendMensal, pendencias, salvarRascunho } from '../ui/rendmensal.js';
 import { setAPOIO, setATIV_TRAT_SEL, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setINSX_V, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
 import { USUARIO, areasDePermissao, podeEditar } from '../nucleo/sessao.js';
 
@@ -36,6 +41,9 @@ const MSG_COD_TRAT = "Código de tratamento aceita letras, números, espaço e .
 /* ---------- entrada ---------- */
 document.addEventListener("input",e=>{
   const t=e.target;
+  // busca de "incluir outro lançamento" dentro do rastro de um conjunto —
+  // so filtra a lista do proprio modal, nao mexe no plano nem salva
+  if(t.dataset.flagBusca!==undefined){ filtrarBuscaItem(t.value); return; }
   if(t.id&&t.id.startsWith("p_")){ lerPremissas(); salvar(); render(); return; }
   if(t.dataset.real!==undefined){ const c=t.dataset.real, i=+t.dataset.m;
     REAL[c] = REAL[c] || Array(NM).fill("");
@@ -67,18 +75,14 @@ document.addEventListener("input",e=>{
   // criterio por mes do modal de rendimento: rendimento, frota, disponibilidade e
   // utilizacao. Campo em branco volta a herdar o criterio da atividade, e por
   // isso guarda "" em vez de zero -- zero seria um criterio de fato lancado.
+  // Criterio por mes: a tecla mexe so no rascunho do modal. Nao grava, nao
+  // recalcula e nao redesenha -- era isso que destruia o campo no meio da
+  // digitacao. Quem escreve no plano e o botao Salvar, mais abaixo.
   const MENSAIS = {rendm:"rendM", frotam:"frotaM", dispm:"dispM", utilm:"utilM", eficm:"eficM"};
   for(const [attr, chave] of Object.entries(MENSAIS)){
     if(t.dataset[attr]===undefined) continue;
-    const c=t.dataset[attr];
-    DIM[c]=DIM[c]||{};
-    DIM[c][chave]=Array.isArray(DIM[c][chave])?DIM[c][chave]:Array(NM).fill("");
-    DIM[c][chave][+t.dataset.i]= t.value.trim()==="" ? "" : num(t.value);
-    if(DIM[c][chave].every(v=>v===""||num(v)===0)) delete DIM[c][chave];
-    salvar();
-    // frota preenchida faz o campo de rendimento do mes virar numero calculado:
-    // e troca de marcacao, entao redesenha o modal em vez de so recalcular
-    if(attr==="frotam") render(); else leve();
+    editarRascunho(chave, +t.dataset.i, t.value);
+    marcarPendencia();
     return;
   }
   if(t.dataset.u!==undefined){ DIM[t.dataset.u]=DIM[t.dataset.u]||{}; DIM[t.dataset.u].util=num(t.value)/100; salvar(); leve(); return; }
@@ -208,9 +212,39 @@ document.addEventListener("input",e=>{
     // nada, entao a dobra precisa sair do caminho antes
     if(buscaExigeRedesenho(t.dataset.alvo, t.value)) render();
     return; }
+  // busca por especialidade na Reforma de Frota: filtra ANTES de montar os
+  // paineis (cada especialidade e um <div>, nao <tr> — filtrarPorNome nao
+  // serve aqui), entao precisa de render() mesmo, nao so esconder linha
+  if(t.id==="ref_busca"){ setREF_BUSCA(t.value); render(); return; }
+  if(t.id==="ref_frota"){ setREF_FROTA(t.value); render(); return; }
+  if(t.id==="gr_frota"){ setGR_FROTA(t.value); render(); return; }
 });
 document.addEventListener("change",e=>{
   const t=e.target;
+  // marca/desmarca um lancamento do ERP no rastro do gasto real da reforma —
+  // o total do conjunto (e da especialidade) so soma o que estiver marcado
+  // (ver itensReforma() em calculo/reforma.js). Item do mapeamento automatico
+  // (origem "auto") desmarcado vai pra lista de exclusao; item que a pessoa
+  // incluiu a mao (origem "manual") desmarcado sai da lista de inclusao — e
+  // volta a valer o mapeamento automatico dele, se houver algum.
+  if(t.dataset.flagChave!==undefined){
+    const cod = t.dataset.flagCod, conjunto = t.dataset.flagConjunto, chave = t.dataset.flagChave;
+    FROTA_UN[cod] = FROTA_UN[cod] || {};
+    if(t.dataset.flagOrigem==="manual"){
+      const incl = new Set((FROTA_UN[cod].reformaIncl || {})[conjunto] || []);
+      if(t.checked) incl.add(chave); else incl.delete(chave);
+      FROTA_UN[cod].reformaIncl = FROTA_UN[cod].reformaIncl || {};
+      if(incl.size) FROTA_UN[cod].reformaIncl[conjunto] = [...incl];
+      else delete FROTA_UN[cod].reformaIncl[conjunto];
+      const excl = new Set(FROTA_UN[cod].reformaExcl || []);
+      excl.delete(chave); // desmarcar devolve pro mapeamento automatico, se houver
+      FROTA_UN[cod].reformaExcl = [...excl];
+    } else {
+      const excl = new Set(FROTA_UN[cod].reformaExcl || []);
+      if(t.checked) excl.delete(chave); else excl.add(chave);
+      FROTA_UN[cod].reformaExcl = [...excl];
+    }
+    salvar(); render(); return; }
   // consumo por equipamento (aba Combustível): unidade, L/h, L/km, velocidade.
   // Grava no cadastro da máquina; campo vazio volta ao padrão.
   if(t.dataset.cmaq!==undefined){ const m=t.dataset.cmaq, k=t.dataset.ck;
@@ -225,23 +259,23 @@ document.addEventListener("change",e=>{
   // esta atividade — atividade criada pelo usuário nascia sem isso, e sem
   // controle na tela não dava pra ligar depois
   if(t.dataset.atmodo!==undefined){ atividadesLista()[+t.dataset.atmodo].modoOn = t.checked;
-    salvar(true); render(); return; }
+    salvar(); render(); return; }
   // ativa/inativa a atividade — some das buscas de vinculo novo (ver
   // buscaTratAtiv em ui/insumos.js), sem mexer no que ja esta lancado
   if(t.dataset.atativo!==undefined){ atividadesLista()[+t.dataset.atativo].ativo = t.checked;
-    salvar(true); render(); return; }
+    salvar(); render(); return; }
   // ativa/inativa o produto — some da busca de adicionar numa composicao NOVA
   // (ver buscaProd em ui/insumos.js), sem mexer no que ja esta lancado
   if(t.dataset.inativo!==undefined){ insLista()[+t.dataset.inativo].ativo = t.checked;
-    salvar(true); render(); return; }
+    salvar(); render(); return; }
   // ativa/inativa o tratamento — some das buscas de vincular a uma atividade
   // nova ou como extra (ver sel_trat_extra e o select do Plano Operacional)
   if(t.dataset.tra!==undefined){ TRAT_ATIVO[t.dataset.tra] = t.checked;
-    salvar(true); render(); return; }
+    salvar(); render(); return; }
   if(t.dataset.grpclasse!==undefined){
     const r = setClasseGrupo(t.dataset.grpclasse, t.value);
     if(!r.ok){ alert(r.erro); render(); return; }
-    salvar(true); render(); return; }
+    salvar(); render(); return; }
   // unidade da dose de uma linha da composicao: so muda em que unidade a
   // pessoa lancou o numero, o motor converte pra unidade do cadastro na hora
   // de custear (calculo/insumos.js, doseBase) -- o custo/ha nao muda sozinho
@@ -250,9 +284,9 @@ document.addEventListener("change",e=>{
   // liga/desliga e tipo do frete de uma linha — muda o que a celula mostra
   // (valor unico vs valor+quantidade), por isso redesenha (render), nao leve()
   if(t.dataset.tfrete!==undefined){ const c=destravar(TRAT_SEL), l=c[+t.dataset.tfrete];
-    l.frete = l.frete || {tipo:"unit"}; l.frete.on = t.checked; salvar(true); render(); return; }
+    l.frete = l.frete || {tipo:"unit"}; l.frete.on = t.checked; salvar(); render(); return; }
   if(t.dataset.tfretetipo!==undefined){ const c=destravar(TRAT_SEL), l=c[+t.dataset.tfretetipo];
-    l.frete = l.frete || {}; l.frete.tipo = t.value; salvar(true); render(); return; }
+    l.frete = l.frete || {}; l.frete.tipo = t.value; salvar(); render(); return; }
   // codigo do tratamento: leva composicao, nome, etapas e as atividades que o usam
   if(t.dataset.trc!==undefined || t.id==="in_trat_cod"){
     const de = t.dataset.trc!==undefined ? t.dataset.trc : TRAT_SEL;
@@ -267,7 +301,7 @@ document.addEventListener("change",e=>{
       if(TRAT_SEL===de) setTRAT_SEL(para);
       if(usos.length) avisoPlano(usos, "renomeado");
     }
-    salvar(true); render(); return; }
+    salvar(); render(); return; }
   // etapa em que o tratamento e usado
   if(t.dataset.tre!==undefined){
     marcarEtapa(t.dataset.tre, t.dataset.e, t.checked); salvar(); render(); return; }
@@ -353,6 +387,17 @@ document.addEventListener("change",e=>{
   if(t.id==="sel_ins_fam"){ aplicarFamIns(t.value); render(); return; }
   if(t.id==="sel_crit_ger"){ setCRIT_GER(t.value); render(); return; }
   if(t.id==="sel_crit_cabe"){ setCRIT_CABE(t.value); render(); return; }
+  if(t.id==="sel_ref_ag"){ setREF_AG(t.value); render(); return; }
+  if(t.id==="sel_ref_fam"){ setREF_FAM(t.value); render(); return; }
+  if(t.id==="sel_ref_prop"){ setREF_PROP(t.value); render(); return; }
+  if(t.id==="gr_inicio"){ setGR_INICIO(t.value); render(); return; }
+  if(t.id==="gr_fim"){ setGR_FIM(t.value); render(); return; }
+  if(t.id==="sel_gr_empresa"){ setGR_EMPRESA(t.value); render(); return; }
+  if(t.id==="sel_gr_esp"){ setGR_ESP(t.value); render(); return; }
+  if(t.id==="sel_gr_ag"){ setGR_AG(t.value); render(); return; }
+  if(t.id==="sel_gr_comp"){ setGR_COMP(t.value); render(); return; }
+  if(t.id==="sel_gr_prop"){ setGR_PROP(t.value); render(); return; }
+  if(t.id==="sel_gr_reforma"){ setGR_REFORMA(t.value); render(); return; }
   if(t.id==="sel_grat_tipo"){ GRAT[FUN_SEL]={tipo:t.value, valor:num($("#in_grat").value)}; salvar(); render(); return; }
 });
 /* ---------- SELETOR DE MESES ----------
@@ -378,7 +423,38 @@ function pintarMeses(){
   if(n) n.textContent = MESES_SEL.length ? "("+MESES_SEL.length+")" : "";
 }
 
+/* A barra de acao do modal de criterio reage a cada tecla, mas sem repintar o
+   modal: so o texto e o estado dos dois botoes mudam. Repintar aqui recriaria o
+   campo em que se esta digitando, que e justamente o bug que o rascunho corrige. */
+function marcarPendencia(){
+  const n = pendencias();
+  const rot = $(".rm-pend"), desc = $("#rm_descartar"), sal = $("#rm_salvar");
+  if(!rot) return;
+  rot.classList.toggle("tem", n > 0);
+  rot.innerHTML = n ? `<b>${n}</b> campo${n>1?"s":""} não salvo${n>1?"s":""}` : "tudo salvo";
+  if(desc) desc.disabled = !n;
+  if(sal) sal.disabled = !n;
+}
+
 document.addEventListener("click",e=>{
+  // "incluir outro lançamento" na busca dentro do rastro de um conjunto —
+  // soma no orcamento (reformaIncl) e ja tira da exclusao, se estivesse la
+  // (ver itensReforma() em calculo/reforma.js pra regra de nao contar 2x)
+  const addItem = e.target.closest && e.target.closest("[data-flag-add-chave]");
+  if(addItem){
+    const cod = addItem.dataset.flagAddCod, conjunto = addItem.dataset.flagAddConjunto, chave = addItem.dataset.flagAddChave;
+    FROTA_UN[cod] = FROTA_UN[cod] || {};
+    FROTA_UN[cod].reformaIncl = FROTA_UN[cod].reformaIncl || {};
+    const incl = new Set(FROTA_UN[cod].reformaIncl[conjunto] || []);
+    incl.add(chave);
+    FROTA_UN[cod].reformaIncl[conjunto] = [...incl];
+    const excl = new Set(FROTA_UN[cod].reformaExcl || []);
+    excl.add(chave); // impede que o mesmo lancamento conte de novo na tag nativa dele
+    FROTA_UN[cod].reformaExcl = [...excl];
+    salvar(); render(); return; }
+  // pendência da Validação: vai direto ao ponto onde se corrige
+  const vi = e.target.closest && e.target.closest("[data-valir]");
+  if(vi){ abrirDestino(destinoValida(vi.dataset.valir)); return; }
   // exportar tabela (CSV/Excel/PDF) — botao generico plantado por
   // reaplicarExportar() (ui/componentes.js) antes de toda <table id>
   const botaoExp = e.target.closest && e.target.closest("[data-exportar]");
@@ -429,12 +505,32 @@ document.addEventListener("click",e=>{
   // rendimento por mes: botao "mês" ao lado do rendimento padrao, no Dimensionamento
   const alvoRendMes = e.target.closest && e.target.closest("[data-rendmes]");
   if(alvoRendMes){ abrirRendMensal(alvoRendMes.dataset.rendmes); renderRendMensal(); return; }
+  if(e.target.closest && e.target.closest("#rm_salvar")){
+    if(salvarRascunho()){ salvar(); render(); }
+    return; }
+  if(e.target.closest && e.target.closest("#rm_descartar")){
+    descartarRascunho(); renderRendMensal(); return; }
+  // fechar com campo digitado e nao salvo perderia o que foi digitado: avisa
   if((e.target.closest && e.target.closest("#rm_fechar")) || e.target.id==="rendm_fundo"){
+    const n = pendencias();
+    if(n && !confirm(`Há ${n} campo(s) digitado(s) e não salvo(s). Fechar e descartar?`)) return;
     fecharRendMensal(); renderRendMensal(); return; }
   // ficha tecnica em modal. E visao, nao dado: nao passa por salvar(), e redesenha
   // so o modal, porque nenhum numero das abas muda ao abrir ou fechar.
   if((e.target.closest && e.target.closest("#fx_fechar")) || e.target.id==="fichains_fundo"){
     setINS_FICHA(null); renderFichaIns(); return; }
+  // detalhe do dimensionamento: abrir, trocar de bloco e fechar sao visao, nao
+  // dado — redesenham so o modal
+  // abrir a linha de meses e visao: nao grava e nao mexe em numero nenhum
+  const dm = e.target.closest && e.target.closest("[data-dimmes]");
+  if(dm){ alternarMesLinha(dm.dataset.dimmes); render(); return; }
+  const dd = e.target.closest && e.target.closest("[data-dimdet]");
+  if(dd){ setDIM_DET({cod: dd.dataset.dimdet, aba: dd.dataset.aba || "oper"});
+    renderDimDet(); return; }
+  const ddAba = e.target.closest && e.target.closest("[data-ddaba]");
+  if(ddAba && DIM_DET){ setDIM_DET({...DIM_DET, aba: ddAba.dataset.ddaba}); renderDimDet(); return; }
+  if((e.target.closest && e.target.closest("#dd_fechar")) || e.target.id==="dimdet_fundo"){
+    setDIM_DET(null); renderDimDet(); return; }
   const fx = e.target.closest && e.target.closest("[data-infx]");
   if(fx){ setINS_FICHA(fx.dataset.infx === INS_FICHA ? null : fx.dataset.infx);
     renderFichaIns(); return; }
@@ -486,7 +582,7 @@ document.addEventListener("click",e=>{
     i.agrofit_titular = p.titular_registro;
     i.bula_url = bula.url;
     setAGROFIT_BUSCA(null);
-    salvar(true); render();
+    salvar(); render();
     return;
   }
   const ab = e.target.closest && e.target.closest("[data-abrefrota]");
@@ -515,14 +611,14 @@ document.addEventListener("click",e=>{
     PLANO[cod] = PLANO[cod] || {m:Array(NM).fill(0), trat:""};
     PLANO[cod].trats = Array.isArray(PLANO[cod].trats) ? PLANO[cod].trats : [];
     PLANO[cod].trats.push({trat, m:Array(NM).fill(0)});
-    salvar(true); render(); return;
+    salvar(); render(); return;
   }
   const txrm = e.target.closest && e.target.closest("[data-txrm]");
   if(txrm){ const cod = txrm.dataset.txrm, i = +txrm.dataset.txi;
     const trats = PLANO[cod] && PLANO[cod].trats;
     if(!trats || !trats[i]) return;
     if(!confirm(`Remover o tratamento extra "${trats[i].trat}" desta atividade? A área lançada mês a mês se perde.`)) return;
-    trats.splice(i,1); salvar(true); render(); return;
+    trats.splice(i,1); salvar(); render(); return;
   }
   const t=e.target;
   if(t.dataset.rm!==undefined){ ESPOR.splice(+t.dataset.rm,1); salvar(); render(); return; }
@@ -542,7 +638,7 @@ document.addEventListener("click",e=>{
     if(!codigoTratValido(novo.trim())){ alert(MSG_COD_TRAT); return; }
     if(!duplicarTrat(de, novo.trim())){ alert(`Já existe um tratamento com o código "${novo.trim()}".`); return; }
     setTRAT_SEL(novo.trim());
-    salvar(true); render(); return; }
+    salvar(); render(); return; }
   if(t.dataset.trrm!==undefined){ const cod=t.dataset.trrm, usos=usosTrat(cod);
     if(!confirm(usos.length
       ? `Remover o tratamento "${cod}"? As atividades ${usos.join(", ")} ficam sem tratamento.`
@@ -550,7 +646,7 @@ document.addEventListener("click",e=>{
     removerTrat(cod);
     if(TRAT_SEL===cod) setTRAT_SEL(null);
     if(usos.length) avisoPlano(usos, "removido");
-    salvar(true); render(); return; }
+    salvar(); render(); return; }
   if(t.dataset.aprm!==undefined){ apoioLista().splice(+t.dataset.aprm,1); salvar(); render(); return; }
   if(t.dataset.mtrm!==undefined){ matLista().splice(+t.dataset.mtrm,1); salvar(); render(); return; }
   if(t.dataset.tprm!==undefined){ tpessLista().splice(+t.dataset.tprm,1); salvar(); render(); return; }
@@ -562,27 +658,27 @@ document.addEventListener("click",e=>{
   if(t.dataset.grprm!==undefined){
     const r = removerGrupoInsumo(t.dataset.grprm);
     if(!r.ok){ alert(r.erro); return; }
-    salvar(true); render(); return; }
+    salvar(); render(); return; }
   if(t.dataset.atrm!==undefined){
     const cod = t.dataset.atrm, p = PLANO[cod];
     const emUso = p && (p.trat || (p.m||[]).some(v=>num(v)>0));
     if(emUso && !confirm(`"${cod}" tem área/tonelada ou tratamento lançado no Plano Operacional. Remover assim mesmo?`)) return;
     if(!removerAtividade(cod)){ alert("Essa atividade não pode ser removida aqui."); return; }
-    salvar(true); render(); return; }
+    salvar(); render(); return; }
   if(t.dataset.grpren!==undefined){
     const id = t.dataset.grpren, g = todasFamilias().find(x=>x.id===id);
     const nome = prompt("Novo nome do grupo:", g ? g.nome : "");
     if(!nome || (g && nome.trim()===g.nome)) return;
     const r = renomearGrupoInsumo(id, nome);
     if(!r.ok){ alert(r.erro); return; }
-    salvar(true); render(); return; }
+    salvar(); render(); return; }
 });
 
 $("#btn_grp_add").onclick=()=>{
   const r = criarGrupoInsumo($("#in_grp_novo").value);
   if(!r.ok){ alert(r.erro); return; }
   $("#in_grp_novo").value="";
-  salvar(true); render();
+  salvar(); render();
 };
 
 $("#btn_ativ_add").onclick=()=>{
@@ -591,7 +687,7 @@ $("#btn_ativ_add").onclick=()=>{
   if(!codigoAtividadeValido(cod)){ alert("Código inválido: use letras, números, espaço, ponto, hífen, barra, +, %, vírgula ou parênteses."); return; }
   if(!criarAtividade(cod)){ alert(`Já existe uma atividade com o código "${cod}".`); return; }
   $("#in_ativ_novo").value="";
-  salvar(true); render();
+  salvar(); render();
 };
 
 $("#btn_trat_add").onclick=()=>{
@@ -600,7 +696,7 @@ $("#btn_trat_add").onclick=()=>{
   if(!codigoTratValido(cod)){ alert(MSG_COD_TRAT); return; }
   if(!criarTrat(cod)){ alert(`Já existe um tratamento com o código "${cod}".`); return; }
   setTRAT_SEL(cod); $("#in_trat_novo").value="";
-  salvar(true); render();
+  salvar(); render();
 };
 
 $("#btn_add_prod").onclick=()=>{
@@ -636,7 +732,7 @@ $("#btn_ins_add").onclick=()=>{
 $("#btn_ins_sinc").onclick=()=>{
   const r = mesclarBaseInsumos();
   setINSX_V(CFG.insumos_v);
-  salvar(true); render();
+  salvar(); render();
   alert(r.novos || r.completados
     ? `Cadastro atualizado: ${r.novos} produto(s) novo(s) e ${r.completados} com a classificação técnica `+
       `completada. São ${r.total} produtos no cadastro.`
@@ -663,7 +759,7 @@ $("#btn_crm_reset").onclick=()=>{
   if(!sujos){ alert("Este agrupamento já está com os valores padrão."); return; }
   if(!confirm("Restaurar os valores padrão de "+CAT_SEL+"? Isso apaga as taxas por especialidade e por modelo deste agrupamento.")) return;
   itens.forEach(m=>delete CRM[m]); esps.forEach(e=>delete CRM_ESP[e]);
-  salvar(true); render();
+  salvar(); render();
 };
 
 $("#btn_ap_add").onclick=()=>{
@@ -682,20 +778,20 @@ $("#btn_ap_reset").onclick=()=>{
 $("#btn_niv_reset").onclick=()=>{
   if(!GRAT[FUN_SEL]){ alert("Este cargo não tem gratificação lançada."); return; }
   if(!confirm("Restaurar níveis e gratificação de "+FUN_SEL+"?")) return;
-  delete GRAT[FUN_SEL]; salvar(true); render();
+  delete GRAT[FUN_SEL]; salvar(); render();
 };
 
 $("#btn_mdo_reset").onclick=()=>{
   if(!Object.keys(ENC).length && !Object.keys(BEN).length){
     alert("Encargos e benefícios já estão com os valores originais."); return; }
   if(!confirm("Restaurar encargos e benefícios aos valores originais?")) return;
-  setENC({}); setBEN({}); salvar(true); render();
+  setENC({}); setBEN({}); salvar(); render();
 };
 
 $("#btn_trat_reset").onclick=()=>{
   if(!TRATC[TRAT_SEL]){ alert("Este tratamento já está com a composição original."); return; }
   if(!confirm("Restaurar a composição original de "+TRAT_SEL+"?")) return;
-  delete TRATC[TRAT_SEL]; salvar(true); render();
+  delete TRATC[TRAT_SEL]; salvar(); render();
 };
 $("#btn_diesel_reaj").onclick=()=>{
   const r = num($("#in_diesel_reaj").value)/100;
@@ -753,6 +849,9 @@ document.addEventListener("keydown", e=>{
   if(e.key!=="Enter" && e.key!==" ") return;
   const alvo = e.target.closest && e.target.closest("[data-rastro]");
   if(alvo && e.target.getAttribute && e.target.getAttribute("role")==="button"){
-    e.preventDefault(); abrirRastro(alvo.dataset.rastro); renderRastro();
+    e.preventDefault(); abrirRastro(alvo.dataset.rastro); renderRastro(); return;
   }
+  // mesmo gesto (Enter/espaço) pra incluir um item da busca por teclado
+  const addItem = e.target.closest && e.target.closest("[data-flag-add-chave]");
+  if(addItem){ e.preventDefault(); addItem.click(); }
 });

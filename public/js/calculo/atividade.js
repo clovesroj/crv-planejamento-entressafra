@@ -1,6 +1,7 @@
 import { maqDe } from './crm.js';
 import { litrosDe } from './consumo.js';
 import { CFG } from '../dados/cfg.js';
+import { CORRECOES_ATIVIDADE } from '../dados/atividades.js';
 import { fatorEscala } from '../dados/escalas.js';
 import { MESES, NM, diasCorridos, diasNoMesEntre, mesesEntre } from '../nucleo/calendario.js';
 import { DIM, P, PLANO, REAL, TERC_SUB, TERC_TAR, atividadesLista } from '../nucleo/estado.js';
@@ -108,8 +109,9 @@ function janelaDe(cod, meses, codOrigem){
    calendario necessario para entrega-la. */
 function metaDe(r){
   const jm = r.janela ? r.janela.meses : 0;
+  const pr = premissasDe(r.a);
   const dias = num(P.dias) * jm;                       // dias efetivos na janela
-  const hDisp = num(P.hdia) * (num(P.disp)/100) * eficPadrao();   // hora de maquina por dia
+  const hDisp = pr.hDia * pr.disp * pr.efic;           // hora de maquina por dia
   if(!(r.total > 0) || !(r.frotaR > 0) || !(dias > 0) || !(hDisp > 0) || !(jm > 0)) return null;
   const hEq = r.horas / r.frotaR, qEq = r.total / r.frotaR;
   return {
@@ -135,19 +137,40 @@ function eficPadrao(){
   return v > 0 ? v/100 : 1;
 }
 
+/* ===== Premissas operacionais DA ATIVIDADE =====
+   Transporte tem jornada e disponibilidade proprias nas Premissas (hDiaTr,
+   dispTr): o caminhao roda 20 h por dia, a maquina de campo 16,8. O motor ja
+   dimensionava a frota do transporte com as premissas dele, mas tudo o que
+   EXPLICA esse numero -- meta, criterio por mes, rastro, modal de rendimento --
+   usava as gerais. Eram duas linguagens para a mesma atividade: o modal do
+   transbordo calculava a capacidade do mes com 16,8 h e acusava o mes de nao
+   caber, enquanto o motor dimensionava com 20 h e dizia que cabia.
+
+   Uma funcao so, e as duas passam a falar a mesma. A eficiencia operacional e
+   geral: chuva e espera atrasam caminhao como atrasam colhedora. */
+function premissasDe(a){
+  const transp = !!(a && a.tipo === "transp");
+  return {transp,
+          hDia: num(transp ? P.hDiaTr : P.hdia),
+          disp: num(transp ? P.dispTr : P.disp)/100,
+          efic: eficPadrao()};
+}
+
 /* ===== Criterio de um mes =====
    Frota, disponibilidade e utilizacao aceitam valor proprio por mes, lancados no
    modal de rendimento. Em branco, o mes herda o criterio da atividade -- e o
    padrao, porque na maioria das atividades o mes nao muda nada. */
-function criterioDoMes(cod, i, utilAt){
+function criterioDoMes(cod, i, utilAt, pr){
   const d = DIM[cod] || {};
   const v = k => { const arr = d[k]; return Array.isArray(arr) ? num(arr[i]) : 0; };
   const disp = v("dispM"), util = v("utilM"), efic = v("eficM");
   return {
     rend: v("rendM"), frota: v("frotaM"),
-    disp: disp > 0 ? disp/100 : num(P.disp)/100,
+    // mes sem disponibilidade propria herda a da atividade: a do transporte,
+    // quando for transporte (ver premissasDe)
+    disp: disp > 0 ? disp/100 : (pr ? pr.disp : num(P.disp)/100),
     util: util > 0 ? util/100 : num(utilAt),
-    efic: efic > 0 ? efic/100 : eficPadrao(),
+    efic: efic > 0 ? efic/100 : (pr ? pr.efic : eficPadrao()),
     temDisp: disp > 0, temUtil: util > 0, temEfic: efic > 0,
   };
 }
@@ -189,7 +212,21 @@ function diasDoMes(i, jan){
    rendimento e para o modal da atividade -- se cada um calculasse o seu, a
    reuniao teria duas metas para o mesmo mes. */
 function criterioMensal(r){
-  const hDia = num(P.hdia);
+  const pr = premissasDe(r.a);
+  const hDia = pr.hDia;
+  /* Pessoas do mes: a mesma conta do efetivo da atividade
+     (frota x operadores x turnos x fator de escala), so que sobre a frota
+     daquele mes. Quem muda a frota de dezembro precisa ver quanta gente
+     dezembro passa a pedir -- frota sem efetivo e meia resposta.
+     Com mix de modos nao ha uma frente so para ler operadores e turnos: ali o
+     efetivo do mes e o da atividade na proporcao da frota. */
+  const p0 = r.partes && r.partes.length === 1 ? r.partes[0] : null;
+  const fator = num(r.fator) || 1;
+  const pessoasDe = n => {
+    if(!(n > 0)) return 0;
+    if(p0) return Math.ceil(n * num(p0.ops) * (num(p0.turnosEf) || 1) * fator);
+    return r.frotaR > 0 ? Math.ceil(num(r.efetivo) * n / r.frotaR) : 0;
+  };
   const nPad = r.frotaR || 0;
   // mix de modos e transporte nao tem rendimento de premissa unico -- ali a
   // media do periodo e o unico numero que representa a atividade
@@ -198,8 +235,11 @@ function criterioMensal(r){
     const q = num(qq);
     const D = diasDoMes(i, r.janela);
     const diasMes = D.efetivos;
-    const c = criterioDoMes(r.a.cod, i, r.util);
-    const n = c.frota > 0 ? c.frota : nPad;
+    const c = criterioDoMes(r.a.cod, i, r.util, pr);
+    // Mes sem volume nao opera: frota e efetivo sao zero, nao os da atividade.
+    // Herdar o criterio ali fazia o mes aparecer com maquina e gente alocadas
+    // para uma producao que nao existe.
+    const n = q > 0 ? (c.frota > 0 ? c.frota : nPad) : 0;
     // com a frota do mes fixada, as horas sao a capacidade dela e o rendimento
     // e o que fecha a conta -- a mesma inversao do Dimensionamento, por mes
     const hDispEquip = hDia * c.disp * c.util * c.efic;   // hora produtiva por equipamento/dia
@@ -223,6 +263,7 @@ function criterioMensal(r){
       dias: diasMes, diasCorridos: D.corridos, parcial: D.parcial, diasCheios: D.cheio,
       qDia: diasMes > 0 ? q/diasMes : 0,
       qDiaCorrido: D.corridos > 0 ? q/D.corridos : 0,
+      pessoas: pessoasDe(n),
       qDiaEquip: n > 0 && diasMes > 0 ? q/n/diasMes : 0,
       hDiaEquip: n > 0 && diasMes > 0 ? horas/n/diasMes : 0,
       hDispEquip, cap,
@@ -234,6 +275,52 @@ function criterioMensal(r){
       cabe: cap >= horas - 1e-9,
     };
   });
+}
+
+/* ===== Frota que a atividade exige ter =====
+   Frota nao se soma nem se tira media: quem tem de existir no patio e a do MES
+   QUE MAIS PEDE. A media da janela subestima -- uma atividade que roda com 10
+   maquinas em fevereiro e 2 em marco aparecia como 2, e 2 nao fazem fevereiro.
+
+   `pico` e o maior mes; `media` e a da janela, que e a que o motor usa para
+   ratear custo. As duas convivem porque respondem perguntas diferentes:
+   quantas comprar, e quanto custa o uso. */
+function frotaDaAtividade(r){
+  const C = criterioMensal(r).filter(c => c.temVolume);
+  const pico = C.reduce((m,c)=>Math.max(m, c.n), 0);
+  const mesPico = C.find(c => c.n === pico);
+  return {
+    pico: pico || r.frotaR || 0,
+    media: r.frotaR || 0,
+    mes: mesPico ? mesPico.mes : null,
+    // `acima` avisa que falta maquina no mes cheio, e so ele vira tarja;
+    // `difere` e mais largo -- serve ao texto que precisa dizer os dois
+    // numeros, inclusive quando o mes pede MENOS que a media (o transbordo
+    // ajustado mes a mes cai nesse caso)
+    acima: pico > (r.frotaR || 0),
+    difere: pico !== (r.frotaR || 0),
+  };
+}
+
+/* ===== Gente que a atividade exige ter =====
+   Mesma logica da frota, e pelo mesmo motivo: o efetivo da atividade sai da
+   frota media da janela, e quem ajusta a frota de um mes muda a equipe daquele
+   mes. Sem isto a tela mostrava 207 pessoas na linha e 154 no mes aberto logo
+   abaixo dela -- a mesma pergunta com duas respostas, a uma linha de distancia.
+
+   `media` continua sendo a que paga a folha no motor (efetivo x custo mensal,
+   em todo mes com volume); `pico` e a que tem de estar contratada. */
+function pessoasDaAtividade(r){
+  const C = criterioMensal(r).filter(c => c.temVolume);
+  const pico = C.reduce((m,c)=>Math.max(m, c.pessoas), 0);
+  const mesPico = C.find(c => c.pessoas === pico);
+  return {
+    pico: pico || r.efetivo || 0,
+    media: r.efetivo || 0,
+    mes: mesPico ? mesPico.mes : null,
+    acima: pico > (r.efetivo || 0),
+    difere: pico !== (r.efetivo || 0),
+  };
 }
 
 function linha(a, MP){
@@ -264,6 +351,7 @@ function linha(a, MP){
      resposta so -- a mesma frota total se distribui de infinitas maneiras entre
      manual, trator e terceiro, e o sistema estaria escolhendo por conta propria. */
   const frotaAlvo = num(d.frota);
+  const pr = premissasDe(a);                 // jornada/disponibilidade desta atividade
   const mensal = temCriterioMensal(a.cod);   // ha criterio proprio de algum mes
   const fator = fatorDe(a.cod, MP);   // escala da atividade
   // turnos escolhidos na atividade (1t, 2t, 3t); sem escolha, o do modo ou do cadastro
@@ -307,8 +395,17 @@ function linha(a, MP){
               fcod:"—", fnome:"Prestador", cDiesel:0, cManut:0, cMDO:0, mdoMes:Array(NM).fill(0), cTerc,
               efetivo:0, direto:cTerc};
     }
-    let horas, capMes, frota;
+    let horas, frota;
     let kmViagens = null;   // distância rodada, quando o trabalho a conhece
+    /* Capacidade de UM equipamento no mes, a mesma conta para todo mundo:
+       dias efetivos x jornada x disponibilidade x utilizacao x eficiencia.
+       O transporte entra aqui com a jornada e a disponibilidade dele
+       (premissasDe); antes ele montava a propria conta e, no caminho, ficava
+       sem a eficiencia operacional -- o unico fator que a formula da hora
+       efetiva perdia pelo caminho. Com a eficiencia em 100% (o padrao) nao
+       muda numero nenhum; com ela abaixo disso, chuva passa a encolher o dia
+       do caminhao como ja encolhia o da colhedora. */
+    const capMes = num(P.dias) * pr.hDia * pr.disp * pr.efic * util;
     if(a.tipo==="transp"){
       const raio = a.src==="A02" ? P.raioMuda : P.raioSafra;
       const ciclo = cicloTransporte(raio);
@@ -317,25 +414,22 @@ function linha(a, MP){
       // cada viagem vai carregada e volta vazia: duas vezes o raio
       kmViagens = viagens*2*num(raio);
       horas = P.dispTr>0 ? viagens*ciclo/(P.dispTr/100) : 0;
-      capMes = P.dias * P.hDiaTr * (P.dispTr/100) * util;
     }else if(f.rendM || mensal){
       // criterio varia por mes: soma as horas mes a mes em vez de dividir o total
       // por um rendimento so — mes sem valor proprio usa o padrao (f.rend)
       horas = meses.reduce((s,q,i)=>{
         const qq = num(q);
         if(!(qq>0)) return s;      // mes sem volume nao consome hora nenhuma
-        const c = criterioDoMes(a.cod, i, util);
+        const c = criterioDoMes(a.cod, i, util, pr);
         // frota fixada no mes: as horas sao a capacidade dela, e o rendimento do
         // mes passa a ser o que fecha a conta (a inversao do Dimensionamento,
         // aplicada mes a mes)
-        if(c.frota>0) return s + c.frota * diasDoMes(i, jan).efetivos * P.hdia * c.disp * c.util * c.efic;
+        if(c.frota>0) return s + c.frota * diasDoMes(i, jan).efetivos * pr.hDia * c.disp * c.util * c.efic;
         const rendEf = c.rend>0 ? c.rend : f.rend;
         return s + (rendEf>0 ? qq/rendEf : 0);
       }, 0);
-      capMes = P.dias * P.hdia * (P.disp/100) * eficPadrao() * util;
     }else{
       horas = f.rend>0 ? area/f.rend : 0;
-      capMes = P.dias * P.hdia * (P.disp/100) * eficPadrao() * util;
     }
     // com a frota fixada, as horas passam a ser a capacidade dessa frota na
     // janela, e o rendimento e o que fecha a conta: area ÷ horas
@@ -430,7 +524,16 @@ function mesclarBaseAtividades(){
   CFG.atividades.forEach(base=>{
     if(!jaTem.has(base.cod)){ lista.push({...base}); novas++; }
   });
-  return {novas, total:lista.length};
+  /* Conserto de cadastro errado numa atividade que JA existe no documento.
+     Acrescentar atividade nova nao basta: um plano gravado antes carrega a
+     propria copia, e nunca receberia a correcao. So troca quando o valor ainda
+     e o errado -- quem ja ajustou a mao fica como esta. */
+  let corrigidas = 0;
+  CORRECOES_ATIVIDADE.forEach(c=>{
+    const a = lista.find(x=>x.cod===c.cod);
+    if(a && a[c.campo] === c.de){ a[c.campo] = c.para; corrigidas++; }
+  });
+  return {novas, corrigidas, total:lista.length};
 }
 // mesmo alfabeto de codigoTratValido (calculo/insumos.js): texto de tela, valor
 // de <option> e atributo data-*, sem nada que feche aspa ou abra marcacao
@@ -459,5 +562,6 @@ function removerAtividade(cod){
   return true;
 }
 
-export { MODOS_ORD, criterioMensal, diasDoMes, fatorDe, modosDe, linha, mixDe, tarifaTerc, tarifaTercDe, temDetalheTerc, metaDe,
+export { MODOS_ORD, criterioMensal, diasDoMes, fatorDe, frotaDaAtividade, modosDe, linha, mixDe, pessoasDaAtividade,
+         premissasDe, tarifaTerc, tarifaTercDe, temDetalheTerc, metaDe,
   temCriterioMensal, mesclarBaseAtividades, codigoAtividadeValido, criarAtividade, removerAtividade };

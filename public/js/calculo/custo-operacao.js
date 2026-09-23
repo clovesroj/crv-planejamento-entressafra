@@ -21,8 +21,11 @@
 import { num } from '../nucleo/formato.js';
 import { baseOperacao, comAlternativa } from './base-fisica.js';
 
-// as operações do painel, na ordem do ciclo da cana
+/* As operações do painel, na ordem do ciclo da cana. `formacao` marca as que
+   põem o canavial de pé — preparo de solo, plantio e tratos de cana planta:
+   é a formação do canavial, e é o que o custo por hectare plantado mede. */
 const OPERACOES = [
+  {id:"preparo",  nome:"Preparo de solo",                etapa:"PREPARO DE SOLO", formacao:true},
   {id:"plantio",  nome:"Plantio",                        etapa:"PLANTIO", formacao:true},
   {id:"planta",   nome:"Tratos culturais — cana planta", etapa:"TRATOS CULTURAIS", cultura:"Planta", formacao:true},
   {id:"soca",     nome:"Tratos culturais — cana soca",   etapa:"TRATOS CULTURAIS", cultura:"Soca"},
@@ -30,7 +33,6 @@ const OPERACOES = [
 ];
 // o resto do plano, para o total fechar com o custo do plano
 const OUTRAS = [
-  {id:"preparo", nome:"Preparo de solo",     etapa:"PREPARO DE SOLO"},
   {id:"apoio",   nome:"Apoio e conservação", etapa:"APOIO E CONSERVAÇÃO"},
 ];
 
@@ -93,7 +95,8 @@ function custoPorOperacao(R){
     const ha  = ativs.filter(r=>r.ehHa).reduce((t,r)=>t+r.total, 0);
     const ton = ativs.filter(r=>!r.ehHa && r.a.tipo!=="transp").reduce((t,r)=>t+r.total, 0);
     const estimado = ha>0 ? {q:ha, un:"ha", rot:"ha operados"} : {q:ton, un:"t", rot:"t"};
-    const idBase = {plantio:"plantio", planta:"planta", soca:"soca", colheita:"colheita"}[op.id];
+    // preparo de solo é feito na área que vai ser plantada: divide pela área de plantio
+    const idBase = {preparo:"plantio", plantio:"plantio", planta:"planta", soca:"soca", colheita:"colheita"}[op.id];
     let base = idBase ? baseOperacao(idBase, estimado) : {...estimado, fonte:"atividades"};
     if(op.id==="colheita") base = comAlternativa(base);
     base.haOper = ha;
@@ -107,9 +110,9 @@ function custoPorOperacao(R){
   const todas = principais.concat(outras);
   const soma = (lista, f) => lista.reduce((t,l)=>t+f(l), 0);
 
-  /* Formação do canavial = plantio + tratos de cana planta: o que se gasta
-     para pôr o canavial de pé, por hectare plantado. É subtotal, não linha a
-     mais — as duas operações seguem na tabela e na soma do plano. */
+  /* Formação do canavial = preparo de solo + plantio + tratos de cana planta:
+     o que se gasta para pôr o canavial de pé, por hectare plantado. É subtotal,
+     não linha a mais — as três operações seguem na tabela e na soma do plano. */
   const partes = principais.filter(l=>l.formacao);
   const somaObj = campo => Object.fromEntries(Object.keys(partes[0]?partes[0][campo]:{})
     .map(k=>[k, soma(partes, l=>l[campo][k])]));
@@ -130,6 +133,16 @@ function custoPorOperacao(R){
   };
 }
 
+/* Custo por hectare plantado: a formação do canavial — preparo de solo,
+   plantio e tratos de cana planta — dividida pela área de plantio. Cana soca,
+   colheita e apoio não formam canavial e ficam fora deste indicador. */
+function custoHaPlantado(R){
+  const F = custoPorOperacao(R).formacao;
+  const ha = F && F.base && F.base.q>0 ? F.base.q : 0;
+  return {valor: ha ? F.contabil/ha : 0, total: F ? F.contabil : 0, ha,
+          nota: "preparo + plantio + tratos de cana planta"};
+}
+
 /* Natureza fina do custo total. Mora aqui para a aba Custos, o Painel, o
    relatório e o rastro lerem a mesma lista: natureza nova entra num lugar só. */
 function comps(R){
@@ -141,4 +154,4 @@ function comps(R){
     ["Administração",R.admT],["Depreciação",R.depT]];
 }
 
-export { OPERACOES, OUTRAS, comps, culturaIrr, custoPorOperacao };
+export { OPERACOES, OUTRAS, comps, culturaIrr, custoHaPlantado, custoPorOperacao };

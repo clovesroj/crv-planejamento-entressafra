@@ -117,16 +117,30 @@ document.querySelectorAll("nav button[data-s]").forEach(b=>{
   b.insertAdjacentElement("afterend", sub);
   const itens = [...sub.querySelectorAll("button")];
 
+  /* Aba marcada com data-blocos="juntos" nao vira paginas: os blocos ficam
+     todos na tela, e o submenu passa a ser atalho que rola ate o bloco. E o
+     caso do Dimensionamento, onde os tres blocos sao a mesma conta lida de
+     tres angulos e comparar exigia sair de um e entrar no outro. */
+  const juntos = secao.dataset.blocos === "juntos";
+
   function mostrar(i){
-    blocos.forEach((bl,j)=>{
-      const ativo = j===i;
-      bl.open = ativo;      // so estilo (chevron, borda) — quem tira da tela e o hidden
-      bl.hidden = !ativo;
-    });
+    if(juntos){
+      blocos.forEach(bl=>{ bl.hidden = false; });
+      const alvo = blocos[i];
+      if(alvo){ alvo.open = true; alvo.scrollIntoView({block:"start", behavior:"smooth"}); }
+    }else{
+      blocos.forEach((bl,j)=>{
+        const ativo = j===i;
+        bl.open = ativo;      // so estilo (chevron, borda) — quem tira da tela e o hidden
+        bl.hidden = !ativo;
+      });
+    }
     itens.forEach((it,j)=>it.classList.toggle("on", j===i));
   }
-  // estado inicial: o bloco que ja nasce com "open" no HTML e a primeira pagina
-  mostrar(Math.max(0, blocos.findIndex(bl=>bl.open)));
+  // estado inicial: em paginas, o bloco que ja nasce "open" e a primeira; em
+  // juntos, todos aparecem e nada rola sozinho
+  if(juntos) blocos.forEach(bl=>{ bl.hidden = false; });
+  else mostrar(Math.max(0, blocos.findIndex(bl=>bl.open)));
 
   itens.forEach((item,i)=>{
     item.onclick = e=>{
@@ -139,7 +153,9 @@ document.querySelectorAll("nav button[data-s]").forEach(b=>{
   });
   // a pagina ativa e a unica visivel, entao o titulo dela continua clicavel
   // (accessibilidade/teclado) — mas fechar sozinha deixaria a tela em branco
-  blocos.forEach(bl=>{
+  // em paginas, fechar a unica visivel deixaria a tela em branco — reabre.
+  // em juntos, recolher e justamente o que se quer: ha outros blocos na tela.
+  if(!juntos) blocos.forEach(bl=>{
     bl.addEventListener("toggle", ()=>{ if(!bl.open && !bl.hidden) bl.open = true; });
   });
 
@@ -189,4 +205,33 @@ $("#btn_tema_top").onclick = ()=>{
 };
 
 
-export { marcarLocal };
+/* ---------- ir direto ao ponto de correção (aba Validação) ----------
+   Abre a aba, a página dela que contém o alvo e destaca o alvo: o primeiro da
+   lista que existir na tela. A troca de página é o próprio botão do submenu,
+   que já faz aba + página + barra superior. */
+function abrirDestino(dest){
+  if(!dest || !dest.aba) return false;
+  const b = document.querySelector(`nav button[data-s="${dest.aba}"]`);
+  const secao = document.getElementById(dest.aba);
+  if(!b || !secao) return false;
+  const alvo = (dest.alvos||[]).map(sel=>{ try{ return secao.querySelector(sel); }catch(e){ return null; } }).find(Boolean) || null;
+  const bloco = alvo ? alvo.closest("details.bloco[id]") : null;
+  const blocos = [...secao.querySelectorAll(":scope > details.bloco[id]")];
+  const sub = b.nextElementSibling && b.nextElementSibling.classList.contains("subnav") ? b.nextElementSibling : null;
+  const i = bloco ? blocos.indexOf(bloco) : -1;
+  if(sub && i>=0) sub.querySelectorAll("button")[i].click();
+  else { irPara(b); marcarLocal(b); }
+  document.body.classList.remove("menu-open");
+  if(!alvo) return true;
+  // o alvo é o campo ou a linha: destaca a linha inteira quando o alvo é um campo de tabela
+  const marca = alvo.closest("tr") && /INPUT|SELECT|BUTTON/.test(alvo.tagName) ? alvo.closest("tr") : alvo;
+  // já na página certa (a troca acima é síncrona): rola, destaca e põe o foco.
+  // Sem requestAnimationFrame — o navegador o pausa com a janela em segundo plano
+  marca.scrollIntoView({block:"center", behavior:"smooth"});
+  marca.classList.remove("destaque"); void marca.offsetWidth; marca.classList.add("destaque");
+  setTimeout(()=>marca.classList.remove("destaque"), 3200);
+  if(/INPUT|SELECT|TEXTAREA/.test(alvo.tagName) && !alvo.disabled) alvo.focus({preventScroll:true});
+  return true;
+}
+
+export { abrirDestino, marcarLocal };
