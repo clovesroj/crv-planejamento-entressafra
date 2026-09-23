@@ -1,5 +1,21 @@
 # Histórico de mudanças
 
+## 2.40.2 — 2026-09-23 · Combustível sem a referência de mercado da ANP
+
+Sai da aba Combustível o bloco **Referência de mercado (ANP)** — consulta do
+preço semanal por município, combustível e posto pesquisado. Era só consulta:
+nenhum cálculo do plano usava o preço de lá. A aba fica com **Preço e volume** e
+**Consumo**.
+
+Saiu junto tudo o que só servia a ele: `public/js/ui/anp.js`,
+`public/js/io/anp.js`, `server/anp.js` (que baixava as planilhas do site da ANP)
+e as rotas `/api/anp/semanas`, `/api/anp/resumo-semanal` e `/api/anp/postos`,
+além do CSS e das travas de permissão dos campos do bloco. O SheetJS continua:
+é o do relatório em Excel.
+
+Não muda número: total do plano da auditoria idêntico (222.645.641,87); 45
+invariantes sem falha; 29 abas, 121 rastros e 132 relatórios sem erro.
+
 ## 2.40.1 — 2026-09-23 · Custo/ha do produto respeita a unidade da dose
 
 Na composição do tratamento, dose em ml/ha de um produto com preço por litro

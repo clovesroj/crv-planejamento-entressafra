@@ -35,7 +35,6 @@ const VISUAIS = [
   '#sel_ins_fam', '#btn_ins_recolher', '[data-fam]',
   '[data-dimdet]', '[data-ddaba]', '#dd_fechar', '[data-dimmes]',
   '#btn_export', '#btn_theme',
-  '#sel_anp_semana', '#busca_anp_mun', '#sel_anp_mun', '#sel_anp_prod',
 ].join(',');
 
 const CONTROLES = 'input, select, textarea, button';

@@ -53,7 +53,7 @@ O menu lateral agrupa as abas assim:
 | | Irrigação | Dimensionamento hidráulico e energia por modalidade |
 | | Fornecedores de Cana | Contratos, estimativa de entrega, ATR e preço |
 | Frota e logística | Transporte | Transbordo e transporte de cana por raio, ciclo e capacidade |
-| | Combustível | Volume de diesel mês a mês, consumo editável por equipamento (L/h para máquina ou L/km para veículo, com horas e km projetados), preço projetado por mês; referência de mercado (ANP) por município e combustível, com histórico semanal e detalhe por posto pesquisado |
+| | Combustível | Volume de diesel mês a mês, consumo editável por equipamento (L/h para máquina ou L/km para veículo, com horas e km projetados), preço projetado por mês |
 | | Apoio | Equipamentos de apoio por quantidade e horas |
 | | Transporte de Pessoal | Rotas, diárias de ônibus e quilometragem |
 | Manutenção de frota | Manutenção de Frota | CRM por especialidade, modelo e equipamento; destino de cada frota na safra |
@@ -132,8 +132,7 @@ public/                 FRONT — servido ao navegador
                         componentes.js tem busca, combobox de busca, coluna
                         arrastável e somaSel()
     io/                 persistencia.js (estado/aplicar/migração) · relatorio.js ·
-                        secoes.js (os 21 relatórios) · agrofit.js · anp.js
-                        (referência de combustível) · arquivo.js
+                        secoes.js (os 21 relatórios) · agrofit.js · arquivo.js
     app/                ciclo.js (render/leve) · eventos.js · acoes.js
     main.js             arranque
 
@@ -146,10 +145,8 @@ server/                 BACK
   permissoes.js         catálogo aba → dados; filtra cada gravação pelo perfil
   janela.js             completa a migração 9 → 12 meses nas gravações filtradas
   agrofit.js            cliente da API AGROFIT (Embrapa), OAuth2 e prazo de 15 s
-  anp.js                scraping da ANP (preço de combustível): descobre os
-                        links da semana e baixa sob demanda, cache 12h/7 dias
   api.js                /api/health, /api/plano, /api/auth/*, /api/usuarios
-                        (inclusive excluir), /api/perfis, /api/anp/*,
+                        (inclusive excluir), /api/perfis,
                         /api/agrofit/produtos-formulados
   estatico.js           arquivos de public/
   store/                BANCO
@@ -207,7 +204,7 @@ Quem importa `P` enxerga a troca — são bindings vivos. Esquecer o setter dá
 | Quais dados cada aba edita (permissões) | `server/permissoes.js` (`AREAS`) |
 | Controle novo que só muda a visualização (filtro, abrir detalhe) | `public/js/ui/permissoes.js` (`VISUAIS`) |
 | Rota da API | `server/api.js` |
-| Integração com API externa (ex.: AGROFIT, ANP) | `server/<nome>.js`, credencial por variável de ambiente quando houver, nunca no código |
+| Integração com API externa (ex.: AGROFIT) | `server/<nome>.js`, credencial por variável de ambiente quando houver, nunca no código |
 | Hash de senha, sessão, guardas de rota | `server/auth.js` |
 | Esquema do banco (`plano`, `usuarios`, `sessoes`, `perfis`) | `server/store/schema.sql` |
 

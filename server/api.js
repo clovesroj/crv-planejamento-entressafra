@@ -11,9 +11,6 @@
  *   GET|POST|PATCH|DELETE /api/usuarios   (admin)
  *   GET|POST|PATCH|DELETE /api/perfis     (admin) — o que cada perfil pode editar
  *   GET    /api/agrofit/produtos-formulados   candidatos na Embrapa para linkar a bula de um insumo
- *   GET    /api/anp/semanas          semanas disponíveis na ANP (data + url), em cache
- *   GET    /api/anp/resumo-semanal    planilha (xlsx) de uma semana, em cache
- *   GET    /api/anp/postos            detalhe por posto pesquisado de uma semana, em cache
  *
  * Tudo que toca o plano exige sessao (server/auth.js). Gravar exige, alem
  * disso, permissao de edicao na aba de cada dado (server/permissoes.js).
@@ -25,7 +22,6 @@ const auth = require('./auth');
 const perms = require('./permissoes');
 const itens = require('./mesclaItens');
 const agrofit = require('./agrofit');
-const anp = require('./anp');
 
 const usuarioPublico = u => u && { id: u.id, login: u.login, nome: u.nome, papel: u.papel,
   ativo: u.ativo, criado_em: u.criado_em, ultimo_acesso: u.ultimo_acesso };
@@ -230,53 +226,6 @@ async function api(req, res, rota) {
       page: url.searchParams.get('page'),
     });
     return json(res, 200, { produtos: dados });
-  }
-
-  // Referência de mercado de combustível — leitura livre para qualquer
-  // logado, não é dado do plano.
-  if (rota === '/api/anp/semanas') {
-    if (req.method !== 'GET') throw erroHTTP(405, 'método não permitido');
-    await auth.exigirSessao(req, store);
-    return json(res, 200, { semanas: await anp.listarSemanas() });
-  }
-
-  // O corpo é a planilha crua (xlsx): quem interpreta é o navegador (ver
-  // server/anp.js sobre o porquê). "url" precisa ser uma das que
-  // /api/anp/semanas devolveu — nunca uma URL arbitrária do cliente.
-  if (rota === '/api/anp/resumo-semanal') {
-    if (req.method !== 'GET') throw erroHTTP(405, 'método não permitido');
-    await auth.exigirSessao(req, store);
-    const url = new URL(req.url, 'http://x').searchParams.get('url');
-    const semanas = await anp.listarSemanas();
-    const semana = url ? semanas.find(s => s.url === url) : semanas[0];
-    if (!semana) throw erroHTTP(400, 'semana inválida');
-    const bytes = await anp.baixarArquivo(semana.url);
-    res.writeHead(200, {
-      'content-type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'cache-control': 'no-store',
-      'content-length': bytes.length,
-    });
-    return res.end(bytes);
-  }
-
-  // Detalhe por posto pesquisado (bandeira, endereço, preço individual) de
-  // uma semana — "semana" é a mesma URL de resumo que /api/anp/semanas
-  // devolveu; o servidor resolve pra URL de revendas correspondente.
-  if (rota === '/api/anp/postos') {
-    if (req.method !== 'GET') throw erroHTTP(405, 'método não permitido');
-    await auth.exigirSessao(req, store);
-    const semanaUrl = new URL(req.url, 'http://x').searchParams.get('semana');
-    const semanas = await anp.listarSemanas();
-    const semana = semanaUrl ? semanas.find(s => s.url === semanaUrl) : semanas[0];
-    if (!semana) throw erroHTTP(400, 'semana inválida');
-    if (!semana.revendas) throw erroHTTP(424, 'ANP: não publicou o detalhe por posto desta semana');
-    const bytes = await anp.baixarArquivo(semana.revendas);
-    res.writeHead(200, {
-      'content-type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'cache-control': 'no-store',
-      'content-length': bytes.length,
-    });
-    return res.end(bytes);
   }
 
   if (rota !== '/api/plano') throw erroHTTP(404, 'rota inexistente');
