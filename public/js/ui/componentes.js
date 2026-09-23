@@ -196,6 +196,138 @@ function ligarBuscaSelect(buscaId, listaId, valorId, itens, rotulo, valorDe){
   };
 }
 
+/* ---------- CÉLULA DE TABELA COM BUSCA (mesmo combobox, por linha) ----------
+   `ligarBuscaSelect()` liga uma vez, em id fixo -- serve para os pickers
+   "adicionar item novo", que existem uma vez só na tela. Uma linha de tabela
+   não tem esse luxo: `render()` recria o <tbody> inteiro a cada troca (célula,
+   linha nova, etc.), então qualquer listener preso a um id morreria junto.
+   Em vez de religar a cada render(), o listener é um só, delegado no
+   `document` (liga uma vez, no arranque, igual ao olho da senha abaixo) --
+   `registrarCombo()` cadastra de onde vem a lista de cada campo (ex.: função,
+   máquina, tratamento), e a célula descobre isso pelo próprio `data-combo` na
+   hora do evento, não importa quantas vezes a linha foi recriada.
+
+   `itens(valorAtual)` recebe o valor já gravado nesta célula -- é o que deixa
+   a lista incluir, por exemplo, um código de função que saiu do cadastro mas
+   uma atividade antiga ainda usa (ver `funcaoItens()` em ui/plano.js).
+   O valor de verdade mora no <input type=hidden>, com os mesmos `data-*` que
+   o <select> nativo tinha -- por isso `escolherCombo()` dispara "change" nele:
+   quem já escutava aquele campo (`app/eventos.js`) continua funcionando sem
+   saber que virou combobox. Digitar no campo visível nunca grava nada sozinho
+   -- só filtra a lista; sair sem escolher volta pro rótulo do valor gravado. */
+const REGISTROS_COMBO = {};
+/** rotulo/valorDe recebem um item da lista; valorDe (opcional) default = rotulo. */
+function registrarCombo(nome, itens, rotulo, valorDe){
+  REGISTROS_COMBO[nome] = { itens, rotulo, valorDe: valorDe || rotulo };
+}
+/** Markup de uma célula pronta pra `registrarCombo(nome, ...)`.
+    `dataAttrs` é a string de atributos (ex.: `data-ap="3" data-f="maq"`) que o
+    campo escondido carrega -- os mesmos que o <select> substituído tinha.
+    `desabilitado` imita o <select disabled>: campo visível travado, sem lista.
+    O campo visível nasce já com o RÓTULO do valor gravado, não o valor cru --
+    senão toda vez que render() recria a linha (inclusive logo depois de uma
+    escolha, pelo próprio "change" que a escolha dispara) o campo voltava a
+    mostrar só o código, até a próxima vez que alguém abrisse a caixa. */
+function celulaBusca(nome, valorAtual, dataAttrs, desabilitado){
+  const reg = REGISTROS_COMBO[nome];
+  const item = reg ? reg.itens(valorAtual).find(i=>reg.valorDe(i)===valorAtual) : null;
+  const rotuloAtual = item ? reg.rotulo(item) : (valorAtual || "");
+  return `<span class="combo-cel" data-combo="${esc(nome)}">
+    <input type="text" class="combo-busca" value="${esc(rotuloAtual)}" autocomplete="off"
+           role="combobox" aria-expanded="false"${desabilitado?" disabled":""}>
+    <input type="hidden" ${dataAttrs} value="${esc(valorAtual)}">
+    <div class="lista-select" role="listbox" hidden></div></span>`;
+}
+let focoComboCel = -1;
+function contextoComboCel(el){
+  const cel = el.closest && el.closest(".combo-cel");
+  if(!cel) return null;
+  const reg = REGISTROS_COMBO[cel.dataset.combo];
+  if(!reg) return null;
+  return { reg, busca: cel.querySelector(".combo-busca"), oculto: cel.querySelector("input[type=hidden]"),
+           lista: cel.querySelector(".lista-select") };
+}
+// escolha vigente: com o rotulo dela ainda na caixa a lista mostra tudo, do
+// jeito que ligarBuscaSelect() ja faz pros pickers singleton -- ele e o valor
+// escolhido, nao um termo de busca, e filtrar por ele deixaria so ele mesmo
+function opcoesComboCel(ctx){
+  const t = ctx.busca.value.trim().toLowerCase();
+  const itens = ctx.reg.itens(ctx.oculto.value);
+  if(!t) return itens;
+  const atual = itens.find(i=>ctx.reg.valorDe(i)===ctx.oculto.value);
+  if(atual && ctx.busca.value===ctx.reg.rotulo(atual)) return itens;
+  return itens.filter(i=>ctx.reg.rotulo(i).toLowerCase().includes(t));
+}
+function pintarComboCel(ctx){
+  const op = opcoesComboCel(ctx);
+  ctx.lista.innerHTML = op.length
+    ? op.map((i,ix)=>`<div class="lista-select-item${ix===focoComboCel?" foco":""}" data-ix="${ix}">${esc(ctx.reg.rotulo(i))}</div>`).join("")
+    : `<div class="lista-select-vazia">Nada encontrado</div>`;
+  ctx.lista.hidden = false;
+  ctx.busca.setAttribute("aria-expanded","true");
+}
+function fecharComboCel(ctx){
+  ctx.lista.hidden = true; ctx.lista.innerHTML = ""; focoComboCel = -1;
+  ctx.busca.setAttribute("aria-expanded","false");
+}
+// volta o texto visivel pro rotulo do valor ja gravado, sem disparar nada --
+// e o que acontece ao sair do campo sem escolher (digitou e desistiu)
+function reverterComboCel(ctx){
+  const item = ctx.reg.itens(ctx.oculto.value).find(i=>ctx.reg.valorDe(i)===ctx.oculto.value);
+  ctx.busca.value = item ? ctx.reg.rotulo(item) : ctx.oculto.value;
+  fecharComboCel(ctx);
+}
+function escolherComboCel(ctx, item){
+  ctx.oculto.value = ctx.reg.valorDe(item);
+  ctx.busca.value = ctx.reg.rotulo(item);
+  fecharComboCel(ctx);
+  ctx.oculto.dispatchEvent(new Event("change", {bubbles:true}));
+}
+// entrar na caixa seleciona o texto: digitar substitui a escolha em vez de
+// emendar nela. O mouseup do clique desfaria a selecao, dai o par abaixo
+// (mesmo truque de ligarBuscaSelect() acima)
+let comboCelEntrouNoClique = false;
+document.addEventListener("mousedown", e=>{
+  if(!e.target.classList || !e.target.classList.contains("combo-busca")) return;
+  comboCelEntrouNoClique = document.activeElement !== e.target;
+});
+document.addEventListener("mouseup", e=>{
+  if(!e.target.classList || !e.target.classList.contains("combo-busca")) return;
+  if(comboCelEntrouNoClique){ e.preventDefault(); comboCelEntrouNoClique = false; }
+});
+document.addEventListener("focusin", e=>{
+  if(!e.target.classList || !e.target.classList.contains("combo-busca")) return;
+  const ctx = contextoComboCel(e.target); if(!ctx) return;
+  e.target.select();
+  focoComboCel = -1; pintarComboCel(ctx);
+});
+document.addEventListener("input", e=>{
+  if(!e.target.classList || !e.target.classList.contains("combo-busca")) return;
+  const ctx = contextoComboCel(e.target); if(!ctx) return;
+  focoComboCel = -1; pintarComboCel(ctx);
+});
+// timeout: da tempo do mousedown da lista escolher() antes do campo perder o foco
+document.addEventListener("focusout", e=>{
+  if(!e.target.classList || !e.target.classList.contains("combo-busca")) return;
+  const ctx = contextoComboCel(e.target); if(!ctx) return;
+  setTimeout(()=>{ if(!ctx.lista.hidden) reverterComboCel(ctx); }, 150);
+});
+document.addEventListener("keydown", e=>{
+  if(!e.target.classList || !e.target.classList.contains("combo-busca")) return;
+  const ctx = contextoComboCel(e.target); if(!ctx) return;
+  const op = opcoesComboCel(ctx);
+  if(e.key==="ArrowDown"){ e.preventDefault(); focoComboCel = Math.min(focoComboCel+1, op.length-1); pintarComboCel(ctx); }
+  else if(e.key==="ArrowUp"){ e.preventDefault(); focoComboCel = Math.max(focoComboCel-1, 0); pintarComboCel(ctx); }
+  else if(e.key==="Enter"){ if(op[focoComboCel]){ e.preventDefault(); escolherComboCel(ctx, op[focoComboCel]); } }
+  else if(e.key==="Escape"){ reverterComboCel(ctx); }
+});
+document.addEventListener("mousedown", e=>{
+  const item = e.target.closest && e.target.closest(".lista-select-item");
+  if(!item) return;
+  const ctx = contextoComboCel(item); if(!ctx) return;
+  escolherComboCel(ctx, opcoesComboCel(ctx)[+item.dataset.ix]);
+});
+
 /* ---------- MOSTRAR/OCULTAR SENHA ----------
    Um botão por campo (data-alvo aponta o id do <input>), delegado no
    document: cobre a tela de login (antes de qualquer sessão existir) e o
@@ -473,5 +605,6 @@ function barrasH(el,dados){
 }
 
 
-export { barras, barrasPeriodo, serieDoPeriodo, barrasH, exportarTabela, filtrarPorNome, habilitarReordenacao, kpi, ligarBuscaSelect, maxSel,
-         ordenarPorEtapa, reaplicarBuscas, reaplicarExportar, somaSel, tdMeses, th, thMeses };
+export { barras, barrasH, barrasPeriodo, celulaBusca, exportarTabela, filtrarPorNome, habilitarReordenacao, kpi,
+         ligarBuscaSelect, maxSel, ordenarPorEtapa, reaplicarBuscas, reaplicarExportar, registrarCombo, serieDoPeriodo,
+         somaSel, tdMeses, th, thMeses };

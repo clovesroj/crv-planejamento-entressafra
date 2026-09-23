@@ -200,6 +200,7 @@ h(canon(R)) + ':' + canon(R).length;
 | Ordem de uma lista de atividades | `ordenarPorEtapa()` (`ui/componentes.js`) — ordem agronômica, estável dentro da etapa |
 | Tabela mensal nova | `clsMes(i)` no `<th>` e no `<td>` de cada mês, e `somaSel()`/`maxSel()` no total — senão o filtro de período desalinha a tabela e o total não fecha |
 | Busca e coluna arrastável | só marcação (`<input class="tbl-busca" data-alvo="#tabela">`); `ui/componentes.js` aplica no fim de `render()` |
+| `<select>` novo com lista longa/dinâmica (função, máquina, tratamento — não mês/etapa/status, que são curtos e fixos) | `celulaBusca(nome, valor, dataAttrs)` + `registrarCombo(nome, itens, rotulo, valorDe)` em `ui/componentes.js` — combobox pesquisável por célula, delegado (sobrevive ao `render()` recriar a linha); ver os já convertidos em `ui/plano.js` (tratamento), `ui/apoio.js` (máquina, função) |
 | Relatório ou seção de relatório | `public/js/io/secoes.js` — leia as funções do cálculo, não recalcule |
 | Campo novo que precisa ser salvo | `nucleo/estado.js` → `io/persistencia.js` (`estado()` e `aplicar()`) → aba dona em `server/permissoes.js` |
 | Campo de texto novo no cadastro de insumos | também na lista de campos de texto do editor de linha (`app/eventos.js`, hoje `["un","pa","conc","cod","classe","fam"]`) — fora dela, o valor é convertido em número e grava `NaN` |

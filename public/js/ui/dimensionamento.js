@@ -3,15 +3,16 @@ import { codExibir, mapaCodigos } from '../nucleo/codigo-atividade.js';
 import { $, brl, esc, fmt } from '../nucleo/formato.js';
 import { MESES, NM, clsMes } from '../nucleo/calendario.js';
 
-import { ordenarPorEtapa, th } from './componentes.js';
-import { optFuncao } from './plano.js';
-import { CFG } from '../dados/cfg.js';
+import { celulaBusca, ordenarPorEtapa, registrarCombo, th } from './componentes.js';
+import { funcaoItens, funcaoRotulo, funcaoValor } from './plano.js';
 import { ESCALAS } from '../dados/escalas.js';
 import { erpDe } from '../dados/atividades-erp.js';
 import { apoioDaAtividade, apoioDoPlano } from '../calculo/apoio-frente.js';
 import { ATIVIDADES_ERP } from '../dados/atividades-erp.js';
 import { ativoDe, quadroBase } from '../calculo/quadro.js';
 import { criterioMensal, frotaDaAtividade, modoLiberado, pessoasDaAtividade, temCriterioMensal } from '../calculo/atividade.js';
+
+registrarCombo("funcao", funcaoItens, funcaoRotulo, funcaoValor);
 
 /* ---------- DIMENSIONAMENTO ---------- */
 /* Botao do criterio mensal. O ponto avisa que algum mes ja foge do padrao da
@@ -120,12 +121,10 @@ function pintarDim(R){
    do Resumo de Pessoas. */
 function pintarApoioOper(R){
   const M = R.MOA || {linhas:[], qtdMes:Array(NM).fill(0), total:0, pico:0};
-  const optF = sel => (sel && !CFG.funcoes.some(f=>f.cod===sel)
-    ? `<option value="${esc(sel)}" selected>${esc(sel)} — fora do cadastro de funções</option>` : "") + optFuncao(sel);
   $("#t_moa").innerHTML = th([["Função"],["Frente / descrição"],["Pessoas",1],...MESES.map((m,j)=>[m,1,clsMes(j)]),
       ["Custo mensal por pessoa",1],["Custo no período",1],[""]])+"<tbody>"+
     (M.linhas.length ? M.linhas.map(l=>`<tr>
-      <td><select data-moaf="${l.ix}" style="min-width:220px">${optF(l.fcod)}</select></td>
+      <td>${celulaBusca("funcao", l.fcod, `data-moaf="${l.ix}"`)}</td>
       <td><input data-moa="${l.ix}" data-f="frente" value="${esc(l.frente)}" placeholder="ex.: fiscal da frente 1" style="min-width:170px;text-align:left"></td>
       <td class="num"><input data-moa="${l.ix}" data-f="qtd" value="${l.qtd||""}" inputmode="decimal" style="width:60px"></td>` +
       l.on.map((b,j)=>`<td class="num ${clsMes(j)}"><input type="checkbox" data-moam="${l.ix}" data-m="${j}"${b?" checked":""}
@@ -147,17 +146,6 @@ function pintarApoioOper(R){
    frota costuma querer conferir o efetivo logo em seguida, e voltar a tabela
    para clicar de novo seria o mesmo vai e volta que tirou as colunas daqui. */
 const ABAS_DET = [["oper","Operação"],["frota","Frota"],["pessoas","Pessoas"]];
-
-/* Opcoes de funcao da atividade. Codigo que nao esta no cadastro de funcoes
-   (veio de importacao ou de um documento antigo -- o "F02" que aparecia como
-   "F02 — F02") entra como primeira opcao, marcado: sem isso o select mostraria
-   outra funcao como se fosse a da atividade, e a primeira interacao gravaria
-   essa outra por cima sem ninguem pedir. */
-function opcoesFuncao(sel){
-  const conhecida = CFG.funcoes.some(f=>f.cod===sel);
-  return (conhecida || !sel ? "" : `<option value="${sel}" selected>${sel} — fora do cadastro de funções</option>`)
-    + optFuncao(sel);
-}
 
 /* Tudo o que a atividade precisa para acontecer, numa linha aberta: o NUCLEO
    (a maquina que faz a operacao, com a frota que o dimensionamento calculou) e
@@ -383,8 +371,8 @@ function pintarDimDetalhe(R){
                 "frota do mes que mais pede × operadores × turnos × fator de escala")}
         ${linha("Média da janela", fmt(PES.media)+" pessoas",
                 "e o efetivo com que o motor paga a folha, em todo mes com volume")}
-        ${multi ? linha("Função","—") : `<div class="dd-campo"><label for="dd_fun">Função</label>
-          <select id="dd_fun" data-fc="${r.a.cod}">${opcoesFuncao(r.fcod)}</select>
+        ${multi ? linha("Função","—") : `<div class="dd-campo"><label>Função</label>
+          ${celulaBusca("funcao", r.fcod, `data-fc="${r.a.cod}"`)}
           <span class="calc">quem opera esta atividade: muda o custo de mão de obra e a função confrontada
           com o quadro ativo, no Resumo de Pessoas</span></div>`}
         ${linha("Quadro ativo da função", ativoDe(r.fcod, BASE)||"—",

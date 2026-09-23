@@ -23,6 +23,9 @@ input.bad{border-color:var(--bad);background:var(--bad-bg)}
 .lista-select-item{padding:8px 11px;font-size:13.5px;cursor:pointer}
 .lista-select-item:hover,.lista-select-item.foco{background:var(--sunk)}
 .lista-select-vazia{padding:8px 11px;font-size:13px;color:var(--grey)}
+/* mesmo combobox, por célula de tabela -- ver celulaBusca()/registrarCombo() em ui/componentes.js */
+.combo-cel{position:relative;display:block;min-width:110px}
+.combo-cel .combo-busca{width:100%;text-align:left}
 
 /* ---------- indicadores ---------- */
 /* inherits:true é obrigatório aqui — ::before/::after leem estas variáveis

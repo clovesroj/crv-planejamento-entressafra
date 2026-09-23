@@ -8,7 +8,7 @@ import { NM } from '../nucleo/calendario.js';
 import { DIM, PLANO_ABERTO, TERC_DET, TERC_SUB, TRAT_ATIVO, TRAT_NOME, atividadesLista } from '../nucleo/estado.js';
 import { codExibir, mapaCodigos } from '../nucleo/codigo-atividade.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
-import { ordenarPorEtapa, th } from './componentes.js';
+import { celulaBusca, ordenarPorEtapa, registrarCombo, th } from './componentes.js';
 import { MESES, PERIODO_MESES, clsMes } from '../nucleo/calendario.js';
 
 /* ---------- PLANO ---------- */
@@ -73,9 +73,25 @@ function pintarTercDet(){
   fundo.hidden = false;
 }
 
-function optFuncao(sel){
-  return CFG.funcoes.map(f=>`<option value="${f.cod}" ${f.cod===sel?"selected":""}>${f.cod} · ${f.nome}</option>`).join("");
+/* Lista de função pronta pro combobox de busca por linha (ver celulaBusca()/
+   registrarCombo() em ui/componentes.js). Inclui o código já gravado mesmo se
+   saiu do cadastro -- documento antigo (importação, ou função removida) não
+   pode ficar com o campo em branco na primeira interação, sem ninguém pedir. */
+function funcaoItens(sel){
+  const conhecida = CFG.funcoes.some(f=>f.cod===sel);
+  return (conhecida || !sel) ? CFG.funcoes
+    : [{cod:sel, nome:"fora do cadastro de funções", foraCadastro:true}, ...CFG.funcoes];
 }
+const funcaoRotulo = f => f.foraCadastro ? `${f.cod} — fora do cadastro de funções` : `${f.cod} · ${f.nome}`;
+const funcaoValor = f => f.cod;
+registrarCombo("funcao", funcaoItens, funcaoRotulo, funcaoValor);
+// tratamento: some da lista quando inativo, exceto o que a linha ja usa --
+// senao o combo perderia a opcao selecionada pra atividade ja lancada
+const TRAT_VAZIO = {cod:"", vazio:true};
+registrarCombo("tratamento",
+  sel => [TRAT_VAZIO, ...tratListaTodos().filter(t=>TRAT_ATIVO[t.cod]!==false || t.cod===sel)],
+  t => t.vazio ? "—" : `${t.cod}${TRAT_NOME[t.cod]?" — "+TRAT_NOME[t.cod]:""} · ${brl(t.custo_ha,0)}/ha`,
+  t => t.cod);
 /* O recorte de meses desta aba é o da barra superior — a aba não tem filtro
    próprio. Ter dois seletores para a mesma pergunta era o que fazia o de cima
    parecer quebrado: mudar "Safra" no topo não mexia numa tela que só obedecia ao
@@ -179,12 +195,12 @@ function comAsAcopladas(L){
 }
 /* Linha da atividade que vai junto: area, janela, maquina e equipe sao da
    atividade que executa, e aqui so se escolhe o tratamento. */
-function linhaAcoplada(r, SEL, opts, M){
+function linhaAcoplada(r, SEL, celTrat){
   const temExtras = !!r.tratsDetalhe;
   const aberto = temExtras && !!PLANO_ABERTO[r.a.cod];
-  const codJunto = M[r.junto] || r.junto;
+  const codJunto = codExibir(r.junto);
   const dica = `Vai na mesma passada da ${codJunto}: a área é a dela, mês a mês, e a máquina, a equipe e o diesel também. Aqui entra só o tratamento.`;
-  return `<tr class="acoplada"><td class="calc">${esc(M[r.a.cod] || r.a.cod)}</td>
+  return `<tr class="acoplada"><td class="calc">${esc(codExibir(r.a.cod))}</td>
       <td title="${esc(dica)}"><span class="acop-seta">↳</span>${temExtras?`<button type="button" class="mini-seta" data-planoabre="${r.a.cod}"
           title="Área por tratamento">${aberto?"▾":"▸"}</button>`:""}${r.a.nome} <span class="badge b-ok">junto da ${esc(codJunto)}</span></td>
       <td class="calc" colspan="2">na janela da ${esc(codJunto)}</td>
@@ -193,7 +209,7 @@ function linhaAcoplada(r, SEL, opts, M){
     `<td class="num tot" style="color:${totalNoFiltro(r, SEL)>0?'var(--green)':'var(--grey)'}">${fmt(totalNoFiltro(r, SEL))}</td>
       <td class="calc">na plantadora</td>
       <td class="num calc" title="${esc(dica)}">—</td>
-      <td><select data-t="${r.a.cod}" ${r.ehHa?"":"disabled"}>${opts}</select></td>
+      <td>${celTrat}</td>
       ${celulasCusto(r, SEL)}</tr>` +
     (aberto ? subLinhasTrat(r, SEL) : "");
 }
@@ -222,7 +238,6 @@ function subLinhasErp(r, SEL){
   return nucleo.map(e=>linha(e,"núcleo")).join("") + apoio.map(e=>linha(e,"apoio")).join("");
 }
 function pintarPlano(R){
-  const TL = tratListaTodos();
   const M = mapaCodigos();   // codigo de exibicao (PS03...) por codigo interno (A03...) — so texto, ver nucleo/codigo-atividade.js
   const SEL = R.SEL;
   const parcial = SEL.parcial;
@@ -241,12 +256,8 @@ function pintarPlano(R){
   comAsAcopladas(ordenarPorEtapa(R.L, r=>r.a.etapa, r=>COD_FITOSSANITARIO.has(r.a.cod)?1:0)).forEach(r=>{
     const grupo = grupoPlano(r.a);
     if(grupo!==et){et=grupo; h+=`<tr class="stage"><td colspan="${SEL.meses.length+14}"><span>${et}</span></td></tr>`;}
-    // tratamento inativo some da lista, exceto o que a linha já usa — senão o
-    // select perderia a opção selecionada pra atividade que já está lançada
-    const optsTL = TL.filter(t=>TRAT_ATIVO[t.cod]!==false || t.cod===r.trat);
-    const opts=['<option value="">—</option>'].concat(optsTL.map(t=>
-      `<option value="${t.cod}" ${t.cod===r.trat?"selected":""}>${t.cod}${TRAT_NOME[t.cod]?" — "+esc(TRAT_NOME[t.cod]):""} · ${brl(t.custo_ha,0)}/ha</option>`)).join("");
-    if(r.junto){ h += linhaAcoplada(r, SEL, opts, M); return; }
+    const celTrat = celulaBusca("tratamento", r.trat, `data-t="${r.a.cod}"`, !r.ehHa);
+    if(r.junto){ h += linhaAcoplada(r, SEL, celTrat); return; }
     const levaJunto = R.L.filter(x=>x.junto===r.a.cod).map(x=>M[x.a.cod] || x.a.cod);
     const auto = r.a.tipo==="transp";
     // janela de datas: define em que meses a atividade pode ser lancada
@@ -279,7 +290,7 @@ function pintarPlano(R){
           parcial && r.total>0 ? ` title="No ano: ${fmt(r.total)}"` : ""}>${fmt(totalNoFiltro(r, SEL))}</td>
        <td>${modoLiberado(r.a) ? mixEditor(r) : '<span class="calc">—</span>'}</td>
        ${celFrota(r)}
-       <td><select data-t="${r.a.cod}" ${r.ehHa?"":"disabled"}>${opts}</select></td>
+       <td>${celTrat}</td>
        ${celulasCusto(r, SEL)}</tr>`;
     if(aberto) h += subLinhasTrat(r, SEL) + subLinhasErp(r, SEL);
   });
@@ -307,4 +318,4 @@ function pintarPlano(R){
 }
 
 
-export { mixEditor, optFuncao, pintarPlano, pintarTercDet };
+export { funcaoItens, funcaoRotulo, funcaoValor, mixEditor, pintarPlano, pintarTercDet };
