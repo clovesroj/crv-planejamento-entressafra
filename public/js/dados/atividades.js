@@ -22,7 +22,10 @@
      1  cadastro base, 48 atividades (44 originais + A40-A43 da importacao
         de herbicida) — ponto de partida da aba Cadastro de Atividades
      2  A44-A53, Controle Fitossanitario (Broca e Cigarrinha) da planilha
-        Plano Inseticida — 58 atividades no total */
+        Plano Inseticida — 58 atividades no total
+   Remover atividade daqui NAO sobe a versao e nao tira ela do documento ja
+   salvo (ATVX): ela so deixa de ser "do sistema" e ganha o botao Remover na
+   aba Cadastro de Atividades. Foi o caso da A22 (Dessecacao, duplicava A03). */
 export const ATIVIDADES_V = 2;
 
 export const ATIVIDADES = [
@@ -52,7 +55,6 @@ export const ATIVIDADES = [
   {"cod":"A19","etapa":"TRATOS CULTURAIS","nome":"Tratos Fitossanitários no Plantio","un":"ha/mês","rend":2.3,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"modoOn":true,"cultura":"Planta"},
   {"cod":"A20","etapa":"TRATOS CULTURAIS","nome":"Aplicação de Inseticida terrestre","un":"ha/mês","rend":2.5,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"modoOn":true,"cultura":"Soca"},
   {"cod":"A21","etapa":"TRATOS CULTURAIS","nome":"Aplicação de Inseticida aéreo","un":"ha/mês","rend":1,"maq":"Aeronave / Drone (terceiro)","imp":"----","ops":0,"turnos":1,"util":1,"modoOn":true,"cultura":"Soca"},
-  {"cod":"A22","etapa":"TRATOS CULTURAIS","nome":"Dessecação","un":"ha/mês","rend":1.65,"maq":"Uniport 3030 / Drone","imp":"Barra de pulverização 24 m","ops":1,"turnos":3,"util":0.8,"modoOn":true,"cultura":"Soca"},
   {"cod":"A23","etapa":"TRATOS CULTURAIS","nome":"1ª Pré-emergência plantio","un":"ha/mês","rend":2.2,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.85,"modoOn":true,"cultura":"Planta"},
   {"cod":"A24","etapa":"TRATOS CULTURAIS","nome":"2ª Pré-emergência plantio","un":"ha/mês","rend":2.2,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.85,"modoOn":true,"cultura":"Planta"},
   {"cod":"A25","etapa":"TRATOS CULTURAIS","nome":"1ª Pré-emergência socaria muda","un":"ha/mês","rend":2.2,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.7,"modoOn":true,"cultura":"Planta"},
