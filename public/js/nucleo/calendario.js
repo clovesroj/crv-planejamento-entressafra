@@ -77,8 +77,9 @@ function diasCorridos(i){
   return m ? new Date(ano, m, 0).getDate() : 30;
 }
 
-const CAT_LBL = {mdo:"Mão de obra", manut:"Manutenção (CRM)", diesel:"Diesel", insumo:"Insumos + irrigação",
-  terc:"Terceirização + transporte", arrend:"Arrendamento", fixo:"Fixos (adm./deprec.)", espor:"Esporádicos"};
+const CAT_LBL = {mdo:"Mão de obra", manut:"Manutenção (CRM)", diesel:"Diesel", insumo:"Insumos",
+  irrig:"Irrigação", terc:"Terceirização", tpess:"Transporte de pessoal", arrend:"Arrendamento",
+  fixo:"Fixos (adm./deprec.)", espor:"Esporádicos"};
 
 export { CAT_LBL, MESES, MESES_ENTRESSAFRA, MESES_SAFRA, MES_NUM, NM, NM_PER, PERIODOS, PERIODO_MESES,
          clsMes, diasCorridos, diasNoMesEntre, indiceDaData, mesesEntre, perTag, periodoMes };

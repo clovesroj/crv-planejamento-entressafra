@@ -22,8 +22,10 @@ const th=a=>`<thead><tr>${a.map(x=>{
    deixa de fechar na tela e quem lê some com a diferença. Daí somaSel() e
    maxSel(), que refazem o fechamento sobre os meses à mostra. */
 const thMeses = () => MESES.map((m,i)=>[m,1,clsMes(i)]);
-const tdMeses = (arr, f, cls="num calc") =>
-  arr.map((v,i)=>`<td class="${cls} ${clsMes(i)}">${f(v,i)}</td>`).join("");
+// rastroDe(v,i), opcional: chave do rastro de cada celula (clique e dica ao passar o mouse)
+const tdMeses = (arr, f, cls="num calc", rastroDe) =>
+  arr.map((v,i)=>{ const k = rastroDe ? rastroDe(v,i) : "";
+    return `<td class="${cls} ${clsMes(i)}"${k?` data-rastro="${k}"`:""}>${f(v,i)}</td>`; }).join("");
 /** Soma de uma série mensal restrita aos meses que o filtro deixa à mostra. */
 const somaSel = (arr, SEL) => SEL.meses.reduce((s,i)=>s+(+arr[i]||0), 0);
 /** Pico de uma série mensal dentro do período filtrado. */
@@ -419,6 +421,40 @@ function barras(el,dados,cor,un){
         <text x="${ml+i*bw+bw/2}" y="${H-mb+14}" text-anchor="middle" font-size="9.5" fill="var(--grey)">${d.l}</text>`;});
   el.innerHTML=s+`</svg>`;
 }
+/* Custo mensal com a cor do periodo: safra no azul da marca, entressafra no
+   ambar -- as mesmas cores das etiquetas de periodo do app. So os meses do
+   recorte da barra do topo. Cada barra tem rastro (dica e clique): o calculo
+   do mes. A legenda traz o total e a media mensal de cada periodo. */
+const COR_PER = {safra:"var(--leaf)", entressafra:"var(--warn)"};
+function barrasPeriodo(el, legEl, valores, SEL, perDe){
+  const idx = SEL && SEL.meses && SEL.meses.length ? SEL.meses : MESES.map((m,i)=>i);
+  const dados = idx.map(i=>({i, l:MESES[i], v:+valores[i]||0, per:perDe(i)}));
+  const W=760,H=230,ml=64,mb=34,mt=16,mr=10;
+  const max=Math.max(...dados.map(d=>d.v),1), bw=(W-ml-mr)/Math.max(dados.length,1);
+  let s=`<svg viewBox="0 0 ${W} ${H}" class="chart" role="img" aria-label="Custo mensal por período">`;
+  for(let k=0;k<=4;k++){const y=mt+(H-mt-mb)*k/4,v=max*(1-k/4);
+    s+=`<line x1="${ml}" y1="${y}" x2="${W-mr}" y2="${y}" stroke="var(--line)"/>
+        <text x="${ml-7}" y="${y+4}" text-anchor="end" font-size="9.5" fill="var(--grey)">${fmt(v/1000)}k</text>`;}
+  // media mensal de cada periodo, tracejada, so no trecho dos seus meses
+  ["safra","entressafra"].forEach(p=>{
+    const ds = dados.filter(d=>d.per===p); if(!ds.length) return;
+    const med = ds.reduce((t,d)=>t+d.v,0)/ds.length, y = H-mb-(H-mt-mb)*(med/max);
+    const x1 = ml+dados.indexOf(ds[0])*bw, x2 = ml+(dados.indexOf(ds[ds.length-1])+1)*bw;
+    s+=`<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="${COR_PER[p]}" stroke-width="1.5" stroke-dasharray="5 4" opacity=".9"/>`;
+  });
+  dados.forEach((d,k)=>{const hh=(H-mt-mb)*(d.v/max),x=ml+k*bw+bw*.18,y=H-mb-hh, ly=Math.max(y-5,mt+9);
+    s+=`<g data-rastro="mes:${d.i}"><rect x="${ml+k*bw}" y="${mt}" width="${bw}" height="${H-mt-mb}" fill="transparent"/>
+        <rect x="${x}" y="${y}" width="${bw*.64}" height="${Math.max(hh,0)}" fill="${COR_PER[d.per]}" rx="2"/>
+        <text x="${ml+k*bw+bw/2}" y="${ly}" text-anchor="middle" font-size="9" font-weight="700" fill="var(--ink)">${d.v>0?fmt(d.v/1000,0)+"k":""}</text>
+        <text x="${ml+k*bw+bw/2}" y="${H-mb+14}" text-anchor="middle" font-size="9.5" fill="var(--grey)">${d.l}</text></g>`;});
+  el.innerHTML = s+`</svg>`;
+  if(legEl) legEl.innerHTML = ["safra","entressafra"].map(p=>{
+    const ds = dados.filter(d=>d.per===p); if(!ds.length) return "";
+    const tot = ds.reduce((t,d)=>t+d.v,0);
+    return `<span class="leg-per" data-rastro="periodo:${p}"><i style="background:${COR_PER[p]}"></i>
+      <b>${p==="safra"?"Safra":"Entressafra"}</b> ${brl(tot)} · média ${brl(tot/ds.length)}/mês
+      <span class="calc">(${ds.length} ${ds.length===1?"mês":"meses"}; tracejado = média)</span></span>`; }).join("");
+}
 function barrasH(el,dados){
   // paleta do campo: folha, palha, céu, latossolo e tons intermediários
   /* Rampa do azul da marca, do escuro ao claro. A barra e ordenada da maior
@@ -437,5 +473,5 @@ function barrasH(el,dados){
 }
 
 
-export { barras, serieDoPeriodo, barrasH, exportarTabela, filtrarPorNome, habilitarReordenacao, kpi, ligarBuscaSelect, maxSel,
+export { barras, barrasPeriodo, serieDoPeriodo, barrasH, exportarTabela, filtrarPorNome, habilitarReordenacao, kpi, ligarBuscaSelect, maxSel,
          ordenarPorEtapa, reaplicarBuscas, reaplicarExportar, somaSel, tdMeses, th, thMeses };

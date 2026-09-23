@@ -1,5 +1,54 @@
 # Histórico de mudanças
 
+## 2.43.0 — 2026-09-23 · Grandes contas separadas, rastro em todo número de custo e gráfico por período
+
+### Grandes contas
+
+Insumos e irrigação, terceirização e transporte de pessoal passam a ser contas
+separadas: **Mão de obra · Manutenção (CRM) · Diesel · Insumos · Irrigação ·
+Terceirização · Transporte de pessoal · Arrendamento · Fixos · Esporádicos**.
+Vale na aba Custos (por período), no Painel (grandes contas mês a mês), nos
+relatórios e nos rastros. O total não muda: só a abertura.
+
+### Rastreabilidade em todo número das tabelas de custo
+
+Todo número das tabelas de custo — aba Custos (por período, por etapa e
+período, natureza, custo mensal, custo por etapa, custo operacional e contábil
+por operação) e grandes contas do Painel — agora:
+
+- **ao passar o mouse**, mostra o começo da explicação: título, valor e as
+  primeiras linhas de como se chegou nele;
+- **ao clicar**, abre o rastro completo, já no período da coluna (a célula de
+  "Entressafra" abre filtrada na entressafra; os botões do rastro trocam).
+
+Rastros novos:
+
+- **Grande conta, no ano ou num período** — de onde vem o valor, fonte a fonte,
+  com o critério que levou cada uma a cada mês (equipe paga no mês com volume,
+  litros ao preço do mês, volume do mês, área operada do mês, meses marcados,
+  mês de pagamento...), e o valor de cada mês. A abertura mora em
+  `calculo/fontes.js`, refazendo a conta do motor fonte por fonte: a soma das
+  fontes de cada mês é o valor da conta naquele mês (conferido na auditoria).
+- **Etapa num período** — custo direto das atividades no período, a parte da
+  etapa nos rateios, as atividades com lançamento e o mês a mês.
+- **Subtotais das operações** — a soma operação a operação.
+
+A dica usa o cálculo do último render: passar o mouse não recalcula nada. No
+app são agora 178 rastros alcançáveis pelas telas (eram 121), todos sem erro,
+e nenhuma célula numérica das tabelas de custo ficou sem rastro.
+
+### Gráfico de custo mensal por período
+
+Na aba Custos, página "Por período": barras do custo de cada mês na cor do
+período — safra no azul, entressafra no âmbar, as mesmas das etiquetas de
+período —, com a média mensal de cada período tracejada e, na legenda, o total
+e a média de cada um. Segue o recorte da barra do topo (Ano todo, Safra,
+Entressafra ou meses), e cada barra abre o rastro do mês.
+
+Nenhum número muda: plano da auditoria idêntico; 52 invariantes sem falha (um
+novo: fontes de cada grande conta = conta, mês a mês); 29 abas e 132 relatórios
+sem erro.
+
 ## 2.42.2 — 2026-09-23 · Atividade zerada no Plano Operacional não é pendência
 
 Num plano de entressafra a colheita fica zerada — e a Validação acusava isso

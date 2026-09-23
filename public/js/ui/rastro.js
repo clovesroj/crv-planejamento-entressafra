@@ -19,7 +19,10 @@ const aberto = () => pilha.length > 0;
 
 function abrirRastro(chave){
   if(!chave) return;
-  if(pilha[pilha.length-1] !== chave) { pilha.push(chave); periodo = "todos"; buscaItem = ""; }
+  // chave que termina no período (cat:mdo:entressafra, a célula de uma coluna
+  // de período) já abre filtrada nele; os botões do rastro continuam trocando
+  const m = /:(safra|entressafra)$/.exec(chave);
+  if(pilha[pilha.length-1] !== chave) { pilha.push(chave); periodo = m ? m[1] : "todos"; buscaItem = ""; }
 }
 function voltarRastro(){ pilha.pop(); periodo = "todos"; buscaItem = ""; }
 function fecharRastro(){ pilha = []; jaAberto = false; buscaItem = ""; }
@@ -163,5 +166,55 @@ function nomeCurto(chave){
   if(tipo==="pessoas") return arg==="total" ? "Efetivo total" : arg.split(":")[1]||arg;
   return chave;
 }
+
+/* ---------- DICA AO PASSAR O MOUSE ----------
+   Todo número com rastro (data-rastro) mostra, parado o mouse sobre ele, o
+   começo da explicação: título, valor e as primeiras linhas de "como se
+   chegou". O clique continua abrindo o rastro completo. Vale para qualquer
+   tabela ou cartão do app que ligue data-rastro — não há dica escrita à mão
+   por célula, e por isso ela nunca diz algo diferente do rastro.
+
+   A dica usa o R do último render(): nada é recalculado ao passar o mouse. */
+let dicaEl = null, dicaTimer = null, dicaAlvo = null;
+function dicaEsconder(){ clearTimeout(dicaTimer); dicaAlvo = null; if(dicaEl) dicaEl.hidden = true; }
+function dicaMostrar(alvo){
+  if(!ultimoR || !alvo.isConnected) return;
+  let r = null;
+  const m = /:(safra|entressafra)$/.exec(alvo.dataset.rastro);
+  try{ r = rastro(ultimoR, alvo.dataset.rastro, m ? m[1] : "todos"); }catch(err){ r = null; }
+  if(!r) return;
+  const bloco = (r.blocos||[]).find(b=>(b.linhas||[]).length) || null;
+  const linhas = bloco ? bloco.linhas.slice(0,5) : [];
+  if(!dicaEl){ dicaEl = document.createElement("div"); dicaEl.className = "ra-dica"; dicaEl.hidden = true;
+    dicaEl.setAttribute("role","tooltip"); document.body.appendChild(dicaEl); }
+  dicaEl.innerHTML = `<div class="ra-dica-tit">${esc(r.titulo)}</div>
+    ${r.subtitulo ? `<div class="ra-dica-sub">${esc(r.subtitulo)}</div>` : ""}
+    <div class="ra-dica-val">${esc(r.valor||"")}</div>
+    ${bloco ? `<div class="ra-dica-bloco">${esc(bloco.titulo)}</div>` +
+      linhas.map(l=>`<div class="ra-dica-l"><span>${esc(l.rot)}</span><b>${esc(l.val)}</b></div>`).join("") +
+      (bloco.linhas.length>5 ? `<div class="ra-dica-mais">+ ${bloco.linhas.length-5} linha(s)</div>` : "") : ""}
+    <div class="ra-dica-pe">Clique para ver o cálculo completo ›</div>`;
+  dicaEl.hidden = false;
+  const a = alvo.getBoundingClientRect(), d = dicaEl.getBoundingClientRect();
+  const vw = window.innerWidth, vh = window.innerHeight;
+  let x = Math.min(Math.max(8, a.left + a.width/2 - d.width/2), vw - d.width - 8);
+  let y = a.bottom + 8;
+  if(y + d.height > vh - 8) y = Math.max(8, a.top - d.height - 8);
+  dicaEl.style.left = x+"px"; dicaEl.style.top = y+"px";
+}
+document.addEventListener("mouseover", e=>{
+  const alvo = e.target.closest && e.target.closest("[data-rastro]");
+  // dentro do proprio rastro a linha ja e a explicacao
+  if(!alvo || alvo.closest("#rastro")){ if(dicaAlvo && !(alvo && alvo===dicaAlvo)) dicaEsconder(); return; }
+  if(alvo === dicaAlvo) return;
+  dicaEsconder(); dicaAlvo = alvo;
+  dicaTimer = setTimeout(()=>{ if(dicaAlvo===alvo) dicaMostrar(alvo); }, 350);
+});
+document.addEventListener("mouseout", e=>{
+  if(!dicaAlvo) return;
+  const para = e.relatedTarget;
+  if(!para || !dicaAlvo.contains(para)) dicaEsconder();
+});
+["click","scroll","keydown"].forEach(ev=>document.addEventListener(ev, dicaEsconder, true));
 
 export { abrirRastro, aberto, fecharRastro, filtrarRastro, filtrarBuscaItem, pintarRastro, voltarRastro };

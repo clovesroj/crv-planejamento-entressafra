@@ -3,7 +3,7 @@ import { custoHaPlantado, custoPorOperacao } from '../calculo/custo-operacao.js'
 import { tabelaColheita, tabelaHa } from '../calculo/modelo-pecege.js';
 import { baseEtapa, custoUnit, premissaBase, rotuloBase } from '../calculo/base-fisica.js';
 import { CRM_COMP } from '../calculo/crm.js';
-import { MESES, clsMes, periodoMes } from '../nucleo/calendario.js';
+import { CAT_LBL, MESES, clsMes, periodoMes } from '../nucleo/calendario.js';
 import { P } from '../nucleo/estado.js';
 import { $, brl, fmt } from '../nucleo/formato.js';
 import { barras, serieDoPeriodo, barrasH, kpi, somaSel, tdMeses, th } from './componentes.js';
@@ -54,20 +54,22 @@ function pintarPainel(R){
         brl(R.arrT)+" no orçamento · "+fmt(R.AR.area)+" ha","nat:arrend");
   barras($("#ch_mes"), serieDoPeriodo(R.meses, R.SEL), "#2A57A0");
 
-  const catLbl = {mdo:"Mão de obra",manut:"Manutenção (CRM)",diesel:"Diesel",insumo:"Insumos + irrigação",
-    terc:"Terceirização + transporte",arrend:"Arrendamento",fixo:"Fixos (adm./deprec.)",espor:"Esporádicos"};
+  // os rotulos sao os de CAT_LBL: uma lista so de grandes contas no app
+  const catLbl = CAT_LBL;
   const catKeys = Object.keys(catLbl);
   const SEL = R.SEL;
   const totMes = MESES.map((m,i)=>catKeys.reduce((s,k)=>s+R.mesesCat[k][i],0));
   $("#t_grandes").innerHTML = th([["Conta"],...MESES.map((m,i)=>[`${m}<br><small>${periodoMes(i)==="safra"?"safra":"entressafra"}</small>`,1,clsMes(i)]),
       [SEL.parcial?"Total do período":"Total",1],["Safra",1],["Entressafra",1]])+"<tbody>"+
     catKeys.map(k=>{const linha=R.mesesCat[k];
-      return `<tr><td>${catLbl[k]}</td>`+tdMeses(linha, v=>brl(v,0))+
-        `<td class="num tot">${brl(somaSel(linha, SEL))}</td><td class="num">${brl(R.PER.safra.cat[k])}</td>`+
-        `<td class="num">${brl(R.PER.entressafra.cat[k])}</td></tr>`;}).join("")+
-    `<tr><td class="tot">TOTAL</td>`+tdMeses(totMes, v=>brl(v,0), "num tot")+
-    `<td class="num tot">${brl(somaSel(totMes, SEL))}</td>`+
-    `<td class="num tot">${brl(R.PER.safra.total)}</td><td class="num tot">${brl(R.PER.entressafra.total)}</td></tr></tbody>`;
+      return `<tr><td data-rastro="cat:${k}">${catLbl[k]}</td>`+tdMeses(linha, v=>brl(v,0), "num calc", (v,i)=>`cat:${k}:${periodoMes(i)}`)+
+        `<td class="num tot" data-rastro="cat:${k}">${brl(somaSel(linha, SEL))}</td>`+
+        `<td class="num" data-rastro="cat:${k}:safra">${brl(R.PER.safra.cat[k])}</td>`+
+        `<td class="num" data-rastro="cat:${k}:entressafra">${brl(R.PER.entressafra.cat[k])}</td></tr>`;}).join("")+
+    `<tr><td class="tot" data-rastro="total">TOTAL</td>`+tdMeses(totMes, v=>brl(v,0), "num tot", (v,i)=>"mes:"+i)+
+    `<td class="num tot" data-rastro="total">${brl(somaSel(totMes, SEL))}</td>`+
+    `<td class="num tot" data-rastro="periodo:safra">${brl(R.PER.safra.total)}</td>`+
+    `<td class="num tot" data-rastro="periodo:entressafra">${brl(R.PER.entressafra.total)}</td></tr></tbody>`;
   barrasH($("#ch_comp"),comps(R).filter(([,v])=>v>0).map(([l,v])=>({l,v})));
 
   const ref=[["Operações (MDO + manutenção + diesel)",R.mdoTotal+R.manutT+R.dieselT,52],

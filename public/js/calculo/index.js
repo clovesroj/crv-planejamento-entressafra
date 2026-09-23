@@ -129,19 +129,21 @@ function calcular(){
   ESPOR.forEach(e=>{ const i = MESES.indexOf(e.mes); if(i>=0) meses[i]+=num(e.valor); });
 
   // grandes contas por mês — mesmo critério de rateio do total mensal, só que por natureza
+  // insumos e irrigação, terceirização e transporte de pessoal em contas separadas
   const mesesCat = {mdo:Array(NM).fill(0), manut:Array(NM).fill(0), diesel:Array(NM).fill(0),
-    insumo:Array(NM).fill(0), terc:Array(NM).fill(0), arrend:Array(NM).fill(0), fixo:Array(NM).fill(0), espor:Array(NM).fill(0)};
+    insumo:Array(NM).fill(0), irrig:Array(NM).fill(0), terc:Array(NM).fill(0), tpess:Array(NM).fill(0),
+    arrend:Array(NM).fill(0), fixo:Array(NM).fill(0), espor:Array(NM).fill(0)};
   L.forEach(r=>{
     const tot=r.total||0; if(tot<=0) return;
     r.meses.forEach((q,i)=>{ const f=num(q)/tot;
       mesesCat.mdo[i]+=r.mdoMes[i]; mesesCat.manut[i]+=r.cManut*f;
       mesesCat.diesel[i]+=r.dieselMes[i]; mesesCat.insumo[i]+=r.cInsumo*f; mesesCat.terc[i]+=r.cTerc*f; });
   });
-  const indiretoMdo = AE.mdo+mdoIndirT+EM.total, indiretoManut = AE.manut+crmExtra+MT.distribuido,
-    indiretoInsumo = IR.total, indiretoTerc = TC.total+TP.total;
+  const indiretoMdo = AE.mdo+mdoIndirT+EM.total, indiretoManut = AE.manut+crmExtra+MT.distribuido;
   for(let i=0;i<NM;i++){ const h=pesoMes(i);
     mesesCat.mdo[i]+=indiretoMdo*h; mesesCat.manut[i]+=indiretoManut*h;
-    mesesCat.diesel[i]+=AE.dieselMes[i]; mesesCat.insumo[i]+=indiretoInsumo*h; mesesCat.terc[i]+=indiretoTerc*h;
+    mesesCat.diesel[i]+=AE.dieselMes[i]; mesesCat.irrig[i]+=IR.total*h;
+    mesesCat.terc[i]+=TC.total*h; mesesCat.tpess[i]+=TP.total*h;
     mesesCat.fixo[i]+=fixoMes; mesesCat.arrend[i]+=AR.mes[i]; mesesCat.manut[i]+=MT.mesFixo[i];
     mesesCat.mdo[i]+=FT.mes[i]+MOA.mes[i];
   }
@@ -248,7 +250,7 @@ function calcular(){
   return {MP,L,TR,AE,IR,MT,AP,EM,TC,TP,CB, meses, mesesCat, haMes, etapaMes, PER,
           dieselT: dieselTot, manutT: manutTot,
           mdoDireta: mdoT, mdoApoio: AE.mdo, mdoIndirT, mdoManut: EM.total,
-          FT, MOA, mdoFat: FT.total, mdoApoioOper: MOA.total,
+          FT, MOA, mdoFat: FT.total, mdoApoioOper: MOA.total, depMes, fixoMes,
           mdoTotal: mdoTot,
           insumoT, irrT:IR.total, tercT:TC.total, tercAtivT, espT, apoioT: AE.total,
           arrT:AR.total, AR, ADM, AD, diretoSum, indiretoPool, admT:ADM.total, depT:depMes*NM,

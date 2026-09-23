@@ -897,3 +897,23 @@ table.pec tr.pec-a td:first-child{font-style:italic}
 #t_plano tr.acoplada td{background:color-mix(in srgb,var(--green) 5%,var(--card))}
 #t_plano tr.acoplada td:nth-child(2){padding-left:22px}
 #t_plano tr.acoplada .acop-seta{color:var(--grey);margin-right:6px}
+
+/* dica do rastro ao passar o mouse (ui/rastro.js) */
+.ra-dica{position:fixed;z-index:60;max-width:360px;min-width:240px;background:var(--card);color:var(--ink);
+  border:1px solid var(--line-strong);border-radius:var(--r);box-shadow:0 8px 24px rgba(15,25,40,.18);
+  padding:10px 12px;font-size:12px;pointer-events:none}
+.ra-dica-tit{font-weight:700;font-size:12.5px}
+.ra-dica-sub{color:var(--grey);font-size:11px;margin-top:1px}
+.ra-dica-val{font-weight:700;font-size:15px;margin:4px 0 6px}
+.ra-dica-bloco{color:var(--grey);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;border-top:1px solid var(--line);padding-top:6px;margin-bottom:3px}
+.ra-dica-l{display:flex;justify-content:space-between;gap:12px;padding:1px 0}
+.ra-dica-l span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ra-dica-l b{white-space:nowrap;font-weight:600}
+.ra-dica-mais{color:var(--muted);font-size:11px;margin-top:2px}
+.ra-dica-pe{color:var(--leaf);font-size:11px;font-weight:600;margin-top:6px}
+
+/* grafico de custo mensal por periodo (aba Custos) */
+.leg-periodo{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:6px;font-size:12px}
+.leg-per{display:inline-flex;align-items:center;gap:6px}
+.leg-per i{display:inline-block;width:12px;height:12px;border-radius:3px}
+#ch_per g[data-rastro]:hover rect:nth-child(2){opacity:.8}
