@@ -293,6 +293,14 @@ td .btn{height:28px;padding:0 10px;font-size:12px}
    <table id> do app — sem marcação nova em cada tela. */
 .tbl-export{display:flex;justify-content:flex-end;gap:6px;margin-bottom:6px}
 
+/* Item inativo nos cadastros (insumos, tratamentos, atividades): linha e texto
+   num tom mais claro. Checkbox e botões ficam como estão — é por eles que se
+   reativa ou se abre o item. */
+tr.inativo > td,
+#t_ativ tr.inativo > td:nth-child(1){background:color-mix(in srgb,var(--muted) 14%,var(--card));color:var(--muted)}
+tr.inativo input:not([type="checkbox"]), tr.inativo select{color:var(--muted);background:transparent;border-color:var(--line)}
+tr.inativo .etq, tr.inativo .badge, tr.inativo .hint{opacity:.6}
+
 /* tratamentos que usam o produto, abertos embaixo da linha no Cadastro de Insumos */
 .usos-ins{display:flex;flex-wrap:wrap;align-items:center;gap:6px;white-space:normal;
   /* a celula ocupa a tabela inteira, e o botao que abre fica la na direita: sem

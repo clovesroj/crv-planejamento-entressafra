@@ -72,7 +72,7 @@ function pintarAtividadesCad(){
      armadilha ja conhecida do Cadastro de Insumos. */
   const linhas = ordenarPorEtapa(lista.map((a, i) => ({a, i})), x => x.a.etapa).map(({a, i}) => {
     const fixo = fixos.has(a.cod);
-    return `<tr>
+    return `<tr${a.ativo===false?' class="inativo"':''}>
       <td>${esc(a.cod)}</td>
       <td>${fixo ? esc(a.etapa) : `<select data-at="${i}" data-f="etapa">${ETAPAS.map(e =>
         `<option value="${esc(e)}"${a.etapa===e?" selected":""}>${esc(e)}</option>`).join("")}</select>`}</td>

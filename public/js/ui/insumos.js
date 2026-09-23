@@ -267,7 +267,7 @@ function pintarInsumos(R){
       // (sem os mesmos data-in/data-ie/data-ip do modal) -- dois inputs com o
       // mesmo dataset ao mesmo tempo confundiam o foco ao digitar em qualquer um
       const editando = INS_EDIT === i.prod;
-      return `<tr${editando?' style="opacity:.6"':''}>
+      return `<tr${i.ativo===false?' class="inativo"':''}${editando?' style="opacity:.6"':''}>
         <td>${editando?`<span class="calc">${esc(i.cod)||"—"}</span>`
           :`<input data-in="${ix}" data-f="cod" value="${esc(i.cod)}" placeholder="—">`}</td>
         <td>${editando?`<span class="calc">${esc(i.prod)}</span>`
@@ -400,7 +400,7 @@ function pintarInsumos(R){
     TL.map(t=>{
       const usos = R.L.filter(r=>r.trat===t.cod);
       const areaT = usos.reduce((s,u)=>s+u.total,0);
-      return `<tr><td><input data-trc="${esc(t.cod)}" value="${esc(t.cod)}" style="min-width:110px"
+      return `<tr${TRAT_ATIVO[t.cod]===false?' class="inativo"':''}><td><input data-trc="${esc(t.cod)}" value="${esc(t.cod)}" style="min-width:110px"
                  title="Alterar o código do tratamento"></td>
         <td><input data-trn="${esc(t.cod)}" value="${esc(TRAT_NOME[t.cod]||"")}"
             style="text-align:left;min-width:180px" placeholder="Ex.: Herbicida pré-emergente"></td>
