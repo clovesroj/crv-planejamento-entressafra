@@ -614,7 +614,7 @@ function rastroAtividade(R, cod){
       {rot:"Custo mensal do cargo, com encargos e benefícios", val:brl(cf.mensal||0,2)},
       {rot:"Encargos sobre a folha", val:fmt((R.MP.encTot||0)*100,1)+"%"},
       {rot:"Atualização de preço de insumos", val:fmt(P.ipreco,0)+"%"},
-      {rot:"Tarifa de terceirização", val:brl(tarifaTerc(cod),2)+"/ha"},
+      {rot:"Valor de terceirização", val:brl(tarifaTerc(cod),2)+"/ha"},
     ]),
     voltar:"etapa:"+r.a.etapa};
 }

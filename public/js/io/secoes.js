@@ -171,7 +171,7 @@ const premissas = R => sec("Premissas","Premissas do plano",["Premissa","Valor",
   ["Raio médio — muda", fmt(P.raioMuda)+" km","Ciclo do transporte"],
   ["Encargos sobre a folha", fmt((R.MP.encTot||0)*100,1)+"%","Custo de mão de obra"],
   ["Benefícios por colaborador", brl(R.MP.benTot,2)+"/mês","Custo de mão de obra"],
-  ["Tarifa padrão de terceirização", brl(CFG.terc_tar_pad,2)+"/ha","Frentes terceirizadas"],
+  ["Valor padrão de terceirização", brl(CFG.terc_tar_pad,2)+"/ha","Frentes terceirizadas"],
 ]);
 
 /* ---------- 3. área ---------- */
