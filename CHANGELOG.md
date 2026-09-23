@@ -25,6 +25,10 @@ Agora A39 e A19 vão **junto da A10**:
 - **Dimensionamento, Resumo de Frota, metas e relatório de Dimensionamento** —
   A39 e A19 saem: não têm máquina nem equipe para dimensionar. A A10 diz o que
   leva junto.
+- **Aba Insumos** — ao abrir o tratamento da A39 ou da A19, a área e as datas
+  aparecem só para leitura (são as da A10), sem editor de modo de execução.
+- **Modo de execução** — liberado para toda atividade na 2.37 (as 6 opções), não
+  aparece na A39 nem na A19: a máquina é a da A10.
 - **ha-operação** — A39 e A19 não somam de novo o hectare que a A10 já contou.
 - **Rastro** da A39 e da A19 — mostra a área, o tratamento e aponta para a A10
   como a atividade que tem a mecanização.

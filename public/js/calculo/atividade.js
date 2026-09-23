@@ -42,7 +42,8 @@ function tarifaTercDe(cod){
    de valer. Documento antigo ainda traz esses campos no ATVX; sao ignorados.
    Transporte fica de fora: o custo dele sai do ciclo de viagem (cicloTransporte),
    e um modo de pulverizacao ali trocaria o caminhao por trator/uniport. */
-const modoLiberado = a => a.tipo !== "transp";
+// junto de outra atividade (A39 e A19 na plantadora), a maquina e a dela: sem modo proprio
+const modoLiberado = a => a.tipo !== "transp" && !a.junto;
 function modosDe(a){ return MODOS_ORD; }
 
 // divisão da área entre modos de aplicação. Sem mix definido, roda 100% no padrão.
@@ -365,7 +366,8 @@ function linha(a, MP){
   const turnosOv = num((DIM[a.cod]||{}).turnos);
   const util = d.util!=null ? num(d.util) : a.util;
   const ehHa = a.un.indexOf("ha")===0;
-  const jan = janelaDe(a.cod, meses, a.tipo === "transp" ? a.src : junto);
+  // junto de outra, a janela e a dela, mesmo que tenha ficado data gravada aqui
+  const jan = junto ? janelaDe(junto, meses, null) : janelaDe(a.cod, meses, a.tipo === "transp" ? a.src : null);
   // junto de outra, nao ha modo de execucao proprio: a maquina e a da outra
   const M = junto ? null : mixDe(a, p);
 
