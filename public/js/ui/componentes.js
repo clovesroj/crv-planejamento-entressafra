@@ -130,9 +130,15 @@ function ligarBuscaSelect(buscaId, listaId, valorId, itens, rotulo, valorDe){
   if(!busca || !lista || !valor) return null;
   valorDe = valorDe || rotulo;
   let foco = -1;
+  // escolha vigente. Com o rotulo dela ainda na caixa, a lista mostra tudo: ele
+  // e o valor escolhido, nao um termo de busca — filtrar por ele deixava so a
+  // propria escolha na lista, e o que se digitava ia pro fim do rotulo e nao
+  // achava nada ("A10 — Plantio (vinculada)grad")
+  let atual = {valor:"", rotulo:""};
   const opcoes = termo => {
     const t = (termo||"").trim().toLowerCase();
-    return itens().filter(i => !t || rotulo(i).toLowerCase().includes(t));
+    const tudo = !t || termo === atual.rotulo;
+    return itens().filter(i => tudo || rotulo(i).toLowerCase().includes(t));
   };
   function pintar(){
     const op = opcoes(busca.value);
@@ -147,11 +153,22 @@ function ligarBuscaSelect(buscaId, listaId, valorId, itens, rotulo, valorDe){
   // tratamento redesenha a tela) continua funcionando sem saber que virou combobox
   function escolher(i){
     valor.value = valorDe(i); busca.value = rotulo(i); fechar();
+    atual = {valor: valor.value, rotulo: busca.value};
     valor.dispatchEvent(new Event("change", {bubbles:true}));
   }
   busca.addEventListener("input", ()=>{ foco = -1; valor.value = ""; pintar(); });
-  busca.addEventListener("focus", pintar);
-  busca.addEventListener("blur", ()=>setTimeout(fechar,150)); // da tempo do mousedown na lista rodar antes
+  // entrar na caixa seleciona o texto: digitar substitui a escolha em vez de
+  // emendar nela. O mouseup do clique desfaria a selecao, dai o par abaixo
+  let entrouNoClique = false;
+  busca.addEventListener("mousedown", ()=>{ entrouNoClique = document.activeElement !== busca; });
+  busca.addEventListener("mouseup", e=>{ if(entrouNoClique){ e.preventDefault(); entrouNoClique = false; } });
+  busca.addEventListener("focus", ()=>{ busca.select(); pintar(); });
+  busca.addEventListener("blur", ()=>setTimeout(()=>{   // da tempo do mousedown na lista rodar antes
+    fechar();
+    // saiu sem escolher: volta a escolha vigente, senao quem le o campo
+    // escondido (ex.: adicionar tratamento extra) ficaria sem valor
+    if(!valor.value){ valor.value = atual.valor; busca.value = atual.rotulo; }
+  },150));
   busca.addEventListener("keydown", e=>{
     const op = opcoes(busca.value);
     if(e.key==="ArrowDown"){ e.preventDefault(); foco = Math.min(foco+1, op.length-1); pintar(); }
@@ -165,13 +182,14 @@ function ligarBuscaSelect(buscaId, listaId, valorId, itens, rotulo, valorDe){
     escolher(opcoes(busca.value)[+item.dataset.ix]);
   });
   return {
-    limpar(){ busca.value = ""; valor.value = ""; fechar(); },
+    limpar(){ busca.value = ""; valor.value = ""; atual = {valor:"", rotulo:""}; fechar(); },
     // sincroniza a caixa com um valor que mudou por fora (ex.: repintar depois
     // do proprio "change" trocar o estado) -- sem disparar "change" de novo
     definir(v){
       valor.value = v;
       const item = itens().find(i=>valorDe(i)===v);
       busca.value = item ? rotulo(item) : "";
+      atual = {valor: v, rotulo: busca.value};
     },
   };
 }
