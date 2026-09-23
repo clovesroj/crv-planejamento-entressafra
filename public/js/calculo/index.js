@@ -78,7 +78,7 @@ function calcular(){
   L.forEach(r=>{ manutT += r.cManut; });
   const IR  = irrigacao(L);
   const MT  = materiais();
-  const AP  = frotaApoio();
+  const AP  = frotaApoio(L);   // a frota de apoio e o que as frentes pedem (ver calculo/apoio.js)
   const EM  = equipeManut(horasT+AE.horas, frotaT+AE.equip, MP);
   const TC  = terceirizacao(L);
   const TP  = transpPessoal(MP);

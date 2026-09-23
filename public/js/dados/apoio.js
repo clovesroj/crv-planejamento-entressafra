@@ -1,8 +1,14 @@
 /**
  * Equipamentos de apoio.
  *
- * APOIO_FROTA  frota de apoio de utilizacao fixa (qtd, util, disp, implemento)
- * APOIO_EQ     equipamentos de apoio dimensionados por horas/mes e funcao
+ * APOIO_EQ     equipamentos de apoio dimensionados por horas/mes e funcao — e o
+ *              que CUSTA: diesel, mao de obra e horas do apoio
+ * APOIO_FROTA  lista antiga de frota de apoio com quantidade digitada a mao.
+ *              NAO alimenta mais o Resumo de Frota: a frota de apoio passou a
+ *              ser o que as FRENTES pedem (calculo/apoio.js + apoio-frente.js),
+ *              porque a pipa que aparece no Plantio e a mesma do resumo — um
+ *              numero so, nao dois. Fica aqui como referencia do que existia no
+ *              patio quando o plano foi montado.
  */
 
 export const APOIO_FROTA = [

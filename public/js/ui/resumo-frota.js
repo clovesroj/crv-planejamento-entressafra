@@ -2,12 +2,13 @@ import { CFG } from '../dados/cfg.js';
 import { FROTA_ESP, contaOrigem, destinoDe, opcoesDestino, rotuloItem } from '../calculo/crm.js';
 import { FROTA_ABERTO, FROTA_ORIG } from '../nucleo/estado.js';
 import { $, esc, fmt, num, pct } from '../nucleo/formato.js';
-import { kpi, ordenarPorEtapa, tdMeses, th, thMeses } from './componentes.js';
+import { kpi, maxSel, ordenarPorEtapa, tdMeses, th, thMeses } from './componentes.js';
 import { NM } from '../nucleo/calendario.js';
 import { criterioMensal, frotaDaAtividade } from '../calculo/atividade.js';
 
 /* ---------- RESUMO DE FROTA ---------- */
 function pintarResumoFrota(R){
+  const SEL = R.SEL;   // recorte de meses da barra superior
   const oper = [...R.crmFrotaL].filter(l=>l.qtd>0).sort((a,b)=> a.cat===b.cat ? b.qtd-a.qtd : a.cat.localeCompare(b.cat));
   const tpess = R.TP.linhas.filter(l=>num(l.qtd)>0);
   const irrig = R.IR.linhas.filter(l=>l.area>0);
@@ -107,11 +108,24 @@ function pintarResumoFrota(R){
      quase iguais -- uma aqui, so de leitura, e outra la, com a quantidade
      digitavel -- para a mesma pergunta e a mesma fonte (R.AP.linhas). Ficou a
      que deixa ajustar. */
-  $("#t_apoio").innerHTML = th([["Veículo / Máquina"],["Qtd",1],["Utilização",1],["Disponib.",1],["Necessidade",1],["Atividade"]])+"<tbody>"+
-    R.AP.linhas.map(a=>`<tr><td>${esc(a.nome)}</td><td class="num"><input data-apf="${esc(a.nome)}" value="${a.qtd}" inputmode="decimal"></td>
-      <td class="num calc">${pct(a.util)}</td><td class="num calc">${pct(a.disp)}</td>
-      <td class="num tot">${a.nec.toFixed(2)}</td><td class="calc">${esc(a.ativ)}</td></tr>`).join("")+
-    `<tr><td class="tot">TOTAL</td><td colspan="3"></td><td class="num tot">${R.AP.total.toFixed(2)}</td><td></td></tr></tbody>`;
+  /* Frota de apoio: o MESMO numero que aparece nas atividades. Cada linha e uma
+     especialidade do ERP, e a celula do mes e a soma das frentes que pedem
+     aquele equipamento naquele mes. O Pico e o que precisa existir no patio:
+     frentes que rodam em meses diferentes dividem o mesmo caminhao. */
+  $("#t_apoio").innerHTML = th([["Especialidade"],["Frentes que pedem",1],...thMeses(),
+      [SEL.parcial?"Pico no período":"Pico",1],["Ajuste",1]])+"<tbody>"+
+    (R.AP.linhas.length ? R.AP.linhas.map(a=>`<tr>
+      <td title="${esc(a.itens.join(" · "))}">${esc(a.esp)} — ${esc(a.nome)}</td>
+      <td class="num calc" title="${esc(a.ativs.join(" · "))}">${a.ativs.length}</td>` +
+      tdMeses(a.qtdMes, v=>v?fmt(v):'<span class="calc">—</span>', "num") +
+      `<td class="num tot">${fmt(maxSel(a.qtdMes, SEL))}${a.mes?` <span class="calc">${a.mes}</span>`:""}</td>
+       <td class="num"><input data-apf="${esc(a.esp)}" value="${a.ajustada?a.qtd:""}"
+           placeholder="${a.pedido}" inputmode="decimal"
+           title="Em branco vale o que as frentes pedem. Preenchido, fixa a quantidade — para quando o pátio tem mais do que o plano pede."></td></tr>`).join("")
+      : `<tr><td colspan="${NM+4}" class="calc">Sem frente com volume lançado: nenhuma operação de apoio a dimensionar.</td></tr>`)+
+    `<tr><td class="tot" colspan="2">TOTAL NO MÊS</td>` +
+    tdMeses(R.AP.porMes, v=>fmt(v), "num tot") +
+    `<td class="num tot">${fmt(Math.ceil(R.AP.total))}</td><td></td></tr></tbody>`;
 
   /* Necessidade de frota por MES, uma linha por atividade.
      Veio do Dimensionamento: a pergunta "em que mes a frota aperta" e de frota,
