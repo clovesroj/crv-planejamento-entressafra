@@ -212,18 +212,18 @@ function pintarPessoas(R){
         somaMes(det.filter(x=>x.dept===etapa && x.categoria===categoria)), 5);
     }
     const {ini, fim, dica} = janelaDaLinha(l);
-    corpoDet += `<tr><td class="calc">${esc(l.cod||"—")}</td><td>${esc(l.origem)}</td>
-      <td class="calc">${esc(l.fcod)} — ${esc(l.fnome)}</td>
+    corpoDet += `<tr class="pes-linha"><td class="calc">${esc(l.cod||"—")}</td><td title="${esc(l.origem)}">${esc(l.origem)}</td>
+      <td class="calc" title="${esc(l.fcod)} — ${esc(l.fnome)}">${esc(l.fcod)} — ${esc(l.fnome)}</td>
       <td class="calc"${dica?` title="${esc(dica)}"`:""}>${esc(ini)}</td>
       <td class="calc"${dica?` title="${esc(dica)}"`:""}>${esc(fim)}</td>` +
       tdMeses(l.qtdMes, (v,i)=>celMes(l, v, i), "num") +
       `<td class="num tot">${fmt(maxSel(l.qtdMes, SEL))}</td></tr>`;
   });
-  $("#t_pes_det").innerHTML = th([["Cod"],["Origem"],["Função"],["Início",1],["Fim",1],...thMeses(),
+  $("#t_pes_det").innerHTML = th([["Cod"],["Origem"],["Função"],["Início"],["Fim"],...thMeses(),
       [SEL.parcial?"Pico no período":"Pico",1]])+"<tbody>"+
     (det.length ? corpoDet
       : `<tr><td colspan="${nCols}" class="calc">Sem efetivo: lance quantidades no Plano Operacional.</td></tr>`)+
-    `<tr><td class="tot" colspan="5">NECESSIDADE TOTAL NO MÊS</td>` +
+    `<tr><td class="tot" colspan="5"><span>NECESSIDADE TOTAL NO MÊS</span></td>` +
     tdMeses(S.qtdMes, v=>fmt(v), "num tot") +
     `<td class="num tot">${fmt(maxSel(S.qtdMes, SEL))}</td></tr></tbody>`;
 }

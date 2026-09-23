@@ -213,6 +213,38 @@ th.th-arrasta.sobre{box-shadow:inset 0 0 0 2px var(--leaf)}
 #t_plano .mix{justify-content:center}
 #t_plano td{vertical-align:middle}
 
+/* Colunas congeladas — Necessidade por origem (Resumo de Pessoas).
+   Doze meses mais o pico rolam na horizontal, e sem a identificação parada o mês
+   que se lê no fim da rolagem fica sem dono: não dá para saber de que atividade
+   e de que função são aquelas pessoas. Congela até o Fim, que é onde termina a
+   identificação da frente (cód., origem, função, início, fim).
+
+   Mesma técnica do Plano Operacional: position:sticky não funciona com
+   border-collapse:collapse, então esta tabela isola o próprio border-spacing.
+   Só a linha de dado (.pes-linha) tem as cinco colunas; faixa de etapa, faixa de
+   tipo e total ocupam a linha inteira com um colspan, e nelas quem gruda é o
+   rótulo, como no Plano. */
+#t_pes_det{border-collapse:separate;border-spacing:0}
+#t_pes_det td{border-bottom:1px solid var(--line)}
+#t_pes_det th:nth-child(1),#t_pes_det tr.pes-linha td:nth-child(1){position:sticky;left:0;width:78px;min-width:78px;max-width:78px}
+#t_pes_det th:nth-child(2),#t_pes_det tr.pes-linha td:nth-child(2){position:sticky;left:78px;width:200px;min-width:200px;max-width:200px}
+#t_pes_det th:nth-child(3),#t_pes_det tr.pes-linha td:nth-child(3){position:sticky;left:278px;width:262px;min-width:262px;max-width:262px}
+#t_pes_det th:nth-child(4),#t_pes_det tr.pes-linha td:nth-child(4){position:sticky;left:540px;width:82px;min-width:82px;max-width:82px}
+#t_pes_det th:nth-child(5),#t_pes_det tr.pes-linha td:nth-child(5){position:sticky;left:622px;width:82px;min-width:82px;max-width:82px}
+#t_pes_det th:nth-child(-n+5){z-index:3}
+#t_pes_det tr.pes-linha td:nth-child(-n+5){z-index:1;background:var(--card)}
+#t_pes_det tr.pes-linha td:nth-child(2),#t_pes_det tr.pes-linha td:nth-child(3){overflow:hidden;text-overflow:ellipsis}
+#t_pes_det th:nth-child(5),#t_pes_det tr.pes-linha td:nth-child(5){box-shadow:3px 0 6px -2px rgba(0,0,0,.14)}
+#t_pes_det tbody tr.pes-linha:hover td:nth-child(-n+5){background:var(--leaf-soft)}
+/* Faixa e total: o rótulo ocupa as cinco colunas congeladas num colspan só, e é
+   essa célula que gruda — não um span dentro dela. Com o span, a célula (que
+   acaba onde acabam as cinco colunas) rolava para fora e levava o rótulo junto;
+   grudando a célula inteira, o rótulo fica parado sobre a mesma faixa em que os
+   subtotais dos meses passam por baixo. */
+#t_pes_det tr.stage td:first-child,#t_pes_det tr.stage2 td:first-child,
+#t_pes_det td.tot:first-child{position:sticky;left:0;z-index:2}
+#t_pes_det tr.stage2 td:first-child>span{padding-left:14px}
+
 /* coluna congelada — Cadastro de Atividades: mesmo motivo do Plano Operacional
    (muita coluna pra rolar sem perder de vista qual atividade é qual) */
 #t_ativ{border-collapse:separate;border-spacing:0}
