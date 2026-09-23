@@ -1,5 +1,35 @@
 # Histórico de mudanças
 
+## 2.35.0 — 2026-09-23 · De onde vem cada pessoa do quadro
+
+O quadro por função responde *quantos* motoristas é preciso ter. Faltava a
+pergunta que vem logo depois, e que é a que monta escala: **de onde vem cada um
+deles** — em que etapa, em que atividade, em que mês. 174 motoristas não viram
+escala sem saber que 44 são do transbordo em outubro e nenhum em fevereiro.
+
+- **Necessidade por etapa, atividade e função, mês a mês**, no Dimensionamento
+  de pessoas: uma linha por atividade e função, faixa por etapa com o pico da
+  etapa, uma coluna por mês e o pico fechando a linha. Mês sem volume no Plano
+  Operacional vem vazio, porque a frente não opera. Busca por atividade ou
+  função, e o filtro de período do topo recorta as colunas.
+- **Relatório "Necessidade de Pessoas"** (novo; 22 no total), e a mesma folha
+  dentro do Orçamento de Mão de Obra e do anual detalhado, com o código da
+  função e o custo de MDO do período em cada linha.
+- Não recalcula nada: agrupa os itens que a conta de pessoas já monta, os
+  mesmos que somam o custo de mão de obra. Por isso **fecha** — a soma das
+  linhas bate mês a mês com a necessidade total, o efetivo somado bate com o
+  total e o custo bate com a mão de obra do plano. Apoio, manutenção e
+  estrutura agrícola aparecem nas suas próprias faixas, sem código de
+  atividade, porque não vêm de atividade do plano.
+
+### Corrigido
+
+- **"Necessidade mês a mês x disponível" estava vazia desde a 2.33.x.** Ao tirar
+  os cartões do Dimensionamento, o painter da tabela foi junto, e ficaram só o
+  título e as duas linhas de explicação. Restaurada como era: função,
+  disponível, os doze meses com a célula em vermelho onde a necessidade passa o
+  disponível, o mês de pico em negrito e a linha "a contratar no mês".
+
 ## 2.34.0 — 2026-09-22 · Um número só para a mesma pergunta
 
 Auditoria pedida depois que a frota do Plano Operacional discordava da do
