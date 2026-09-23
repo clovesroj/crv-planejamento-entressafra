@@ -85,10 +85,9 @@ function pintarDim(R){
             <span class="dim-val" title="${F.difere
               ? `Frota do mês que mais pede (${F.mes}): ${fmt(F.pico)}. Na média da janela dá ${fmt(F.media)}, mas média não estaciona no pátio — quem tem de existir é a do mês cheio. É a média que o motor usa para ratear custo. Ajuste mês a mês no botão mês.`
               : `Sai do critério por mês. Ajuste mês a mês no botão mês.`}">${F.pico||"—"}</span>
-            ${F.acima ? `<span class="badge b-warn" title="A média da janela é ${fmt(F.media)}">pico ${F.mes}</span>` : ""}
             ${temFrente(r) ? `<button class="btn xs" data-dimfrente="${r.a.cod}"
-              title="A frente inteira: a máquina que faz e a estrutura de apoio que ela precisa"
-              aria-expanded="${FRENTE_ABERTA[r.a.cod]?"true":"false"}">frente ${FRENTE_ABERTA[r.a.cod]?"▴":"▾"}</button>` : ""}
+              title="As atividades deste plano: a que faz a operação e as de apoio que ela precisa"
+              aria-expanded="${FRENTE_ABERTA[r.a.cod]?"true":"false"}">atividades ${FRENTE_ABERTA[r.a.cod]?"▴":"▾"}</button>` : ""}
             <button class="btn xs" data-dimdet="${r.a.cod}" data-aba="frota">detalhe ›</button>
           </div></td>
         <td>
@@ -96,7 +95,6 @@ function pintarDim(R){
             <span class="dim-val" title="${PE.difere
               ? `Equipe do mês que mais pede (${PE.mes}): ${fmt(PE.pico)} pessoas, para a frota daquele mês. Na média da janela dá ${fmt(PE.media)}, que é o efetivo com que o motor paga a folha. Ajuste mês a mês no botão mês.`
               : `Frota × operadores × turnos × fator de escala.`}">${PE.pico||"—"}</span>
-            ${PE.acima ? `<span class="badge b-warn" title="Na média da janela são ${fmt(PE.media)}">pico ${PE.mes}</span>` : ""}
             <button class="btn xs" data-dimdet="${r.a.cod}" data-aba="pessoas">detalhe ›</button>
           </div></td></tr>`
         + (MES_ABERTO[r.a.cod] ? linhaDosMeses(r, un) : "")
@@ -192,6 +190,7 @@ function linhaDaFrente(r){
   const porErp = Object.fromEntries(AP.map(x=>[x.erp, x]));
   const dim = DIM[r.a.cod] || {};
   const semVolume = !(r.total > 0);
+  const un = r.a.un.split("/")[0];
   const linhaItem = (e, nucleo) => {
     const x = porErp[e.cod];
     const chave = r.a.cod+"|"+e.cod;
@@ -214,18 +213,24 @@ function linhaDaFrente(r){
       <td class="calc">${nucleo?"":"↳ "}${esc(e.nome)}
         <span class="badge ${nucleo?"b-ok":"b-warn"}">${nucleo?"núcleo":"apoio"}</span></td>
       <td class="calc">${e.esp.length?"esp. "+e.esp.map(esc).join(", "):"—"}</td>
-      <td class="calc">—</td>
-      <td><div class="dim-cel">${temMes
-        ? `<button class="btn xs" data-apmes="${esc(chave)}" aria-expanded="${FRENTE_MES[chave]?"true":"false"}"
-             title="Mês a mês deste item, na janela da frente">mês ${FRENTE_MES[chave]?"▴":"▾"}</button>`
-        : '<span class="calc">—</span>'}</div></td>
+      <td>${nucleo
+        ? `<div class="dim-cel"><span class="dim-val calc">${fmt(r.total)}</span><span class="dim-un">${un}</span></div>`
+        : '<span class="calc">—</span>'}</td>
+      <td><div class="dim-cel">${nucleo
+        ? `<span class="dim-val">${fmt(r.rend,2)}</span><span class="dim-un">${un}/h</span>
+           ${btnMes(r.a.cod)}
+           <button class="btn xs" data-dimdet="${r.a.cod}" data-aba="oper">detalhe ›</button>`
+        : (temMes
+          ? `<button class="btn xs" data-apmes="${esc(chave)}" aria-expanded="${FRENTE_MES[chave]?"true":"false"}"
+               title="Mês a mês deste item, na janela do plano">mês ${FRENTE_MES[chave]?"▴":"▾"}</button>`
+          : '<span class="calc">—</span>')}</div></td>
       <td><div class="dim-cel">${frota}</div></td>
       <td><div class="dim-cel">${efetivo}</div></td></tr>`
       + (FRENTE_MES[chave] && x ? mesesDoItem(x) : "");
   };
-  const cabeca = `<tr class="sub frente-cab"><td colspan="7"><b>A frente de ${esc(r.a.nome)}</b>
-    <span class="calc">— o que ela usa para acontecer. Quantidade em branco vale 1.${
-      semVolume ? " Sem volume lançado no Plano Operacional, a frente ainda não conta." : ""}</span></td></tr>`;
+  const cabeca = `<tr class="sub frente-cab"><td colspan="7"><b>Atividades do plano de ${esc(r.a.nome)}</b>
+    <span class="calc">— a que faz a operação e as de apoio. Quantidade em branco vale 1.${
+      semVolume ? " Sem volume lançado no Plano Operacional, este plano ainda não conta." : ""}</span></td></tr>`;
   return cabeca + E.nucleo.map(e=>linhaItem(e,true)).join("") + E.apoio.map(e=>linhaItem(e,false)).join("");
 }
 
