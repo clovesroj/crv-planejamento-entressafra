@@ -1,13 +1,15 @@
 import { CFG } from '../dados/cfg.js';
 import { $, brl, esc, fmt } from '../nucleo/formato.js';
-import { kpi, ligarBuscaSelect, th } from './componentes.js';
-import { optFuncao } from './plano.js';
+import { celulaBusca, kpi, ligarBuscaSelect, registrarCombo, th } from './componentes.js';
+import { funcaoItens, funcaoRotulo, funcaoValor } from './plano.js';
 
 /* ---------- APOIO ---------- */
 // "Máquina base" do novo equipamento e transitorio (escolhe, clica Adicionar,
 // limpa) -- mesmo padrao do "Adicionar produto" de Insumos.
 const buscaMaq = ligarBuscaSelect("#busca_ap_maq", "#lista_ap_maq", "#sel_ap_maq",
   () => Object.keys(CFG.maquinas).sort(), m => m);
+registrarCombo("maquina", () => Object.keys(CFG.maquinas).sort(), m => m);
+registrarCombo("funcao", funcaoItens, funcaoRotulo, funcaoValor);
 
 function pintarApoio(R){
   const A=R.AE;
@@ -23,11 +25,10 @@ function pintarApoio(R){
     ["Função"],["Horas totais",1],["Diesel",1],["Manutenção",1],["MDO",1],["Total",1],[""]])+"<tbody>"+
     A.linhas.map((l,i)=>`<tr>
       <td><input data-ap="${i}" data-f="nome" value="${esc(l.nome)}" style="text-align:left;min-width:170px"></td>
-      <td><select data-ap="${i}" data-f="maq" style="min-width:170px">${
-        Object.keys(CFG.maquinas).sort().map(m=>`<option ${m===l.maq?"selected":""}>${m}</option>`).join("")}</select></td>
+      <td>${celulaBusca("maquina", l.maq, `data-ap="${i}" data-f="maq"`)}</td>
       <td class="num"><input data-ap="${i}" data-f="qtd" value="${l.qtd}" inputmode="decimal"></td>
       <td class="num"><input data-ap="${i}" data-f="hmes" value="${l.hmes}" inputmode="decimal"></td>
-      <td><select data-ap="${i}" data-f="fcod">${optFuncao(l.fcod)}</select></td>
+      <td>${celulaBusca("funcao", l.fcod, `data-ap="${i}" data-f="fcod"`)}</td>
       <td class="num calc">${fmt(l.horas)}</td><td class="num calc">${brl(l.diesel)}</td>
       <td class="num calc">${brl(l.manut)}</td><td class="num calc">${brl(l.mdo)}</td>
       <td class="num tot">${brl(l.total)}</td>

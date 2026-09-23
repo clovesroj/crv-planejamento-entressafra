@@ -1,10 +1,11 @@
 import { DIM, DIM_DET } from '../nucleo/estado.js';
 import { $, brl, fmt } from '../nucleo/formato.js';
 
-import { ordenarPorEtapa, th } from './componentes.js';
-import { optFuncao } from './plano.js';
-import { CFG } from '../dados/cfg.js';
+import { celulaBusca, ordenarPorEtapa, registrarCombo, th } from './componentes.js';
+import { funcaoItens, funcaoRotulo, funcaoValor } from './plano.js';
 import { ESCALAS } from '../dados/escalas.js';
+
+registrarCombo("funcao", funcaoItens, funcaoRotulo, funcaoValor);
 import { ativoDe, quadroBase } from '../calculo/quadro.js';
 import { criterioMensal, frotaDaAtividade, modoLiberado, pessoasDaAtividade, temCriterioMensal } from '../calculo/atividade.js';
 
@@ -105,17 +106,6 @@ function pintarDim(R){
    para clicar de novo seria o mesmo vai e volta que tirou as colunas daqui. */
 const ABAS_DET = [["oper","Operação"],["frota","Frota"],["pessoas","Pessoas"]];
 
-/* Opcoes de funcao da atividade. Codigo que nao esta no cadastro de funcoes
-   (veio de importacao ou de um documento antigo -- o "F02" que aparecia como
-   "F02 — F02") entra como primeira opcao, marcado: sem isso o select mostraria
-   outra funcao como se fosse a da atividade, e a primeira interacao gravaria
-   essa outra por cima sem ninguem pedir. */
-function opcoesFuncao(sel){
-  const conhecida = CFG.funcoes.some(f=>f.cod===sel);
-  return (conhecida || !sel ? "" : `<option value="${sel}" selected>${sel} — fora do cadastro de funções</option>`)
-    + optFuncao(sel);
-}
-
 /* Um chip por mes com lancamento: mes, volume, frota e pessoas daquele mes.
    Mes sem volume nao entra -- listar doze meses para mostrar tres seria o
    mesmo ruido que a tabela larga tinha. */
@@ -212,8 +202,8 @@ function pintarDimDetalhe(R){
                 "frota do mes que mais pede × operadores × turnos × fator de escala")}
         ${linha("Média da janela", fmt(PES.media)+" pessoas",
                 "e o efetivo com que o motor paga a folha, em todo mes com volume")}
-        ${multi ? linha("Função","—") : `<div class="dd-campo"><label for="dd_fun">Função</label>
-          <select id="dd_fun" data-fc="${r.a.cod}">${opcoesFuncao(r.fcod)}</select>
+        ${multi ? linha("Função","—") : `<div class="dd-campo"><label>Função</label>
+          ${celulaBusca("funcao", r.fcod, `data-fc="${r.a.cod}"`)}
           <span class="calc">quem opera esta atividade: muda o custo de mão de obra e a função confrontada
           com o quadro ativo, no Resumo de Pessoas</span></div>`}
         ${linha("Quadro ativo da função", ativoDe(r.fcod, BASE)||"—",
