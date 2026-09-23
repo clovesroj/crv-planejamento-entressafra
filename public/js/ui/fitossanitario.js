@@ -2,6 +2,7 @@ import { composicao, doseBase, precoInsumo } from '../calculo/insumos.js';
 import { tarifaTercDe } from '../calculo/atividade.js';
 import { TERC_MODOS } from '../dados/modos.js';
 import { FITO_ABERTO, INSUMO, TERC_SUB, insLista } from '../nucleo/estado.js';
+import { codExibir } from '../nucleo/codigo-atividade.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
 import { kpi, th } from './componentes.js';
 
@@ -100,7 +101,7 @@ function tabelaOndas(linhas){
       const estratificavel = r.partes && r.partes.length>0;
       const principal = `<tr class="fito-linha"${estratificavel?` data-fitoabre="${esc(r.a.cod)}" role="button" tabindex="0"`:""}>
         <td class="fito-seta">${estratificavel?(aberto?"▾":"▸"):""}</td>
-        <td>${esc(r.a.cod)} — ${esc(r.a.nome)}</td>
+        <td>${esc(codExibir(r.a.cod))} — ${esc(r.a.nome)}</td>
         <td class="calc">${esc(r.trat || "—")}</td>
         <td class="num">${fmt(r.total)}</td>
         <td class="calc">${fmtVolume(volumeInsumo(r))}</td>
@@ -196,7 +197,7 @@ function pintarFito(R){
   const tercLinhas = todas.filter(r => r.cTerc > 0);
   $("#t_fito_terc").innerHTML = !tercLinhas.length ? '<p class="calc">Nenhum serviço de terceiro lançado.</p>' :
     th([["Atividade"],["Área/ano (ha)",1],["Valor (R$/ha)",1],["Valor (R$)",1]]) + "<tbody>" +
-    tercLinhas.map(r => `<tr><td>${esc(r.a.cod)} — ${esc(r.a.nome)}</td><td class="num">${fmt(r.total)}</td>
+    tercLinhas.map(r => `<tr><td>${esc(codExibir(r.a.cod))} — ${esc(r.a.nome)}</td><td class="num">${fmt(r.total)}</td>
       <td class="num calc">${brl(tarifaTercDe(r.a.cod), 2)}</td>
       <td class="num tot">${brl(r.cTerc)}</td></tr>`).join("") +
     `<tr><td class="tot" colspan="3">TOTAL</td><td class="num tot">${brl(custoTerc)}</td></tr></tbody>`;
