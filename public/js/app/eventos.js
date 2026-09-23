@@ -11,15 +11,15 @@ import { salvar } from '../io/persistencia.js';
 import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
 import { FAT, MO_APOIO, REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TERC_SUB, TERC_DET, setTERC_DET, TPESS, TRATC, TRAT_ATIVO, TRAT_NOME, TRAT_OBS, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, atividadesLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE, setREF_BUSCA, setREF_AG, setREF_FAM, setREF_FROTA, setREF_PROP,
   setGR_INICIO, setGR_FIM, setGR_EMPRESA, setGR_ESP, setGR_AG, setGR_COMP, setGR_FROTA, setGR_PROP, setGR_REFORMA } from '../nucleo/estado.js';
-import { AGROFIT_BUSCA, DIM_DET, FITO_ABERTO, PLANO_ABERTO, FROTA_ABERTO, FROTA_UN, INS_EDIT, INS_FICHA, MAQ, setAGROFIT_BUSCA, setDIM_DET, setFROTA_DEST, setFROTA_ORIG, setINS_EDIT, setINS_FICHA } from '../nucleo/estado.js';
+import { AGROFIT_BUSCA, DIM_DET, FITO_ABERTO, PLANO_ABERTO, FROTA_ABERTO, FROTA_UN, INS_EDIT, INS_FICHA, MAQ, setAGROFIT_BUSCA, setAPOIO_DET, setDIM_DET, setFROTA_DEST, setFROTA_ORIG, setINS_EDIT, setINS_FICHA } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { exportarTabela, filtrarPorNome } from '../ui/componentes.js';
 import { marcarAtivNovo, marcarAtivRemovido, marcarAtivSujo, salvarAtiv } from '../ui/atividades-cad.js';
 import { alternarFam, alternarUsos, aplicarFamIns, buscaExigeRedesenho, marcarInsSujo, marcarInsNovo, marcarInsRemovido,
   marcarTratSujo, marcarTratNovo, marcarTratRenomeado, marcarTratRemovido, recolherTodas, salvarIns, salvarTrat, todasRecolhidas } from '../ui/insumos.js';
-import { alternarFrenteLinha, alternarMesItem, alternarMesLinha } from '../ui/dimensionamento.js';
+import { alternarFrenteLinha, alternarMesLinha } from '../ui/dimensionamento.js';
 import { lerPremissas } from '../ui/premissas.js';
-import { leve, render, renderAgrofit, renderDimDet, renderEditIns, renderFichaIns, renderRastro, renderRendMensal, renderTercDet } from './ciclo.js';
+import { leve, render, renderAgrofit, renderApoioMes, renderDimDet, renderEditIns, renderFichaIns, renderRastro, renderRendMensal, renderTercDet } from './ciclo.js';
 import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarBuscaItem, filtrarRastro, voltarRastro } from '../ui/rastro.js';
 import { abrirRendMensal, aberto as rendMensalAberto, descartarRascunho, editarRascunho,
   fecharRendMensal, pendencias, salvarRascunho } from '../ui/rendmensal.js';
@@ -99,6 +99,14 @@ document.addEventListener("input",e=>{
   // quem esta digitando no modal
   /* Quantas estruturas de apoio a frente usa: equipamentos, ou pessoas por
      turno em item de gente. Em branco vale uma, que e o padrao da frente. */
+  // quantidade por mes de um item de apoio (modal)
+  if(t.dataset.apqm!==undefined){ const c=t.dataset.apqm, k=t.dataset.erp, i=+t.dataset.i;
+    DIM[c]=DIM[c]||{}; DIM[c].apoioM=DIM[c].apoioM||{};
+    const arr = DIM[c].apoioM[k] = Array.isArray(DIM[c].apoioM[k]) ? DIM[c].apoioM[k] : Array(NM).fill(0);
+    arr[i] = num(t.value);
+    if(!arr.some(v=>num(v)>0)) delete DIM[c].apoioM[k];
+    if(!Object.keys(DIM[c].apoioM).length) delete DIM[c].apoioM;
+    salvar(); leve(); return; }
   if(t.dataset.apfr!==undefined){ const c=t.dataset.apfr, k=t.dataset.erp;
     DIM[c]=DIM[c]||{}; DIM[c].apoio=DIM[c].apoio||{};
     const v=num(t.value); if(v>0) DIM[c].apoio[k]=v; else delete DIM[c].apoio[k];
@@ -294,6 +302,12 @@ document.addEventListener("change",e=>{
   /* Equipamento sem gente escalada: continua contando como frota e sai da conta
      de pessoal. Guarda a marcacao explicita (true/false) para nao depender do
      padrao da especialidade depois que alguem decidiu na tela. */
+  // acrescentar uma atividade do ERP ao plano
+  if(t.dataset.apadd!==undefined){ const c=t.dataset.apadd, k=t.value;
+    if(k){ DIM[c]=DIM[c]||{}; DIM[c].apoioX=DIM[c].apoioX||[];
+      if(!DIM[c].apoioX.includes(k)) DIM[c].apoioX.push(k);
+      salvar(); render(); }
+    return; }
   if(t.dataset.apsp!==undefined){ const c=t.dataset.apsp, k=t.dataset.erp;
     DIM[c]=DIM[c]||{}; DIM[c].apoioSP=DIM[c].apoioSP||{};
     DIM[c].apoioSP[k]=t.checked;
@@ -580,9 +594,22 @@ document.addEventListener("click",e=>{
   // abre a frente inteira (nucleo + apoio) na linha da atividade
   const df = e.target.closest && e.target.closest("[data-dimfrente]");
   if(df){ alternarFrenteLinha(df.dataset.dimfrente); render(); return; }
-  // meses de um item da frente, na propria linha dele
+  // quantidade mes a mes de um item de apoio, em modal (como o da atividade)
   const am = e.target.closest && e.target.closest("[data-apmes]");
-  if(am){ alternarMesItem(am.dataset.apmes); render(); return; }
+  if(am){ setAPOIO_DET({cod: am.dataset.apmes, erp: am.dataset.erp}); renderApoioMes(); return; }
+  if((e.target.closest && e.target.closest("#am_fechar")) || e.target.id==="apoiomes_fundo"){
+    setAPOIO_DET(null); renderApoioMes(); return; }
+  // tirar do plano uma atividade acrescentada na tela
+  const arm = e.target.closest && e.target.closest("[data-aprm]");
+  if(arm){ const c=arm.dataset.aprm, k=arm.dataset.erp;
+    if(DIM[c] && Array.isArray(DIM[c].apoioX)){
+      DIM[c].apoioX = DIM[c].apoioX.filter(x=>x!==k);
+      if(!DIM[c].apoioX.length) delete DIM[c].apoioX;
+      if(DIM[c].apoio) delete DIM[c].apoio[k];
+      if(DIM[c].apoioSP) delete DIM[c].apoioSP[k];
+      if(DIM[c].apoioM) delete DIM[c].apoioM[k];
+    }
+    salvar(); render(); return; }
   const dd = e.target.closest && e.target.closest("[data-dimdet]");
   if(dd){ setDIM_DET({cod: dd.dataset.dimdet, aba: dd.dataset.aba || "oper"});
     renderDimDet(); return; }

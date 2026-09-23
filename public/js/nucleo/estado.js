@@ -49,6 +49,7 @@ let FITO_ABERTO = {};    // cod da atividade -> true quando a estratificação p
 let PLANO_ABERTO = {};   // cod da atividade -> true quando a quebra por tratamento está aberta (Plano Operacional)
 let INS_FICHA = null;    // produto com a ficha técnica aberta no modal, ou null
 let DIM_DET = null;      // {cod, aba} do detalhe de dimensionamento aberto, ou null
+let APOIO_DET = null;    // {cod, erp} do item de apoio com o mes aberto, ou null
 let INS_EDIT = null;     // produto em edição no modal (Cadastro de Insumos), ou null
 let FROTA_ORIG = "todos"; // filtro próprio/terceiro das abas de frota (não é salvo: é visão, não dado)
 let CRIT_GER = "";       // filtro de gerência do critério por mês (visão, não dado)
@@ -114,7 +115,7 @@ let AGROFIT_BUSCA = null;
 
 export {
   P, PLANO, DIM, INSUMO, ESPOR, TRATC, NIV, GRAT, APOIO, TERC_TAR, TERC_SUB, TERC_DET, CRM, MATX,
-  INSX, INSX_V, ATVX, ATVX_V, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, CRIT_GER, CRIT_CABE, REF_BUSCA, REF_AG, REF_FAM, REF_FROTA, REF_PROP, GR_INICIO, GR_FIM, GR_EMPRESA, GR_ESP, GR_AG, GR_COMP, GR_FROTA, GR_PROP, GR_REFORMA, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, FITO_ABERTO, PLANO_ABERTO, INS_FICHA, DIM_DET, APOIO_FIXO, TRAT_NOME, TRAT_OBS, TRAT_ETAPA, TRAT_DEL, TRAT_ATIVO, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
+  INSX, INSX_V, ATVX, ATVX_V, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, CRIT_GER, CRIT_CABE, REF_BUSCA, REF_AG, REF_FAM, REF_FROTA, REF_PROP, GR_INICIO, GR_FIM, GR_EMPRESA, GR_ESP, GR_AG, GR_COMP, GR_FROTA, GR_PROP, GR_REFORMA, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, FITO_ABERTO, PLANO_ABERTO, INS_FICHA, DIM_DET, APOIO_DET, APOIO_FIXO, TRAT_NOME, TRAT_OBS, TRAT_ETAPA, TRAT_DEL, TRAT_ATIVO, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
   TPESS, FAT, MO_APOIO, QUADRO, ADM, ADM_RAT, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL, ATIV_TRAT_SEL, GRUPOS_INS, FAM_NOME, FAM_CLASSE, AGROFIT_BUSCA, INS_EDIT,
 };
 
@@ -159,6 +160,7 @@ export const setCRIT_CABE  = v => { CRIT_CABE = v; };
 export const setFROTA_ABERTO = v => { FROTA_ABERTO = v; };
 export const setINS_FICHA    = v => { INS_FICHA = v; };
 export const setDIM_DET      = v => { DIM_DET = v; };
+export const setAPOIO_DET    = v => { APOIO_DET = v; };
 export const setINS_EDIT     = v => { INS_EDIT = v; };
 export const setPERIODO_SEL  = v => { PERIODO_SEL = v; };
 export const setMESES_SEL    = v => { MESES_SEL = v; };

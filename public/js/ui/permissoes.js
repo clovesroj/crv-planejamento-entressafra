@@ -33,7 +33,7 @@ const VISUAIS = [
   '#ref_busca', '#sel_ref_ag', '#sel_ref_fam', '#ref_frota', '#sel_ref_prop',
   '#gr_inicio', '#gr_fim', '#sel_gr_empresa', '#sel_gr_esp', '#sel_gr_ag', '#sel_gr_comp', '#gr_frota', '#sel_gr_prop', '#sel_gr_reforma',
   '#sel_ins_fam', '#btn_ins_recolher', '[data-fam]', '[data-inusos]', '[data-abretrat]', '[data-exportar]',
-  '[data-dimdet]', '[data-ddaba]', '#dd_fechar', '[data-dimmes]',
+  '[data-dimdet]', '[data-ddaba]', '#dd_fechar', '[data-dimmes]', '[data-dimfrente]', '[data-apmes]', '#am_fechar',
   '#btn_export', '#btn_theme',
 ].join(',');
 
@@ -52,6 +52,7 @@ function areaDe(el) {
   // permissao do Plano Operacional. Sem esta linha, um perfil que edita o
   // Dimensionamento mudava a funcao na tela e o servidor descartava em silencio.
   if (el.closest('#dimdet')) return el.matches('[data-fc]') ? 'plano' : 'dimens';
+  if (el.closest('#apoiomes')) return 'dimens';   // quantidade por mes do apoio grava DIM
   // Cadastro de Insumos, Grupos de Insumos (Configurações), o modal de busca
   // na Agrofit e o de editar produto gravam chaves da área 'insumos' no
   // servidor — as telas usam a mesma permissão, sem um toggle à parte no

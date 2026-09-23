@@ -1,4 +1,4 @@
-import { DIM, DIM_DET } from '../nucleo/estado.js';
+import { APOIO_DET, DIM, DIM_DET } from '../nucleo/estado.js';
 import { $, brl, esc, fmt } from '../nucleo/formato.js';
 import { MESES, NM, clsMes } from '../nucleo/calendario.js';
 
@@ -7,7 +7,8 @@ import { optFuncao } from './plano.js';
 import { CFG } from '../dados/cfg.js';
 import { ESCALAS } from '../dados/escalas.js';
 import { erpDe } from '../dados/atividades-erp.js';
-import { apoioDaAtividade } from '../calculo/apoio-frente.js';
+import { apoioDaAtividade, apoioDoPlano } from '../calculo/apoio-frente.js';
+import { ATIVIDADES_ERP } from '../dados/atividades-erp.js';
 import { ativoDe, quadroBase } from '../calculo/quadro.js';
 import { criterioMensal, frotaDaAtividade, modoLiberado, pessoasDaAtividade, temCriterioMensal } from '../calculo/atividade.js';
 
@@ -167,11 +168,6 @@ function opcoesFuncao(sel){
    tem gente. */
 function temFrente(r){ const E = erpDe(r.a.cod); return !!(E.nucleo.length || E.apoio.length); }
 
-/* Mes a mes de um item da frente, aberto na propria linha dele — o mesmo chip
-   do mes da atividade, com a quantidade daquele item em cada mes. */
-const FRENTE_MES = {};
-function alternarMesItem(chave){ if(FRENTE_MES[chave]) delete FRENTE_MES[chave]; else FRENTE_MES[chave]=true; }
-
 /* Tudo o que a atividade precisa para acontecer, em LINHA, nas mesmas colunas
    da atividade: o NUCLEO (a maquina que faz, com a frota que o dimensionamento
    calculou) e o APOIO (pipa, area de vivencia, onibus, auxiliar), com a
@@ -193,7 +189,6 @@ function linhaDaFrente(r){
   const un = r.a.un.split("/")[0];
   const linhaItem = (e, nucleo) => {
     const x = porErp[e.cod];
-    const chave = r.a.cod+"|"+e.cod;
     const lanc = (dim.apoio||{})[e.cod];
     const meses = x ? x.qtdMes : [];
     const temMes = meses.some(v=>v>0);
@@ -211,7 +206,10 @@ function linhaDaFrente(r){
     return `<tr class="sub frente-linha">
       <td class="calc">${esc(e.cod)}</td>
       <td class="calc">${nucleo?"":"↳ "}${esc(e.nome)}
-        <span class="badge ${nucleo?"b-ok":"b-warn"}">${nucleo?"núcleo":"apoio"}</span></td>
+        <span class="badge ${nucleo?"b-ok":"b-warn"}">${nucleo?"núcleo":"apoio"}</span>${
+        !nucleo && (dim.apoioX||[]).includes(e.cod)
+          ? ` <button class="btn xs d" data-aprm="${esc(r.a.cod)}" data-erp="${esc(e.cod)}"
+                title="Tirar esta atividade do plano">remover</button>` : ""}</td>
       <td class="calc">${e.esp.length?"esp. "+e.esp.map(esc).join(", "):"—"}</td>
       <td>${nucleo
         ? `<div class="dim-cel"><span class="dim-val calc">${fmt(r.total)}</span><span class="dim-un">${un}</span></div>`
@@ -220,25 +218,71 @@ function linhaDaFrente(r){
         ? `<span class="dim-val">${fmt(r.rend,2)}</span><span class="dim-un">${un}/h</span>
            ${btnMes(r.a.cod)}
            <button class="btn xs" data-dimdet="${r.a.cod}" data-aba="oper">detalhe ›</button>`
-        : (temMes
-          ? `<button class="btn xs" data-apmes="${esc(chave)}" aria-expanded="${FRENTE_MES[chave]?"true":"false"}"
-               title="Mês a mês deste item, na janela do plano">mês ${FRENTE_MES[chave]?"▴":"▾"}</button>`
-          : '<span class="calc">—</span>')}</div></td>
+        : `<button class="btn xs" data-apmes="${esc(r.a.cod)}" data-erp="${esc(e.cod)}"
+             title="Quantidade mês a mês deste item">mês${x && x.temMensal ? " •" : ""}</button>`}</div></td>
       <td><div class="dim-cel">${frota}</div></td>
       <td><div class="dim-cel">${efetivo}</div></td></tr>`
-      + (FRENTE_MES[chave] && x ? mesesDoItem(x) : "");
+      ;
   };
   const cabeca = `<tr class="sub frente-cab"><td colspan="7"><b>Atividades do plano de ${esc(r.a.nome)}</b>
     <span class="calc">— a que faz a operação e as de apoio. Quantidade em branco vale 1.${
       semVolume ? " Sem volume lançado no Plano Operacional, este plano ainda não conta." : ""}</span></td></tr>`;
-  return cabeca + E.nucleo.map(e=>linhaItem(e,true)).join("") + E.apoio.map(e=>linhaItem(e,false)).join("");
+  /* Acrescentar atividade ao plano: o catalogo do ERP diz o que costuma compor
+     a frente, mas quem monta o plano sabe o que aquela frente vai usar. O que
+     entra por aqui fica marcado e pode sair pelo botao remover. */
+  const jaTem = new Set(apoioDoPlano(r.a.cod).map(e=>e.cod).concat(E.nucleo.map(e=>e.cod)));
+  const opcoes = ATIVIDADES_ERP.filter(a=>!jaTem.has(a.cod))
+    .map(a=>`<option value="${esc(a.cod)}">${esc(a.cod)} — ${esc(a.nome)}</option>`).join("");
+  const adicionar = `<tr class="sub frente-add"><td colspan="7">
+    <div class="dim-cel" style="justify-content:flex-start">
+      <span class="calc">Acrescentar atividade a este plano:</span>
+      <select data-apadd="${esc(r.a.cod)}" style="max-width:420px">
+        <option value="">escolha uma atividade do ERP…</option>${opcoes}</select>
+    </div></td></tr>`;
+  return cabeca + E.nucleo.map(e=>linhaItem(e,true)).join("")
+       + apoioDoPlano(r.a.cod).map(e=>linhaItem(e,false)).join("") + adicionar;
 }
 
-function mesesDoItem(x){
-  const chips = x.qtdMes.map((v,i)=> v>0
-    ? `<span class="dim-mes"><b>${MESES[i]}</b><span>${fmt(v)} ${x.tipo==="pessoa"?"por turno":"equip."}</span>
-       <span class="calc">${x.pessoasMes[i]?fmt(x.pessoasMes[i])+" pessoas":"sem gente"}</span></span>` : "").join("");
-  return `<tr class="sub"><td colspan="7"><div class="dim-meses">${chips || '<span class="calc">Sem mês com volume na frente.</span>'}</div></td></tr>`;
+/* ---------- QUANTIDADE POR MES DE UM ITEM DE APOIO, EM MODAL ----------
+   Mesmo desenho do criterio por mes da atividade: um cartao por mes, o mes em
+   branco herdando o padrao da frente. Era uma linha de chips embaixo da tabela,
+   que nao dava para editar e empurrava a tabela inteira. */
+function pintarApoioMes(R){
+  const cont = $("#apoiomes"), fundo = $("#apoiomes_fundo");
+  if(!cont) return;
+  const r = APOIO_DET ? R.L.find(x=>x.a.cod===APOIO_DET.cod) : null;
+  const item = r ? apoioDaAtividade(r).find(x=>x.erp===APOIO_DET.erp) : null;
+  if(!r || !item){ cont.hidden = true; fundo.hidden = true; return; }
+  const mensal = ((DIM[r.a.cod]||{}).apoioM || {})[item.erp] || [];
+  const unidade = item.tipo === "pessoa" ? "pessoas por turno" : "equipamentos";
+  cont.innerHTML = `
+    <div class="ra-modal rm-modal pop-in">
+    <div class="ra-topo">
+      <div class="ra-nav"><div></div>
+        <button class="ghost-btn" id="am_fechar" title="Fechar" aria-label="Fechar">✕</button></div>
+      <div class="ra-tit">${esc(item.erp)} · ${esc(item.nome)}</div>
+      <div class="ra-subtit">${esc(r.a.cod)} — ${esc(r.a.nome)} · ${fmt(item.qtd)} ${unidade} na frente ·
+        ${item.temGente ? fmt(item.pessoas)+" pessoas" : "sem gente escalada"}</div>
+    </div>
+    <div class="ra-corpo">
+      <div class="hint" style="margin-bottom:12px">Quantos <b>${unidade}</b> este item usa em cada mês.
+      Mês em branco vale o da frente (${fmt(item.qtd)}), e mês sem volume na atividade não conta.</div>
+      <div class="rm-grade">${MESES.map((m,i)=>{
+        const vazio = !(item.unMes[i] > 0);
+        return `<div class="rm-mes${vazio?" rm-vazio":""}">
+          <div class="rm-cab"><b>${m}</b>
+            <span class="${vazio?"calc":"rm-meta"}">${vazio ? "fora da janela" : fmt(item.unMes[i])+" un."}</span></div>
+          <div class="rm-campos" style="grid-template-columns:1fr">
+            <label>Quantidade
+              <input data-apqm="${esc(r.a.cod)}" data-erp="${esc(item.erp)}" data-i="${i}"
+                     value="${mensal[i]||""}" placeholder="${vazio?"—":fmt(item.qtd)}" inputmode="decimal"></label>
+          </div>
+          ${vazio ? "" : `<div class="rm-exige"><div class="rm-lin"><span>Pessoas</span>
+            <b>${item.temGente ? fmt(item.pessoasMes[i]) : "—"}</b></div></div>`}
+        </div>`; }).join("")}</div>
+    </div>
+    </div>`;
+  cont.hidden = false; fundo.hidden = false;
 }
 
 /* Um chip por mes com lancamento: mes, volume, frota e pessoas daquele mes.
@@ -387,4 +431,4 @@ function pintarDimDetalhe(R){
   if(alvo) alvo.scrollIntoView({block:"start"});
 }
 
-export { alternarFrenteLinha, alternarMesItem, alternarMesLinha, pintarDimDetalhe, pintarDim };
+export { alternarFrenteLinha, alternarMesLinha, pintarApoioMes, pintarDimDetalhe, pintarDim };
