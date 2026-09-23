@@ -2,6 +2,7 @@ import { MODOS_ORD, frotaDaAtividade, modoLiberado, modosDe, temDetalheTerc } fr
 import { tratListaTodos } from '../calculo/insumos.js';
 import { CFG } from '../dados/cfg.js';
 import { erpDe } from '../dados/atividades-erp.js';
+import { apoioDaAtividade, resumoApoio } from '../calculo/apoio-frente.js';
 import { TERC_MODOS } from '../dados/modos.js';
 import { NM } from '../nucleo/calendario.js';
 import { DIM, PLANO_ABERTO, TERC_DET, TERC_SUB, TRAT_ATIVO, TRAT_NOME, atividadesLista } from '../nucleo/estado.js';
@@ -203,9 +204,19 @@ function linhaAcoplada(r, SEL, opts){
 function subLinhasErp(r, SEL){
   const {nucleo, apoio} = erpDe(r.a.cod);
   if(!nucleo.length && !apoio.length) return "";
-  const linha = (e, tipo) => `<tr class="sub"><td class="calc">${esc(e.cod)}</td>
-    <td class="calc">${esc(e.nome)} <span class="badge ${tipo==="núcleo"?"b-ok":"b-warn"}">${tipo}</span></td>
-    <td class="calc" colspan="99">${e.esp.length ? "especialidade "+e.esp.map(esc).join(", ") : ""}</td></tr>`;
+  const AP = apoioDaAtividade(r);
+  const porErp = Object.fromEntries(AP.map(x=>[x.erp, x]));
+  const linha = (e, tipo) => {
+    const x = porErp[e.cod];
+    // operacao de apoio nao tem area, mas tem maquina e gente: e isso que ela
+    // traz para a frente, nos meses em que a frente roda
+    const nec = x && (x.frota || x.pessoas)
+      ? `${x.frota ? fmt(x.frota)+" equip." : ""}${x.frota&&x.pessoas?" · ":""}${x.pessoas ? fmt(x.pessoas)+" pessoas" : ""}`
+      : (tipo==="apoio" ? '<span class="calc">estrutura, sem gente</span>' : "");
+    return `<tr class="sub"><td class="calc">${esc(e.cod)}</td>
+      <td class="calc">${esc(e.nome)} <span class="badge ${tipo==="núcleo"?"b-ok":"b-warn"}">${tipo}</span></td>
+      <td class="calc" colspan="99">${nec}${e.esp.length ? ` <span class="calc">· especialidade ${e.esp.map(esc).join(", ")}</span>` : ""}</td></tr>`;
+  };
   return nucleo.map(e=>linha(e,"núcleo")).join("") + apoio.map(e=>linha(e,"apoio")).join("");
 }
 function pintarPlano(R){
@@ -242,10 +253,14 @@ function pintarPlano(R){
     const temExtras = !!r.tratsDetalhe;
     const E = erpDe(r.a.cod);
     const temErp = !!(E.nucleo.length || E.apoio.length);
+    const RA = r.total > 0 ? resumoApoio(apoioDaAtividade(r)) : {frota:0, pessoas:0};
     const aberto = (temExtras || temErp) && !!PLANO_ABERTO[r.a.cod];
     h+=`<tr><td>${r.a.cod}</td><td>${temExtras||temErp?`<button type="button" class="mini-seta" data-planoabre="${r.a.cod}"
           title="${temExtras?"Área por tratamento e atividades do ERP que compõem a frente"
-                            :"Atividades do ERP que compõem a frente"}">${aberto?"▾":"▸"}</button>`:""}${r.a.nome}${auto?' <span class="badge b-ok">auto</span>':''}${
+                            :"Atividades do ERP que compõem a frente"}">${aberto?"▾":"▸"}</button>`:""}${r.a.nome}${
+        RA.frota||RA.pessoas ? ` <span class="badge" title="Operações de apoio desta frente, que não têm área para lançar: ${
+          RA.frota} equipamento(s) e ${RA.pessoas} pessoa(s) enquanto a frente roda. Abra a seta para ver quais.">apoio ${
+          RA.frota?RA.frota+" eq":""}${RA.frota&&RA.pessoas?" · ":""}${RA.pessoas?RA.pessoas+" pess":""}</span>` : ""}${auto?' <span class="badge b-ok">auto</span>':''}${
           levaJunto.length?` <span class="calc" title="${esc(levaJunto.join(" e ")+" vão na mesma passada: a mecanização é uma só, a desta linha")}">+ ${levaJunto.join(", ")}</span>`:""}</td>
         <td><input type="date" data-dt="${r.a.cod}" data-f="ini" value="${r.janela.ini||""}" max="${d.fim||""}" title="Início da execução"></td>
         <td><input type="date" data-dt="${r.a.cod}" data-f="fim" value="${r.janela.fim||""}" min="${d.ini||""}" title="Fim da execução"></td>

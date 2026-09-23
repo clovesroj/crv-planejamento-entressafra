@@ -1,4 +1,5 @@
 import { criterioMensal } from './atividade.js';
+import { apoioDaAtividade } from './apoio-frente.js';
 import { CFG } from '../dados/cfg.js';
 import { CATEGORIAS_FUNCAO, CATEGORIA_OUTRAS } from '../dados/mao-de-obra.js';
 import { MESES, NM } from '../nucleo/calendario.js';
@@ -52,6 +53,21 @@ function pessoasCalc(R){
           r.meses.map((q,i)=>num(q)>0 ? Math.ceil(p.efetivo*fatorMes(i)) : 0), (p.mdoMes||[]).slice(), r.a.cod,
           // a janela diz quando a frente comeca e termina: sem ela, uma coluna
           // cheia de gente parece mes inteiro ocupado (ver ui/pessoas.js)
+          r.janela ? {fonte:r.janela.fonte, ini:r.janela.ini||"", fim:r.janela.fim||""} : null);
+    });
+  });
+  /* Apoio da frente: a gente que a operacao precisa e que nao tem area para
+     lancar — auxiliar rural, motorista da pipa, do onibus, do caminhao de
+     insumo. Vem do catalogo do ERP preso a atividade (calculo/apoio-frente.js)
+     e conta nos meses em que a frente roda. Entra SEM custo de mao de obra
+     proprio, como a reserva do transporte de cana logo abaixo: o caminhao pipa
+     e o onibus ja sao pagos nos Equipamentos de Apoio e no Transporte de
+     Pessoal, e somar de novo aqui pagaria a mesma gente duas vezes. */
+  R.L.forEach(r=>{
+    if(!(r.total > 0)) return;
+    apoioDaAtividade(r).forEach(x=>{
+      if(!(x.pessoas > 0)) return;
+      add(r.a.etapa, x.fcod, `${r.a.nome} · ${x.nome}`, x.pessoas, x.pessoasMes.slice(), fixo(0), r.a.cod,
           r.janela ? {fonte:r.janela.fonte, ini:r.janela.ini||"", fim:r.janela.fim||""} : null);
     });
   });
