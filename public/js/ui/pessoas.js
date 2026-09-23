@@ -5,7 +5,7 @@ import { CFG } from '../dados/cfg.js';
 import { QUADRO } from '../nucleo/estado.js';
 import { MESES, NM, clsMes } from '../nucleo/calendario.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
-import { barras, kpi, maxSel, somaSel, tdMeses, th, thMeses } from './componentes.js';
+import { barras, serieDoPeriodo, kpi, maxSel, somaSel, tdMeses, th, thMeses } from './componentes.js';
 
 /* ---------- RESUMO DE PESSOAS ---------- */
 /* ---------- NECESSIDADE x QUADRO ATIVO ----------
@@ -193,7 +193,7 @@ function pintarPessoas(R){
     `<tr><td class="calc">Acumulado</td>`+tdMeses(acum, v=>v==null?"—":brl(v))+`<td></td></tr>`+
     `<tr><td class="calc">Pessoas na operação no mês</td>`+tdMeses(S.qtdMes, v=>fmt(v))+`<td></td></tr>`+
     (fat.qtd ? `<tr><td class="calc">Pessoas no FAT no mês</td>`+tdMeses(fat.qtdMes, v=>v?fmt(v):"—")+`<td></td></tr>` : "")+`</tbody>`;
-  barras($("#ch_pes"), MESES.map((m,i)=>({l:m, v:S.custoMes[i]})), "#2A57A0");
+  barras($("#ch_pes"), serieDoPeriodo(S.custoMes, SEL), "#2A57A0");
 
   /* ---------- NECESSIDADE POR ETAPA, TIPO DE GENTE, ORIGEM E FUNCAO ----------
      O quadro por funcao responde "quantos motoristas preciso ter". Esta tabela

@@ -1,5 +1,21 @@
 # Histórico de mudanças
 
+## 2.42.1 — 2026-09-23 · Gráfico mensal segue o período escolhido
+
+Com **Entressafra** selecionado no topo, o gráfico do fluxo mensal do Resumo de
+Pessoas continuava desenhando os doze meses: a tabela logo acima já mostrava só
+dezembro a março, e o gráfico mostrava abril a novembro também. Agora ele
+desenha só os meses do período — Ano todo (12), Safra (abr–nov), Entressafra
+(dez–mar) ou os meses escolhidos em "Meses".
+
+O mesmo acontecia em mais três gráficos de barras mensais, corrigidos junto:
+**custo por mês** do Painel, **litros de diesel por mês** da aba Combustível e
+**pagamento de arrendamento por mês** da aba Arrendamentos. Os quatro usam agora
+`serieDoPeriodo()` (`ui/componentes.js`), que monta a série a partir do recorte
+da barra do topo.
+
+Só a exibição muda; nenhum número. 29 abas sem erro.
+
 ## 2.42.0 — 2026-09-23 · O catálogo do ERP entra no plano
 
 Da planilha **Cashflow Diário — Plataforma Controladoria**: 272 linhas, **151

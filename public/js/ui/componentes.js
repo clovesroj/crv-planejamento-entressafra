@@ -397,6 +397,14 @@ function reaplicarExportar(){
 }
 
 /* ---------- GRÁFICOS ---------- */
+/* Serie mensal de um grafico de barras, so com os meses do periodo escolhido
+   na barra do topo (Ano todo, Safra, Entressafra ou meses avulsos). As
+   tabelas ja escondiam as colunas fora do periodo; o grafico desenhava os doze
+   meses sempre, e "Entressafra" continuava mostrando abril a novembro. */
+function serieDoPeriodo(valores, SEL){
+  const idx = SEL && Array.isArray(SEL.meses) && SEL.meses.length ? SEL.meses : MESES.map((m,i)=>i);
+  return idx.map(i=>({l:MESES[i], v:+valores[i]||0}));
+}
 function barras(el,dados,cor,un){
   const W=760,H=210,ml=64,mb=34,mt=12,mr=10;
   const max=Math.max(...dados.map(d=>d.v),1), bw=(W-ml-mr)/dados.length;
@@ -429,5 +437,5 @@ function barrasH(el,dados){
 }
 
 
-export { barras, barrasH, exportarTabela, filtrarPorNome, habilitarReordenacao, kpi, ligarBuscaSelect, maxSel,
+export { barras, serieDoPeriodo, barrasH, exportarTabela, filtrarPorNome, habilitarReordenacao, kpi, ligarBuscaSelect, maxSel,
          ordenarPorEtapa, reaplicarBuscas, reaplicarExportar, somaSel, tdMeses, th, thMeses };
