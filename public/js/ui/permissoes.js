@@ -48,7 +48,11 @@ const CONTROLES = 'input, select, textarea, button';
 function areaDe(el) {
   if (!el || !el.closest) return null;
   if (el.closest('#rendm')) return 'dimens';
-  if (el.closest('#dimdet')) return 'dimens';   // detalhe do dimensionamento grava utilizacao, escala e turnos
+  // Detalhe do dimensionamento: grava utilizacao, escala e turnos (DIM). A
+  // funcao da atividade, nao — ela grava PLANO[cod].fcod, e quem manda nela e a
+  // permissao do Plano Operacional. Sem esta linha, um perfil que edita o
+  // Dimensionamento mudava a funcao na tela e o servidor descartava em silencio.
+  if (el.closest('#dimdet')) return el.matches('[data-fc]') ? 'plano' : 'dimens';
   // Cadastro de Insumos, Grupos de Insumos (Configurações), o modal de busca
   // na Agrofit e o de editar produto gravam chaves da área 'insumos' no
   // servidor — as telas usam a mesma permissão, sem um toggle à parte no
