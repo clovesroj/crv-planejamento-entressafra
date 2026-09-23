@@ -42,8 +42,9 @@ const CONTROLES = 'input, select, textarea, button';
 
 /* Aba (área de permissão) dona de um elemento. O modal de rendimento mensal
    fica fora das abas e grava o dimensionamento. Abas sem nada editável (Capa,
-   Painel, Validação, Resumo de Pessoas) e a de Usuários — que tem regra
-   própria, só admin — não entram. */
+   Painel, Validação) e a de Usuários — que tem regra própria, só admin — não
+   entram. O Resumo de Pessoas passou a ter o quadro ativo, e por isso ganhou
+   área própria em server/permissoes.js. */
 function areaDe(el) {
   if (!el || !el.closest) return null;
   if (el.closest('#rendm')) return 'dimens';

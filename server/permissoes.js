@@ -44,6 +44,11 @@ const AREAS = [
   // documentos antigos ainda o trazem e ele é dado de mão de obra.
   { id: 'mdo', nome: 'Mão de Obra', grupo: 'Pessoas',
     chaves: ['ENC', 'BEN', 'NIV', 'GRAT', 'FUN'], campos: ['diasOper', 'diasTrab', 'hTurno'] },
+  // O quadro ativo (ajuste, férias e demissões por função) era editado no
+  // Dimensionamento; foi para o Resumo de Pessoas, ao lado das outras respostas
+  // sobre gente. QUADRO segue também em 'dimens' porque uma chave pode ter mais
+  // de uma aba dona — quem já tinha só 'dimens' no perfil não perde a edição.
+  { id: 'pessoas', nome: 'Resumo de Pessoas', grupo: 'Pessoas', chaves: ['QUADRO'] },
 
   { id: 'insumos', nome: 'Insumos', grupo: 'Agricultura',
     chaves: ['INSUMO', 'INSX', 'INSX_V', 'TRATC', 'TRAT_NOME', 'TRAT_OBS', 'TRAT_ETAPA', 'TRAT_DEL', 'TRAT_ATIVO', 'MATX', 'GRUPOS_INS', 'FAM_NOME', 'FAM_CLASSE'] },
@@ -62,7 +67,10 @@ const AREAS = [
   { id: 'frota', nome: 'Manutenção de Frota', grupo: 'Manutenção de frota',
     chaves: ['CRM', 'CRM_ESP', 'FROTA', 'MAQ', 'FROTA_UN'] },
   { id: 'reforma', nome: 'Reforma de Frota', grupo: 'Manutenção de frota', chaves: ['FROTA_UN'] },
-  { id: 'resumofrota', nome: 'Resumo de Frota', grupo: 'Manutenção de frota', chaves: ['FROTA_UN'] },
+  // APOIO_FIXO (quantidade da frota de apoio) veio do Dimensionamento junto com
+  // a tabela; segue também lá, pelo mesmo motivo de QUADRO acima.
+  { id: 'resumofrota', nome: 'Resumo de Frota', grupo: 'Manutenção de frota',
+    chaves: ['FROTA_UN', 'APOIO_FIXO'] },
 
   { id: 'arrend', nome: 'Arrendamentos', grupo: 'Custos', chaves: ['ARREND', 'ARR_PAR', 'ARR_RAT'] },
   { id: 'adm', nome: 'Custos Administrativos', grupo: 'Custos', chaves: ['ADM', 'ADM_RAT'] },

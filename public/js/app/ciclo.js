@@ -53,7 +53,7 @@ const TABELAS_REORDENAVEIS = [
   ['#t_ins',0], ['#t_comp',0], ['#t_trat',0], ['#t_mat',0],
   ['#t_forn',0], ['#t_forn_qual',0], ['#t_arr',0], ['#t_adm',0],
   ['#t_esp',0], ['#t_contas',0], ['#t_tarifa',0], ['#t_terc',0], ['#t_comb_maq',0],
-  ['#t_rf_oper',0], ['#t_rf_apoio',0], ['#t_rf_tpess',0],
+  ['#t_rf_oper',0], ['#t_rf_tpess',0],
   ['#t_pes_dept',0], ['#t_pes_fun',0], ['#t_pes_det',0],
   ['#t_acomp_exc',0], ['#t_crit_mes',0], ['#t_meta_agricola',0], ['#t_meta_logistica',0],
   ['#t_meta_manut',0], ['#t_acomp',0], ['#t_val',0],
