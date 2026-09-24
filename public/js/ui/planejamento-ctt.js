@@ -365,7 +365,7 @@ function pintar() {
   el.innerHTML = `<h2>Planejamento Entressafra CTT</h2>
     <p class="lead">Cronograma de atividades, mão de obra e frota da entressafra — Corte, Transbordo e Transporte.</p>
     <div class="pctt-slicers">${montarSlicers()}</div>
-    <nav class="pctt-tabs" aria-label="Páginas do relatório">${montarAbas()}</nav>
+    <div class="pctt-tabs" role="navigation" aria-label="Páginas do relatório">${montarAbas()}</div>
     <div class="pctt-page" id="pctt-stage">${PAGINAS[ESTADO.pagina].render()}</div>`;
 }
 
