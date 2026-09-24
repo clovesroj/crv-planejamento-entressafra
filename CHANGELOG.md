@@ -1,5 +1,68 @@
 # Histórico de mudanças
 
+## 2.45.0 — 2026-09-23 · Resumo de Pessoas: filtro por quadro e departamento
+
+No topo do Resumo de Pessoas, dois filtros:
+
+- **Quadro** — Operacional (atividades do plano), ADM agrícola, Oficina ou FAT;
+- **Departamento** — a lista se ajusta ao quadro escolhido (ex.: só os 19
+  departamentos da oficina); trocar de quadro volta o departamento para "todos".
+
+O filtro vale para os cartões do topo, a página por departamento e função, a
+evolução mensal, o gráfico e o **detalhe por origem**. O botão "Limpar filtro"
+aparece quando há filtro, e uma nota diz o que está filtrado. É só visão: não é
+gravado e fica liberado para quem só visualiza.
+
+O confronto com o quadro ativo (primeira página) **não** é filtrado: o quadro
+ativo do ERP é por função, sem departamento, e comparar a necessidade de um
+departamento com o ativo da função inteira diria que sobra gente.
+
+Filtrada, a nota de conferência diz quanto o recorte é do custo de mão de obra
+do plano, em vez de acusar diferença com a aba Custos. A conta do filtro é a
+mesma do Resumo inteiro (`resumirPessoas` e `filtrarPessoas`, em
+`calculo/pessoas.js`): filtrado na Oficina, o custo é exatamente o do quadro da
+oficina no motor.
+
+Nenhum número muda. 54 invariantes sem falha; 29 abas, rastros e relatórios sem
+erro.
+
+## 2.44.2 — 2026-09-23 · Quadro ADM e oficina: títulos sem a sigla "AA"
+
+Na página "Quadro ADM e oficina" (aba Mão de Obra) e no relatório do quadro, os
+títulos do realizado do ano anterior diziam só "AA" (a sigla da planilha). Agora
+dizem por extenso, e o lado do previsto acompanha:
+
+| Antes | Agora |
+|---|---|
+| Qtde AA · Qtde Prev. · Δ Qtde | Qtde realizada (ano anterior) · Qtde prevista · Δ Qtde (prevista − ano anterior) |
+| Sal. méd. AA · Sal. méd. Prev. · Δ Sal. méd. | Salário médio realizado (ano anterior) · Salário médio previsto · Δ Salário médio |
+| Realizado AA · Previsto · Δ R$ · Δ % | Folha realizada (ano anterior) · Folha prevista · Δ Folha (R$) · Δ Folha (%) |
+| Ef. Qtde (R$) · Ef. Salário (R$) | Efeito quantidade (R$) · Efeito salário (R$) |
+
+O cartão do realizado diz o mês com que compara: "Folha realizada no ano
+anterior — Fev/26" (e "média dez/25–mar/26" na média). Os títulos moram numa
+lista só (`COLUNAS_QUADRO`, em `calculo/quadro-comparativo.js`), usada pela tela
+e pelo relatório. Nenhum número muda.
+
+## 2.44.1 — 2026-09-23 · Quadro ADM e oficina lançado só de dezembro a março
+
+O quadro previsto da controladoria (ADM agrícola e oficina) passa a entrar no
+plano **só de dez/26 a mar/27**. Antes entrava de nov/26 a mar/27 com o que
+veio das planilhas e repetia fev/27 de abril a outubro. Agora, fora de
+dezembro a março, o ADM agrícola e a oficina não têm pessoa nem custo no plano.
+
+- `dados/quadro-fixo.js`: `QUADRO_MESES_LANC = [dez, jan, fev, mar]` é o único
+  lugar que diz em que meses o quadro é lançado. Novembro continua guardado como
+  veio da planilha, sem ser lançado; sai o mês de referência que era repetido.
+- A página "Quadro ADM e oficina" (aba Mão de Obra) e o relatório do quadro
+  mostram dez/26 a mar/27; a média mensal é desses quatro meses.
+
+Efeito no custo: plano vazio R$ 68.246.103,41 → **R$ 46.353.393,26** (ADM
+R$ 12,00 mi → R$ 3,79 mi; oficina R$ 19,90 mi → R$ 6,22 mi). Dez/26: 304
+pessoas e R$ 2.318.983 (folha R$ 1.360.052 × 1,368 + 304 × R$ 1.508 de
+benefícios). 54 invariantes sem falha; 29 abas, 312 rastros e os relatórios sem
+erro.
+
 ## 2.44.0 — 2026-09-23 · Quadro ADM e oficina da controladoria, e pessoas no padrão das planilhas
 
 ### O quadro ADM agrícola e o da oficina entram pelo previsto da controladoria

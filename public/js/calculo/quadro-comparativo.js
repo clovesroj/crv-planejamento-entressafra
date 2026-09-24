@@ -2,24 +2,27 @@
    A leitura do Painel das planilhas de justificativa da folha (controladoria),
    com o mesmo método, para o quadro que o plano usa (calculo/quadro-fixo.js):
 
-     Ef. Qtde    = (Qtde Prev − Qtde AA) × Sal. médio AA da função
-                   (função sem AA usa o salário médio previsto)
-     Ef. Salário = (Sal. médio Prev − Sal. médio AA) × Qtde Prev
-     Ef. Qtde + Ef. Salário = Δ R$
+     Efeito quantidade = (Qtde prevista − Qtde realizada no ano anterior)
+                         × salário médio realizado da função no ano anterior
+                         (função sem realizado usa o salário médio previsto)
+     Efeito salário    = (salário médio previsto − salário médio realizado)
+                         × Qtde prevista
+     Efeito quantidade + efeito salário = Δ folha
 
-   calculado por mês × departamento × função e somado para cima. AA é o
-   realizado do mesmo mês no ano anterior. "Média" é a média mensal dos meses
-   da planilha (nov/26 a mar/27). */
-import { QUADRO_MES0 } from '../dados/quadro-fixo.js';
+   calculado por mês × departamento × função e somado para cima. "Realizado"
+   é sempre o do mesmo mês no ano anterior (dez/25 a mar/26) -- a planilha
+   chama de AA; aqui o título diz por extenso. "Média" é a média mensal dos meses
+   lançados no plano (dez/26 a mar/27). */
+import { QUADRO_MESES_LANC } from '../dados/quadro-fixo.js';
 import { MESES } from '../nucleo/calendario.js';
 
-const N_PLAN = 5;   // meses com previsto na planilha: nov/26 a mar/27
-const mesesPlanilha = () => Array.from({length:N_PLAN}, (_,k)=>QUADRO_MES0+k);
+// os meses lançados no plano: dez/26 a mar/27
+const mesesPlanilha = () => QUADRO_MESES_LANC.slice();
 
 // métricas de uma linha (função num departamento) num mês i do ano do app
 function linhaMes(l, i){
   const qa = +l.realQ[i]||0, va = +l.realV[i]||0;
-  // de nov/26 a mar/27 a linha do quadro é a da planilha (quadro-fixo.js)
+  // nos meses lançados a linha do quadro é a da planilha (quadro-fixo.js)
   const qp = +l.qtdMes[i]||0, vp = +l.folhaMes[i]||0;
   const sa = qa>0 ? va/qa : 0, sp = qp>0 ? vp/qp : 0;
   const efQ = (qp-qa) * (qa>0 ? sa : sp);
@@ -65,4 +68,14 @@ function comparativoQuadro(QF, grupo, mes){
   return {departamentos, funcoes, total, evolucao, media, meses: mesesPlanilha()};
 }
 
-export { comparativoQuadro, mesesPlanilha };
+/* Títulos das colunas, na ordem de colsQuadro (tela) e colsQF (relatório):
+   um lugar só, para a tela e o relatório dizerem a mesma coisa. */
+const COLUNAS_QUADRO = [
+  "Qtde realizada (ano anterior)", "Qtde prevista", "Δ Qtde (prevista − ano anterior)",
+  "Salário médio realizado (ano anterior)", "Salário médio previsto", "Δ Salário médio",
+  "Folha realizada (ano anterior)", "Folha prevista", "Δ Folha (R$)", "Δ Folha (%)",
+  "Efeito quantidade (R$)", "Efeito salário (R$)", "Fator principal", "Custo no plano"];
+// "Fev/27" -> "Fev/26": o mês do ano anterior com que o realizado compara
+const mesAnoAnterior = rot => String(rot||"").replace(/(\d{2})$/, y=>String(+y-1).padStart(2,"0"));
+
+export { COLUNAS_QUADRO, comparativoQuadro, mesAnoAnterior, mesesPlanilha };

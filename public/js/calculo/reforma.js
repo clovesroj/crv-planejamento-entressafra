@@ -5,7 +5,7 @@ import { CFG } from '../dados/cfg.js';
 import { FROTA_UN } from '../nucleo/estado.js';
 import { num } from '../nucleo/formato.js';
 import { destinoDe } from './crm.js';
-import { itensDoEquipamento } from './gasto-real.js';
+import { desdeUltimoAno, itensDoEquipamento, produtosDoEquipamento } from './gasto-real.js';
 
 /* ================== REFORMA DE FROTA ==================
    Provisionamento da reforma de entressafra. Orcado por unidade de frota,
@@ -106,6 +106,29 @@ function realDe(cod, conjunto, familia){
   return itensReforma(cod, conjunto, familia).total;
 }
 
+/* ===== Orcamento por produto =====
+   Quantidade que a pessoa lanca para cada produto do sistema, vezes o valor
+   medio que aquele produto custou no ultimo ano. E o orcamento "por sistema e
+   produto": o gasto real diz o que FOI gasto, isto diz o que se PRETENDE
+   gastar, item a item. Zero enquanto ninguem lancar quantidade. */
+function qtdProdutos(cod, conjunto){
+  return (((FROTA_UN[cod] || {}).refQtd || {})[conjunto]) || {};
+}
+function orcamentoProdutos(cod, conjunto, familia){
+  const q = qtdProdutos(cod, conjunto);
+  const chaves = Object.keys(q).filter(k => num(q[k]) > 0);
+  if(!chaves.length) return {total:0, itens:[]};
+  const prods = produtosDoEquipamento(cod, {desde: desdeUltimoAno(),
+    sistemas: [conjunto].concat(tagsBiDoConjunto(familia, conjunto) || [])});
+  const porNome = Object.fromEntries(prods.map(p=>[p.produto, p]));
+  const itens = chaves.map(k=>{
+    const p = porNome[k] || {media:0, vezes:0};
+    const qtd = num(q[k]);
+    return {produto:k, qtd, media:p.media, total: qtd * p.media, vezes:p.vezes};
+  }).sort((a,b)=>b.total-a.total);
+  return {total: itens.reduce((s,x)=>s+x.total,0), itens};
+}
+
 /**
  * Valor de uma unidade num conjunto: o gasto real do ERP quando existe --
  * nesse caso o campo na tela fica travado, nao dá pra digitar por cima --
@@ -113,6 +136,10 @@ function realDe(cod, conjunto, familia){
  * "um ou outro" que a celula mostra (ver gastoRealDe() em ui/reforma.js).
  */
 function valorConjunto(cod, conjunto, familia){
+  // orcamento por produto manda quando existe: e a previsao explicita do que a
+  // proxima reforma vai usar, lancada item a item sobre o historico
+  const orc = orcamentoProdutos(cod, conjunto, familia).total;
+  if(orc) return orc;
   const real = realDe(cod, conjunto, familia);
   if(real) return real;
   const r = refDe(cod);
@@ -174,5 +201,5 @@ function reforma(){
           media: unidades ? total/unidades : 0};
 }
 
-export { reforma, refDe, totalUnidade, valorConjunto, realDe, chaveItemReforma,
+export { reforma, refDe, totalUnidade, valorConjunto, realDe, chaveItemReforma, orcamentoProdutos, qtdProdutos,
   itensExcluidosReforma, itensIncluidosReforma, itensReforma };

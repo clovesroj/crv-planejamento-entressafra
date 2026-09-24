@@ -17,11 +17,10 @@
        vezes.
      - Benefícios: o pacote por colaborador da aba Mão de Obra, por pessoa
        prevista no mês.
-   Meses sem previsto na planilha (abr/26 a out/26) repetem o mês de
-   referência, fev/27 -- quantidade e folha --, e ficam marcados como
-   estimados. */
+   Lançado só de dez/26 a mar/27 (QUADRO_MESES_LANC): nos demais meses o
+   quadro não tem pessoa nem custo no plano. */
 import { CFG } from '../dados/cfg.js';
-import { QUADRO_FIXO, QUADRO_FONTE, QUADRO_MES0, QUADRO_MES_REF } from '../dados/quadro-fixo.js';
+import { QUADRO_FIXO, QUADRO_FONTE, QUADRO_MES0, QUADRO_MESES_LANC } from '../dados/quadro-fixo.js';
 import { NM } from '../nucleo/calendario.js';
 import { num } from '../nucleo/formato.js';
 import { encPct } from './mao-de-obra.js';
@@ -42,18 +41,17 @@ function quadroFixoCalc(MP){
   const pctContrib = contrib.reduce((s,e)=>s+e.pct, 0);
   const ben = MP.benTot;
   const linhas = QUADRO_FIXO.map((l, ix)=>{
-    const qtdMes = [], folhaMes = [], custoMes = [], estimado = [], realQ = [], realV = [];
+    const qtdMes = [], folhaMes = [], custoMes = [], realQ = [], realV = [];
     for(let i=0;i<NM;i++){
-      let q = naPlanilha(l.pq, i), v = naPlanilha(l.pv, i);
-      const est = q == null && v == null && (i < QUADRO_MES0 || i >= QUADRO_MES0 + (l.pq||[]).length);
-      if(est){ q = naPlanilha(l.pq, QUADRO_MES_REF); v = naPlanilha(l.pv, QUADRO_MES_REF); }
-      q = num(q); v = num(v);
-      qtdMes.push(q); folhaMes.push(v); estimado.push(est);
+      // fora de dez/26 a mar/27 o quadro não entra no plano
+      const lanca = QUADRO_MESES_LANC.includes(i);
+      const q = lanca ? num(naPlanilha(l.pq, i)) : 0, v = lanca ? num(naPlanilha(l.pv, i)) : 0;
+      qtdMes.push(q); folhaMes.push(v);
       custoMes.push(v*(1+pctContrib) + q*ben);
       realQ.push(naPlanilha(l.rq, i)); realV.push(naPlanilha(l.rv, i));
     }
     return {ix, grupo:l.g, dcod:l.dc, depto:l.d, fcod:l.fc, fnome:l.f,
-            qtdMes, folhaMes, custoMes, estimado, realQ, realV,
+            qtdMes, folhaMes, custoMes, realQ, realV,
             folha: folhaMes.reduce((s,x)=>s+x,0), custo: custoMes.reduce((s,x)=>s+x,0),
             pico: Math.max(0, ...qtdMes)};
   });
@@ -68,8 +66,7 @@ function quadroFixoCalc(MP){
   const mes = adm.mes.map((v,i)=>v + oficina.mes[i]);
   const qtdMes = adm.qtdMes.map((v,i)=>v + oficina.qtdMes[i]);
   return {linhas, adm, oficina, mes, qtdMes, total: adm.total + oficina.total, pico: Math.max(0, ...qtdMes),
-          pctContrib, contrib, ben, mesRef: QUADRO_MES_REF, mes0: QUADRO_MES0,
-          estimadoMes: Array.from({length:NM}, (_,i)=>linhas.some(l=>l.estimado[i]))};
+          pctContrib, contrib, ben, mes0: QUADRO_MES0, mesesLanc: QUADRO_MESES_LANC.slice()};
 }
 
 export { ehContribuicao, quadroFixoCalc };

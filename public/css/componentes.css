@@ -653,6 +653,10 @@ tr[data-rastro]:hover td:first-child,td[data-rastro]:hover{text-decoration:under
 .dim-sp input{width:13px;height:13px;min-width:0;margin:0}
 /* campo de consulta para acrescentar atividade ao plano */
 .add-erp{width:340px;min-width:0;height:28px;font-size:12.5px;text-align:left}
+/* linha de produto com quantidade, no rastro do compartimento */
+.ra-linha-qtd{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.ra-qtd-cel{display:flex;align-items:center;gap:10px;white-space:nowrap}
+.ra-qtd{width:74px;min-width:0;height:28px;text-align:right;font-size:13px}
 .dim-mes .calc{font-size:10.5px}
 #t_dim tr.sub td{text-align:left}
 .dim-val{font-weight:700;color:var(--ink);font-size:14px}
@@ -938,6 +942,12 @@ table.qf tr.qf-tot td{font-weight:700;border-top:1px solid var(--line-strong)}
 table.qf tr.qf-sel td{background:color-mix(in srgb,var(--leaf) 9%,var(--card))}
 table.qf td.qf-mais{color:var(--bad)}
 table.qf td.qf-menos{color:var(--green)}
+
+/* Arvore de funcionarios do ADM e da oficina (aba Mao de Obra) */
+#t_pessoal .pes-falta{color:var(--amber);font-weight:600}
+#t_pessoal .pes-excede{color:var(--bad);font-weight:600}
+#t_pessoal tr.pes-linha td:first-child{padding-left:38px}
+#t_pessoal tr.pes-linha td select{margin-right:6px}
 
 /* Resumo de Pessoas no padrao das planilhas: grupo, departamento e funcao */
 #t_pes_dept tr.pes-grp td{background:color-mix(in srgb,var(--leaf) 10%,var(--card));font-weight:700;border-top:1px solid var(--line-strong)}

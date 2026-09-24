@@ -289,12 +289,44 @@
         <div class="tblwrap"><table id="t_qf_fun" class="qf"></table></div>
         <div class="hint" style="margin-top:9px">O administrativo agrícola e a oficina entram no plano por este quadro,
         departamento a departamento e cargo a cargo; motoristas, operadores e rurais saem das atividades do plano.
-        <b>Previsto</b> é a folha prevista pela controladoria (proventos do mês: 13º e férias caem no mês em que são pagos);
-        <b>AA</b>, o realizado do mesmo mês no ano anterior. <b>Ef. Qtde</b> = (Qtde Prev − Qtde AA) × Sal. médio AA da
-        função; <b>Ef. Salário</b> = (Sal. médio Prev − Sal. médio AA) × Qtde Prev — os dois somam o Δ R$, como no Painel
-        da planilha. <b>Custo no plano</b> = folha prevista + INSS patronal, RAT, Terceiros e FGTS sobre ela + benefícios
-        por pessoa (sem as provisões de 13º e férias, que já estão na folha do mês). De abr/26 a out/26 a planilha não tem
-        previsto: o plano repete fev/27 nesses meses.</div></div>
+        <b>Folha prevista</b> é a da controladoria (proventos do mês: 13º e férias caem no mês em que são pagos);
+        <b>realizado (ano anterior)</b> é a quantidade e a folha do mesmo mês no ano anterior — dez/26 compara com dez/25
+        (a planilha chama de "AA"). <b>Efeito quantidade</b> = (Qtde prevista − Qtde realizada no ano anterior) × salário
+        médio realizado da função; <b>efeito salário</b> = (salário médio previsto − salário médio realizado) × Qtde
+        prevista — os dois somam o Δ folha, como no Painel da planilha. <b>Custo no plano</b> = folha prevista + INSS patronal, RAT, Terceiros e FGTS sobre ela + benefícios
+        por pessoa (sem as provisões de 13º e férias, que já estão na folha do mês). O quadro é lançado no plano só de
+        <b>dezembro/26 a março/27</b>: nos demais meses o ADM agrícola e a oficina não têm custo no plano.</div></div>
+    </div>
+  </details>
+
+  <details class="bloco" id="bl_mdo_pessoal">
+    <summary><span class="bl-tit">Funcionários do ADM e da oficina</span><span class="bl-sub" id="bl_pessoal_sub"></span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Árvore de funcionários — quadro por departamento</h3>
+        <div class="row" style="margin-bottom:12px;align-items:flex-end;flex-wrap:wrap">
+          <div style="min-width:120px"><label for="in_pes_mat">Matrícula</label>
+            <input id="in_pes_mat" placeholder="ex.: 10234" inputmode="numeric"></div>
+          <div style="min-width:240px;flex:1"><label for="in_pes_nome">Nome</label>
+            <input id="in_pes_nome" placeholder="nome do funcionário" style="text-align:left"></div>
+          <div style="min-width:260px;flex:1"><label for="in_pes_dep">Departamento</label>
+            <input id="in_pes_dep" list="pes_dep_lista" placeholder="consulte por código ou nome" style="text-align:left"></div>
+          <div style="min-width:240px;flex:1"><label for="in_pes_fun">Função</label>
+            <input id="in_pes_fun" list="pes_fun_lista" placeholder="consulte por código ou cargo" style="text-align:left"></div>
+          <div style="min-width:120px"><label for="in_pes_sal">Salário (R$)</label>
+            <input id="in_pes_sal" inputmode="decimal" placeholder="0,00"></div>
+          <div><button class="btn p" id="btn_pessoal_add">Lançar funcionário</button></div>
+        </div>
+        <div class="hint" id="pes_ref" style="margin:0 0 8px"></div>
+        <input type="search" class="tbl-busca" data-alvo="#t_pessoal" placeholder="Buscar departamento, nome, matrícula ou função...">
+        <div class="tblwrap"><table id="t_pessoal"></table></div>
+        <div class="hint" style="margin-top:9px">Quem ocupa cada vaga do quadro ADM agrícola e da oficina: uma linha por
+        pessoa, dentro do seu departamento. A <b>quantidade prevista</b> e a <b>folha prevista</b> de cada departamento
+        vêm do quadro da controladoria (bloco acima), e a coluna <b>vagas</b> é a diferença: positiva, falta lançar
+        gente; negativa, há mais gente lançada do que o previsto. Departamento sem ninguém lançado continua na árvore,
+        mostrando a vaga em aberto. <b>Não muda o custo do plano</b>, que continua sendo o quadro previsto da
+        controladoria — aqui está quem ocupa as vagas, e a comparação entre o salário lançado e o previsto da função.
+        Matrícula, nome e salário são dados nominais: ficam só no documento do plano, no banco da usina, e nunca no
+        cadastro do repositório.</div></div>
     </div>
   </details>
 
@@ -1171,6 +1203,14 @@
   por função, e de onde vem cada pessoa, mês a mês. O operacional (motoristas, operadores e rurais) sai das
   atividades do plano, por etapa; o ADM agrícola e a oficina, do quadro previsto da controladoria, por departamento;
   e o FAT, fora da operação. Quatro páginas — use o menu ao lado para trocar.</p>
+  <div class="row pes-filtro" style="margin-bottom:12px;align-items:flex-end">
+    <div style="min-width:220px"><label for="sel_pes_grupo">Quadro</label>
+      <select id="sel_pes_grupo"></select></div>
+    <div style="min-width:300px"><label for="sel_pes_dept">Departamento</label>
+      <select id="sel_pes_dept"></select></div>
+    <button class="btn" id="btn_pes_limpar" type="button">Limpar filtro</button>
+    <div class="hint" id="pes_filtro_nota" style="flex:1;margin:0"></div>
+  </div>
   <div class="grid g4" id="k_pes" style="margin-bottom:16px"></div>
 
   <details class="bloco" id="bl_pes_quadro" open>
@@ -1209,8 +1249,8 @@
     <div class="bloco-corpo">
       <div class="panel"><h3>Evolução mensal — pessoas</h3><div class="tblwrap"><table id="t_pes_mes_qtd"></table></div>
         <div class="hint" style="margin-top:9px">Uma equipe de atividade conta nos meses em que a atividade tem quantidade
-        programada no Plano Operacional. O ADM agrícola e a oficina seguem o quadro previsto de cada mês (abr a out repetem
-        fev/27). <b>Na operação</b> é o total sem o FAT.</div></div>
+        programada no Plano Operacional. O ADM agrícola e a oficina seguem o quadro previsto de cada mês (só de dez/26 a
+        mar/27). <b>Na operação</b> é o total sem o FAT.</div></div>
       <div class="panel"><h3>Evolução mensal — custo de mão de obra</h3><div class="tblwrap"><table id="t_pes_mes_custo"></table></div>
         <div id="ch_pes" style="margin-top:14px"></div>
         <div class="hint" style="margin-top:9px">O custo das atividades segue a quantidade programada em cada mês; o do
@@ -1500,6 +1540,8 @@
      painter do Dimensionamento, fora da tabela porque <datalist> dentro de
      <table> e HTML invalido. -->
 <datalist id="erp_lista"></datalist>
+<datalist id="pes_dep_lista"></datalist>
+<datalist id="pes_fun_lista"></datalist>
 <div id="apoiomes_fundo" hidden></div>
 <aside id="apoiomes" aria-label="Quantidade por mês do item de apoio" hidden></aside>
 <div id="dimdet_fundo" hidden></div>

@@ -43,7 +43,22 @@ function pintarRastro(R){
   // equipamento ou rota digitados pelo usuário — por isso passa por esc().
   // linha normal, ou linha com checkbox pra marcar/desmarcar um lancamento do
   // ERP que conta (ou nao) no orcamento -- ver rastroReformaBiItem() em calculo/rastro.js
-  const linha = l => l.flag ? `<label class="ra-linha ra-linha-flag">
+  /* Linha com quantidade: produto do sistema, com o campo do que a reforma vai
+     usar. quantidade x valor medio do ano = orcamento daquele produto. */
+  const linhaQtd = l => `<div class="ra-linha ra-linha-qtd">
+      <div class="ra-flag-corpo">
+        <div class="ra-rot">${esc(l.rot)}</div>
+        ${l.sub ? `<div class="ra-sub">${esc(l.sub)}</div>` : ""}
+      </div>
+      <div class="ra-qtd-cel">
+        <input type="text" inputmode="decimal" class="ra-qtd" value="${esc(String(l.qtd.valor))}"
+          data-qtd-cod="${esc(l.qtd.cod)}" data-qtd-conjunto="${esc(l.qtd.conjunto)}"
+          data-qtd-produto="${esc(l.qtd.produto)}" placeholder="0" title="Quantidade que a reforma vai usar">
+        <span class="ra-val">${esc(l.val)}</span>
+        <span class="ra-sub">${l.qtd.valor ? brl(Number(String(l.qtd.valor).replace(",","."))*l.qtd.media) : "—"}</span>
+      </div>
+    </div>`;
+  const linha = l => l.qtd ? linhaQtd(l) : l.flag ? `<label class="ra-linha ra-linha-flag">
       <input type="checkbox" data-flag-cod="${esc(l.flag.cod)}" data-flag-conjunto="${esc(l.flag.conjunto)}"
         data-flag-chave="${esc(l.flag.chave)}" data-flag-origem="${esc(l.flag.origem)}"${l.flag.ligado?" checked":""}>
       <div class="ra-flag-corpo">

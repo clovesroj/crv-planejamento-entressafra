@@ -149,6 +149,7 @@ main{width:100%;max-width:1440px;margin:0 auto;padding:26px 28px 64px}
    nao o atributo hidden. O limite de leitura continua valendo para texto: .lead
    fica em 80ch. */
 main:has(> section#dimens.on),
+main:has(> section#mdo.on),
 main:has(> section#plano.on),
 main:has(> section#pessoas.on),
 main:has(> section#resumofrota.on),
