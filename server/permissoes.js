@@ -43,7 +43,7 @@ const AREAS = [
   // NIV (níveis salariais) não tem mais controle na tela; segue aqui porque
   // documentos antigos ainda o trazem e ele é dado de mão de obra.
   { id: 'mdo', nome: 'Mão de Obra', grupo: 'Pessoas',
-    chaves: ['ENC', 'BEN', 'NIV', 'GRAT', 'FUN', 'FAT', 'PESSOAL'], campos: ['diasOper', 'diasTrab', 'hTurno'] },
+    chaves: ['ENC', 'BEN', 'NIV', 'GRAT', 'FUN', 'FAT'], campos: ['diasOper', 'diasTrab', 'hTurno'] },
   // O quadro ativo (ajuste, férias e demissões por função) era editado no
   // Dimensionamento; foi para o Resumo de Pessoas, ao lado das outras respostas
   // sobre gente. QUADRO segue também em 'dimens' porque uma chave pode ter mais
@@ -172,6 +172,20 @@ function filtrarGravacao(corpo, atual, perm, substituir) {
   return { doc, ignorados };
 }
 
+/* Chaves que saíram do plano e não podem voltar ao banco, nem por um
+   navegador com a versão antiga aberta, nem pelo administrador (que não passa
+   por filtrarGravacao). PESSOAL era o quadro nominal do ADM e da oficina —
+   matrícula, nome e salário por pessoa —, retirado na 2.45.2: o plano projeta
+   gente por função e departamento, de forma impessoal. O que já estava gravado
+   sai do banco em schema.sql. */
+const CHAVES_RETIRADAS = ['PESSOAL'];
+function semRetiradas(doc) {
+  if (!doc || typeof doc !== 'object' || !CHAVES_RETIRADAS.some(k => k in doc)) return doc;
+  const limpo = { ...doc };
+  CHAVES_RETIRADAS.forEach(k => { delete limpo[k]; });
+  return limpo;
+}
+
 // Identificador do perfil a partir do nome: minúsculo, sem acento nem espaço.
 function idDoNome(nome) {
   return String(nome || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -180,5 +194,5 @@ function idDoNome(nome) {
 
 module.exports = {
   AREAS, TUDO, PERFIS_FIXOS, normalizarEditaveis, permissoesDe, permissoesPublicas,
-  filtrarGravacao, idDoNome, igual,
+  filtrarGravacao, idDoNome, igual, CHAVES_RETIRADAS, semRetiradas,
 };

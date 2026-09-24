@@ -943,12 +943,6 @@ table.qf tr.qf-sel td{background:color-mix(in srgb,var(--leaf) 9%,var(--card))}
 table.qf td.qf-mais{color:var(--bad)}
 table.qf td.qf-menos{color:var(--green)}
 
-/* Arvore de funcionarios do ADM e da oficina (aba Mao de Obra) */
-#t_pessoal .pes-falta{color:var(--amber);font-weight:600}
-#t_pessoal .pes-excede{color:var(--bad);font-weight:600}
-#t_pessoal tr.pes-linha td:first-child{padding-left:38px}
-#t_pessoal tr.pes-linha td select{margin-right:6px}
-
 /* Resumo de Pessoas no padrao das planilhas: grupo, departamento e funcao */
 #t_pes_dept tr.pes-grp td{background:color-mix(in srgb,var(--leaf) 10%,var(--card));font-weight:700;border-top:1px solid var(--line-strong)}
 #t_pes_dept tr.qf-dep td{background:var(--sunk);font-weight:600}

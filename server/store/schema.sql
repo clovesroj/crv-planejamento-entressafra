@@ -56,3 +56,10 @@ BEGIN
     EXECUTE format('ALTER TABLE usuarios DROP CONSTRAINT %I', c);
   END LOOP;
 END $$;
+
+-- Quadro nominal do ADM e da oficina (chave PESSOAL: matricula, nome e salario
+-- por pessoa) saiu do sistema na 2.45.2 -- o plano projeta gente por funcao e
+-- departamento, sem nomes. Apaga o que tiver sido lancado. Idempotente: plano
+-- sem a chave nao e tocado. A API tambem nao deixa a chave voltar
+-- (CHAVES_RETIRADAS, server/permissoes.js).
+UPDATE plano SET data = data - 'PESSOAL' WHERE data ? 'PESSOAL';

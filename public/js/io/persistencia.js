@@ -1,8 +1,8 @@
 import { CFG } from '../dados/cfg.js';
-import { APOIO, APOIO_FIXO, ARREND, ARR_PAR, ARR_RAT, ATVX, ATVX_V, BEN, CRM, DIESEL_MES, DIM, EDITADO, ENC, ESPOR, FAM_NOME, FAM_CLASSE, FAT, MO_APOIO, FORN, FORN_PAR, FROTA, CRM_ESP, MAQ, FROTA_UN, REAL, GRAT, GRUPOS_INS, INSUMO, INSX, INSX_V, MATX, NIV, P, PESSOAL, PLANO, QUADRO, ADM, ADM_RAT, TERC_TAR, TERC_SUB, TPESS, TRATC, TRAT_ATIVO, TRAT_DEL, TRAT_ETAPA, TRAT_NOME, TRAT_OBS } from '../nucleo/estado.js';
+import { APOIO, APOIO_FIXO, ARREND, ARR_PAR, ARR_RAT, ATVX, ATVX_V, BEN, CRM, DIESEL_MES, DIM, EDITADO, ENC, ESPOR, FAM_NOME, FAM_CLASSE, FAT, MO_APOIO, FORN, FORN_PAR, FROTA, CRM_ESP, MAQ, FROTA_UN, REAL, GRAT, GRUPOS_INS, INSUMO, INSX, INSX_V, MATX, NIV, P, PLANO, QUADRO, ADM, ADM_RAT, TERC_TAR, TERC_SUB, TPESS, TRATC, TRAT_ATIVO, TRAT_DEL, TRAT_ETAPA, TRAT_NOME, TRAT_OBS } from '../nucleo/estado.js';
 import { setAPOIO, setAPOIO_FIXO, setARREND, setARR_PAR, setARR_RAT, setATVX, setATVX_V, setBEN, setCRM,
          setDIESEL_MES, setDIM, setEDITADO, setFAM_NOME, setFAM_CLASSE, setFORN, setFORN_PAR, setENC, setESPOR, setFAT, setMO_APOIO, setFROTA, setCRM_ESP, setMAQ, setFROTA_UN, setREAL, setGRAT, setGRUPOS_INS, setINSUMO,
-         setINSX, setMATX, setNIV, setP, setPESSOAL, setPLANO, setQUADRO, setADM, setADM_RAT, setTERC_TAR, setTERC_SUB, setTPESS, setTRATC,
+         setINSX, setMATX, setNIV, setP, setPLANO, setQUADRO, setADM, setADM_RAT, setTERC_TAR, setTERC_SUB, setTPESS, setTRATC,
          setTRAT_ATIVO, setTRAT_DEL, setTRAT_ETAPA, setTRAT_NOME, setTRAT_OBS, setINSX_V } from '../nucleo/estado.js';
 import { mesclarBaseInsumos } from '../calculo/insumos.js';
 import { mesclarBaseAtividades, removerAtividadesRetiradas } from '../calculo/atividade.js';
@@ -20,7 +20,7 @@ let REMOTO = null, saveTimer = null;
 // direto; o resto do app usa estado().
 function estadoCru(){
   return {P,PLANO,DIM,INSUMO,ESPOR,TRATC,TRAT_NOME,TRAT_OBS,TRAT_ETAPA,TRAT_DEL,TRAT_ATIVO,DIESEL_MES,ARREND,ARR_PAR,ARR_RAT,FORN,FORN_PAR,ENC,BEN,NIV,GRAT,APOIO,APOIO_FIXO,
-          TERC_TAR,TERC_SUB,CRM,CRM_ESP,MAQ,FROTA_UN,REAL,MATX,INSX,INSX_V,ATVX,ATVX_V,FROTA,TPESS,FAT,MO_APOIO,PESSOAL,QUADRO,ADM,ADM_RAT,GRUPOS_INS,FAM_NOME,FAM_CLASSE,FUN:CFG.funcoes.map(f=>f.sal),v:10};
+          TERC_TAR,TERC_SUB,CRM,CRM_ESP,MAQ,FROTA_UN,REAL,MATX,INSX,INSX_V,ATVX,ATVX_V,FROTA,TPESS,FAT,MO_APOIO,QUADRO,ADM,ADM_RAT,GRUPOS_INS,FAM_NOME,FAM_CLASSE,FUN:CFG.funcoes.map(f=>f.sal),v:10};
 }
 const vazia = v => v==null || (typeof v==="object" && !Array.isArray(v) && Object.keys(v).length===0);
 function estado(){
@@ -309,7 +309,6 @@ function aplicar(d){
   // servidor tem
   if(d.FAT) setFAT(d.FAT);
   if(d.MO_APOIO) setMO_APOIO(d.MO_APOIO);
-  if(d.PESSOAL) setPESSOAL(d.PESSOAL);
   if(d.QUADRO) setQUADRO(d.QUADRO);
   if(d.ADM) setADM(d.ADM);
   if(d.ADM_RAT) setADM_RAT(d.ADM_RAT);
