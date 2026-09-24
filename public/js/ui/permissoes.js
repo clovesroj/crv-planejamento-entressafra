@@ -37,6 +37,15 @@ const VISUAIS = [
   '#btn_export', '#btn_theme',
   '#sel_qf_mes', '#sel_qf_grupo', '#sel_pes_grupo', '#sel_pes_dept', '#btn_pes_limpar',
   '#sel_cc_grupo', '#sel_cc_cls', '#sel_cc_cd', '#btn_cc_limpar', '[data-ccgrupo]', '#chk_dem_falta', '[data-apvis]',
+  // Planejamento Entressafra CTT: página, mês/grupo/função e "sem nível como"
+  // só mudam o que a tela mostra; a área 'planejamento-ctt' existe por causa
+  // da observação/período da Base de colaboradores e do upload de
+  // Desligamentos (chaves CTT_OBS/CTT_DESLIG*) — sem entrar aqui, esses
+  // filtros ficariam travados para quem só visualiza.
+  '[data-pctt-pagina]', '[data-pctt-passo]', '[data-pctt-modo]', '[data-pctt-mes]', '[data-pctt-cat]', '[data-pctt-func]',
+  '#pctt-limpar', '#pctt-f-cat', '#pctt-f-func', '#pctt-sn',
+  '#pctt-cb-nome', '#pctt-cb-funcao', '#pctt-cb-sit', '#pctt-cb-obsf', '#pctt-cb-limpar',
+  '[data-pctt-dl-filtro]', '#pctt-dl-limpar',
 ].join(',');
 
 const CONTROLES = 'input, select, textarea, button';

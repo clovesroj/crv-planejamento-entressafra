@@ -50,11 +50,18 @@ const AREAS = [
   // de uma aba dona — quem já tinha só 'dimens' no perfil não perde a edição.
   { id: 'pessoas', nome: 'Resumo de Pessoas', grupo: 'Pessoas', chaves: ['QUADRO'] },
 
-  // Quadro CTT é cadastro de referência do ERP (ver ui/quadro-ctt.js) — as três
-  // chaves aqui são só o que se ajusta na mão por cima da planilha (incluir
-  // pessoa, marcar saída, registrar mudança de cadastro), não o cadastro
+  // Quadro CTT é cadastro de referência do ERP (ver ui/quadro-ctt.js), exclusivo
+  // dos 610 colaboradores ativos do time — as chaves aqui são só o que se
+  // ajusta na mão por cima da planilha (incluir pessoa, marcar saída,
+  // registrar mudança de cadastro, cadastrar gerência nova), não o cadastro
   // inteiro, que nunca é gravado.
-  { id: 'quadro-ctt', nome: 'Quadro CTT', grupo: 'CTT', chaves: ['CTT_NOVOS', 'CTT_SAIDAS', 'CTT_MUDANCAS', 'CTT_OBS'] },
+  { id: 'quadro-ctt', nome: 'Quadro CTT', grupo: 'CTT', chaves: ['CTT_NOVOS', 'CTT_SAIDAS', 'CTT_MUDANCAS', 'CTT_GERENCIAS_NOVAS'] },
+  // Planejamento Entressafra CTT: cronograma/frota são só leitura (nada
+  // gravado); a página "Base de colaboradores" usa a base da empresa inteira
+  // (dados/base-colaboradores.js, nunca gravada) e grava só a observação
+  // (Férias/FAT/Operação) e o período por cima dela; a página "Desligamentos"
+  // grava a planilha semanal enviada (upload .xlsx, ver ui/planejamento-ctt.js).
+  { id: 'planejamento-ctt', nome: 'Planejamento Entressafra CTT', grupo: 'CTT', chaves: ['CTT_OBS', 'CTT_DESLIG', 'CTT_DESLIG_META'] },
 
   { id: 'insumos', nome: 'Insumos', grupo: 'Agricultura',
     chaves: ['INSUMO', 'INSX', 'INSX_V', 'TRATC', 'TRAT_NOME', 'TRAT_OBS', 'TRAT_ETAPA', 'TRAT_DEL', 'TRAT_ATIVO', 'MATX', 'GRUPOS_INS', 'FAM_NOME', 'FAM_CLASSE'] },
