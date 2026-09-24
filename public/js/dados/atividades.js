@@ -17,10 +17,6 @@
  * junto  codigo da atividade que executa esta na mesma passada (A39 e A19 vao
  *        na plantadora da A10): a area e a dela, mes a mes, e a mecanizacao
  *        tambem — aqui so entra o tratamento (insumo)
- * manejo "broca" | "cigarrinha" | ausente — classifica a atividade para a
- *        aba/relatorio Manejo Fitossanitario (ui/fitossanitario.js). E so
- *        essa marcacao: a etapa continua sendo TRATOS CULTURAIS, sem rateio
- *        proprio nem etapa nova no sistema.
  */
 
 /* Versao do cadastro base de atividades. SOBE em uma unidade sempre que
@@ -44,19 +40,11 @@
         semeadeira, maturador, inibidor de florescimento, fungicida,
         micronutrientes e conservacao de estradas e cercas. O codigo de cada uma
         no ERP esta em dados/atividades-erp.js
-     8  Campo "manejo" (broca/cigarrinha) em A44-A53 — antes essa classificacao
-        vivia numa lista fixa de codigos presa no codigo-fonte de
-        ui/fitossanitario.js, e so um programador conseguia incluir atividade
-        nova ali. Agora esta no cadastro: a coluna "Manejo Fitossanitario" da
-        aba Cadastro de Atividades atribui, e a tela/relatorio Manejo
-        Fitossanitario le esse campo em vez da lista fixa. Documento ja salvo
-        recebe a classificacao das 10 atividades originais via
-        CORRECOES_ATIVIDADE (o campo nao existia antes, entao "de:undefined").
    So tirar atividade daqui nao a tira do documento ja salvo (ATVX): ela
    deixa de ser "do sistema" e ganha o botao Remover na aba Cadastro de
    Atividades. Para ela sumir de todo plano gravado, entra tambem em
    REMOCOES_ATIVIDADE e a versao sobe. */
-export const ATIVIDADES_V = 8;
+export const ATIVIDADES_V = 7;
 
 /* Correcao de campo de atividade que JA existe no documento salvo.
    O merge da base so acrescenta atividade nova; nunca mexe em atividade que ja
@@ -85,21 +73,6 @@ export const CORRECOES_ATIVIDADE = [
      turnos na escala 5x1 pedia 72 operadores onde precisa de 36 -- e pagava os
      72 na folha. */
   {cod:"A10", campo:"ops", de:2, para:1},
-  /* Classificacao Broca/Cigarrinha (ver ATIVIDADES_V 8): o campo "manejo" nao
-     existia antes, entao "de:undefined" -- documento ja salvo nunca teve
-     chance de ter outra coisa aqui. Quem ja tiver ajustado a mao (por ex.
-     trocado de praga) fica como esta -- a correcao so troca o que ainda e
-     undefined. */
-  {cod:"A44", campo:"manejo", de:undefined, para:"broca"},
-  {cod:"A45", campo:"manejo", de:undefined, para:"broca"},
-  {cod:"A46", campo:"manejo", de:undefined, para:"broca"},
-  {cod:"A47", campo:"manejo", de:undefined, para:"broca"},
-  {cod:"A48", campo:"manejo", de:undefined, para:"broca"},
-  {cod:"A49", campo:"manejo", de:undefined, para:"broca"},
-  {cod:"A50", campo:"manejo", de:undefined, para:"cigarrinha"},
-  {cod:"A51", campo:"manejo", de:undefined, para:"cigarrinha"},
-  {cod:"A52", campo:"manejo", de:undefined, para:"cigarrinha"},
-  {cod:"A53", campo:"manejo", de:undefined, para:"cigarrinha"},
 ];
 
 /* Atividade que saiu do cadastro base e tem de sair tambem do documento ja
@@ -176,15 +149,15 @@ export const ATIVIDADES = [
      rendimento operacional. A
      tarifa de terceiro (R$/ha aéreo e terrestre da planilha) é dado de
      plano, não de cadastro, e entra em TERC_TAR por safra. */
-  {"cod":"A44","etapa":"TRATOS CULTURAIS","manejo":"broca","nome":"Broca 1ª Cana Planta","un":"ha/mês","rend":2.5,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"cultura":"Planta"},
-  {"cod":"A45","etapa":"TRATOS CULTURAIS","manejo":"broca","nome":"Broca 2ª Cana Planta","un":"ha/mês","rend":2.5,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"cultura":"Planta"},
-  {"cod":"A46","etapa":"TRATOS CULTURAIS","manejo":"broca","nome":"Broca 1ª Soca Muda","un":"ha/mês","rend":2.5,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"cultura":"Planta"},
-  {"cod":"A47","etapa":"TRATOS CULTURAIS","manejo":"broca","nome":"Broca 2ª Soca Muda","un":"ha/mês","rend":2.5,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"cultura":"Planta"},
-  {"cod":"A48","etapa":"TRATOS CULTURAIS","manejo":"broca","nome":"Broca 1ª Aplicação Soca Moagem","un":"ha/mês","rend":2.5,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"cultura":"Soca"},
-  {"cod":"A49","etapa":"TRATOS CULTURAIS","manejo":"broca","nome":"Broca 2ª Aplicação Soca Moagem","un":"ha/mês","rend":2.5,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"cultura":"Soca"},
-  {"cod":"A50","etapa":"TRATOS CULTURAIS","manejo":"cigarrinha","nome":"Cigarrinha 1ª Aplicação Terrestre","un":"ha/mês","rend":2.5,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"cultura":"Soca"},
-  {"cod":"A51","etapa":"TRATOS CULTURAIS","manejo":"cigarrinha","nome":"Cigarrinha 2ª Aplicação Terrestre","un":"ha/mês","rend":2.5,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"cultura":"Soca"},
-  {"cod":"A52","etapa":"TRATOS CULTURAIS","manejo":"cigarrinha","nome":"Cigarrinha 1ª Aplicação Aérea","un":"ha/mês","rend":1,"maq":"Aeronave / Drone (terceiro)","imp":"----","ops":0,"turnos":1,"util":1,"cultura":"Soca"},
+  {"cod":"A44","etapa":"TRATOS CULTURAIS","nome":"Broca 1ª Cana Planta","un":"ha/mês","rend":2.5,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"cultura":"Planta"},
+  {"cod":"A45","etapa":"TRATOS CULTURAIS","nome":"Broca 2ª Cana Planta","un":"ha/mês","rend":2.5,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"cultura":"Planta"},
+  {"cod":"A46","etapa":"TRATOS CULTURAIS","nome":"Broca 1ª Soca Muda","un":"ha/mês","rend":2.5,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"cultura":"Planta"},
+  {"cod":"A47","etapa":"TRATOS CULTURAIS","nome":"Broca 2ª Soca Muda","un":"ha/mês","rend":2.5,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"cultura":"Planta"},
+  {"cod":"A48","etapa":"TRATOS CULTURAIS","nome":"Broca 1ª Aplicação Soca Moagem","un":"ha/mês","rend":2.5,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"cultura":"Soca"},
+  {"cod":"A49","etapa":"TRATOS CULTURAIS","nome":"Broca 2ª Aplicação Soca Moagem","un":"ha/mês","rend":2.5,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"cultura":"Soca"},
+  {"cod":"A50","etapa":"TRATOS CULTURAIS","nome":"Cigarrinha 1ª Aplicação Terrestre","un":"ha/mês","rend":2.5,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"cultura":"Soca"},
+  {"cod":"A51","etapa":"TRATOS CULTURAIS","nome":"Cigarrinha 2ª Aplicação Terrestre","un":"ha/mês","rend":2.5,"maq":"Trator 4x4 150 CV","imp":"Tanque pressurizador Coagril","ops":1,"turnos":2,"util":0.8,"cultura":"Soca"},
+  {"cod":"A52","etapa":"TRATOS CULTURAIS","nome":"Cigarrinha 1ª Aplicação Aérea","un":"ha/mês","rend":1,"maq":"Aeronave / Drone (terceiro)","imp":"----","ops":0,"turnos":1,"util":1,"cultura":"Soca"},
   /* ===== Operacoes que o ERP aponta e o plano nao tinha (ATIVIDADES_V 7) =====
      Rendimento, maquina e implemento sao o padrao de partida, do porte de
      equipamento que a operacao usa hoje; quem monta a frente ajusta no
@@ -206,5 +179,5 @@ export const ATIVIDADES = [
      (calculo/index.js). Fica em ha/mes, como o Reflorestamento e o Apoio
      operacional, que tambem nao sao area de cana. */
   {"cod":"A63","etapa":"APOIO E CONSERVAÇÃO","nome":"Conservação de estradas e cercas","un":"ha/mês","rend":0.6,"maq":"Motoniveladora","imp":"----","ops":1,"turnos":2,"util":0.7},
-  {"cod":"A53","etapa":"TRATOS CULTURAIS","manejo":"cigarrinha","nome":"Cigarrinha 2ª Aplicação Aérea","un":"ha/mês","rend":1,"maq":"Aeronave / Drone (terceiro)","imp":"----","ops":0,"turnos":1,"util":1,"cultura":"Soca"}
+  {"cod":"A53","etapa":"TRATOS CULTURAIS","nome":"Cigarrinha 2ª Aplicação Aérea","un":"ha/mês","rend":1,"maq":"Aeronave / Drone (terceiro)","imp":"----","ops":0,"turnos":1,"util":1,"cultura":"Soca"}
 ];
