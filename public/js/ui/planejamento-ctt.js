@@ -10,10 +10,15 @@
 
 import { $, esc, fmt } from '../nucleo/formato.js';
 import { kpi } from './componentes.js';
+import { marcarRascunhoPendente, definirPatchItens, salvar } from '../io/persistencia.js';
+import { CTT_OBS, CTT_DESLIG, CTT_DESLIG_META, setCTT_DESLIG, setCTT_DESLIG_META } from '../nucleo/estado.js';
 import { PLANO_CTT_CATEGORIAS as CATS, PLANO_CTT_CATEGORIAS_ORDEM as CAT_ORDEM, PLANO_CTT_FUNCOES as FUNCOES,
   PLANO_CTT_ATIVOS as ATIVOS, PLANO_CTT_OPERADORES as OPERADORES, PLANO_CTT_MOTORISTAS as MOTORISTAS } from '../dados/planejamento-ctt.js';
 import { PREPARO, FRENTES_PLANTIO, mesesDoPlano, calcularMes, totalAtividade, atividadesVisiveis,
   indicePico, balancoEfetivo, diasEntre } from '../calculo/planejamento-ctt.js';
+import { BASE_COLAB_META, BASE_COLAB_FUNCOES, BASE_COLAB_SITUACOES, BASE_COLABORADORES } from '../dados/base-colaboradores.js';
+import { MESES_ORDEM as DL_MESES_ORDEM, categorizarMotivo, extrairRegistrosBase, contarPor as dlContarPorBruto,
+  predominante, filtrarExceto as dlFiltrarExceto, aplicarFiltros as dlAplicarFiltros } from '../calculo/desligamentos-ctt.js';
 
 const MES_NOME = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
 const MES3 = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
@@ -330,6 +335,225 @@ function paginaDetalhamento() {
     `<section class="pctt-v"><div class="pctt-v-t">Total de pessoas por atividade<small>equipe completa</small></div><div class="pctt-v-b">${items.length ? barrasHorizontais(items, "", null, "pessoas") : '<div class="pctt-vazio">Nenhuma atividade para o filtro atual.</div>'}</div></section></div>`;
 }
 
+/* ---------- Base de colaboradores (empresa inteira) ----------
+   Observação (Férias/FAT/Operação) e período: mesma chave CTT_OBS que já
+   existiu no Quadro CTT -- moveu pra cá porque vale pra empresa inteira
+   (esta base tem ~1.800 pessoas, não só os 610 de CTT), então não é dado
+   exclusivo do Quadro CTT. Mesmo padrão de patch por item de
+   server/mesclaItens.js (upsert/remover por matrícula), sem mudar nada lá. */
+const OBS_OPCOES = ["Férias", "FAT", "Operação"];
+const CB_LIMITE = 400;
+let CB_FILTROS = { nome: "", funcao: "", situacao: "", obs: "" };
+let CB_SUJO = false;
+const CB_OBS_SESSAO = new Map();
+const CB_OBS_REMOVER_SESSAO = new Set();
+const normalizaTexto = s => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+const fmtDataISO = iso => { if (!iso) return "—"; const [a, m, d] = String(iso).split("-"); return d && m && a ? `${d}/${m}/${a}` : iso; };
+
+function marcarCbSujo() { CB_SUJO = true; marcarRascunhoPendente(); }
+function obsDeColab(chave) {
+  if (CB_OBS_REMOVER_SESSAO.has(chave) && !CB_OBS_SESSAO.has(chave)) return {};
+  return CB_OBS_SESSAO.get(chave) || (CTT_OBS || {})[chave] || {};
+}
+function marcarObsColab(matricula, campos) {
+  const chave = String(matricula);
+  const novo = { ...obsDeColab(chave), ...campos };
+  if (!novo.obs) { CB_OBS_SESSAO.delete(chave); CB_OBS_REMOVER_SESSAO.add(chave); }
+  else { CB_OBS_REMOVER_SESSAO.delete(chave); CB_OBS_SESSAO.set(chave, novo); }
+  marcarCbSujo();
+}
+function limparObsColab() {
+  const chaves = new Set([...Object.keys(CTT_OBS || {}), ...CB_OBS_SESSAO.keys()]);
+  if (!chaves.size) return false;
+  CB_OBS_SESSAO.clear();
+  chaves.forEach(c => CB_OBS_REMOVER_SESSAO.add(c));
+  marcarCbSujo();
+  return true;
+}
+function salvarObsColab() {
+  if (!CB_SUJO) return false;
+  if (CB_OBS_SESSAO.size || CB_OBS_REMOVER_SESSAO.size)
+    definirPatchItens("CTT_OBS_PATCH", { upsert: Object.fromEntries(CB_OBS_SESSAO), remover: [...CB_OBS_REMOVER_SESSAO] });
+  CB_OBS_SESSAO.clear(); CB_OBS_REMOVER_SESSAO.clear();
+  CB_SUJO = false;
+  return true;
+}
+
+function colaboradoresFiltrados() {
+  const termoNome = normalizaTexto(CB_FILTROS.nome), termoFunc = normalizaTexto(CB_FILTROS.funcao);
+  return BASE_COLABORADORES.filter(r => {
+    if (termoNome && !normalizaTexto(r.n).includes(termoNome)) return false;
+    if (termoFunc && !normalizaTexto(BASE_COLAB_FUNCOES[r.f]).includes(termoFunc)) return false;
+    if (CB_FILTROS.situacao !== "" && String(r.s) !== CB_FILTROS.situacao) return false;
+    if (CB_FILTROS.obs !== "") {
+      const atual = obsDeColab(String(r.m)).obs || "";
+      if (CB_FILTROS.obs === "__vazio" ? atual !== "" : atual !== CB_FILTROS.obs) return false;
+    }
+    return true;
+  });
+}
+function linhaColaborador(r) {
+  const o = obsDeColab(String(r.m));
+  const sit = BASE_COLAB_SITUACOES[r.s] || "—";
+  const corSit = sit === "ATIVO" ? "var(--ok)" : sit === "AFASTADO" ? "var(--warn)" : sit === "FÉRIAS" ? "var(--sky)" : "var(--muted)";
+  return `<tr><td>${esc(r.n)}</td><td>${esc(BASE_COLAB_FUNCOES[r.f] || "—")}</td>
+    <td><span class="badge" style="color:${corSit}">${esc(sit)}</span></td>
+    <td>${fmtDataISO(r.a)}</td>
+    <td><select data-pctt-cb-obs="${r.m}"><option value=""${o.obs ? "" : " selected"}>—</option>${OBS_OPCOES.map(v => `<option value="${esc(v)}"${o.obs === v ? " selected" : ""}>${esc(v)}</option>`).join("")}</select></td>
+    <td style="white-space:nowrap"><input type="date" data-pctt-cb-obsini="${r.m}" value="${o.ini || ""}" style="width:118px"> <span>a</span> <input type="date" data-pctt-cb-obsfim="${r.m}" value="${o.fim || ""}" style="width:118px"></td></tr>`;
+}
+function notaColaboradores(filtrados) {
+  return filtrados.length > CB_LIMITE
+    ? `Mostrando os primeiros ${fmt(CB_LIMITE)} de ${fmt(filtrados.length)} colaboradores para este filtro. Use os filtros para refinar.`
+    : `Base "${esc(BASE_COLAB_META.arquivo)}", ${esc(fmtDataISO(BASE_COLAB_META.base))}. Observação e período são preenchidos à mão e ficam salvos no servidor, visíveis para toda a equipe.`;
+}
+/* Só a busca por nome/função chama isto (evento "input", tecla a tecla) --
+   atualiza tabela/contagem sem repintar a tela inteira, senão o campo de
+   busca perderia o foco a cada letra (mesmo raciocínio do render() geral do
+   app, ver CLAUDE.md). Filtro por select (situação/observação) já pode ir
+   pelo pintar() normal: não tem digitação em andamento pra perder. */
+function refiltrarBaseColaboradores() {
+  const tbody = document.getElementById("pctt-cb-tbody");
+  if (!tbody) return;
+  const filtrados = colaboradoresFiltrados();
+  tbody.innerHTML = filtrados.slice(0, CB_LIMITE).map(linhaColaborador).join("") || '<tr><td colspan="6" class="pctt-vazio">Nenhum colaborador para os filtros atuais.</td></tr>';
+  $("#pctt-cb-count").textContent = `${fmt(filtrados.length)} de ${fmt(BASE_COLABORADORES.length)} colaboradores`;
+  $("#pctt-cb-nota").textContent = notaColaboradores(filtrados);
+}
+
+function paginaBaseColaboradores() {
+  const filtrados = colaboradoresFiltrados();
+  const porObs = { "": 0, "Férias": 0, "FAT": 0, "Operação": 0 };
+  const porSit = new Map();
+  BASE_COLABORADORES.forEach(r => {
+    const v = obsDeColab(String(r.m)).obs || ""; porObs[v] = (porObs[v] || 0) + 1;
+    const s = BASE_COLAB_SITUACOES[r.s] || "—"; porSit.set(s, (porSit.get(s) || 0) + 1);
+  });
+  const kpis = kpi("Colaboradores na base", "", fmt(BASE_COLABORADORES.length), `${fmt(porSit.get("ATIVO") || 0)} ativos, ${fmt(porSit.get("AFASTADO") || 0)} afastados, ${fmt(porSit.get("FÉRIAS") || 0)} em férias`) +
+    kpi("Marcados como Férias", "g", fmt(porObs["Férias"]), "observação preenchida manualmente") +
+    kpi("Marcados como FAT", "a", fmt(porObs["FAT"]), "observação preenchida manualmente") +
+    kpi("Marcados como Operação", "t", fmt(porObs["Operação"]), "observação preenchida manualmente") +
+    kpi("Sem observação", "", fmt(porObs[""]), "ainda não classificados");
+  const barraFiltros = `<div class="pctt-cb-bar">
+    <input type="search" id="pctt-cb-nome" placeholder="Filtrar por nome" value="${esc(CB_FILTROS.nome)}">
+    <input type="search" id="pctt-cb-funcao" placeholder="Filtrar por função" value="${esc(CB_FILTROS.funcao)}">
+    <select id="pctt-cb-sit"><option value="">Todas as situações</option>${BASE_COLAB_SITUACOES.map((s, i) => s ? `<option value="${i}"${String(i) === CB_FILTROS.situacao ? " selected" : ""}>${esc(s)}</option>` : "").join("")}</select>
+    <select id="pctt-cb-obsf"><option value="">Toda observação</option><option value="__vazio"${CB_FILTROS.obs === "__vazio" ? " selected" : ""}>Sem observação</option>${OBS_OPCOES.map(v => `<option value="${esc(v)}"${CB_FILTROS.obs === v ? " selected" : ""}>${esc(v)}</option>`).join("")}</select>
+    <button type="button" class="btn" id="pctt-cb-limpar">Limpar filtros</button>
+    <button type="button" class="btn" id="pctt-cb-obs-limpar">Limpar observações</button>
+    <span class="pctt-cb-count" id="pctt-cb-count">${fmt(filtrados.length)} de ${fmt(BASE_COLABORADORES.length)} colaboradores</span>
+  </div>`;
+  const tabela = `<table class="dt"><thead><tr><th>Nome</th><th>Função</th><th>Situação</th><th>Admissão</th><th>Observação</th><th>Período</th></tr></thead>
+    <tbody id="pctt-cb-tbody">${filtrados.slice(0, CB_LIMITE).map(linhaColaborador).join("") || '<tr><td colspan="6" class="pctt-vazio">Nenhum colaborador para os filtros atuais.</td></tr>'}</tbody></table>`;
+  return `<div class="grid" style="grid-template-rows:auto 78px minmax(0,1fr)">
+    <div class="rasc-acoes" style="margin-bottom:4px"><span class="rasc-pend${CB_SUJO ? " tem" : ""}">${CB_SUJO ? "há alterações não salvas" : "tudo salvo"}</span><button class="btn p" id="pctt-cb-salvar" ${CB_SUJO ? "" : "disabled"}>Salvar alterações</button></div>
+    <div class="grid g5">${kpis}</div>
+    <section class="pctt-v"><div class="pctt-v-t">Base de colaboradores<small>preencha Férias, FAT ou Operação e o período de cada um</small></div>
+      <div class="pctt-v-b pctt-scroll">${barraFiltros}${tabela}<p class="pctt-nota" id="pctt-cb-nota">${notaColaboradores(filtrados)}</p></div></section>
+    </div>`;
+}
+
+/* ---------- Desligamentos ----------
+   Upload semanal (.xlsx, aba "BASE") com os desligamentos do período --
+   substitui a lista inteira (CTT_DESLIG), sem mesclagem por item: é a
+   mesma pessoa que sobe a planilha toda toda semana, não várias mexendo em
+   registros diferentes ao mesmo tempo (diferente do Quadro CTT). Filtro em
+   cascata: clicar numa barra filtra as outras, sem se autofiltrar a zero. */
+let DL_FILTROS = { mes: new Set(), tipo: new Set(), motivo: new Set(), funcao: new Set() };
+let DL_ERRO = "";
+
+function dlContarPor(dim, chaveDe) { return dlContarPorBruto(dlFiltrarExceto(CTT_DESLIG || [], DL_FILTROS, dim), chaveDe); }
+function barrasDesligamento(itens, dim, unidade) {
+  const selecionados = DL_FILTROS[dim];
+  let mx = 1; itens.forEach(x => { if (x.v > mx) mx = x.v; });
+  return `<div class="pctt-hbs">${itens.map(x => {
+    const on = selecionados.has(x.key), dim2 = selecionados.size && !on;
+    return `<button type="button" class="pctt-hb${on ? " on" : ""}${dim2 ? " dim" : ""}" data-pctt-dl-filtro="${dim}|${esc(x.key)}" title="${esc(x.label)}: ${fmt(x.v)} ${unidade}">` +
+      `<span class="l">${esc(x.label)}</span><span class="t"><i style="width:${x.v / mx * 100}%;background:var(--leaf)"></i></span><b>${fmt(x.v)}</b></button>`;
+  }).join("")}</div>`;
+}
+async function processarUploadDesligamentos(file) {
+  DL_ERRO = "";
+  try {
+    const buf = await file.arrayBuffer();
+    const wb = window.XLSX.read(buf, { type: "array", cellDates: true });
+    const nomeAba = wb.SheetNames.find(n => n.toUpperCase() === "BASE") || wb.SheetNames[0];
+    const linhas = window.XLSX.utils.sheet_to_json(wb.Sheets[nomeAba], { header: 1, defval: null, raw: true });
+    const { registros, dataBase } = extrairRegistrosBase(linhas);
+    if (!registros.length) {
+      DL_ERRO = 'Não encontrei registros na planilha "BASE" desse arquivo. Verifique o modelo da planilha.';
+      pintar();
+      return;
+    }
+    setCTT_DESLIG(registros);
+    setCTT_DESLIG_META({ dataBase: dataBase || (CTT_DESLIG_META || {}).dataBase || null, atualizadoEm: new Date().toISOString() });
+    DL_FILTROS = { mes: new Set(), tipo: new Set(), motivo: new Set(), funcao: new Set() };
+    salvar();
+    pintar();
+  } catch (e) {
+    console.error(e);
+    DL_ERRO = "Não consegui ler esse arquivo. Confirme que é o mesmo modelo da planilha original.";
+    pintar();
+  }
+}
+
+function paginaDesligamentos() {
+  const registros = CTT_DESLIG || [];
+  const meta = CTT_DESLIG_META || {};
+  const cabecalho = `<div class="pctt-dlg-topo">
+    <div><b>Base:</b> ${meta.dataBase ? esc(meta.dataBase) : "—"} <span class="pctt-nota" style="margin:0 0 0 10px">${meta.atualizadoEm ? "atualizado em " + new Date(meta.atualizadoEm).toLocaleString("pt-BR") : "nenhuma planilha enviada ainda"}</span></div>
+    <div><button type="button" class="btn p" id="pctt-dl-upload">Atualizar dados da semana</button><input type="file" id="pctt-dl-arquivo" accept=".xlsx,.xls" hidden></div>
+  </div>${DL_ERRO ? `<p class="pctt-nota" style="color:var(--bad)">${esc(DL_ERRO)}</p>` : ""}`;
+
+  if (!registros.length) {
+    return `<div class="grid">${cabecalho}<section class="pctt-v"><div class="pctt-v-b"><div class="pctt-vazio">Nenhum desligamento carregado ainda — clique em "Atualizar dados da semana" e envie a planilha (aba "BASE") do ERP.</div></div></section></div>`;
+  }
+
+  const filtrados = dlAplicarFiltros(registros, DL_FILTROS);
+  const algumFiltro = DL_FILTROS.mes.size || DL_FILTROS.tipo.size || DL_FILTROS.motivo.size || DL_FILTROS.funcao.size;
+  // KPIs (predominante) leem o filtro completo; os gráficos por dimensão excluem
+  // a própria dimensão do filtro (dlContarPor), pra permitir multi-seleção
+  // dentro do mesmo gráfico sem a barra clicada sumir da própria lista.
+  const topMotivo = predominante(dlContarPorBruto(filtrados, r => categorizarMotivo(r.motivo)));
+  const topTipo = predominante(dlContarPorBruto(filtrados, r => r.tipoRescisao || "Não informado"));
+  const topMes = predominante(dlContarPorBruto(filtrados, r => r.mes || "Não informado"));
+  const kpis = kpi("Total de desligamentos", "", fmt(filtrados.length), algumFiltro ? "com filtros aplicados" : "no período da base") +
+    kpi("Motivo predominante", "a", topMotivo.chave, filtrados.length ? `${fmt(topMotivo.n)} de ${fmt(filtrados.length)} casos (${(topMotivo.n / filtrados.length * 100).toFixed(1)}%)` : "—") +
+    kpi("Tipo predominante", "t", topTipo.chave, filtrados.length ? `${fmt(topTipo.n)} de ${fmt(filtrados.length)} casos (${(topTipo.n / filtrados.length * 100).toFixed(1)}%)` : "—") +
+    kpi("Mês predominante", "", topMes.chave, filtrados.length ? `${fmt(topMes.n)} desligamento${topMes.n === 1 ? "" : "s"}` : "—");
+
+  const chips = [];
+  Object.keys(DL_FILTROS).forEach(dim => DL_FILTROS[dim].forEach(v => chips.push(`<span class="chip">${esc({ mes: "Mês", tipo: "Tipo", motivo: "Motivo", funcao: "Função" }[dim])}: ${esc(v)}<button type="button" data-pctt-dl-filtro="${dim}|${esc(v)}">×</button></span>`)));
+  const barraChips = `<div class="pctt-dlg-chips">${chips.length ? chips.join("") : '<span class="pctt-nota" style="margin:0">Clique em qualquer barra para filtrar em cascata.</span>'}${chips.length ? '<button type="button" class="btn" id="pctt-dl-limpar">Limpar filtros</button>' : ""}</div>`;
+
+  const mesCont = dlContarPor("mes", r => r.mes || "Não informado");
+  const tipoCont = dlContarPor("tipo", r => r.tipoRescisao || "Não informado");
+  const motivoCont = dlContarPor("motivo", r => categorizarMotivo(r.motivo));
+  const funcaoCont = dlContarPor("funcao", r => (r.funcao || "Não informado").trim());
+  const porMes = [...mesCont.entries()].sort((a, b) => DL_MESES_ORDEM.indexOf(a[0]) - DL_MESES_ORDEM.indexOf(b[0])).map(([l, v]) => ({ key: l, label: l, v }));
+  const porTipo = [...tipoCont.entries()].sort((a, b) => b[1] - a[1]).map(([l, v]) => ({ key: l, label: l, v }));
+  const porMotivo = [...motivoCont.entries()].sort((a, b) => b[1] - a[1]).map(([l, v]) => ({ key: l, label: l, v }));
+  const porFuncao = [...funcaoCont.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([l, v]) => ({ key: l, label: l, v }));
+
+  const linhasTabela = [...filtrados].sort((a, b) => (b.totalOcorrencia || 0) - (a.totalOcorrencia || 0)).slice(0, 300).map(r => `<tr>
+    <td>${r.matricula ?? "—"}</td><td>${esc(r.funcionario || "—")}</td><td>${esc(r.funcao || "—")}</td><td>${esc(r.admissao || "—")}</td>
+    <td>${esc(r.tipoRescisao || "—")}</td><td>${esc(r.motivo || "—")}</td><td>${esc(r.mes || "—")}</td><td class="r">${r.totalOcorrencia ?? "—"}</td></tr>`).join("");
+
+  return `<div class="grid" style="grid-template-rows:auto auto 78px minmax(0,1fr)">
+    ${cabecalho}
+    ${barraChips}
+    <div class="grid g4">${kpis}</div>
+    <div class="grid pctt-cols-9-11-2rows">
+      <section class="pctt-v"><div class="pctt-v-t">Por mês</div><div class="pctt-v-b">${barrasDesligamento(porMes, "mes", "casos")}</div></section>
+      <section class="pctt-v"><div class="pctt-v-t">Por tipo de rescisão</div><div class="pctt-v-b">${barrasDesligamento(porTipo, "tipo", "casos")}</div></section>
+      <section class="pctt-v"><div class="pctt-v-t">Por motivo</div><div class="pctt-v-b pctt-scroll">${barrasDesligamento(porMotivo, "motivo", "casos")}</div></section>
+      <section class="pctt-v"><div class="pctt-v-t">Por função<small>8 mais frequentes</small></div><div class="pctt-v-b">${barrasDesligamento(porFuncao, "funcao", "casos")}</div></section>
+    </div>
+    <section class="pctt-v"><div class="pctt-v-t">Detalhamento<small>${fmt(filtrados.length)} registro${filtrados.length === 1 ? "" : "s"}${filtrados.length > 300 ? ", mostrando os 300 com mais ocorrências" : ""}</small></div>
+      <div class="pctt-v-b pctt-scroll"><table class="dt"><thead><tr><th>Matrícula</th><th>Funcionário</th><th>Função</th><th>Admissão</th><th>Tipo</th><th>Motivo</th><th>Mês</th><th class="r">Ocorrências</th></tr></thead>
+      <tbody>${linhasTabela || '<tr><td colspan="8" class="pctt-vazio">Nenhum desligamento para os filtros atuais.</td></tr>'}</tbody></table></div></section>
+    </div>`;
+}
 const PAGINAS = [
   { nome: "Visão geral", render: paginaVisaoGeral },
   { nome: "Cronograma", render: paginaCronograma },
@@ -338,6 +562,8 @@ const PAGINAS = [
   { nome: "Resumo por função", render: paginaResumoPorFuncao },
   { nome: "Frota e equipamentos", render: paginaFrota },
   { nome: "Detalhamento", render: paginaDetalhamento },
+  { nome: "Base de colaboradores", render: paginaBaseColaboradores },
+  { nome: "Desligamentos", render: paginaDesligamentos },
 ];
 
 /* ---------- montagem ---------- */
@@ -362,11 +588,19 @@ function pintar() {
   const el = document.getElementById("planejamento-ctt");
   if (!el) return;
   recalcular();
+  // Base de colaboradores e Desligamentos têm filtro próprio (nome/função/
+  // situação/observação, mês/tipo/motivo) -- os filtros de mês/grupo/função
+  // do cronograma não fazem sentido pra elas.
+  const temFiltroProprio = ESTADO.pagina >= 7;
   el.innerHTML = `<h2>Planejamento Entressafra CTT</h2>
     <p class="lead">Cronograma de atividades, mão de obra e frota da entressafra — Corte, Transbordo e Transporte.</p>
-    <div class="pctt-slicers">${montarSlicers()}</div>
+    ${temFiltroProprio ? "" : `<div class="pctt-slicers">${montarSlicers()}</div>`}
     <div class="pctt-tabs" role="navigation" aria-label="Páginas do relatório">${montarAbas()}</div>
     <div class="pctt-page" id="pctt-stage">${PAGINAS[ESTADO.pagina].render()}</div>`;
+  if (ESTADO.pagina === 8) {
+    const input = document.getElementById("pctt-dl-arquivo");
+    if (input) input.addEventListener("change", e => { const f = e.target.files[0]; if (f) processarUploadDesligamentos(f); e.target.value = ""; });
+  }
 }
 
 let LISTENERS_PRONTOS = false;
@@ -384,12 +618,39 @@ function wireEventos() {
     if ((el = t.closest("[data-pctt-cat]"))) { ESTADO.cat = el.dataset.pcttCat; pintar(); return; }
     if ((el = t.closest("[data-pctt-func]"))) { ESTADO.func = el.dataset.pcttFunc; pintar(); return; }
     if (t.closest("#pctt-limpar")) { ESTADO = { ...ESTADO, mes: "", cat: "", func: "" }; pintar(); return; }
+    // Base de colaboradores
+    if (t.closest("#pctt-cb-salvar")) { if (salvarObsColab()) { salvar(); pintar(); } return; }
+    if (t.closest("#pctt-cb-limpar")) {
+      CB_FILTROS = { nome: "", funcao: "", situacao: "", obs: "" };
+      pintar(); return; }
+    if (t.closest("#pctt-cb-obs-limpar")) {
+      if (!confirm("Limpar a observação (Férias/FAT/Operação) e o período de todo mundo? Isso não desfaz sozinho.")) return;
+      if (limparObsColab()) pintar(); return; }
+    // Desligamentos
+    if (t.closest("#pctt-dl-upload")) { document.getElementById("pctt-dl-arquivo").click(); return; }
+    if ((el = t.closest("[data-pctt-dl-filtro]"))) {
+      const [dim, valor] = el.dataset.pcttDlFiltro.split("|");
+      const set = DL_FILTROS[dim];
+      if (set.has(valor)) set.delete(valor); else set.add(valor);
+      pintar(); return; }
+    if (t.closest("#pctt-dl-limpar")) { DL_FILTROS = { mes: new Set(), tipo: new Set(), motivo: new Set(), funcao: new Set() }; pintar(); return; }
   });
   document.addEventListener("change", e => {
     if (!document.getElementById("planejamento-ctt")) return;
     if (e.target.id === "pctt-f-cat") { ESTADO.cat = e.target.value; pintar(); return; }
     if (e.target.id === "pctt-f-func") { ESTADO.func = e.target.value; pintar(); return; }
     if (e.target.id === "pctt-sn") { ESTADO.sn = e.target.value; pintar(); return; }
+    // Base de colaboradores: filtros (visão) e observação/período (dado)
+    if (e.target.id === "pctt-cb-sit") { CB_FILTROS.situacao = e.target.value; pintar(); return; }
+    if (e.target.id === "pctt-cb-obsf") { CB_FILTROS.obs = e.target.value; pintar(); return; }
+    if (e.target.dataset.pcttCbObs !== undefined) { marcarObsColab(e.target.dataset.pcttCbObs, { obs: e.target.value }); pintar(); return; }
+    if (e.target.dataset.pcttCbObsini !== undefined) { marcarObsColab(e.target.dataset.pcttCbObsini, { ini: e.target.value }); pintar(); return; }
+    if (e.target.dataset.pcttCbObsfim !== undefined) { marcarObsColab(e.target.dataset.pcttCbObsfim, { fim: e.target.value }); pintar(); return; }
+  });
+  document.addEventListener("input", e => {
+    if (!document.getElementById("planejamento-ctt")) return;
+    if (e.target.id === "pctt-cb-nome") { CB_FILTROS.nome = e.target.value; refiltrarBaseColaboradores(); return; }
+    if (e.target.id === "pctt-cb-funcao") { CB_FILTROS.funcao = e.target.value; refiltrarBaseColaboradores(); return; }
   });
 }
 

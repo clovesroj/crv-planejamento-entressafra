@@ -5,7 +5,8 @@
    herdar tema claro/escuro de graça. */
 
 #planejamento-ctt{ --pctt-heat:42,87,160; }
-:root[data-theme="dark"] #planejamento-ctt, @media (prefers-color-scheme: dark){ #planejamento-ctt{ --pctt-heat:111,163,216; } }
+:root[data-theme="dark"] #planejamento-ctt{ --pctt-heat:111,163,216; }
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) #planejamento-ctt{ --pctt-heat:111,163,216; } }
 
 #planejamento-ctt .pctt-slicers{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px 18px;margin-bottom:14px}
 #planejamento-ctt .pctt-sl{display:flex;flex-direction:column;gap:4px}
@@ -144,3 +145,15 @@
 #planejamento-ctt .pctt-cov i{display:block;height:100%;background:var(--ok)}
 #planejamento-ctt .pctt-cov.bad i{background:var(--bad)}
 #planejamento-ctt .pctt-cp{font-size:11px;color:var(--muted)}
+
+/* Base de colaboradores */
+#planejamento-ctt .pctt-cb-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px}
+#planejamento-ctt .pctt-cb-bar input[type="search"]{padding:6px 10px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--card);color:var(--ink);font-size:13px;min-width:170px}
+#planejamento-ctt .pctt-cb-bar select{padding:6px 9px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--card);color:var(--ink);font-size:13px}
+#planejamento-ctt .pctt-cb-count{margin-left:auto;font-size:12px;color:var(--muted);white-space:nowrap}
+
+/* Desligamentos */
+#planejamento-ctt .pctt-dlg-topo{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;font-size:13px;color:var(--grey);margin-bottom:10px}
+#planejamento-ctt .pctt-dlg-chips{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:12px}
+#planejamento-ctt .pctt-dlg-chips .chip{display:inline-flex;align-items:center;gap:6px;background:var(--leaf-soft);color:var(--leaf-strong);border-radius:999px;padding:3px 6px 3px 10px;font-size:12px}
+#planejamento-ctt .pctt-dlg-chips .chip button{border:0;background:transparent;color:inherit;cursor:pointer;font-size:14px;line-height:1;padding:0 4px}
