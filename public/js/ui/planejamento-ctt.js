@@ -65,11 +65,17 @@ function refLabel() {
   const m = MESES[REF];
   return `${cap(MES_NOME[m.m])} de ${m.y}${ESTADO.mes ? "" : " (mês de pico)"}`;
 }
-function delta(i) {
-  if (i === 0) return "mobilização inicial";
+/* Variacao para o mes anterior. `curto` e o que cabe embaixo da coluna do
+   grafico -- "+313 vs jan" em vez de "+313 em relacao a jan", que estourava a
+   largura da coluna e escrevia por cima da coluna vizinha. A frase inteira
+   continua no title do botao, que e onde ha espaco para ela. */
+function delta(i, curto) {
+  if (i === 0) return curto ? "início" : "mobilização inicial";
   const d = CALC[i].total - CALC[i - 1].total;
   if (d === 0) return "sem variação";
-  return `${d > 0 ? "+" : "−"}${N(Math.abs(d))} em relação a ${MES3[MESES[i - 1].m]}`;
+  const mes = MES3[MESES[i - 1].m];
+  const n = `${d > 0 ? "+" : "−"}${N(Math.abs(d))}`;
+  return curto ? `${n} vs ${mes}` : `${n} em relação a ${mes}`;
 }
 
 /* ---------- componentes visuais (SVG/HTML autocontidos, sem dependência externa) ---------- */
@@ -82,14 +88,19 @@ function legendaHTML(itens, dataAttr, atual) {
 }
 
 function graficoEmpilhado({ id, H, series, valorDe }) {
-  let max = 1;
-  MESES.forEach((mo, i) => { let t = 0; series.forEach(s => t += valorDe(i, s.key) || 0); if (t > max) max = t; });
+  let max = 1, iPico = 0;
+  MESES.forEach((mo, i) => { let t = 0; series.forEach(s => t += valorDe(i, s.key) || 0); if (t > max) { max = t; iPico = i; } });
   let passo = max <= 60 ? 10 : (max <= 120 ? 20 : (max <= 300 ? 50 : 100));
   if (H < 160) passo *= 2;
   const topo = Math.ceil(max / passo) * passo;
   const BASE = 50, TOPO = 24;
   let h = `<div class="pctt-stk" style="height:${H + BASE + TOPO}px">`;
   for (let t = 0; t <= topo; t += passo) h += `<div class="pctt-gl" style="bottom:${BASE + t / topo * H}px"><span>${t}</span></div>`;
+  /* Linha do pico: o mesmo numero que o cartao "Pico de mao de obra" anuncia,
+     desenhado onde ele acontece -- sem ela, o grafico mostra o maximo mas nao
+     diz que aquele e o numero que tem de ser contratado. */
+  if (max > 1) h += `<div class="pctt-gl pico" style="bottom:${BASE + max / topo * H}px">` +
+    `<em title="Pico da série: ${N(max)} pessoas em ${cap(MES_NOME[MESES[iPico].m])} de ${MESES[iPico].y}">pico ${N(max)} · ${cap(MES3[MESES[iPico].m])}</em></div>`;
   h += `<div class="pctt-slots">`;
   MESES.forEach((mo, i) => {
     let tot = 0, segs = "";
@@ -99,8 +110,8 @@ function graficoEmpilhado({ id, H, series, valorDe }) {
       segs += `<span class="pctt-sg" style="height:${hh}px;background:${s.cor}" title="${esc(s.label ?? s.key)}, ${cap(MES3[mo.m])}: ${N(v)} pessoas">${hh >= 17 ? N(v) : ""}</span>`;
     });
     const on = ESTADO.mes === mo.key, dim = ESTADO.mes && !on;
-    h += `<button type="button" class="pctt-slot${on ? " on" : ""}${dim ? " dim" : ""}" data-pctt-mes="${on ? "" : mo.key}" title="${cap(MES_NOME[mo.m])} de ${mo.y}: ${N(tot)} pessoas — clique para filtrar">` +
-      `<span class="pctt-ct">${N(tot)}</span><span class="pctt-cs">${segs}</span><span class="pctt-cx">${cap(MES3[mo.m])}/${String(mo.y).slice(2)}</span><span class="pctt-cd">${esc(delta(i))}</span></button>`;
+    h += `<button type="button" class="pctt-slot${on ? " on" : ""}${dim ? " dim" : ""}" data-pctt-mes="${on ? "" : mo.key}" title="${cap(MES_NOME[mo.m])} de ${mo.y}: ${N(tot)} pessoas, ${esc(delta(i))} — clique para filtrar">` +
+      `<span class="pctt-ct">${N(tot)}</span><span class="pctt-cs">${segs}</span><span class="pctt-cx">${cap(MES3[mo.m])}/${String(mo.y).slice(2)}</span><span class="pctt-cd">${esc(delta(i, true))}</span></button>`;
   });
   h += `</div></div>`;
   return h;
@@ -163,7 +174,7 @@ function graficoCascata({ lw, hh, rh, fh, semDeltaMes, inline }) {
   MESES.forEach((mo, i) => {
     const left = L(mo.t0), w = mo.dias / span * 100, on = ESTADO.mes === mo.key;
     hm += `<button type="button" class="pctt-gm${on ? " on" : ""}" data-pctt-mes="${on ? "" : mo.key}" style="left:${left}%;width:${w}%" title="${cap(MES_NOME[mo.m])} de ${mo.y} — ${mo.dias} dias — clique para filtrar">${cap(MES3[mo.m])} ${mo.y}</button>`;
-    fm += `<button type="button" class="pctt-gm${on ? " on" : ""}" data-pctt-mes="${on ? "" : mo.key}" style="left:${left}%;width:${w}%" title="${cap(MES_NOME[mo.m])} de ${mo.y}: ${N(CALC[i].total)} pessoas"><span class="pctt-fn">${N(CALC[i].total)}</span><span class="pctt-fd">${esc(delta(i))}</span></button>`;
+    fm += `<button type="button" class="pctt-gm${on ? " on" : ""}" data-pctt-mes="${on ? "" : mo.key}" style="left:${left}%;width:${w}%" title="${cap(MES_NOME[mo.m])} de ${mo.y}: ${N(CALC[i].total)} pessoas, ${esc(delta(i))}"><span class="pctt-fn">${N(CALC[i].total)}</span><span class="pctt-fd">${esc(delta(i, true))}</span></button>`;
     if (i > 0) vl += `<div class="pctt-gt-vl" style="left:${left}%"></div>`;
     if (on) sh = `<div class="pctt-gt-sh" style="left:${left}%;width:${w}%"></div>`;
   });
@@ -260,7 +271,7 @@ function kpiCards() {
 
 function paginaVisaoGeral() {
   const catSeries = CAT_ORDEM.map(c => ({ key: c, label: CATS[c], cor: COR_CAT[c] }));
-  return `<div class="grid" style="grid-template-rows:78px minmax(0,1fr)">` +
+  return `<div class="grid" style="grid-template-rows:auto minmax(0,1fr)">` +
     `<div class="grid g5">${kpiCards()}</div>` +
     `<div class="grid pctt-cols-1332">` +
     `<section class="pctt-v"><div class="pctt-v-t">Programação em cascata<small>clique em um mês para filtrar</small></div><div class="pctt-v-b">${graficoCascata({ lw: 190, hh: 28, rh: 22, fh: 46, semDeltaMes: true })}</div></section>` +
@@ -307,7 +318,7 @@ function paginaResumoPorFuncao() {
     kp("", "Operadores sem escala", op.sobra, op.falta ? `faltam ${N(op.falta)} operadores` : `de ${N(op.ativos)} ativos`, !!op.falta);
   const temSemNivel = CALC_CHEIO.some(c => (c.porFuncao["Operador"] || 0) > 0);
   const seletor = !temSemNivel ? "" : `<label class="pctt-sn">Operador sem nível como <select id="pctt-sn"><option value="">a definir</option>${OPERADORES.map(r => `<option value="${r}"${ESTADO.sn === r ? " selected" : ""}>${r}</option>`).join("")}</select></label>`;
-  return `<div class="grid" style="grid-template-rows:88px minmax(0,1fr)">` +
+  return `<div class="grid" style="grid-template-rows:auto minmax(0,1fr)">` +
     `<div class="grid g5">${kpis}</div>` +
     `<div class="grid pctt-cols-105-95">` +
     `<section class="pctt-v"><div class="pctt-v-t">Efetivo ativo x necessidade por função${seletor}</div><div class="pctt-v-b pctt-scroll">${balTable(B)}<p class="pctt-nota">${esc(lab)}. Sem escala = ativos menos necessários em cada nível. Considera todas as atividades, sem os filtros de grupo e função.</p></div></section>` +
@@ -458,7 +469,7 @@ function paginaBaseColaboradores() {
   </div>`;
   const tabela = `<table class="dt"><thead><tr><th>Nome</th><th>Função</th><th>Situação</th><th>Admissão</th><th>Observação</th><th>Período</th></tr></thead>
     <tbody id="pctt-cb-tbody">${filtrados.slice(0, CB_LIMITE).map(linhaColaborador).join("") || '<tr><td colspan="6" class="pctt-vazio">Nenhum colaborador para os filtros atuais.</td></tr>'}</tbody></table>`;
-  return `<div class="grid" style="grid-template-rows:auto 78px minmax(0,1fr)">
+  return `<div class="grid" style="grid-template-rows:auto auto minmax(0,1fr)">
     <div class="rasc-acoes" style="margin-bottom:4px"><span class="rasc-pend${CB_SUJO ? " tem" : ""}">${CB_SUJO ? "há alterações não salvas" : "tudo salvo"}</span><button class="btn p" id="pctt-cb-salvar" ${CB_SUJO ? "" : "disabled"}>Salvar alterações</button></div>
     <div class="grid g5">${kpis}</div>
     <section class="pctt-v"><div class="pctt-v-t">Base de colaboradores<small>preencha Férias, FAT ou Operação e o período de cada um</small></div>
@@ -552,7 +563,7 @@ function paginaDesligamentos() {
     <td>${r.matricula ?? "—"}</td><td>${esc(r.funcionario || "—")}</td><td>${esc(r.funcao || "—")}</td><td>${esc(r.admissao || "—")}</td>
     <td>${esc(r.tipoRescisao || "—")}</td><td>${esc(r.motivo || "—")}</td><td>${esc(r.mes || "—")}</td><td class="r">${r.totalOcorrencia ?? "—"}</td></tr>`).join("");
 
-  return `<div class="grid" style="grid-template-rows:auto auto 78px minmax(0,1fr)">
+  return `<div class="grid" style="grid-template-rows:auto auto auto minmax(0,1fr)">
     ${cabecalho}
     ${barraChips}
     <div class="grid g4">${kpis}</div>
