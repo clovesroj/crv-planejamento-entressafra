@@ -4,6 +4,7 @@ import { MESES, NM, clsMes } from '../nucleo/calendario.js';
 import { BEN, ENC, FUN_SEL, GRAT, QF_GRUPO, QF_MES } from '../nucleo/estado.js';
 import { COLUNAS_QUADRO, comparativoQuadro, mesAnoAnterior } from '../calculo/quadro-comparativo.js';
 import { QUADRO_FONTE } from '../dados/quadro-fixo.js';
+import { arvorePessoal, catalogoQuadro } from '../calculo/pessoal.js';
 import { $, brl, esc, fmt, num, pct } from '../nucleo/formato.js';
 import { kpi, ligarBuscaSelect, th } from './componentes.js';
 import { setFUN_SEL } from '../nucleo/estado.js';
@@ -75,6 +76,7 @@ function pintarMDO(R){
   $("#in_grat").value = g.valor;
 
   pintarQuadro(R);
+  pintarPessoal(R);
   pintarFat(R);
 }
 
@@ -153,6 +155,89 @@ function pintarQuadro(R){
     C.funcoes.map((f,k)=>colsQuadro(f, `<td class="num calc">${k+1}</td><td>${esc(f.nome)} <span class="calc">${esc(f.fcod)}</span></td>`)).join("")+
     colsQuadro(T, `<td></td><td class="tot">TOTAL</td>`, "qf-tot")+"</tbody>";
   $("#bl_qf_sub").textContent = `${fmt(QF.pico,0)} pessoas no pico · ${brl(QF.total)} no ano`;
+}
+
+/* ---------- ARVORE DE FUNCIONARIOS DO ADM E DA OFICINA ----------
+   Quem ocupa cada vaga do quadro previsto: grupo -> departamento -> pessoa,
+   com a quantidade e a folha previstas do departamento ao lado das lancadas.
+   Os departamentos do previsto aparecem todos, mesmo vazios -- e a lista do
+   que falta lancar. O calculo mora em calculo/pessoal.js; nao entra no custo,
+   que continua vindo do quadro previsto da controladoria. */
+function pintarPessoal(R){
+  const QF = R.QF;
+  const A = arvorePessoal(QF);
+  const cat = catalogoQuadro(QF);
+  const optF = sel => cat.funcoes.map(f=>`<option value="${esc(f.fcod)}"${f.fcod===sel?" selected":""}>${esc(f.fcod)} · ${esc(f.fnome)}</option>`).join("")
+    + (sel && !cat.funcoes.some(f=>f.fcod===sel) ? `<option value="${esc(sel)}" selected>${esc(sel)} — fora do quadro previsto</option>` : "");
+  const optD = p => cat.deptos.map(d=>`<option value="${esc(d.grupo+"|"+d.dcod)}"${(p.grupo+"|"+p.dcod)===(d.grupo+"|"+d.dcod)?" selected":""}>${
+      d.grupo==="adm"?"ADM":"Oficina"} · ${esc(d.depto)}</option>`).join("")
+    + (!cat.deptos.some(d=>d.grupo===p.grupo && d.dcod===p.dcod)
+        ? `<option value="${esc(p.grupo+"|"+p.dcod)}" selected>${esc(p.depto)} — fora do quadro previsto</option>` : "");
+  // vagas = previsto - lancado: positivo falta gente, negativo ha gente a mais
+  const dif = (a,b) => { const d=a-b; return d===0 ? '<span class="calc">em dia</span>'
+    : `<span class="${d>0?"pes-falta":"pes-excede"}">${(d>0?"+":"")+fmt(d,0)}</span>`; };
+
+  const faixa = (classe, rotulo, o) =>
+    `<tr class="${classe}"><td colspan="3"><span>${rotulo}</span></td>
+     <td class="num">${fmt(o.qtd,0)}</td><td class="num">${o.prevQtd?fmt(o.prevQtd,0):"—"}</td>
+     <td class="num">${o.prevQtd||o.qtd ? dif(o.prevQtd, o.qtd) : "—"}</td>
+     <td class="num tot">${o.folha?brl(o.folha):"—"}</td>
+     <td class="num calc">${o.prevFolha?brl(o.prevFolha):"—"}</td><td></td></tr>`;
+
+  let corpo = "";
+  A.grupos.forEach(g=>{
+    corpo += faixa("stage", esc(g.rotulo), g);
+    g.deptos.forEach(d=>{
+      corpo += faixa("stage2", `${esc(d.depto)} <span class="calc">${esc(d.dcod||"sem código")}</span>`, d);
+      corpo += d.pessoas.length ? d.pessoas.map(p=>{
+        const rep = p.mat && A.duplicadas.includes(p.mat);
+        return `<tr class="pes-linha">
+          <td><input data-pes="${p.i}" data-f="mat" value="${esc(p.mat)}" style="width:90px" inputmode="numeric">${
+            rep?' <span class="badge b-warn" title="Esta matrícula está lançada em mais de uma linha.">repetida</span>':''}</td>
+          <td><input data-pes="${p.i}" data-f="nome" value="${esc(p.nome)}" style="min-width:170px;text-align:left"></td>
+          <td><select data-pesf="${p.i}" style="min-width:195px;max-width:230px">${optF(p.fcod)}</select>
+              <select data-pesd="${p.i}" style="min-width:175px;max-width:210px">${optD(p)}</select></td>
+          <td class="num calc">1</td><td class="num calc">—</td><td class="num calc">—</td>
+          <td class="num"><input data-pes="${p.i}" data-f="sal" value="${p.sal||""}" inputmode="decimal" style="width:100px"
+              placeholder="${p.salPrev?fmt(p.salPrev,0):"0"}"></td>
+          <td class="num calc"${p.salPrev?` title="Salário médio previsto da função em ${esc(A.ref.nome)}"`:""}>${p.salPrev?brl(p.salPrev):"—"}</td>
+          <td><button class="btn d" data-pesrm="${p.i}">Excluir</button></td></tr>`;
+      }).join("")
+      // Linha do departamento vazio com as mesmas 9 colunas (e nao um colspan):
+      // assim a busca acha o departamento pelo nome tambem quando nao ha
+      // ninguem lancado nele — nas linhas de gente o nome vem do seletor.
+      : `<tr class="pes-linha pes-vazio">
+          <td class="calc">—</td>
+          <td class="calc" colspan="2">${esc(d.depto)} — ${fmt(d.prevQtd,0)} vaga(s) em aberto, ninguém lançado</td>
+          <td class="num calc">0</td><td class="num">${fmt(d.prevQtd,0)}</td>
+          <td class="num">${dif(d.prevQtd, 0)}</td><td class="num calc">—</td>
+          <td class="num calc">${brl(d.prevFolha)}</td><td></td></tr>`;
+    });
+  });
+
+  const ref = A.ref.nome ? " — "+A.ref.nome : "";
+  $("#t_pessoal").innerHTML = th([["Matrícula"],["Nome"],["Função e departamento"],["Pessoas",1],["Previsto"+ref,1],
+      ["Vagas",1],["Salário (R$)",1],["Salário previsto",1],[""]])+"<tbody>"+corpo+
+    `<tr><td class="tot" colspan="3"><span>TOTAL LANÇADO</span></td>
+     <td class="num tot">${fmt(A.qtd,0)}</td><td class="num tot">${fmt(A.prevQtd,0)}</td>
+     <td class="num tot">${dif(A.prevQtd, A.qtd)}</td>
+     <td class="num tot">${brl(A.folha)}</td><td class="num calc">${brl(A.prevFolha)}</td><td></td></tr></tbody>`;
+
+  // listas de consulta do lancamento: uma so, montadas quando mudam
+  const dlD = $("#pes_dep_lista"), dlF = $("#pes_fun_lista");
+  if(dlD && dlD.childElementCount !== cat.deptos.length)
+    dlD.innerHTML = cat.deptos.map(d=>`<option value="${esc(d.dcod)}" label="${esc((d.grupo==="adm"?"ADM":"Oficina")+" · "+d.depto)}"></option>`).join("");
+  if(dlF && dlF.childElementCount !== cat.funcoes.length)
+    dlF.innerHTML = cat.funcoes.map(f=>`<option value="${esc(f.fcod)}" label="${esc(f.fnome)}"></option>`).join("");
+
+  $("#bl_pessoal_sub").textContent = A.qtd
+    ? `${fmt(A.qtd,0)} de ${fmt(A.prevQtd,0)} vagas lançadas · ${brl(A.folha)} de folha`
+    : `${fmt(A.prevQtd,0)} vagas previstas · nenhuma lançada`;
+  const nota = $("#pes_ref");
+  if(nota) nota.textContent = A.ref.nome
+    ? `Previsto e folha prevista medidos em ${A.ref.nome}, o mês de pico do quadro da controladoria — o mesmo `+
+      `número do indicador "Quadro ADM + oficina" e do bloco acima.`
+    : "";
 }
 
 export { pintarMDO };

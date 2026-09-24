@@ -299,6 +299,37 @@
     </div>
   </details>
 
+  <details class="bloco" id="bl_mdo_pessoal">
+    <summary><span class="bl-tit">Funcionários do ADM e da oficina</span><span class="bl-sub" id="bl_pessoal_sub"></span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Árvore de funcionários — quadro por departamento</h3>
+        <div class="row" style="margin-bottom:12px;align-items:flex-end;flex-wrap:wrap">
+          <div style="min-width:120px"><label for="in_pes_mat">Matrícula</label>
+            <input id="in_pes_mat" placeholder="ex.: 10234" inputmode="numeric"></div>
+          <div style="min-width:240px;flex:1"><label for="in_pes_nome">Nome</label>
+            <input id="in_pes_nome" placeholder="nome do funcionário" style="text-align:left"></div>
+          <div style="min-width:260px;flex:1"><label for="in_pes_dep">Departamento</label>
+            <input id="in_pes_dep" list="pes_dep_lista" placeholder="consulte por código ou nome" style="text-align:left"></div>
+          <div style="min-width:240px;flex:1"><label for="in_pes_fun">Função</label>
+            <input id="in_pes_fun" list="pes_fun_lista" placeholder="consulte por código ou cargo" style="text-align:left"></div>
+          <div style="min-width:120px"><label for="in_pes_sal">Salário (R$)</label>
+            <input id="in_pes_sal" inputmode="decimal" placeholder="0,00"></div>
+          <div><button class="btn p" id="btn_pessoal_add">Lançar funcionário</button></div>
+        </div>
+        <div class="hint" id="pes_ref" style="margin:0 0 8px"></div>
+        <input type="search" class="tbl-busca" data-alvo="#t_pessoal" placeholder="Buscar departamento, nome, matrícula ou função...">
+        <div class="tblwrap"><table id="t_pessoal"></table></div>
+        <div class="hint" style="margin-top:9px">Quem ocupa cada vaga do quadro ADM agrícola e da oficina: uma linha por
+        pessoa, dentro do seu departamento. A <b>quantidade prevista</b> e a <b>folha prevista</b> de cada departamento
+        vêm do quadro da controladoria (bloco acima), e a coluna <b>vagas</b> é a diferença: positiva, falta lançar
+        gente; negativa, há mais gente lançada do que o previsto. Departamento sem ninguém lançado continua na árvore,
+        mostrando a vaga em aberto. <b>Não muda o custo do plano</b>, que continua sendo o quadro previsto da
+        controladoria — aqui está quem ocupa as vagas, e a comparação entre o salário lançado e o previsto da função.
+        Matrícula, nome e salário são dados nominais: ficam só no documento do plano, no banco da usina, e nunca no
+        cadastro do repositório.</div></div>
+    </div>
+  </details>
+
   <details class="bloco" id="bl_mdo_fat">
     <summary><span class="bl-tit">FAT — Fundo de Amparo ao Trabalhador</span><span class="bl-sub" id="bl_fat_sub"></span></summary>
     <div class="bloco-corpo">
@@ -1509,6 +1540,8 @@
      painter do Dimensionamento, fora da tabela porque <datalist> dentro de
      <table> e HTML invalido. -->
 <datalist id="erp_lista"></datalist>
+<datalist id="pes_dep_lista"></datalist>
+<datalist id="pes_fun_lista"></datalist>
 <div id="apoiomes_fundo" hidden></div>
 <aside id="apoiomes" aria-label="Quantidade por mês do item de apoio" hidden></aside>
 <div id="dimdet_fundo" hidden></div>

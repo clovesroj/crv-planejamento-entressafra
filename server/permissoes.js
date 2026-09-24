@@ -43,7 +43,7 @@ const AREAS = [
   // NIV (níveis salariais) não tem mais controle na tela; segue aqui porque
   // documentos antigos ainda o trazem e ele é dado de mão de obra.
   { id: 'mdo', nome: 'Mão de Obra', grupo: 'Pessoas',
-    chaves: ['ENC', 'BEN', 'NIV', 'GRAT', 'FUN', 'FAT'], campos: ['diasOper', 'diasTrab', 'hTurno'] },
+    chaves: ['ENC', 'BEN', 'NIV', 'GRAT', 'FUN', 'FAT', 'PESSOAL'], campos: ['diasOper', 'diasTrab', 'hTurno'] },
   // O quadro ativo (ajuste, férias e demissões por função) era editado no
   // Dimensionamento; foi para o Resumo de Pessoas, ao lado das outras respostas
   // sobre gente. QUADRO segue também em 'dimens' porque uma chave pode ter mais
