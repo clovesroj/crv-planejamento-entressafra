@@ -64,11 +64,24 @@ function mesclarObjetoRenomeavel(atual, patch, campoNovaChave) {
   return obj;
 }
 
-const PATCHES_ARRAY = { INSX_PATCH: { chave: 'INSX', id: 'prod' }, ATVX_PATCH: { chave: 'ATVX', id: 'cod' } };
+// Mapa por chave estável (matrícula...), sem rename -- versão mais simples do
+// objeto renomeável acima, para overlay que nunca troca de chave (ver
+// CTT_SAIDAS/CTT_MUDANCAS em ui/quadro-ctt.js: matrícula não muda).
+function mesclarMapaSimples(atual, patch) {
+  const obj = { ...(atual || {}) };
+  (patch.remover || []).forEach(chave => { delete obj[chave]; });
+  Object.entries(patch.upsert || {}).forEach(([chave, v]) => { obj[chave] = v; });
+  return obj;
+}
+
+const PATCHES_ARRAY = { INSX_PATCH: { chave: 'INSX', id: 'prod' }, ATVX_PATCH: { chave: 'ATVX', id: 'cod' },
+  CTT_NOVOS_PATCH: { chave: 'CTT_NOVOS', id: 'm' } };
+const PATCHES_MAPA_SIMPLES = { CTT_SAIDAS_PATCH: 'CTT_SAIDAS', CTT_MUDANCAS_PATCH: 'CTT_MUDANCAS' };
 
 /** true se o corpo tem algum patch de item — só aí vale travar a linha pra mesclar. */
 function temPatch(corpo) {
-  return !!(corpo.INSX_PATCH || corpo.ATVX_PATCH || corpo.TRAT_PATCH || corpo.INSUMO_PATCH);
+  return !!(corpo.INSX_PATCH || corpo.ATVX_PATCH || corpo.TRAT_PATCH || corpo.INSUMO_PATCH
+    || corpo.CTT_NOVOS_PATCH || corpo.CTT_SAIDAS_PATCH || corpo.CTT_MUDANCAS_PATCH);
 }
 
 /** Corpo com os "_PATCH" trocados pelo valor real da chave, já mesclado com o que está gravado. */
@@ -77,6 +90,11 @@ function aplicarPatches(corpo, atual) {
   for (const [chaveCorpo, cfg] of Object.entries(PATCHES_ARRAY)) {
     if (!efetivo[chaveCorpo]) continue;
     efetivo[cfg.chave] = mesclarArray((atual || {})[cfg.chave], efetivo[chaveCorpo], cfg.id);
+    delete efetivo[chaveCorpo];
+  }
+  for (const [chaveCorpo, chaveReal] of Object.entries(PATCHES_MAPA_SIMPLES)) {
+    if (!efetivo[chaveCorpo]) continue;
+    efetivo[chaveReal] = mesclarMapaSimples((atual || {})[chaveReal], efetivo[chaveCorpo]);
     delete efetivo[chaveCorpo];
   }
   if (efetivo.TRAT_PATCH) {
@@ -90,4 +108,4 @@ function aplicarPatches(corpo, atual) {
   return efetivo;
 }
 
-module.exports = { temPatch, aplicarPatches, mesclarArray, mesclarTratamentos, mesclarObjetoRenomeavel };
+module.exports = { temPatch, aplicarPatches, mesclarArray, mesclarTratamentos, mesclarObjetoRenomeavel, mesclarMapaSimples };

@@ -949,3 +949,8 @@ table.qf td.qf-menos{color:var(--green)}
 #t_pes_dept td.pes-dep{padding-left:14px}
 #t_pes_dept tr.qf-f td.qf-fun{padding-left:30px;color:var(--grey)}
 #t_pes_dept tr.qf-tot td,#t_pes_fun tr.qf-tot td,#t_pes_matriz tr.qf-tot td,#t_pes_mes_qtd tr.qf-tot td,#t_pes_mes_custo tr.qf-tot td{font-weight:700;border-top:1px solid var(--line-strong)}
+
+/* ---------- Quadro CTT (Corte, Transbordo e Transporte) ---------- */
+.ctt-mov-lista{list-style:none;margin:10px 0 0;padding:0;max-height:200px;overflow-y:auto}
+.ctt-mov-lista li{display:flex;flex-direction:column;padding:5px 0;font-size:12.5px;border-top:1px solid var(--line)}
+.ctt-mov-lista li:first-child{border-top:none}

@@ -587,7 +587,9 @@ function barrasPeriodo(el, legEl, valores, SEL, perDe){
       <b>${p==="safra"?"Safra":"Entressafra"}</b> ${brl(tot)} · média ${brl(tot/ds.length)}/mês
       <span class="calc">(${ds.length} ${ds.length===1?"mês":"meses"}; tracejado = média)</span></span>`; }).join("");
 }
-function barrasH(el,dados){
+/** `un` (opcional): unidade do valor no tooltip (ex.: "pessoas") em vez de
+    dinheiro -- default = brl(), que é o que os gráficos de custo já usavam. */
+function barrasH(el,dados,un){
   // paleta do campo: folha, palha, céu, latossolo e tons intermediários
   /* Rampa do azul da marca, do escuro ao claro. A barra e ordenada da maior
      para a menor e cada uma tem o rotulo ao lado: quem identifica a categoria
@@ -599,7 +601,7 @@ function barrasH(el,dados){
   let s=`<svg viewBox="0 0 ${W} ${H}" class="chart">`;
   dados.forEach((d,i)=>{const y=i*rh+5,w=(W-ml-105)*(d.v/tot);
     s+=`<text x="${ml-8}" y="${y+13}" text-anchor="end" font-size="10.5" fill="var(--ink)">${d.l}</text>
-        <rect x="${ml}" y="${y+2}" width="${Math.max(w,1)}" height="14" fill="${cores[i%12]}" rx="3"><title>${brl(d.v)}</title></rect>
+        <rect x="${ml}" y="${y+2}" width="${Math.max(w,1)}" height="14" fill="${cores[i%12]}" rx="3"><title>${un?fmt(d.v)+" "+un:brl(d.v)}</title></rect>
         <text x="${ml+w+7}" y="${y+14}" font-size="10" fill="var(--grey)">${fmt(d.v/tot*100,1)}%</text>`;});
   el.innerHTML=s+`</svg>`;
 }

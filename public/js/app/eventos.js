@@ -16,6 +16,7 @@ import { AGROFIT_BUSCA, DIM_DET, FITO_ABERTO, PLANO_ABERTO, FROTA_ABERTO, FROTA_
 import { $, num } from '../nucleo/formato.js';
 import { exportarTabela, filtrarPorNome } from '../ui/componentes.js';
 import { marcarAtivNovo, marcarAtivRemovido, marcarAtivSujo, salvarAtiv } from '../ui/atividades-cad.js';
+import { abrirEdicaoCtt, marcarCttMudanca, marcarCttNovo, marcarCttSaida, salvarCtt } from '../ui/quadro-ctt.js';
 import { alternarFam, alternarUsos, aplicarFamIns, buscaExigeRedesenho, marcarInsSujo, marcarInsNovo, marcarInsRemovido,
   marcarTratSujo, marcarTratNovo, marcarTratRenomeado, marcarTratRemovido, recolherTodas, salvarIns, salvarTrat, todasRecolhidas } from '../ui/insumos.js';
 import { alternarFrenteLinha, alternarMesLinha } from '../ui/dimensionamento.js';
@@ -808,6 +809,15 @@ document.addEventListener("click",e=>{
     const r = renomearGrupoInsumo(id, nome);
     if(!r.ok){ alert(r.erro); return; }
     salvar(); render(); return; }
+  if(t.closest && t.closest("#ctt_salvar")){ if(salvarCtt()){ salvar(); render(); } return; }
+  if(t.dataset.cttrm!==undefined){
+    if(!confirm(`Marcar a matrícula ${t.dataset.cttrm} como saída?`)) return;
+    marcarCttSaida(t.dataset.cttrm); render(); return; }
+  if(t.dataset.cttedit!==undefined){ abrirEdicaoCtt(t.dataset.cttedit); render(); return; }
+  if(t.dataset.cttconfirma!==undefined){
+    const m = t.dataset.cttconfirma, campo = sel => { const v = document.querySelector(`[data-cttf-${sel}="${m}"]`).value; return v===""?-1:+v; };
+    marcarCttMudanca(m, {f:campo("func"), ci:campo("cid"), g:campo("ger"), c:campo("cnh")});
+    render(); return; }
 });
 
 /* FAT: linha nova ja com os meses da entressafra, que e quando o contrato
@@ -839,6 +849,20 @@ $("#btn_ativ_add").onclick=()=>{
   if(!criarAtividade(cod)){ alert(`Já existe uma atividade com o código "${cod}".`); return; }
   $("#in_ativ_novo").value="";
   marcarAtivNovo(atividadesLista().find(a=>a.cod===cod)); render();
+};
+
+// Quadro CTT: incluir gente que ainda não está na planilha do ERP (ver
+// ui/quadro-ctt.js) -- matrícula e nome são obrigatórios, o resto é opcional
+// porque nem toda função/cidade/gerência precisa ser conhecida na hora.
+$("#ctt_add").onclick=()=>{
+  const m = $("#ctt_add_m").value.trim(), n = $("#ctt_add_n").value.trim();
+  if(!m || !/^\d+$/.test(m)){ alert("Informe a matrícula (só números)."); return; }
+  if(!n){ alert("Informe o nome."); return; }
+  const campo = id => { const v = $(id).value; return v===""?-1:+v; };
+  marcarCttNovo({m:+m, n, f:campo("#ctt_add_func"), ci:campo("#ctt_add_cid"), g:campo("#ctt_add_ger"), c:campo("#ctt_add_cnh")});
+  $("#ctt_add_m").value=""; $("#ctt_add_n").value=""; $("#ctt_add_func").value=""; $("#ctt_add_cid").value="";
+  $("#ctt_add_ger").value=""; $("#ctt_add_cnh").value="";
+  salvar(); render();
 };
 
 $("#btn_trat_add").onclick=()=>{
