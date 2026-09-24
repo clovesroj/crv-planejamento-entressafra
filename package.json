@@ -6,15 +6,14 @@
   "license": "UNLICENSED",
   "engines": {
     "node": ">=20"
-  },
   "scripts": {
     "start": "node server/index.js",
-    "gasto-reforma-bi": "node scripts/gasto-reforma-bi.mjs",
-    "postinstall": "npx playwright install chromium"
+    "gasto-reforma-bi": "node scripts/gasto-reforma-bi.mjs"
   },
   "dependencies": {
-    "pg": "^8.13.1",
-    "playwright": "^1.63.0"
+    "pg": "^8.13.1"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "playwright": "^1.63.0"
+  }
 }

@@ -16,15 +16,13 @@ services:
     runtime: node
     plan: free
     region: ohio          # precisa ser a mesma do banco para usar a rede interna
-    buildCommand: npm install && npx playwright install --with-deps chromium
+    buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /api/health
     autoDeploy: true
     envVars:
       - key: NODE_VERSION
         value: "22"
-      - key: PLAYWRIGHT_BROWSERS_PATH
-        value: "0"
       - key: DATABASE_URL
         fromDatabase:
           name: crv-planejamento-db

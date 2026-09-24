@@ -137,21 +137,20 @@ function pintarGastoReal() {
      <td class="num tot">${porEsp.length ? "100,0%" : "—"}</td></tr></tbody>`;
 }
 
-/* ─── Busca ao vivo do Power BI ─────────────────────────────────────────────
-   Abre um EventSource para /api/reforma/gasto-real (Server-Sent Events).
-   O servidor envia eventos de progresso enquanto o Playwright roda, e ao
-   final um evento "resultado" com os dados ou "erro" com a mensagem. */
+/* ─── Busca ao vivo ─────────────────────────────────────────────
+   Consulta o banco de dados do servidor via API para trazer lançamentos 
+   do período selecionado. */
 
-let _buscaAtiva = null; // EventSource em andamento
+let _buscaAtiva = null; // AbortController em andamento
 
 /**
- * Inicia (ou aborta e reinicia) uma busca ao vivo do Power BI.
+ * Inicia (ou aborta e reinicia) uma busca ao vivo no ERP/Banco.
  * Exibe loading animado no painel; ao terminar, carrega os dados e re-renderiza.
  * @param {Function} renderFn - função render() do ciclo principal
  */
-function buscarDoBI(renderFn) {
+async function buscarDoBI(renderFn) {
   // Cancela busca anterior se ainda estiver em andamento
-  if (_buscaAtiva) { _buscaAtiva.close(); _buscaAtiva = null; }
+  if (_buscaAtiva) { _buscaAtiva.abort(); _buscaAtiva = null; }
 
   const inicio = GR_INICIO || null;
   const fim    = GR_FIM    || null;
@@ -163,40 +162,33 @@ function buscarDoBI(renderFn) {
   const overlay = $('#gr_loading');
   const msgEl   = $('#gr_loading_msg');
   if (overlay) overlay.hidden = false;
-  if (msgEl)   msgEl.textContent = 'Solicitando extração ao servidor…';
+  if (msgEl)   msgEl.textContent = 'Consultando banco de dados…';
 
   const params = new URLSearchParams({ inicio, fim });
   if (GR_EMPRESA) params.set('empresas', GR_EMPRESA);
-  if (GR_ESP) params.set('especialidades', GR_ESP);
+  if (GR_FROTA) params.set('frotas', GR_FROTA);
 
-  const es = new EventSource(`/api/reforma/gasto-real?${params}`);
-  _buscaAtiva = es;
+  const ctrl = new AbortController();
+  _buscaAtiva = ctrl;
 
-  es.addEventListener('progresso', e => {
-    const d = JSON.parse(e.data);
-    if (msgEl) msgEl.textContent = d.msg || 'Processando…';
-  });
-
-  es.addEventListener('resultado', e => {
-    es.close(); _buscaAtiva = null;
+  try {
+    const res = await fetch(`/api/reforma/gasto-real?${params}`, { signal: ctrl.signal });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ msg: 'Erro HTTP ' + res.status }));
+      throw new Error(err.msg || 'Falha na requisição');
+    }
+    const dados = await res.json();
     if (overlay) overlay.hidden = true;
-    setDadosBI(JSON.parse(e.data));
+    setDadosBI(dados);
     if (renderFn) renderFn();
-  });
-
-  es.addEventListener('erro', e => {
-    es.close(); _buscaAtiva = null;
+  } catch (e) {
+    if (e.name === 'AbortError') return; // abortada intencionalmente
+    console.error(e);
     if (overlay) overlay.hidden = true;
-    const d = JSON.parse(e.data);
-    alert(`Falha ao buscar do Power BI:\n${d.msg || 'erro desconhecido'}`);
-  });
-
-  es.onerror = () => {
-    if (es.readyState === EventSource.CLOSED) return;
-    es.close(); _buscaAtiva = null;
-    if (overlay) overlay.hidden = true;
-    alert('Conexão com o servidor perdida. O servidor pode ter reiniciado por limite de memória.');
-  };
+    alert(`Falha ao buscar do ERP:\n${e.message || 'Erro desconhecido'}`);
+  } finally {
+    if (_buscaAtiva === ctrl) _buscaAtiva = null;
+  }
 }
 
 export { pintarGastoReal, buscarDoBI };

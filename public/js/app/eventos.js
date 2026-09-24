@@ -17,7 +17,7 @@ import { AGROFIT_BUSCA, DIM_DET, FITO_ABERTO, PLANO_ABERTO, FROTA_ABERTO, FROTA_
 import { $, num } from '../nucleo/formato.js';
 import { exportarTabela, filtrarPorNome } from '../ui/componentes.js';
 import { marcarAtivNovo, marcarAtivRemovido, marcarAtivSujo, salvarAtiv } from '../ui/atividades-cad.js';
-import { abrirEdicaoCtt, limparCttObs, marcarCttMudanca, marcarCttNovo, marcarCttObs, marcarCttSaida, salvarCtt } from '../ui/quadro-ctt.js';
+import { abrirEdicaoCtt, adicionarGerenciaCtt, marcarCttMudanca, marcarCttNovo, marcarCttSaida, salvarCtt } from '../ui/quadro-ctt.js';
 import { alternarFam, alternarUsos, aplicarFamIns, buscaExigeRedesenho, marcarInsSujo, marcarInsNovo, marcarInsRemovido,
   marcarTratSujo, marcarTratNovo, marcarTratRenomeado, marcarTratRemovido, recolherTodas, salvarIns, salvarTrat, todasRecolhidas } from '../ui/insumos.js';
 import { alternarFrenteLinha, alternarMesLinha } from '../ui/dimensionamento.js';
@@ -483,12 +483,6 @@ document.addEventListener("change",e=>{
     // leve() preserva o foco; render() reconstruia a tabela e derrubava a
     // digitacao no meio da data
     salvar(); leve(); return; }
-  // Quadro CTT: observação (Férias/FAT/Operação) e período -- editável direto
-  // na linha, sem precisar abrir "Editar" (mesmo critério do artefato
-  // original). marcarCttObs já lida com "voltou a vazio" tirando do rascunho.
-  if(t.dataset.cttobs!==undefined){ marcarCttObs(t.dataset.cttobs, {obs:t.value}); render(); return; }
-  if(t.dataset.cttobsini!==undefined){ marcarCttObs(t.dataset.cttobsini, {ini:t.value}); render(); return; }
-  if(t.dataset.cttobsfim!==undefined){ marcarCttObs(t.dataset.cttobsfim, {fim:t.value}); render(); return; }
   if(t.dataset.fc!==undefined){ const c=t.dataset.fc;
     PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""};
     PLANO[c].fcod=t.value; salvar(); render(); return; }
@@ -859,9 +853,10 @@ document.addEventListener("click",e=>{
     if(!r.ok){ alert(r.erro); return; }
     salvar(); render(); return; }
   if(t.closest && t.closest("#ctt_salvar")){ if(salvarCtt()){ salvar(); render(); } return; }
-  if(t.closest && t.closest("#ctt_obs_limpar")){
-    if(!confirm("Limpar a observação (Férias/FAT/Operação) e o período de todo mundo? Isso não desfaz sozinho.")) return;
-    if(limparCttObs()) render(); return; }
+  if(t.closest && t.closest("#ctt_ger_add")){
+    const input = document.getElementById("ctt_ger_nova");
+    if(adicionarGerenciaCtt(input.value)){ input.value = ""; render(); }
+    return; }
   if(t.dataset.cttrm!==undefined){
     if(!confirm(`Marcar a matrícula ${t.dataset.cttrm} como saída?`)) return;
     marcarCttSaida(t.dataset.cttrm); render(); return; }
