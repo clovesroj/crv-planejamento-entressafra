@@ -9,7 +9,8 @@
   },
   "scripts": {
     "start": "node server/index.js",
-    "gasto-reforma-bi": "node scripts/gasto-reforma-bi.mjs"
+    "gasto-reforma-bi": "node scripts/gasto-reforma-bi.mjs",
+    "postinstall": "npx playwright install chromium"
   },
   "dependencies": {
     "pg": "^8.13.1",
