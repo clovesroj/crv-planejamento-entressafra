@@ -17,7 +17,7 @@ import { AGROFIT_BUSCA, DIM_DET, FITO_ABERTO, PLANO_ABERTO, FROTA_ABERTO, FROTA_
 import { $, num } from '../nucleo/formato.js';
 import { exportarTabela, filtrarPorNome } from '../ui/componentes.js';
 import { marcarAtivNovo, marcarAtivRemovido, marcarAtivSujo, salvarAtiv } from '../ui/atividades-cad.js';
-import { abrirEdicaoCtt, adicionarGerenciaCtt, marcarCttMudanca, marcarCttNovo, marcarCttSaida, salvarCtt } from '../ui/quadro-ctt.js';
+import { abrirEdicaoCtt, adicionarValorCtt, marcarCttMudanca, marcarCttNovo, marcarCttSaida, salvarCtt } from '../ui/quadro-ctt.js';
 import { alternarFam, alternarUsos, aplicarFamIns, buscaExigeRedesenho, marcarInsSujo, marcarInsNovo, marcarInsRemovido,
   marcarTratSujo, marcarTratNovo, marcarTratRenomeado, marcarTratRemovido, recolherTodas, salvarIns, salvarTrat, todasRecolhidas } from '../ui/insumos.js';
 import { alternarFrenteLinha, alternarMesLinha } from '../ui/dimensionamento.js';
@@ -853,9 +853,9 @@ document.addEventListener("click",e=>{
     if(!r.ok){ alert(r.erro); return; }
     salvar(); render(); return; }
   if(t.closest && t.closest("#ctt_salvar")){ if(salvarCtt()){ salvar(); render(); } return; }
-  if(t.closest && t.closest("#ctt_ger_add")){
-    const input = document.getElementById("ctt_ger_nova");
-    if(adicionarGerenciaCtt(input.value)){ input.value = ""; render(); }
+  if(t.closest && t.closest("#ctt_novo_add")){
+    const campo = document.getElementById("ctt_novo_campo").value, input = document.getElementById("ctt_novo_valor");
+    if(adicionarValorCtt(campo, input.value)){ input.value = ""; render(); }
     return; }
   if(t.dataset.cttrm!==undefined){
     if(!confirm(`Marcar a matrícula ${t.dataset.cttrm} como saída?`)) return;

@@ -64,6 +64,7 @@
       <div class="gl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="11" r="2"/><path d="M5.5 16c.5-1.8 1.7-2.7 3-2.7s2.5.9 3 2.7"/><path d="M14 9.5h6M14 13h6"/></svg>CTT</div>
       <button data-s="quadro-ctt">Quadro CTT</button>
       <button data-s="planejamento-ctt">Planejamento Entressafra</button>
+      <button data-s="desligamentos-ctt">Desligamentos</button>
     </div>
     <div class="navgroup" data-g="Agricultura">
       <div class="gl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21V4"/><path d="M12 9.5C9 9.5 6.5 7.5 5.5 4.5c3 0 5.5 2 6.5 5z"/><path d="M12 14.5c3 0 5.5-2 6.5-5-3 0-5.5 2-6.5 5z"/><path d="M8.5 21h7"/></svg>Agricultura</div>
@@ -1437,12 +1438,17 @@
     </div>
   </div>
   <div class="panel" style="margin-top:16px">
-    <h3>Nova gerência</h3>
-    <p class="hint" style="margin:0 0 10px">Gerência que ainda não existe na planilha do ERP — se ela também não
-    estiver lá na próxima extração, continua valendo (fica registrada à parte, como as inclusões acima).</p>
+    <h3>Novo valor de cadastro</h3>
+    <p class="hint" style="margin:0 0 10px">Função, cidade, gerência ou categoria de CNH que ainda não existe na
+    planilha do ERP — se também não estiver lá na próxima extração, continua valendo (fica registrada à parte, como
+    as inclusões acima).</p>
     <div class="row" style="align-items:flex-end">
-      <div style="min-width:260px"><label for="ctt_ger_nova">Nome da gerência</label><input id="ctt_ger_nova" placeholder="Ex.: Gerência de Apoio Noturno"></div>
-      <button class="btn p" id="ctt_ger_add" type="button">Adicionar gerência</button>
+      <div style="min-width:150px"><label for="ctt_novo_campo">Campo</label><select id="ctt_novo_campo">
+        <option value="funcao">Função</option><option value="cidade">Cidade</option>
+        <option value="gerencia">Gerência</option><option value="cnh">Categoria de CNH</option>
+      </select></div>
+      <div style="min-width:260px"><label for="ctt_novo_valor">Valor</label><input id="ctt_novo_valor" placeholder="Ex.: Gerência de Apoio Noturno"></div>
+      <button class="btn p" id="ctt_novo_add" type="button">Adicionar</button>
     </div>
   </div>
   <div class="grid g2" style="margin:20px 0">
@@ -1467,6 +1473,10 @@
 <!-- Conteudo todo montado por pintarPlanoCTT() (ui/planejamento-ctt.js) --
      tela so de leitura, sem campos que precisem existir de antemao no HTML. -->
 <section id="planejamento-ctt"></section>
+
+<!-- ===== DESLIGAMENTOS ===== -->
+<!-- Conteudo todo montado por pintarDesligamentosCTT() (ui/planejamento-ctt.js). -->
+<section id="desligamentos-ctt"></section>
 
 <!-- ===== PAINEL ===== -->
 <section id="painel">

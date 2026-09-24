@@ -1,12 +1,25 @@
 // public/js/ui/planejamento-ctt.js
 //
-// Planejamento Entressafra CTT — relatório com cronograma de atividades
-// (gráfico em cascata), mão de obra e frota mês a mês, e balanço entre
-// efetivo ativo hoje e a necessidade de cada função. Tela só de leitura:
-// os filtros (mês, categoria, função, modo de contagem) são visão, não dado
-// — não entram em `estado()`/`aplicar()` (ver invariante nº7 do CLAUDE.md).
-// Os dados vêm prontos de `dados/planejamento-ctt.js`; o cálculo mês a mês é
-// todo em `calculo/planejamento-ctt.js`, puro e sem DOM.
+// Duas telas do grupo CTT, exportadas deste mesmo arquivo por reaproveitarem
+// o mesmo vocabulário visual (kpi(), gráficos em SVG/HTML autocontidos):
+//
+// - pintarPlanoCTT() — "Planejamento Entressafra CTT": relatório com
+//   cronograma de atividades (gráfico em cascata), mão de obra e frota mês a
+//   mês, balanço entre efetivo ativo hoje e a necessidade de cada função, e
+//   a Base de colaboradores da empresa inteira (não só CTT). As 7 primeiras
+//   páginas são só leitura: os filtros (mês, categoria, função, modo de
+//   contagem) são visão, não dado -- não entram em `estado()`/`aplicar()`
+//   (invariante nº7 do CLAUDE.md). A Base de colaboradores é a exceção:
+//   grava a chave CTT_OBS (Férias/FAT/Operação + período) -- mora aqui e não
+//   no Quadro CTT porque vale pra empresa inteira, não só pro time de CTT.
+// - pintarDesligamentosCTT() — aba própria "Desligamentos": upload semanal
+//   da planilha do RH (aba BASE), com KPIs e filtros em cascata por mês,
+//   tipo e motivo. Grava CTT_DESLIG/CTT_DESLIG_META.
+//
+// Os dados vêm prontos de `dados/planejamento-ctt.js` e
+// `dados/base-colaboradores.js`; o cálculo mês a mês e a extração da
+// planilha de desligamentos são puros e sem DOM, em
+// `calculo/planejamento-ctt.js` e `calculo/desligamentos-ctt.js`.
 
 import { $, esc, fmt } from '../nucleo/formato.js';
 import { kpi } from './componentes.js';
@@ -482,18 +495,18 @@ async function processarUploadDesligamentos(file) {
     const { registros, dataBase } = extrairRegistrosBase(linhas);
     if (!registros.length) {
       DL_ERRO = 'Não encontrei registros na planilha "BASE" desse arquivo. Verifique o modelo da planilha.';
-      pintar();
+      pintarDesligamentosCTT();
       return;
     }
     setCTT_DESLIG(registros);
     setCTT_DESLIG_META({ dataBase: dataBase || (CTT_DESLIG_META || {}).dataBase || null, atualizadoEm: new Date().toISOString() });
     DL_FILTROS = { mes: new Set(), tipo: new Set(), motivo: new Set(), funcao: new Set() };
     salvar();
-    pintar();
+    pintarDesligamentosCTT();
   } catch (e) {
     console.error(e);
     DL_ERRO = "Não consegui ler esse arquivo. Confirme que é o mesmo modelo da planilha original.";
-    pintar();
+    pintarDesligamentosCTT();
   }
 }
 
@@ -563,7 +576,6 @@ const PAGINAS = [
   { nome: "Frota e equipamentos", render: paginaFrota },
   { nome: "Detalhamento", render: paginaDetalhamento },
   { nome: "Base de colaboradores", render: paginaBaseColaboradores },
-  { nome: "Desligamentos", render: paginaDesligamentos },
 ];
 
 /* ---------- montagem ---------- */
@@ -588,19 +600,15 @@ function pintar() {
   const el = document.getElementById("planejamento-ctt");
   if (!el) return;
   recalcular();
-  // Base de colaboradores e Desligamentos têm filtro próprio (nome/função/
-  // situação/observação, mês/tipo/motivo) -- os filtros de mês/grupo/função
-  // do cronograma não fazem sentido pra elas.
+  // Base de colaboradores tem filtro próprio (nome/função/situação/
+  // observação) -- os filtros de mês/grupo/função do cronograma não fazem
+  // sentido pra ela.
   const temFiltroProprio = ESTADO.pagina >= 7;
   el.innerHTML = `<h2>Planejamento Entressafra CTT</h2>
     <p class="lead">Cronograma de atividades, mão de obra e frota da entressafra — Corte, Transbordo e Transporte.</p>
     ${temFiltroProprio ? "" : `<div class="pctt-slicers">${montarSlicers()}</div>`}
     <div class="pctt-tabs" role="navigation" aria-label="Páginas do relatório">${montarAbas()}</div>
     <div class="pctt-page" id="pctt-stage">${PAGINAS[ESTADO.pagina].render()}</div>`;
-  if (ESTADO.pagina === 8) {
-    const input = document.getElementById("pctt-dl-arquivo");
-    if (input) input.addEventListener("change", e => { const f = e.target.files[0]; if (f) processarUploadDesligamentos(f); e.target.value = ""; });
-  }
 }
 
 let LISTENERS_PRONTOS = false;
@@ -626,14 +634,6 @@ function wireEventos() {
     if (t.closest("#pctt-cb-obs-limpar")) {
       if (!confirm("Limpar a observação (Férias/FAT/Operação) e o período de todo mundo? Isso não desfaz sozinho.")) return;
       if (limparObsColab()) pintar(); return; }
-    // Desligamentos
-    if (t.closest("#pctt-dl-upload")) { document.getElementById("pctt-dl-arquivo").click(); return; }
-    if ((el = t.closest("[data-pctt-dl-filtro]"))) {
-      const [dim, valor] = el.dataset.pcttDlFiltro.split("|");
-      const set = DL_FILTROS[dim];
-      if (set.has(valor)) set.delete(valor); else set.add(valor);
-      pintar(); return; }
-    if (t.closest("#pctt-dl-limpar")) { DL_FILTROS = { mes: new Set(), tipo: new Set(), motivo: new Set(), funcao: new Set() }; pintar(); return; }
   });
   document.addEventListener("change", e => {
     if (!document.getElementById("planejamento-ctt")) return;
@@ -657,4 +657,39 @@ function wireEventos() {
 export function pintarPlanoCTT() {
   wireEventos();
   pintar();
+}
+
+/* ---------- Desligamentos: aba própria ----------
+   Separada do Planejamento Entressafra CTT (era uma de suas páginas) porque
+   é um assunto à parte, não uma leitura do cronograma -- ganhou seção e
+   botão de menu próprios (ver index.html e ciclo.js). O código de
+   agregação/upload continua aqui em cima porque reaproveita o mesmo
+   vocabulário visual (kpi(), barrasDesligamento) já usado no arquivo. */
+let LISTENERS_DESLIG_PRONTOS = false;
+function wireEventosDesligamentos() {
+  if (LISTENERS_DESLIG_PRONTOS) return;
+  LISTENERS_DESLIG_PRONTOS = true;
+  document.addEventListener("click", e => {
+    if (!document.getElementById("desligamentos-ctt")) return;
+    const t = e.target;
+    let el;
+    if (t.closest("#pctt-dl-upload")) { document.getElementById("pctt-dl-arquivo").click(); return; }
+    if ((el = t.closest("[data-pctt-dl-filtro]"))) {
+      const [dim, valor] = el.dataset.pcttDlFiltro.split("|");
+      const set = DL_FILTROS[dim];
+      if (set.has(valor)) set.delete(valor); else set.add(valor);
+      pintarDesligamentosCTT(); return; }
+    if (t.closest("#pctt-dl-limpar")) { DL_FILTROS = { mes: new Set(), tipo: new Set(), motivo: new Set(), funcao: new Set() }; pintarDesligamentosCTT(); return; }
+  });
+}
+
+export function pintarDesligamentosCTT() {
+  const el = document.getElementById("desligamentos-ctt");
+  if (!el) return;
+  wireEventosDesligamentos();
+  el.innerHTML = `<h2>Desligamentos</h2>
+    <p class="lead">Desligamentos da entressafra — upload semanal da planilha do RH, com KPIs e filtros por mês, tipo e motivo.</p>
+    <div id="pctt-dl-stage">${paginaDesligamentos()}</div>`;
+  const input = document.getElementById("pctt-dl-arquivo");
+  if (input) input.addEventListener("change", e => { const f = e.target.files[0]; if (f) processarUploadDesligamentos(f); e.target.value = ""; });
 }

@@ -37,7 +37,10 @@ let CTT_SAIDAS = null;   // matrícula -> {data} de quem saiu, registrado na mã
 let CTT_MUDANCAS = null; // matrícula -> {f,ci,g,c,data} override de função/cidade/gerência/CNH, registrado na mão
 let CTT_OBS = null;      // matrícula -> {obs:"Férias"|"FAT"|"Operação", ini, fim} status temporário, registrado na mão (aba Planejamento Entressafra CTT, base de colaboradores da empresa inteira)
 let CTT_GERENCIAS_NOVAS = null; // [nome,...] gerências do Quadro CTT cadastradas na mão, fora da planilha do ERP
-let CTT_DESLIG = null;      // [{matricula,funcionario,funcao,admissao,tipoRescisao,motivo,mes,...}] desligamentos, da planilha semanal enviada (Planejamento Entressafra CTT / Desligamentos)
+let CTT_FUNCOES_NOVAS = null;   // [nome,...] funções do Quadro CTT cadastradas na mão, fora da planilha do ERP
+let CTT_CIDADES_NOVAS = null;   // [nome,...] cidades do Quadro CTT cadastradas na mão, fora da planilha do ERP
+let CTT_CNH_NOVAS = null;       // [categoria,...] categorias de CNH do Quadro CTT cadastradas na mão, fora da planilha do ERP
+let CTT_DESLIG = null;      // [{matricula,funcionario,funcao,admissao,tipoRescisao,motivo,mes,...}] desligamentos, da planilha semanal enviada (aba Desligamentos)
 let CTT_DESLIG_META = {};   // {dataBase, atualizadoEm} da última planilha enviada
 let FROTA = {};          // item -> {qtd, hmes} frota prevista para manutenção
 let MAQ = {};            // item -> {d,h,u} ajustados: diesel L/h, horas/mês, utilização
@@ -130,7 +133,7 @@ let AGROFIT_BUSCA = null;
 
 export {
   P, PLANO, DIM, INSUMO, ESPOR, TRATC, NIV, GRAT, APOIO, TERC_TAR, TERC_SUB, TERC_DET, CRM, MATX,
-  INSX, INSX_V, ATVX, ATVX_V, CTT_NOVOS, CTT_SAIDAS, CTT_MUDANCAS, CTT_OBS, CTT_GERENCIAS_NOVAS, CTT_DESLIG, CTT_DESLIG_META, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, CRIT_GER, CRIT_CABE, REF_BUSCA, REF_AG, REF_FAM, REF_FROTA, REF_PROP, GR_INICIO, GR_FIM, GR_EMPRESA, GR_ESP, GR_AG, GR_COMP, GR_FROTA, GR_PROP, GR_REFORMA, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, FITO_ABERTO, PLANO_ABERTO, INS_FICHA, DIM_DET, APOIO_DET, APOIO_FIXO, TRAT_NOME, TRAT_OBS, TRAT_ETAPA, TRAT_DEL, TRAT_ATIVO, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
+  INSX, INSX_V, ATVX, ATVX_V, CTT_NOVOS, CTT_SAIDAS, CTT_MUDANCAS, CTT_OBS, CTT_GERENCIAS_NOVAS, CTT_FUNCOES_NOVAS, CTT_CIDADES_NOVAS, CTT_CNH_NOVAS, CTT_DESLIG, CTT_DESLIG_META, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, CRIT_GER, CRIT_CABE, REF_BUSCA, REF_AG, REF_FAM, REF_FROTA, REF_PROP, GR_INICIO, GR_FIM, GR_EMPRESA, GR_ESP, GR_AG, GR_COMP, GR_FROTA, GR_PROP, GR_REFORMA, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, FITO_ABERTO, PLANO_ABERTO, INS_FICHA, DIM_DET, APOIO_DET, APOIO_FIXO, TRAT_NOME, TRAT_OBS, TRAT_ETAPA, TRAT_DEL, TRAT_ATIVO, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
   TPESS, FAT, MO_APOIO, QF_MES, QF_GRUPO, PES_GRUPO, PES_DEPT, CONTAS_GRUPO, CONTAS_CLS, CONTAS_CD, DEM_SO_FALTA, APOIO_PER, QUADRO, ADM, ADM_RAT, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL, ATIV_TRAT_SEL, GRUPOS_INS, FAM_NOME, FAM_CLASSE, AGROFIT_BUSCA, INS_EDIT,
 };
 
@@ -157,6 +160,9 @@ export const setCTT_SAIDAS   = v => { CTT_SAIDAS = v; };
 export const setCTT_MUDANCAS = v => { CTT_MUDANCAS = v; };
 export const setCTT_OBS      = v => { CTT_OBS = v; };
 export const setCTT_GERENCIAS_NOVAS = v => { CTT_GERENCIAS_NOVAS = v; };
+export const setCTT_FUNCOES_NOVAS   = v => { CTT_FUNCOES_NOVAS = v; };
+export const setCTT_CIDADES_NOVAS   = v => { CTT_CIDADES_NOVAS = v; };
+export const setCTT_CNH_NOVAS       = v => { CTT_CNH_NOVAS = v; };
 export const setCTT_DESLIG           = v => { CTT_DESLIG = v; };
 export const setCTT_DESLIG_META      = v => { CTT_DESLIG_META = v; };
 export const setFROTA      = v => { FROTA = v; };
