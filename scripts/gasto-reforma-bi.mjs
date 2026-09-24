@@ -125,10 +125,17 @@ if (FIM < INICIO) { console.error('O --fim e anterior ao --inicio.'); process.ex
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SAIDA = path.resolve(__dirname, '../public/js/dados/gasto-reforma-bi.js');
 
-/** Rotulo entre asteriscos mais proximo do FIM da descricao (o padrao usado no ERP). */
+/**
+ * Rotulo entre asteriscos mais proximo do FIM da descricao (o padrao usado no
+ * ERP). O Power BI devolve o texto com ESPACO NAO-SEPARAVEL (U+00A0) no lugar
+ * do espaco, entao a tag saia como "CORTE"+U+00A0+"BASE" e nunca casava com o
+ * conjunto "CORTE BASE" da tela -- a coluna ficava vazia para sempre. A troca
+ * e feita aqui, na origem; a tela normaliza tambem (normTag em
+ * calculo/gasto-real.js), pra consertar os arquivos ja gerados.
+ */
 function compartimentoDe(desc) {
   const m = desc.match(/\*([^*]+)\*(?!.*\*)/);
-  return m ? m[1].trim().toUpperCase() : null;
+  return m ? m[1].replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase() : null;
 }
 
 /** "1.234,56" (formato BR) -> 1234.56 */

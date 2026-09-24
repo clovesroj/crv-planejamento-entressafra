@@ -1,6 +1,7 @@
 import { agruparPor, coberturaBI, faltaExtrair, filtrarLancamentos, janelaGastoReal, janelaVazia, opcoesDe } from '../calculo/gasto-real.js';
 import { GR_INICIO, GR_FIM, GR_EMPRESA, GR_ESP, GR_AG, GR_COMP, GR_FROTA, GR_PROP, GR_REFORMA } from '../nucleo/estado.js';
 import { $, brl, esc, fmt } from '../nucleo/formato.js';
+import { destinoDoGasto } from '../calculo/reforma.js';
 import { th } from './componentes.js';
 
 /* ---------- ANÁLISE DO GASTO REAL (ERP) ----------
@@ -65,6 +66,43 @@ function pintarAviso(nFiltrado) {
   el.innerHTML = cobertura + " " + janela + aviso;
 }
 
+/* O elo que faltava entre a analise e a grade: o filtro traz R$ X, mas so
+   parte disso PODE aparecer numa celula de conjunto. Aqui a tela mostra quanto
+   caiu em cada destino e o que fazer com o resto -- era a pergunta "mudei o
+   periodo e a tabela de baixo nao encheu". */
+function pintarDestino(lista) {
+  const tEl = $("#t_gr_destino");
+  if (!tEl) return;
+  const D = destinoDoGasto(lista);
+  const pct = v => D.total ? fmt(v / D.total * 100, 1) + "%" : "—";
+  const linha = (rot, o, detalhe) => `<tr><td>${rot}</td><td class="num calc">${fmt(o.n)}</td>
+    <td class="num tot">${brl(o.valor)}</td><td class="num calc">${pct(o.valor)}</td>
+    <td class="calc">${detalhe}</td></tr>`;
+  const lista10 = (arr, rotulo) => arr.length
+    ? arr.slice(0, 6).map(([k, v]) => `${esc(k)} (${brl(v)})`).join(" · ") +
+      (arr.length > 6 ? ` … +${arr.length - 6} ${rotulo}` : "")
+    : "—";
+  tEl.innerHTML = th([["Destino"], ["Lançamentos", 1], ["Total R$", 1], ["% do filtrado", 1], ["O que é / o que fazer"]]) + "<tbody>" +
+    linha("Aparece na grade", D.naGrade, "equipamento cadastrado, marcado <b>vai reformar</b> e com coluna para a tag") +
+    linha("Equipamento não vai reformar", D.semDestino,
+      "a tag tem coluna, mas a unidade está marcada para rodar — mude o destino em <b>Manutenção de Frota</b>") +
+    linha("Tag sem coluna na família", D.semColuna,
+      D.semColuna.n ? "mapeie em <code>dados/reforma-bi-map.js</code>: " + lista10(D.semColuna.tags, "tags") : "—") +
+    (D.repetido.n ? linha("Repetido no extrato", D.repetido,
+      "lançamento idêntico duas vezes na extração — a grade conta uma vez só") : "") +
+    linha("Frota fora do cadastro", D.semCadastro,
+      D.semCadastro.n ? "código que não existe em <code>dados/frota-base.js</code> (normalmente outra unidade): " +
+        lista10(D.semCadastro.frotas, "códigos") : "—") +
+    `<tr><td class="tot">TOTAL FILTRADO</td><td class="num tot">${fmt(lista.length)}</td>
+     <td class="num tot">${brl(D.total)}</td><td class="num tot">${D.total ? "100,0%" : "—"}</td><td></td></tr></tbody>`;
+  const dica = $("#gr_destino_dica");
+  if (dica) dica.innerHTML = D.total
+    ? `A análise acima conta <b>todo</b> lançamento do filtro; a grade de conjuntos só consegue mostrar o que tem
+       equipamento cadastrado, destino <b>vai reformar</b> e coluna para a tag do ERP. Esta tabela diz quanto de cada
+       real filtrado chega lá — e o que falta para o resto chegar.`
+    : "";
+}
+
 function pintarGastoReal() {
   const tEl = $("#t_gr_esp");
   if (!tEl) return; // painel não está nesta versão do index.html
@@ -86,6 +124,7 @@ function pintarGastoReal() {
   });
 
   pintarAviso(lista.length);
+  pintarDestino(lista);
 
   const porEsp = agruparPor(lista, "esp");
   const total = porEsp.reduce((s, e) => s + e.total, 0) || 1;
