@@ -7,7 +7,7 @@ import { brl, fmt, num, pct } from '../nucleo/formato.js';
 import { ETAPAS_ORD, arrRat } from './arrendamento.js';
 import { criterioMensal, diretoNoMes, frotaDaAtividade, pessoasDaAtividade, premissasDe, tarifaTerc } from './atividade.js';
 import { composicao, doseBase, tratCusto, tratamentosDaLinha } from './insumos.js';
-import { comps, custoCorte, custoPorOperacao } from './custo-operacao.js';
+import { comps, custoCorte, custoPorOperacao, referenciaSetorial } from './custo-operacao.js';
 import { CONTA_COMBINADA, SEM_CONTA, contasOrigens, contasValores, totaisContas } from './contas.js';
 import { demandas, demandasInsumos, demandasMateriais } from './demandas.js';
 import { baseEtapa, custoUnit, premissaBase, rotuloBase } from './base-fisica.js';
@@ -1377,6 +1377,21 @@ function rastroDemandas(R){
         : [{rot:"O estoque cobre todos os insumos do plano", val:"—"}]}],
     premissas:premissasGerais()};
 }
+/* ---------- aderência à referência setorial (Painel) ---------- */
+function rastroBench(R, id){
+  const B = referenciaSetorial(R), g = B.grupos.find(x=>x.id===id);
+  if(!g) return null;
+  return {titulo:g.curto+" — referência setorial", subtitulo:g.nome, valor:brl(g.v),
+    blocos:[
+      {titulo:"O que compõe o grupo", linhas: (g.partes.some(p=>p.v>0.5) ? g.partes.filter(p=>p.v>0.5) : g.partes).map(p=>({rot:p.rot, val:brl(p.v), ir:p.ir,
+        sub:(g.v>0 ? fmt(p.v/g.v*100,1) : "0")+"% do grupo"}))},
+      {titulo:"Leitura", linhas:[
+        {rot:"Peso no custo do plano", val:fmt(g.pct,1)+"%", ir:"total"},
+        {rot:"Peso de referência do setor", val:fmt(g.ref,0)+"%"},
+        {rot:"Desvio", val:(g.desvio>0?"+":"")+fmt(g.desvio,1)+" p.p.", sub:g.leitura+" (aderente até ±5 p.p.)"}]}],
+    nota:"Os quatro grupos somam o custo do plano; a comparação só é significativa com o plano preenchido.",
+    premissas:premissasGerais(), voltar:"total"};
+}
 /* ---------- hectares operados ---------- */
 function rastroHectares(R){
   const ativs = R.L.filter(r=>r.ehHa && r.total>0).sort((a,b)=>b.total-a.total);
@@ -1440,6 +1455,7 @@ function rastro(R, chave, periodo){
   if(tipo==="insumos") return rastroInsumos(R);
   if(tipo==="forn") return rastroForn(R);
   if(tipo==="tpess") return rastroTPess(R);
+  if(tipo==="bench") return rastroBench(R, arg);
   if(tipo==="contas") return arg.startsWith("grupo:") ? rastroContasGrupo(R, arg.slice(6)) : rastroContas(R);
   if(tipo==="conta") return rastroContaContabil(R, arg);
   if(tipo==="demandas") return rastroDemandas(R);
