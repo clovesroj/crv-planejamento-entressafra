@@ -28,7 +28,7 @@ import { pintarMDO } from '../ui/mao-de-obra.js';
 import { pintarPainel } from '../ui/painel.js';
 import { pintarPessoas } from '../ui/pessoas.js';
 import { pintarQuadroCTT } from '../ui/quadro-ctt.js';
-import { pintarPlanoCTT } from '../ui/planejamento-ctt.js';
+import { pintarPlanoCTT, pintarDesligamentosCTT } from '../ui/planejamento-ctt.js';
 import { pintarPlano, pintarTercDet } from '../ui/plano.js';
 import { pintarRastro } from '../ui/rastro.js';
 import { pintarRendMensal } from '../ui/rendmensal.js';
@@ -154,7 +154,7 @@ function render(){
   esconderMeses(R.SEL.meses);
   pintarCapa(R); pintarMDO(R); pintarPlano(R); pintarDim(R); pintarTransp(R); pintarApoio(R); pintarCRM(R); pintarReforma(); pintarTPess(R);
   pintarIrrig(R); pintarInsumos(R); pintarFito(R); pintarArrend(R); pintarForn(R); pintarAdm(R); pintarCustos(R); pintarContas(R); pintarDemandas(R); pintarCombustivel(R); pintarResumoFrota(R); pintarPessoas(R);
-  pintarPainel(R); pintarValida(R); pintarAcomp(R); pintarRastro(R); pintarRendMensal(R); pintarDimDetalhe(R); pintarApoioMes(R); pintarConfig(); pintarAtividadesCad(); pintarFichaIns(); pintarEditIns(); pintarAgrofitModal(); pintarTercDet(); pintarQuadroCTT(); pintarPlanoCTT();
+  pintarPainel(R); pintarValida(R); pintarAcomp(R); pintarRastro(R); pintarRendMensal(R); pintarDimDetalhe(R); pintarApoioMes(R); pintarConfig(); pintarAtividadesCad(); pintarFichaIns(); pintarEditIns(); pintarAgrofitModal(); pintarTercDet(); pintarQuadroCTT(); pintarPlanoCTT(); pintarDesligamentosCTT();
   // depois dos pintores: eles recriam a tabela do zero a cada render(), entao busca
   // e ordem de coluna (que vivem so no DOM) precisam ser reaplicadas por cima; a
   // trava de perfil roda por ultimo porque precisa valer sobre os controles novos
