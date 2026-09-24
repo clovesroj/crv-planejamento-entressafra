@@ -28,11 +28,17 @@ const SIGLA_ETAPA = {
   "TRATOS CULTURAIS": "TC",
   "APOIO E CONSERVAÇÃO": "AC",
 };
-// mesmo grupo que a tela já separa do resto dos tratos culturais — ver
-// COD_FITOSSANITARIO em ui/plano.js (não importa de lá para não criar
-// dependência de ui/ dentro de nucleo/: a lista é curta e estável).
+// mesmo grupo que a tela já separa do resto dos tratos culturais — mora aqui
+// (não em ui/) porque tanto o código de exibição quanto a etapa de exibição
+// (abaixo) precisam dela, e nucleo/ não pode importar de ui/.
 const COD_FITOSSANITARIO = new Set(["A44","A45","A46","A47","A48","A49","A50","A51","A52","A53"]);
 const siglaDe = a => COD_FITOSSANITARIO.has(a.cod) ? "MF" : (SIGLA_ETAPA[a.etapa] || "??");
+/** Etapa de EXIBIÇÃO: "MANEJO FITOSSANITÁRIO" para Broca/Cigarrinha, senão a
+    etapa real. A etapa que decide rateio de arrendamento/administrativo e os
+    relatórios por etapa continua sendo a.etapa ("TRATOS CULTURAIS" para
+    essas dez) — só o texto que a pessoa lê muda, mesmo princípio do código
+    de exibição acima. */
+function etapaExibir(a){ return COD_FITOSSANITARIO.has(a.cod) ? "MANEJO FITOSSANITÁRIO" : a.etapa; }
 
 /** {codigoInterno -> codigoDeExibicao}, numerado na ordem do cadastro. */
 function mapaCodigos(){
@@ -48,4 +54,4 @@ function mapaCodigos(){
     mapaCodigos() uma vez e indexar nela — mais barato que recalcular a cada célula. */
 function codExibir(cod){ return mapaCodigos()[cod] || cod; }
 
-export { codExibir, mapaCodigos };
+export { codExibir, mapaCodigos, etapaExibir, COD_FITOSSANITARIO };

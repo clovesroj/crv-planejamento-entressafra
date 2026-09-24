@@ -1,7 +1,7 @@
 import { CFG } from '../dados/cfg.js';
 import { erpDe } from '../dados/atividades-erp.js';
 import { atividadesLista } from '../nucleo/estado.js';
-import { mapaCodigos } from '../nucleo/codigo-atividade.js';
+import { COD_FITOSSANITARIO, etapaExibir, mapaCodigos } from '../nucleo/codigo-atividade.js';
 import { $, esc } from '../nucleo/formato.js';
 import { definirPatchItens, marcarRascunhoPendente } from '../io/persistencia.js';
 import { ordenarPorEtapa, th } from './componentes.js';
@@ -76,15 +76,17 @@ function pintarAtividadesCad(){
   // aqui e o de-para: onde a atividade e identificada primeiro no sistema.
   const M = mapaCodigos();
 
-  /* Sai na ordem da etapa, como o Plano e o Dimensionamento. Cada linha carrega
-     o indice ORIGINAL da lista em data-at -- ordenar a tela e escrever pela
-     posicao exibida editaria uma atividade e gravaria em outra, a mesma
-     armadilha ja conhecida do Cadastro de Insumos. */
-  const linhas = ordenarPorEtapa(lista.map((a, i) => ({a, i})), x => x.a.etapa).map(({a, i}) => {
+  /* Sai na ordem da etapa, como o Plano e o Dimensionamento — Broca/Cigarrinha
+     sempre no fim de Tratos Culturais, mesmo desempate de ordenarPorEtapa em
+     ui/plano.js. Cada linha carrega o indice ORIGINAL da lista em data-at --
+     ordenar a tela e escrever pela posicao exibida editaria uma atividade e
+     gravaria em outra, a mesma armadilha ja conhecida do Cadastro de Insumos. */
+  const linhas = ordenarPorEtapa(lista.map((a, i) => ({a, i})), x => x.a.etapa,
+      x => COD_FITOSSANITARIO.has(x.a.cod)?1:0).map(({a, i}) => {
     const fixo = fixos.has(a.cod);
     return `<tr${a.ativo===false?' class="inativo"':''}>
       <td>${esc(M[a.cod]||a.cod)}<br><span class="calc" style="font-size:10.5px" title="Código interno — usado no documento salvo, não muda">${esc(a.cod)}</span></td>
-      <td>${fixo ? esc(a.etapa) : `<select data-at="${i}" data-f="etapa">${ETAPAS.map(e =>
+      <td>${fixo ? esc(etapaExibir(a)) : `<select data-at="${i}" data-f="etapa">${ETAPAS.map(e =>
         `<option value="${esc(e)}"${a.etapa===e?" selected":""}>${esc(e)}</option>`).join("")}</select>`}</td>
       <td><input data-at="${i}" data-f="nome" value="${esc(a.nome)}" style="text-align:left;min-width:200px"${fixo?' title="Atividade do cadastro do sistema — nome pode ser ajustado"':""}></td>
       <td>${fixo ? esc(unRend(a.un)) : `<select data-at="${i}" data-f="un">${UNIDADES.map(([v,rot]) =>

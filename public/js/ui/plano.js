@@ -6,7 +6,7 @@ import { apoioDaAtividade, resumoApoio } from '../calculo/apoio-frente.js';
 import { TERC_MODOS } from '../dados/modos.js';
 import { NM } from '../nucleo/calendario.js';
 import { DIM, PLANO_ABERTO, TERC_DET, TERC_SUB, TRAT_ATIVO, TRAT_NOME, atividadesLista } from '../nucleo/estado.js';
-import { codExibir, mapaCodigos } from '../nucleo/codigo-atividade.js';
+import { COD_FITOSSANITARIO, codExibir, etapaExibir, mapaCodigos } from '../nucleo/codigo-atividade.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
 import { celulaBusca, ordenarPorEtapa, registrarCombo, th } from './componentes.js';
 import { MESES, PERIODO_MESES, clsMes } from '../nucleo/calendario.js';
@@ -16,8 +16,8 @@ import { MESES, PERIODO_MESES, clsMes } from '../nucleo/calendario.js';
 // Fitossanitário" nesta tabela, sem mudar a.etapa: etapa continua "Tratos
 // Culturais" pra tudo que usa etapa pra calcular (rateio de arrendamento,
 // administrativo, relatórios) — é só o cabeçalho de grupo que muda aqui.
-const COD_FITOSSANITARIO = new Set(["A44","A45","A46","A47","A48","A49","A50","A51","A52","A53"]);
-const grupoPlano = a => COD_FITOSSANITARIO.has(a.cod) ? "MANEJO FITOSSANITÁRIO" : a.etapa;
+// etapaExibir (nucleo/codigo-atividade.js) é a mesma conta, reaproveitada.
+const grupoPlano = etapaExibir;
 // editor compacto do mix de modos: percentuais numa célula só
 function mixEditor(r){
   const mx = r.mix || {};
