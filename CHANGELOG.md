@@ -1,5 +1,40 @@
 # Histórico de mudanças
 
+## 2.50.2 — 2026-09-24 · Custo operacional × custo total: os dois números explicados nas duas telas
+
+A página "Custo operacional" da aba Custos e os cartões de custo por hectare
+do Painel mostravam números diferentes para a mesma operação. Por exemplo, a
+formação do canavial: R$ 11,07 mi (R$ 4.610/ha) numa tela e R$ 19,46 mi
+(R$ 8.107/ha) na outra. **Os dois estavam certos**, mas mediam coisas
+diferentes sem dizer:
+
+- **Custo operacional** (aba Custos, primeira página) é só o custo direto da
+  operação: diesel, mão de obra, manutenção, insumos, irrigação e
+  terceirização.
+- **Custo total** (aba Custos, página "Custo total", e o Painel) é o
+  operacional mais os **rateios**: arrendamento, administração, depreciação,
+  diesel do apoio e demais custos gerais.
+
+As duas telas usam a mesma base física (no exemplo, 2.400 ha plantados) e
+operacional + rateios = total em todas as operações (conferido). O que muda:
+
+- Cartões com o nome do que mostram ("— operacional" / "— total"). O cartão
+  operacional traz o total com rateios logo abaixo; o total traz a conta
+  "operacional + rateios" em R$/ha.
+- "Custo por ha plantado" passa a "Custo **total** por ha plantado", com as
+  duas parcelas (`custoHaPlantado` devolve `oper` e `rateio`).
+- O bloco do Painel virou "Custo total por hectare (operação + rateios) e
+  manutenção", com a explicação das duas páginas da aba Custos. O gráfico
+  "Custo por hectare" mostra as duas barras lado a lado: operacional e total.
+- **Aviso de base:** quando a operação em hectare não tem área nas Premissas
+  (Base física), o R$/ha é dividido pela soma das passadas (dez passadas no
+  mesmo talhão contam dez hectares) e sai subestimado. Os cartões e o gráfico
+  mostram "⚠ base = soma das passadas" (`avisoBase`). No plano atual isso
+  acontece na cana soca: 118.911 "ha operados".
+
+Nenhum valor muda. 54 invariantes sem falha; 33 abas, 504 rastros e 138
+relatórios sem erro.
+
 ## 2.50.1 — 2026-09-24 · Correção: seção do CTT aparecendo em todas as abas (a "pílula" cinza no Painel)
 
 O Painel, e qualquer outra aba, abria com uma forma cinza enorme no topo, e o

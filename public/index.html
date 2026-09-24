@@ -1492,8 +1492,12 @@
         <div class="grid g4" id="k_painel"></div>
         <div class="row" style="margin-top:12px">
           <button class="btn" data-rastro="total">Por que o custo é este? Abrir o rastro</button></div></div>
-      <div class="panel"><h3>Tratos culturais e manutenção</h3>
-        <div class="grid g4" id="k_tratos"></div></div>
+      <div class="panel"><h3>Custo total por hectare (operação + rateios) e manutenção</h3>
+        <div class="grid g4" id="k_tratos"></div>
+        <div class="hint" style="margin-top:9px">Custo <b>total</b> por hectare = custo <b>operacional</b> (diesel, mão de
+        obra, manutenção, insumos, irrigação e terceirização da operação) + <b>rateios</b> (arrendamento, administração,
+        depreciação, diesel do apoio e demais custos gerais). A página "Custo operacional" da aba Custos mostra só a
+        primeira parcela; a página "Custo total" mostra a soma, igual a estes cartões.</div></div>
       <div class="pes-dash dash3">
         <div class="panel"><h3>Composição por grande conta</h3>
           <div class="rosca-box"><div id="ch_pn_cat"></div><div class="rosca-leg" id="ch_pn_cat_leg"></div></div></div>
@@ -1529,8 +1533,11 @@
     <div class="bloco-corpo">
       <div class="pes-dash">
         <div class="panel"><h3>Custo por etapa</h3><div id="ch_pn_etapa"></div></div>
-        <div class="panel"><h3>Custo por hectare — operações</h3><div id="ch_pn_opha"></div>
-          <div class="hint" style="margin-top:6px">Custo contábil da operação (direto + rateios) ÷ a base física dela.</div></div>
+        <div class="panel"><h3>Custo por hectare — operacional × total</h3>
+          <div class="legend" id="ch_pn_opha_leg" style="margin:0 0 8px"></div>
+          <div id="ch_pn_opha"></div>
+          <div class="hint" style="margin-top:6px">Cada operação com o custo operacional (só o direto) e o total (com os
+          rateios), divididos pela mesma base física. ⚠ = base pela soma das passadas, sem premissa de área.</div></div>
       </div>
       <div class="panel"><h3>Custo por hectare — visão por operação</h3>
         <div class="tblwrap"><table id="t_pec_ha" class="pec"></table></div>

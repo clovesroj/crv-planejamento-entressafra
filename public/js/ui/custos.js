@@ -1,5 +1,5 @@
 import { CFG } from '../dados/cfg.js';
-import { comps, custoHaPlantado, custoPorOperacao } from '../calculo/custo-operacao.js';
+import { avisoBase, comps, custoHaPlantado, custoPorOperacao } from '../calculo/custo-operacao.js';
 import { baseEtapa, custoUnit, rotuloBase } from '../calculo/base-fisica.js';
 import { CAT_LBL, MESES, clsMes, perTag, periodoMes } from '../nucleo/calendario.js';
 import { ESPOR, P } from '../nucleo/estado.js';
@@ -37,10 +37,16 @@ function pintarOperacional(R){
   const anoTodo = R.SEL.parcial ? " · ano todo" : "";
 
   const F = C.formacao;
+  /* Cartão do custo OPERACIONAL: só o custo direto da operação. O total com os
+     rateios (o que o Painel e o "Custo total por ha plantado" mostram) vem
+     escrito logo abaixo, para os dois números não parecerem contraditórios. */
+  const subOper = l => !(l.base && l.base.q>0)
+    ? (l.oper.total>0 ? "sem base física" : "sem volume no plano")+anoTodo
+    : unit(l.oper.total, l.base)+" · "+l.base.rot+anoTodo+
+      " · total com rateios "+unit(l.contabil, l.base)+(avisoBase(l) ? " · "+avisoBase(l) : "");
   $("#k_oper").innerHTML =
-    (F ? kpi("Formação do canavial","g",brl(F.oper.total), unit(F.oper.total, F.base)+" · "+F.base.rot+anoTodo,"op:formacao:oper") : "") +
-    P4.map((l,k)=>kpi(l.nome, ["","t","g","a"][k%4], brl(l.oper.total),
-      unit(l.oper.total, l.base)+" · "+l.base.rot+anoTodo,"op:"+l.id+":oper")).join("");
+    (F ? kpi("Formação do canavial — operacional","g",brl(F.oper.total), subOper(F),"op:formacao:oper") : "") +
+    P4.map((l,k)=>kpi(l.nome+" — operacional", ["","t","g","a"][k%4], brl(l.oper.total), subOper(l),"op:"+l.id+":oper")).join("");
 
   const COLS = [["diesel","Diesel"],["mdo","Mão de obra"],["manut","Manutenção (CRM)"],["insumo","Insumos"],
                 ["irrig","Irrigação"],["terc","Terceirização"]];
@@ -80,10 +86,14 @@ function pintarContabil(R){
 
   const F = C.formacao;
   const rotRat = l => " · rateios "+(l.oper.total>0?"+"+fmt(l.rateio.total/l.oper.total*100,0)+"%":"—");
+  // total = operacional + rateios, escrito por extenso em R$/ha
+  const subTot = l => !(l.base && l.base.q>0)
+    ? (l.contabil>0 ? "sem base física" : "sem volume no plano")+anoTodo
+    : unit(l.contabil, l.base)+" = operacional "+unit(l.oper.total, l.base)+" + rateios "+unit(l.rateio.total, l.base)+
+      " · "+l.base.rot+anoTodo+(avisoBase(l) ? " · "+avisoBase(l) : "");
   $("#k_contabil").innerHTML =
-    (F ? kpi("Formação do canavial","g",brl(F.contabil), unit(F.contabil, F.base)+" · "+F.base.rot+rotRat(F)+anoTodo,"op:formacao:contabil") : "") +
-    P4.map((l,k)=>kpi(l.nome, ["","t","g","a"][k%4], brl(l.contabil),
-      unit(l.contabil, l.base)+" · "+l.base.rot+rotRat(l)+anoTodo,"op:"+l.id+":contabil")).join("");
+    (F ? kpi("Formação do canavial — total","g",brl(F.contabil), subTot(F),"op:formacao:contabil") : "") +
+    P4.map((l,k)=>kpi(l.nome+" — total", ["","t","g","a"][k%4], brl(l.contabil), subTot(l),"op:"+l.id+":contabil")).join("");
 
   const RAT = [["apoio","Diesel do apoio"],["arrend","Arrendamento"],["admin","Administrativo"],
                ["deprec","Depreciação"],["gerais","Demais custos gerais"]];
@@ -140,7 +150,9 @@ function pintarCustos(R){
     kpi("Custo total","",brl(R.SEL.total), R.SEL.parcial?R.SEL.rotulo:"","total") +
     kpi("Custo variável","t",brl(R.SEL.variavel), R.SEL.parcial?R.SEL.rotulo:"","variavel") +
     kpi("Custo fixo","a",brl(R.SEL.fixo), R.SEL.parcial?R.SEL.meses.length+" meses":"","fixo") +
-    kpi("Custo por ha plantado","g",brl(custoHaPlantado(R).valor), custoHaPlantado(R).nota,"custoha");
+    (()=>{ const H = custoHaPlantado(R);
+      return kpi("Custo total por ha plantado","g",brl(H.valor),
+        H.ha ? "operacional "+brl(H.oper)+"/ha + rateios "+brl(H.rateio)+"/ha · "+H.nota+(R.SEL.parcial?" · ano todo":"") : H.nota,"custoha"); })();
 
   // safra (abril a novembro) × entressafra (dezembro a março)
   const PR = R.PER, perTot = PR.safra.total + PR.entressafra.total;

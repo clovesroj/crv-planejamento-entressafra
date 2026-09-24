@@ -1,5 +1,5 @@
 import { linha } from '../calculo/atividade.js';
-import { comps, custoCorte, custoHaPlantado, custoPorOperacao, referenciaSetorial } from '../calculo/custo-operacao.js';
+import { avisoBase, comps, custoCorte, custoHaPlantado, custoPorOperacao, referenciaSetorial } from '../calculo/custo-operacao.js';
 import { tabelaColheita, tabelaHa } from '../calculo/modelo-pecege.js';
 import { baseEtapa, custoUnit, premissaBase, rotuloBase } from '../calculo/base-fisica.js';
 import { CRM_COMP } from '../calculo/crm.js';
@@ -42,7 +42,9 @@ function pintarPainel(R){
   const SEL = R.SEL;
   $("#k_painel").innerHTML =
     kpi("Custo total","",brl(SEL.total), SEL.parcial?SEL.rotulo:"","total") +
-    kpi("Custo / ha plantado","t",brl(custoHaPlantado(R).valor), custoHaPlantado(R).nota+(SEL.parcial?" · ano todo":""),"custoha") +
+    (()=>{ const H = custoHaPlantado(R);
+      return kpi("Custo total / ha plantado","t",brl(H.valor),
+        (H.ha ? "operacional "+brl(H.oper)+" + rateios "+brl(H.rateio)+" · " : "")+H.nota+(SEL.parcial?" · ano todo":""),"custoha"); })() +
     kpi("Custo de colheita","g",custoUnit(CC.total, CC.base),"só corte ("+(CC.cods.join(", ")||"—")+"), sem transporte · "+rotuloBase(CC.base),"corte") +
     kpi("Efetivo total","a",fmt(R.efetivoTotal)+" pessoas", noFat ? "+ "+fmt(noFat)+" no FAT, fora da operação" : "","pessoas:total") +
     kpi("Custo na safra","g",brl(R.PER.safra.total),"abr a nov · "+R.PER.safra.meses.length+" meses no orçamento","periodo:safra") +
@@ -55,13 +57,21 @@ function pintarPainel(R){
   const OP = custoPorOperacao(R), op = id => OP.principais.find(l=>l.id===id);
   const unitHa = l => l ? custoUnit(l.contabil, l.base) : "—";
   const soca = op("soca"), planta = op("planta"), F = OP.formacao;
+  /* Custo TOTAL por hectare (operação + rateios), o mesmo da página "Custo
+     total" da aba Custos. A página "Custo operacional" de lá mostra só o
+     custo direto; aqui a parcela operacional vem escrita embaixo, para os
+     números das duas telas baterem à vista. */
+  const partes = l => l && l.base && l.base.q>0
+    ? "operacional "+custoUnit(l.oper.total, l.base)+" + rateios "+custoUnit(l.rateio.total, l.base)+" · "
+    : "";
+  const aviso = l => avisoBase(l) ? " · "+avisoBase(l) : "";
   $("#k_tratos").innerHTML =
-    (F ? kpi("Formação do canavial","g",unitHa(F),
-        brl(F.contabil)+" · preparo + plantio + tratos de cana planta ÷ "+rotuloBase(F.base),"op:formacao") : "") +
-    kpi("Tratos — cana soca","t",unitHa(soca),
-        soca ? brl(soca.contabil)+" · "+rotuloBase(soca.base) : "—","op:soca") +
-    kpi("Tratos — cana planta","g",unitHa(planta),
-        planta ? brl(planta.contabil)+" · "+rotuloBase(planta.base) : "—","op:planta") +
+    (F ? kpi("Formação do canavial — total","g",unitHa(F),
+        partes(F)+brl(F.contabil)+" ÷ "+rotuloBase(F.base)+aviso(F),"op:formacao:contabil") : "") +
+    kpi("Tratos cana soca — total","t",unitHa(soca),
+        soca ? partes(soca)+brl(soca.contabil)+" ÷ "+rotuloBase(soca.base)+aviso(soca) : "—","op:soca:contabil") +
+    kpi("Tratos cana planta — total","g",unitHa(planta),
+        planta ? partes(planta)+brl(planta.contabil)+" ÷ "+rotuloBase(planta.base)+aviso(planta) : "—","op:planta:contabil") +
     kpi("Etapa colheita (c/ transporte)","",colh?custoUnit(colh.total, bColh):"—","corte + transporte + transbordo · "+rotuloBase(bColh),"op:colheita") +
     kpi("CRM total","a",brl(CRM_COMP.reduce((s,k)=>s+R.crmComp[k],0)),"","frota:crm") +
     kpi("CRM por hora média","",R.horasT>0?brl(CRM_COMP.reduce((s,k)=>s+R.crmComp[k],0)/R.horasT,2)+"/h":"—","","frota:crm") +
@@ -119,8 +129,12 @@ function pintarPainel(R){
   const opsHa = [F ? {id:"formacao", nome:"Formação do canavial", l:F} : null]
     .concat(["preparo","plantio","planta","soca"].map(id=>({id, nome:(OP.principais.find(l=>l.id===id)||{}).nome, l:op(id)})))
     .filter(x=>x && x.l && x.l.base && x.l.base.q>0 && x.l.contabil>0);
-  barrasLinhas($("#ch_pn_opha"), opsHa.map(x=>({l:x.nome, a:x.l.contabil/x.l.base.q, cor: x.id==="formacao" ? "#2E8540" : "#2A57A0",
-      num:brl(x.l.contabil/x.l.base.q,0)+"/ha", dir:fmt(x.l.base.q)+" "+(x.l.base.un||"ha"), rastro:"op:"+x.id})), {corA:"#2A57A0"});
+  $("#ch_pn_opha_leg").innerHTML = `<span><i style="background:#2A57A0"></i>Operacional (custo direto)</span>
+    <span><i style="background:#C9A45C"></i>Total (operacional + rateios)</span>`;
+  barrasLinhas($("#ch_pn_opha"), opsHa.map(x=>({l:x.nome, a:x.l.oper.total/x.l.base.q, b:x.l.contabil/x.l.base.q,
+      num:brl(x.l.oper.total/x.l.base.q,0)+" / "+brl(x.l.contabil/x.l.base.q,0),
+      dir:fmt(x.l.base.q)+" "+(x.l.base.un||"ha")+(avisoBase(x.l) ? " ⚠" : ""), dirCls: avisoBase(x.l) ? "sobra" : "",
+      rastro:"op:"+x.id+":contabil"})), {corA:"#2A57A0", corB:"#C9A45C"});
   // CTTA em R$/t: corte, transbordo, transporte e apoio + adm (tabelaColheita, a mesma da tabela)
   const TC = tabelaColheita(R), qT = TC.base && TC.base.q>0 ? TC.base.q : 0;
   const ctta = [["corte","Corte","corte"],["transbordo","Transbordo","op:colheita"],["transporte","Transporte","op:colheita"],
