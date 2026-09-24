@@ -93,7 +93,7 @@ function custoPorOperacao(R){
     // atividades — dez passadas no mesmo talhão contam dez hectares, por isso a
     // tela marca quando a base veio daí.
     const ha  = ativs.filter(r=>r.ehHa).reduce((t,r)=>t+r.total, 0);
-    const ton = ativs.filter(r=>!r.ehHa && r.a.tipo!=="transp").reduce((t,r)=>t+r.total, 0);
+    const ton = ativs.filter(r=>r.ehTon).reduce((t,r)=>t+r.total, 0);
     const estimado = ha>0 ? {q:ha, un:"ha", rot:"ha operados"} : {q:ton, un:"t", rot:"t"};
     // preparo de solo é feito na área que vai ser plantada: divide pela área de plantio
     const idBase = {preparo:"plantio", plantio:"plantio", planta:"planta", soca:"soca", colheita:"colheita"}[op.id];

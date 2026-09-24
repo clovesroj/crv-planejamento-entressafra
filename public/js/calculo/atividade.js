@@ -405,6 +405,11 @@ function linha(a, MP){
   const opsOv = num((DIM[a.cod]||{}).ops);
   const util = d.util!=null ? num(d.util) : a.util;
   const ehHa = a.un.indexOf("ha")===0;
+  // ton por enquanto e a unica outra base fisica reconhecida nos totais do
+  // plano (ha operados / toneladas); unidade nova que nao for nenhuma das
+  // duas (viagem, hora, litro, unidade...) fica fora dos dois somatorios --
+  // continua custeada normalmente, so nao entra numa base fisica que nao e dela
+  const ehTon = a.un.indexOf("ton")===0;
   // junto de outra, a janela e a dela, mesmo que tenha ficado data gravada aqui
   const jan = junto ? janelaDe(junto, meses, null) : janelaDe(a.cod, meses, a.tipo === "transp" ? a.src : null);
   // junto de outra, nao ha modo de execucao proprio: a maquina e a da outra
@@ -560,7 +565,7 @@ function linha(a, MP){
           fcod, fnome:partes[0].fnome, efetivo:soma("efetivo"),
           modo: M ? "mix" : "", maqEfetiva: partes.map(x=>x.maq).join(" + "),
           impEfetivo: partes.map(x=>x.imp).join(" + "),
-          direto: soma("direto")+cInsumo, trat:p.trat, ehHa,
+          direto: soma("direto")+cInsumo, trat:p.trat, ehHa, ehTon,
           /* insumo de cada mes: com tratamento extra, cada tratamento pelos
              SEUS meses (custo do tratamento x area do mes / area dele); sem
              extra, o custo pela fracao do volume, como sempre. Espalhar o
