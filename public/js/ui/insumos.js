@@ -224,6 +224,11 @@ function barraRascunho(sujo, idBotao){
 function pintarInsumos(R){
   const acoesIns = $("#ins_acoes"); if(acoesIns) acoesIns.innerHTML = barraRascunho(INS_SUJO, "ins_salvar");
   const acoesTrat = $("#trat_acoes"); if(acoesTrat) acoesTrat.innerHTML = barraRascunho(TRAT_SUJO, "trat_salvar");
+  // mesma barra tambem no topo, junto do nome/observacao/etapas do tratamento
+  // selecionado (painel 1) -- editar ali so mostrava "ha alteracoes" la embaixo,
+  // no painel 3 (cadastro completo), e quem nao rolava ate la perdia a edicao
+  // ao atualizar a pagina sem notar que precisava salvar
+  const acoesTratTopo = $("#trat_acoes_topo"); if(acoesTratTopo) acoesTratTopo.innerHTML = barraRascunho(TRAT_SUJO, "trat_salvar_topo");
 
   const TL = tratListaTodos();
   const custom = Object.keys(TRATC).length;

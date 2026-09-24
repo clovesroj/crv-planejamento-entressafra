@@ -611,7 +611,7 @@ document.addEventListener("click",e=>{
     if(salvarAtiv()){ salvar(); render(); } return; }
   if(e.target.closest && e.target.closest("#ins_salvar")){
     if(salvarIns()){ salvar(); render(); } return; }
-  if(e.target.closest && e.target.closest("#trat_salvar")){
+  if(e.target.closest && (e.target.closest("#trat_salvar") || e.target.closest("#trat_salvar_topo"))){
     if(salvarTrat()){ salvar(); render(); } return; }
   // fechar com campo digitado e nao salvo perderia o que foi digitado: avisa
   if((e.target.closest && e.target.closest("#rm_fechar")) || e.target.id==="rendm_fundo"){
