@@ -121,14 +121,18 @@ function pintarPainelContas(R, CV, REC){
       num:brl(c.v), dir:pctDe(c.v, total), rastro:"conta:"+c.conta})), {corA:COR_GRUPO[0]});
   $("#ch_cc_top_nota").textContent = ord.length>TOPO ? `As ${TOPO} maiores de ${ord.length} contas com valor. Todas estão na página Contas.` : "";
   $("#bl_cc_sub").textContent = `${brl(total)} · ${com.length+sem.length} contas com valor`+(filtrado() ? " no recorte" : "");
-  /* Insumo sem grupo agronômico não tem conta: o aviso diz quanto e onde
-     corrigir (grupo do produto na aba Insumos), com o rastro da lista. */
+  /* Produto SEM GRUPO e o unico caso que a pessoa resolve na aba Insumos --
+     adjuvante e regulador tem grupo e agora caem na INS-06. O aviso antigo
+     dizia "sem grupo agronomico" para produtos que tinham grupo, e mandava
+     procurar na aba Insumos um campo que ja estava preenchido. */
   const semGrupo = (contasOrigens(R)["__insumos"]||[]).filter(o=>o.v>0.5);
   const vSemGrupo = semGrupo.reduce((s,o)=>s+o.v,0);
   $("#cc_alerta").innerHTML = vSemGrupo>0.5
-    ? `<span data-rastro="conta:__insumos"><b>${semGrupo.length} insumo${semGrupo.length>1?"s":""} sem grupo agronômico somam ${brl(vSemGrupo)}</b>
-       (${pctDe(vSemGrupo, totPlano)} do custo) e ficam fora das contas INS-01 a INS-04 — ex.: ${semGrupo.slice(0,4).map(o=>esc(o.rot)).join(", ")}.
-       Defina o grupo de cada produto na aba Insumos para ele cair na conta certa.</span>` : "";
+    ? `<span data-rastro="conta:__insumos"><b>${semGrupo.length} insumo${semGrupo.length>1?"s":""} sem grupo somam ${brl(vSemGrupo)}</b>
+       (${pctDe(vSemGrupo, totPlano)} do custo) e ficam fora das contas INS-01 a INS-06 — ${semGrupo.slice(0,4).map(o=>esc(o.rot)).join(", ")}${semGrupo.length>4?", …":""}.
+       São os produtos do bloco <b>Outros e a Classificar</b> do Cadastro de Insumos: escolha o grupo de cada um
+       (coluna <b>Grupo</b>) para ele cair na conta certa. Adjuvante, regulador e grupo criado por você já têm
+       conta — a INS-06.</span>` : "";
   $("#cc_alerta").hidden = !(vSemGrupo>0.5);
 }
 

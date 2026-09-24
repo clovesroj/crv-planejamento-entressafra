@@ -44,6 +44,11 @@ export const CONTAS = [
   {"conta":"INS-03","desc":"Fertilizantes e Corretivos","grupo":"5. Insumos","nat":"Insumos","cls":"Variável","cd":"Custo","dir":"Área x dose"},
   {"conta":"INS-04","desc":"Fertilizantes Líquidos e Foliares","grupo":"5. Insumos","nat":"Insumos","cls":"Variável","cd":"Custo","dir":"Área x dose"},
   {"conta":"INS-05","desc":"Fertirrigação / Gotejamento","grupo":"5. Insumos","nat":"Insumos","cls":"Variável","cd":"Custo","dir":"Área irrigada x dose"},
+  /* Adjuvante, regulador/maturador e grupo criado na aba Grupos de Insumos nao
+     tinham conta nenhuma: o custo deles ficava fora do plano de contas e a tela
+     acusava "insumo sem grupo agronomico" -- para produtos que TEM grupo. Esta
+     conta e o destino deles dentro de 5. Insumos. */
+  {"conta":"INS-06","desc":"Adjuvantes, Reguladores e Outros Insumos","grupo":"5. Insumos","nat":"Insumos","cls":"Variável","cd":"Custo","dir":"Área x dose"},
   {"conta":"DEP-01","desc":"Depreciação de Máquinas e Implementos","grupo":"6. Capital","nat":"Depreciação","cls":"Fixo","cd":"Custo","dir":"Valor do imobilizado"},
   {"conta":"ARR-01","desc":"Arrendamento de Terras","grupo":"6. Capital","nat":"Arrendamento","cls":"Fixo","cd":"Custo","dir":"Área arrendada x forma de pagamento"},
   {"conta":"EST-01","desc":"Estrutura / Administração Agrícola","grupo":"6. Capital","nat":"Estrutura","cls":"Fixo","cd":"Despesa","dir":"Estrutura fixa mensal"}

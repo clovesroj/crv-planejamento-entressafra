@@ -19,8 +19,12 @@
    Insumos agronômicos, que não caíam em conta nenhuma, entram pela família
    do produto: herbicidas INS-01; inseticidas, fungicidas e biológicos INS-02;
    fertilizantes e corretivos INS-03; foliares, micronutrientes e
-   bioestimulantes INS-04. Reguladores, adjuvantes e produto sem classe
-   agronômica não têm conta no plano: ficam na linha "insumos sem conta".
+   bioestimulantes INS-04; adjuvantes, reguladores e qualquer grupo criado na
+   aba Grupos de Insumos, INS-06. Só fica fora de conta o produto que NÃO TEM
+   grupo (o bloco "Outros e a Classificar" do cadastro) -- esse é o único caso
+   que a pessoa resolve escolhendo o grupo na aba Insumos, e é o que o aviso do
+   Plano de Contas passou a dizer. Antes, adjuvante e regulador caíam no mesmo
+   balaio e a tela pedia para definir um grupo que o produto já tinha.
    Esporádicos também não têm conta e ficam em linha própria. */
 import { CFG } from '../dados/cfg.js';
 import { NM } from '../nucleo/calendario.js';
@@ -33,12 +37,17 @@ import { benVal, encPct } from './mao-de-obra.js';
 const CONTA_COMBINADA = {"200-52":"200-51","200-73":"200-72","200-79":"200-77"};
 // linhas sem conta própria — somam no total, com rótulo próprio
 const SEM_CONTA = {
-  "__insumos": "Insumos sem conta própria (reguladores, adjuvantes e produtos sem grupo agronômico na aba Insumos)",
+  "__insumos": "Insumos sem grupo agronômico na aba Insumos (bloco \"Outros e a Classificar\")",
   "__espor":   "Custos esporádicos (lançados na aba Custos)",
   "__fat":     "FAT — benefício pago aos funcionários com contrato suspenso (aba Mão de Obra)",
 };
 const INSUMO_CONTA = {herbicida:"INS-01", inseticida:"INS-02", fungicida:"INS-02", biologico:"INS-02",
-  fertilizante:"INS-03", corretivo:"INS-03", foliar:"INS-04", micro:"INS-04", bioestim:"INS-04"};
+  fertilizante:"INS-03", corretivo:"INS-03", foliar:"INS-04", micro:"INS-04", bioestim:"INS-04",
+  regulador:"INS-06", adjuvante:"INS-06"};
+/* Grupo criado na aba Grupos de Insumos nao esta no mapa acima -- e um grupo de
+   verdade, escolhido a mao, entao vai para INS-06 e nao para a linha sem conta.
+   Sem grupo mesmo ("outros") continua fora: e o que o aviso manda corrigir. */
+const contaDoInsumo = fam => INSUMO_CONTA[fam] || (fam && fam !== "outros" ? "INS-06" : "__insumos");
 
 // encargo → conta: contribuições sobre a folha e FGTS têm conta; o resto é provisão de remuneração
 const contaEncargo = nome => /INSS|RAT|SAT|Terceiros/i.test(nome) ? "200-35" : /FGTS/i.test(nome) ? "200-36" : null;
@@ -116,7 +125,7 @@ function apurarContas(R){
   Object.entries(custoProd).forEach(([prod,v])=>{
     // a mesma família do R$/ha do Painel: cadastro e, sem ele, o nome (NPK, KCl, calcário...)
     const fam = familiaEfetiva(insLista().find(x=>x.prod===prod) || {prod});
-    add(INSUMO_CONTA[fam] || "__insumos", v*ajuste, prod);
+    add(contaDoInsumo(fam), v*ajuste, prod);
   });
   if(!(somaProd>0)) add("__insumos", num(R.insumoT), "Insumos dos tratamentos");
   add("INS-05", R.irrT, "Irrigação e fertirrigação (aba Irrigação)");
