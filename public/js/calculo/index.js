@@ -5,7 +5,7 @@ import { num } from '../nucleo/formato.js';
 import { apoioCalc, frotaApoio } from './apoio.js';
 import { admCalc, admRateio } from './administrativo.js';
 import { ETAPAS_ORD, arrRat, arrendCalc } from './arrendamento.js';
-import { linha } from './atividade.js';
+import { linha, picoFrotaPorItem } from './atividade.js';
 import { CRM_COMP, crmFrota } from './crm.js';
 import { precoDiesel } from './diesel.js';
 import { volumeDemandado } from './insumos.js';
@@ -40,7 +40,10 @@ function calcular(){
   // Cada item distribui seu CRM proporcionalmente às horas que trabalha em cada
   // frente. O que sobra (equipamento previsto além do que o plano usa) vira uma
   // parcela de frota adicional, rateada pelo custo direto de cada etapa.
-  const CF = crmFrota(L, AE);
+  // a quantidade por item e o PICO de cada atividade (o que tem de existir no
+  // patio), nao a media da janela -- e o mesmo numero do Dimensionamento e da
+  // tabela de frota por mes
+  const CF = crmFrota(L, AE, picoFrotaPorItem(L));
   const crmItem = {}; CF.linhas.forEach(l=> crmItem[l.item]=l);
   CRM_COMP.forEach(k=> crmComp[k] = CF.linhas.reduce((s,l)=>s+l.det[k],0));
 

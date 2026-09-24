@@ -325,6 +325,39 @@ function pessoasDaAtividade(r){
   };
 }
 
+/**
+ * Frota de PICO por item (maquina e implemento) somando o pico de cada
+ * atividade -- e o que a frota tem de ter no patio.
+ *
+ * O Resumo de Frota e a Manutencao de Frota mostravam aqui a soma da MEDIA da
+ * janela (a `frotaR` de cada parte), enquanto a tabela por mes, logo abaixo, e
+ * o Dimensionamento mostravam o pico: a colhedora de muda aparecia como 3 numa
+ * tabela e 4 na outra, na mesma aba. Pico e media sao respostas diferentes --
+ * a media rateia custo, o pico diz quantas maquinas precisam existir --, e a
+ * pergunta "quantas preciso" e sempre a do pico.
+ *
+ * Atividade com mais de uma frente (mix de modos) reparte o pico entre as
+ * frentes na proporcao da frota de cada uma, do mesmo jeito que o criterio
+ * mensal reparte a equipe.
+ */
+function picoFrotaPorItem(L){
+  const f = {};
+  const soma = (k, v) => { if(!k || k==="----" || k==="—" || !(v>0)) return; f[k] = (f[k]||0) + v; };
+  L.forEach(r=>{
+    if(!r.partes || r.junto) return;
+    const pico = frotaDaAtividade(r).pico;
+    if(!(pico > 0)) return;
+    const base = r.partes.reduce((s,p)=> s + (p.terc ? 0 : num(p.frota)), 0);
+    r.partes.forEach(p=>{
+      if(p.terc) return;
+      const n = r.partes.length === 1 ? pico
+              : base > 0 ? Math.ceil(pico * num(p.frota) / base) : 0;
+      soma(p.maq, n); soma(p.imp, n);
+    });
+  });
+  return f;
+}
+
 function linha(a, MP){
   const p = PLANO[a.cod] || {m:Array(NM).fill(0), trat:""};
   /* Atividade que vai na mesma passada de outra (A39 e A19 na plantadora da
@@ -594,6 +627,6 @@ function removerAtividade(cod){
   return true;
 }
 
-export { MODOS_ORD, criterioMensal, diasDoMes, fatorDe, frotaDaAtividade, modoLiberado, modosDe, linha, mixDe, pessoasDaAtividade,
+export { MODOS_ORD, criterioMensal, diasDoMes, fatorDe, frotaDaAtividade, modoLiberado, modosDe, linha, mixDe, pessoasDaAtividade, picoFrotaPorItem,
          premissasDe, tarifaTerc, tarifaTercDe, temDetalheTerc, metaDe,
   temCriterioMensal, mesclarBaseAtividades, codigoAtividadeValido, criarAtividade, removerAtividade, removerAtividadesRetiradas };
