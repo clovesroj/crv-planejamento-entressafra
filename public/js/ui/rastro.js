@@ -150,7 +150,7 @@ function pintarRastro(R){
       ${blocoBusca}
       ${(r.premissas||[]).length ? `<div class="ra-bloco ra-prem">
         <div class="ra-bloco-tit">Premissas usadas</div>
-        ${r.premissas.map(p=>`<div class="ra-linha"><div class="ra-rot">${esc(p.rot)}</div>
+        ${r.premissas.map(p=>`<div class="ra-linha"><div class="ra-rot">${esc(p.rot)}${p.sub?`<span class="ra-sub">${esc(p.sub)}</span>`:""}</div>
           <div class="ra-val">${esc(p.val)}</div></div>`).join("")}
       </div>` : ""}
       ${r.nota ? `<div class="hint" style="margin-top:10px">${esc(r.nota)}</div>` : ""}

@@ -14,6 +14,7 @@ import { reforma, itensReforma, orcamentoProdutos, qtdProdutos } from './reforma
 import { desdeUltimoAno, janelaGastoReal, janelaVazia, produtosDoEquipamento } from './gasto-real.js';
 import { tagsBiDoConjunto } from '../dados/reforma-bi-map.js';
 import { fontesDaConta } from './fontes.js';
+import { dieselOrcado } from './diesel.js';
 import { codExibir } from '../nucleo/codigo-atividade.js';
 
 // soma um array de NM meses respeitando o filtro de período (mesmo critério de R.PER)
@@ -49,6 +50,15 @@ function premissasDaAtividade(a){
     l.rot === "Horas efetivas por dia"   ? {...l, val: fmt(pr.hDia,1)+" h"+(pr.transp?" (transporte)":"")} :
     l.rot === "Disponibilidade mecânica" ? {...l, val: fmt(pr.disp*100,0)+"%"+(pr.transp?" (transporte)":"")} : l);
 }
+/* R do rastro que está sendo montado: as premissas gerais leem dele o diesel
+   orçado (a aba Combustível), sem precisar receber R em cada chamada. */
+let R_ATUAL = null;
+function premissaDiesel(){
+  const D = dieselOrcado(R_ATUAL && R_ATUAL.CB);
+  return {rot:"Diesel orçado (aba Combustível)", val:brl(D.medio,2)+"/L",
+    sub: "preço médio ponderado pelos litros de cada mês"
+      + (D.variaNoAno ? " · de "+brl(D.min,2)+" a "+brl(D.max,2)+"/L nos meses" : " · o mesmo preço em todos os meses")};
+}
 function premissasGerais(){
   return [
     {rot:"Dias efetivos por mês",        val:fmt(P.dias)},
@@ -56,7 +66,18 @@ function premissasGerais(){
     {rot:"Disponibilidade mecânica",     val:fmt(P.disp,0)+"%"},
     {rot:"Eficiência operacional",       val:fmt(num(P.efic)>0?num(P.efic):100,0)+"%"},
     {rot:"Meses do orçamento",           val:NM+" ("+MESES[0]+" a "+MESES[NM-1]+")"},
-    {rot:"Preço base do diesel",         val:brl(P.diesel,2)+"/L"},
+    premissaDiesel(),
+  ];
+}
+// premissas do que é gente: escala, turno e de onde vem cada quadro
+function premissasPessoas(R){
+  return [
+    {rot:"Dias de operação por semana",  val:fmt(P.diasOper)},
+    {rot:"Dias trabalhados por colaborador", val:fmt(P.diasTrab), sub:"6 no 6x1 · 5 no 5x2"},
+    {rot:"Fator de rodízio (escala)",    val:fmt(R.MP.fatorEscala,2), sub:"dias de operação ÷ dias trabalhados"},
+    {rot:"Horas por turno",              val:fmt(P.hTurno)+" h"},
+    {rot:"Quadro ADM agrícola e oficina", val:"previsto da controladoria", sub:"lançado de dez/26 a mar/27 (aba Mão de Obra)"},
+    {rot:"Meses do orçamento",           val:NM+" ("+MESES[0]+" a "+MESES[NM-1]+")"},
   ];
 }
 
@@ -825,15 +846,49 @@ function rastroPessoasFun(R, fcod){
     blocos:[{titulo:"Onde esta função é usada", linhas: itens.map(i=>({rot:i.origem, val:fmt(i.qtd)+" pessoas", sub:i.dept}))}],
     premissas:premissasGerais(), voltar:"pessoas:total"};
 }
+/* Pico de mobilização: o mês em que mais gente trabalha ao mesmo tempo --
+   operacional das atividades, ADM agrícola e oficina somados; o FAT fica fora,
+   porque não opera. É o número que diz quanta gente tem de estar no campo e na
+   oficina junto; a contratação se decide por função, no confronto com o
+   quadro ativo. Mês a mês com a abertura por quadro, e o mês de pico por
+   departamento e função. */
 function rastroPessoasPico(R, periodo){
   const PS = R.PS;
   const idxs = MESES.map((m,i)=>i).filter(i=>periodo==="todos"||periodoMes(i)===periodo);
   const pico = idxs.length ? Math.max(0,...idxs.map(i=>PS.qtdMes[i])) : 0;
   const iPico = idxs.find(i=>PS.qtdMes[i]===pico);
-  return {titulo:"Pico de mobilização", subtitulo:"Maior necessidade simultânea de pessoas", valor:fmt(pico)+" pessoas",
-    blocos:[{titulo:"Pessoas mobilizadas, por mês", linhas: idxs.map(i=>({rot:MESES[i], val:fmt(PS.qtdMes[i])+" pessoas"}))}],
-    nota: iPico!=null&&pico>0 ? `Pico em ${MESES[iPico]}.` : "",
-    premissas:premissasGerais(), temPeriodo:true};
+  const operam = PS.itens.filter(it=>!it.fora);
+  const GR = ["OPERACIONAL","ADM AGRÍCOLA","OFICINA"], CURTO = {"OPERACIONAL":"operacional","ADM AGRÍCOLA":"ADM","OFICINA":"oficina"};
+  const doGrupo = (g, i) => operam.filter(it=>it.grupo===g).reduce((s,it)=>s+(+it.qtdMes[i]||0),0);
+  const abre = i => GR.map(g=>fmt(doGrupo(g,i),0)+" "+CURTO[g]).join(" · ");
+  const fatMes = i => PS.fat ? (+PS.fat.qtdMes[i]||0) : 0;
+  // no mês de pico: de onde vem a gente (departamento ou etapa), do maior para o menor
+  const deps = {};
+  if(iPico!=null) operam.forEach(it=>{ const v = +it.qtdMes[iPico]||0; if(!v) return;
+    const d = deps[it.dept] = deps[it.dept] || {dept:it.dept, grupo:it.grupo, v:0}; d.v += v; });
+  const topo = Object.values(deps).sort((a,b)=>b.v-a.v);
+  const mostra = topo.slice(0,12), resto = topo.slice(12).reduce((s,d)=>s+d.v,0);
+  return {titulo:"Pico de mobilização", subtitulo:"Maior número de pessoas trabalhando ao mesmo tempo, num mês",
+    valor:fmt(pico)+" pessoas", temPeriodo:true,
+    blocos:[
+      {titulo:"O que é", linhas:[
+        {rot:"Pessoas na operação no mês que mais pede", val:fmt(pico)+" pessoas",
+         sub:"operacional das atividades + ADM agrícola + oficina, no mesmo mês; o FAT fica fora (não opera)"},
+        {rot:"Mês de pico", val:iPico!=null&&pico>0 ? MESES[iPico] : "—", ir: iPico!=null ? "mes:"+iPico : undefined,
+         sub: iPico!=null&&pico>0 ? abre(iPico) : ""},
+        {rot:"Para contratar", val:"por função", ir:"pessoas:total",
+         sub:"o confronto com o quadro ativo (Resumo de Pessoas) decide quanto falta em cada função"},
+      ]},
+      {titulo:"Pessoas na operação, por mês", linhas: idxs.map(i=>({rot:MESES[i], val:fmt(PS.qtdMes[i])+" pessoas",
+        sub: abre(i) + (fatMes(i) ? " · +"+fmt(fatMes(i),0)+" no FAT (fora)" : "")}))},
+      {titulo: iPico!=null&&pico>0 ? "No mês de pico ("+MESES[iPico]+"), de onde vem a gente" : "No mês de pico",
+       linhas: mostra.length ? mostra.map(d=>({rot:d.dept, val:fmt(d.v,0)+" pessoas", ir:"pessoas:dept:"+d.dept,
+           sub:(CURTO[d.grupo]||d.grupo)+" · "+fmt(pico>0?d.v/pico*100:0,1)+"% do pico"}))
+         .concat(resto>0.5 ? [{rot:"Demais departamentos", val:fmt(resto,0)+" pessoas"}] : [])
+         : [{rot:"Sem gente lançada no período", val:"—"}]},
+    ],
+    nota: iPico!=null&&pico>0 ? `Pico em ${MESES[iPico]}: ${fmt(pico)} pessoas trabalhando ao mesmo tempo.` : "",
+    premissas:premissasPessoas(R)};
 }
 
 /* ---------- frota: horas, equipamentos, CRM ---------- */
@@ -1037,6 +1092,7 @@ function rastroHectares(R){
 const CRM_COMP_LBL = [["pecas","Peças"],["terc","Serviços de terceiros"],["consumo","Materiais de uso e consumo"],["lubrif","Lubrificantes"]];
 
 function rastro(R, chave, periodo){
+  R_ATUAL = R;
   const s = String(chave||"total");
   const i = s.indexOf(":");
   const tipo = i<0 ? s : s.slice(0,i);

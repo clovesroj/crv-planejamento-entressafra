@@ -1,5 +1,28 @@
 # Histórico de mudanças
 
+## 2.45.1 — 2026-09-24 · Diesel orçado nas premissas do rastro, e o pico de mobilização explicado
+
+**Diesel.** O quadro "Premissas usadas" do rastro mostrava "Preço base do
+diesel R$ 6,20/L" — o campo da aba Premissas, que só vale no mês sem preço
+próprio. O custo de combustível usa o preço de cada mês da aba Combustível.
+Agora a premissa é **"Diesel orçado (aba Combustível)"**: o preço médio
+ponderado pelos litros de cada mês (o mesmo número do cartão "Preço médio
+ponderado" da aba Combustível), com a faixa de preços dos meses logo abaixo.
+A conta mora num lugar só (`dieselOrcado`, em `calculo/diesel.js`), usada pelo
+rastro, pela aba Combustível e pelo relatório de premissas — que passa a trazer
+o diesel orçado e, separado, o preço base com o que ele faz.
+
+**Pico de mobilização.** O rastro do cartão agora diz o que o número é: o maior
+número de pessoas trabalhando ao mesmo tempo num mês — operacional das
+atividades + ADM agrícola + oficina; o FAT fica fora, porque não opera. Mostra
+o mês de pico e a divisão por quadro, a série mês a mês (com quantos estão no
+FAT à parte) e, no mês de pico, de quais departamentos vem a gente. As
+premissas do rastro passam a ser as de pessoas (dias de operação e trabalhados,
+rodízio, horas por turno, quadro ADM/oficina), no lugar das de custo.
+
+Nenhum número de custo muda. 54 invariantes sem falha; 29 abas, 312 rastros e
+138 relatórios sem erro.
+
 ## 2.45.0 — 2026-09-23 · Resumo de Pessoas: filtro por quadro e departamento
 
 No topo do Resumo de Pessoas, dois filtros:
