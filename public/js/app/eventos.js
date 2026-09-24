@@ -397,6 +397,14 @@ document.addEventListener("change",e=>{
   // "necessidade de compra" dos relatorios (ver calculo/insumos.js, volumeCompra)
   if(t.dataset.tcompra!==undefined){ const c=destravar(TRAT_SEL), l=c[+t.dataset.tcompra];
     l.compra = t.checked; salvar(); render(); return; }
+  // codigo do insumo na linha da composicao: acha o produto pelo codigo do
+  // cadastro e corrige nome/caixa automaticamente -- evita produto "orfao"
+  // por nome digitado diferente do cadastro (maiuscula, espaco, etc)
+  if(t.dataset.tcod!==undefined){ const c=destravar(TRAT_SEL), l=c[+t.dataset.tcod];
+    const reg = insLista().find(i=>i.cod===t.value.trim());
+    l.cod = t.value.trim();
+    if(reg) l.prod = reg.prod;
+    salvar(); render(); return; }
   if(t.dataset.tfretetipo!==undefined){ const c=destravar(TRAT_SEL), l=c[+t.dataset.tfretetipo];
     l.frete = l.frete || {}; l.frete.tipo = t.value; salvar(); render(); return; }
   // codigo do tratamento: leva composicao, nome, etapas e as atividades que o usam
@@ -933,7 +941,7 @@ $("#btn_add_prod").onclick=()=>{
     // que nunca esteve em nenhum tratamento base nao tem linha em CFG.trat_det,
     // e a unidade ficava em branco mesmo estando cadastrada no insumo
     const reg=insLista().find(i=>i.prod===prod);
-    c.push({prod,dose,un:reg?reg.un:""});
+    c.push({prod,dose,un:reg?reg.un:"",cod:reg?reg.cod:""});
   }
   salvar(); render();
 };

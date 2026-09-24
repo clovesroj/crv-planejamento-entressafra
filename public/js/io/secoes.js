@@ -384,6 +384,13 @@ const quadroAdmOficinaMes = R => {
    arrastar os 500+ produtos do cadastro todo, a maioria sem nenhuma relação
    com plantio, ou insumo de um tratamento que não se usa mais.
 
+   A linha de atividade só entra (em qualquer um dos dois casos, com ou sem
+   etapa) se o tratamento E a atividade estiverem ativos — insumo de um
+   vínculo desativado não deve nem aparecer, nem contar valor, em relatório
+   nenhum. E o próprio insumo precisa estar ativo: um produto desativado no
+   cadastro some da lista, mesmo que ainda tenha alguma linha de composição
+   apontando pra ele por engano.
+
    "Necessidade de compra" e "Custo", em qualquer um dos dois casos, usam
    volumeCompra() em vez de volumeDemandado(): pula a linha de composição que
    o cadastro marcou "compra:false" (produto que só vai consumir o estoque
@@ -392,8 +399,8 @@ const quadroAdmOficinaMes = R => {
    continua sendo o total de fato usado, sem essa exclusão. */
 const insumosDe = etapas => R => {
   const lista = etapas ? etapas : null;
-  const L = lista ? R.L.filter(r=>lista.includes(r.a.etapa) && TRAT_ATIVO[r.trat]!==false) : R.L;
-  const vol = lista ? volumeDemandado(L) : R.volDem;
+  const L = R.L.filter(r=>(!lista || lista.includes(r.a.etapa)) && TRAT_ATIVO[r.trat]!==false && r.a.ativo!==false);
+  const vol = volumeDemandado(L);
   const volC = volumeCompra(L);
   const totalCusto = lista ? lista.reduce((s,e)=>s+((etapaP(R,e)||{}).insumo||0),0) : R.insumoT;
   const titulo = lista ? "Insumos vinculados aos tratamentos ativos das atividades lançadas" : "Insumos — cadastro, classificação técnica e necessidade";
@@ -401,7 +408,7 @@ const insumosDe = etapas => R => {
     ["Nome comercial","Princípio ativo","Código","Un","Concentração","Classe agronômica",
      "Categoria operacional","Formulação","Grupo químico","Fabricante","Class. toxicológica",
      "Volume demandado","Estoque","Preço corrigido","Necessidade de compra","Custo"],
-    insLista().filter(i=>!lista || (vol[i.prod]||0)>0).map(i=>{ const ov=INSUMO[i.prod]||{};
+    insLista().filter(i=>i.ativo!==false && (!lista || (vol[i.prod]||0)>0)).map(i=>{ const ov=INSUMO[i.prod]||{};
       const preco=(ov.preco!=null?num(ov.preco):num(i.preco))*(1+P.ipreco/100);
       const est=ov.est!=null?num(ov.est):num(i.est), v=vol[i.prod]||0;
       const falta=Math.max(0,(volC[i.prod]||0)-est);

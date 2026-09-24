@@ -362,13 +362,20 @@ function pintarInsumos(R){
   const custoHa = comp.reduce((s,l)=>s+doseBase(l)*(precoInsumo(l.prod)+freteEfetivo(l)),0);
   $("#c_trat").value = brl(custoHa,2) + "/ha";
 
-  $("#t_comp").innerHTML = th([["Produto"],["Princípio ativo"],["Dose",1],["Un."],
+  $("#t_comp").innerHTML = th([["Código"],["Produto"],["Princípio ativo"],["Dose",1],["Un."],
     ["Preço corrigido",1],["Frete"],["Custo/ha",1],["% do tratamento",1],["Necessidade de compra"],[""]])+"<tbody>"+
     (comp.length? comp.map((l,i)=>{
       const pr = precoInsumo(l.prod), fr = freteEfetivo(l), c = doseBase(l)*(pr+fr);
       const pp = custoHa>0 ? c/custoHa*100 : 0;
       const reg = insLista().find(x=>x.prod===l.prod);
       const regUn = reg && reg.un;
+      // codigo do insumo nesta linha: o que ja foi confirmado (l.cod), ou o do
+      // cadastro pra quem o nome ja bate. Sem os dois, fica em branco -- e o
+      // sinal de que essa linha precisa de conferencia (nome nao bate com
+      // nenhum produto do cadastro, ver "Todo insumo de tratamento tem
+      // correspondencia no cadastro" na aba Validacao).
+      const codAtual = l.cod || (reg && reg.cod) || "";
+      const codBate = !!(reg || insLista().some(x=>x.cod===l.cod));
       // unidades da mesma familia da que o insumo e comprado -- dosar em kg/ha
       // um produto comprado em ton, ou em ml/ha um vendido por litro, sem mudar
       // o custo por hectare. Produto sem unidade no cadastro oferece todas: e a
@@ -381,7 +388,11 @@ function pintarInsumos(R){
       const unPr = unPreco(regUn, unAtual);
       const f = l.frete || {};
       const unRot = esc(unAtual || unPr || "un");
-      return `<tr><td>${esc(l.prod)}</td>
+      return `<tr>
+        <td><input data-tcod="${i}" value="${esc(codAtual)}" style="width:88px"
+          title="Código do insumo no cadastro. Confirme ou digite o código certo aqui — o nome do produto é corrigido automaticamente a partir dele, sem risco de caixa alta ou digitação diferente."
+          ${!codBate?' class="b-warn"':''}></td>
+        <td${!reg?' class="b-warn" title="Nome não bate com nenhum produto do cadastro — confirme o código ao lado"':''}>${esc(l.prod)}</td>
         <td class="calc">${esc((reg&&reg.pa)||"—")}</td>
         <td class="num"><input data-td="${i}" value="${l.dose}" inputmode="decimal"></td>
         <td>${opcoesUn.length>1
@@ -406,8 +417,8 @@ function pintarInsumos(R){
         <td class="num"><input type="checkbox" data-tcompra="${i}" ${l.compra===false?"":"checked"}
           title="Desmarque quando este produto só vai consumir o estoque que já existe e não será comprado de novo — some da necessidade de compra e do custo de reposição nos relatórios, sem deixar de contar o quanto é usado"></td>
         <td><button class="btn d" data-tr="${i}">Remover</button></td></tr>`;}).join("")
-      : `<tr><td colspan="10" class="calc">Tratamento sem produtos. Use o campo abaixo para adicionar.</td></tr>`)+
-    `<tr><td class="tot" colspan="4">CUSTO/HA DO TRATAMENTO</td><td></td><td></td>
+      : `<tr><td colspan="11" class="calc">Tratamento sem produtos. Use o campo abaixo para adicionar.</td></tr>`)+
+    `<tr><td></td><td class="tot" colspan="4">CUSTO/HA DO TRATAMENTO</td><td></td><td></td>
      <td class="num tot">${brl(custoHa,2)}</td><td class="num tot">${custoHa>0?"100,0%":"—"}</td><td></td><td></td></tr></tbody>`;
 
   // --- 2. atividade e período: liga o tratamento a uma atividade do Plano
