@@ -1,5 +1,40 @@
 # Histórico de mudanças
 
+## 2.50.0 — 2026-09-24 · Painel reorganizado em páginas, gráficos novos e grupo Custos logo abaixo da Visão geral
+
+**Painel** — o que já existia fica, organizado em quatro páginas (menu ao lado):
+
+- **Visão executiva:** os indicadores gerais (mais dois cartões, custo
+  variável e custo fixo do período), os de tratos e manutenção, três pizzas
+  (composição por grande conta, safra × entressafra, variável × fixo) e o
+  **custo mensal por período**. A barra mensal era de uma cor só e sem
+  rastro; agora a safra fica no azul e a entressafra no âmbar, com a média
+  tracejada de cada período e o custo do mês no clique.
+- **Custos por mês:** o novo gráfico de grandes contas empilhadas mês a mês e a
+  tabela de grandes contas, que continua como estava, agora com a cor de cada
+  conta.
+- **Etapas e operações:** custo por etapa, R$/ha por operação (formação do
+  canavial, preparo, plantio, tratos de planta e de soca), a tabela R$/ha no
+  modelo da referência, o **CTTA em R$/t** em gráfico (corte, transbordo,
+  transporte, apoio + administrativo) e a tabela do sistema de colheita.
+- **Composição e referência:** a composição do custo (antes sem rastro, agora
+  com o rastro de cada natureza) e a aderência à referência setorial, com
+  gráfico projetado × referência além da tabela.
+
+**Rastreabilidade:** toda fatia, barra, legenda e linha tem rastro, com dica
+ao passar o mouse e detalhamento no clique. A referência setorial ganhou o
+rastro `bench:<grupo>`, que abre o que compõe cada grupo e a leitura do
+desvio. Os quatro grupos saíram da tela para `calculo/custo-operacao.js`
+(`referenciaSetorial`): tabela, gráfico e rastro leem a mesma conta. Os
+gráficos seguem o período da barra do topo, com o rastro da grande conta e
+da etapa no período.
+
+**Menu:** o grupo **Custos** (Arrendamentos, Custos Administrativos, Custos,
+Plano de Contas) passou para logo abaixo de **Visão geral**.
+
+Nenhum número muda. 54 invariantes sem falha; 32 abas, 509 rastros (71 no
+Painel) e 138 relatórios sem erro.
+
 ## 2.49.0 — 2026-09-24 · Apoio: safra e entressafra com estruturas independentes
 
 **Correção.** Na 2.48 cada equipamento de apoio tinha uma quantidade e umas

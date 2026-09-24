@@ -93,7 +93,7 @@ function custoPorOperacao(R){
     // atividades — dez passadas no mesmo talhão contam dez hectares, por isso a
     // tela marca quando a base veio daí.
     const ha  = ativs.filter(r=>r.ehHa).reduce((t,r)=>t+r.total, 0);
-    const ton = ativs.filter(r=>!r.ehHa && r.a.tipo!=="transp").reduce((t,r)=>t+r.total, 0);
+    const ton = ativs.filter(r=>r.ehTon).reduce((t,r)=>t+r.total, 0);
     const estimado = ha>0 ? {q:ha, un:"ha", rot:"ha operados"} : {q:ton, un:"t", rot:"t"};
     // preparo de solo é feito na área que vai ser plantada: divide pela área de plantio
     const idBase = {preparo:"plantio", plantio:"plantio", planta:"planta", soca:"soca", colheita:"colheita"}[op.id];
@@ -180,4 +180,32 @@ function comps(R){
     ["Administração",R.admT],["Depreciação",R.depT]];
 }
 
-export { OPERACOES, OUTRAS, comps, culturaIrr, custoCorte, custoHaPlantado, custoPorOperacao };
+/* ---------- aderência à referência setorial ----------
+   Os quatro grupos do Painel e o peso de referência de cada um. Têm de somar o
+   custo total: antes a terceirização de aplicações e o transporte de pessoal
+   não entravam em grupo nenhum, e o percentual projetado não fechava 100%.
+   Cada grupo guarda as partes (com a chave do rastro de cada uma): a tabela, o
+   gráfico e o rastro bench:<grupo> leem a mesma conta. */
+function referenciaSetorial(R){
+  const g = (id, nome, curto, ref, partes) => {
+    const v = partes.reduce((s,p)=>s+num(p.v),0);
+    const pct = R.total>0 ? v/R.total*100 : 0, desvio = pct - ref;
+    const leitura = Math.abs(desvio)<=5 ? "Aderente" : desvio>5 ? "Acima" : "Abaixo";
+    return {id, nome, curto, ref, v, pct, desvio, leitura, partes};
+  };
+  const grupos = [
+    g("oper", "Operações (MDO + manutenção + diesel + aplicações terceirizadas)", "Operações", 52, [
+      {rot:"Mão de obra", v:R.mdoTotal, ir:"cat:mdo"}, {rot:"Manutenção e materiais", v:R.manutT, ir:"cat:manut"},
+      {rot:"Diesel", v:R.dieselT, ir:"cat:diesel"}, {rot:"Aplicações terceirizadas", v:R.tercAtivT, ir:"nat:terc"}]),
+    g("insumos", "Insumos (agronômicos + irrigação)", "Insumos", 25, [
+      {rot:"Insumos agronômicos", v:R.insumoT, ir:"cat:insumo"}, {rot:"Irrigação e fertirrigação", v:R.irrT, ir:"cat:irrig"}]),
+    g("arrend", "Arrendamento", "Arrendamento", 17, [{rot:"Arrendamento", v:R.arrT, ir:"cat:arrend"}]),
+    g("outros", "Outros (admin + depreciação + contratos de terceiros + transporte de pessoal + esporádicos)", "Outros", 6, [
+      {rot:"Administração", v:R.admT, ir:"nat:admin"}, {rot:"Depreciação", v:R.depT, ir:"cat:fixo"},
+      {rot:"Contratos de terceiros", v:R.tercT, ir:"cat:terc"}, {rot:"Transporte de pessoal", v:R.tpessT, ir:"cat:tpess"},
+      {rot:"Esporádicos", v:R.espT, ir:"cat:espor"}]),
+  ];
+  return {grupos, total: grupos.reduce((s,x)=>s+x.v,0)};
+}
+
+export { OPERACOES, OUTRAS, comps, culturaIrr, custoCorte, custoHaPlantado, custoPorOperacao, referenciaSetorial };

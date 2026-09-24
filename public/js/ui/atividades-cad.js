@@ -48,8 +48,16 @@ const ETAPAS = ["PREPARO DE SOLO", "PLANTIO", "TRATOS CULTURAIS", "COLHEITA", "A
    lançado por mês no Plano Operacional ("ha/mês", "ton/mês") — lá, ao lado dos
    meses, é a unidade certa. O sistema só lê a parte da frente ("ha" ou
    "ton"), então trocar o rótulo aqui não muda conta nem documento salvo. */
-const UNIDADES = [["ha/mês", "ha/h"], ["ton/mês", "ton/h"]];
+/* "ha" e "ton" são as únicas que entram nos totais de base física do plano
+   (ha operados / toneladas — ver ehHa/ehTon em calculo/atividade.js); as
+   demais são só para custear a atividade por conta própria, sem entrar nessa
+   soma. Escolha do usuário, ao cadastrar — não muda nada do que já existe. */
+const UNIDADES = [["ha/mês", "ha/h"], ["ton/mês", "ton/h"], ["viagem/mês", "viagem/h"],
+  ["hora/mês", "h/h"], ["litro/mês", "litro/h"], ["m³/mês", "m³/h"], ["unidade/mês", "un/h"]];
 const unRend = un => String(un||"").split("/")[0] + "/h";
+// classificacao para a aba/relatorio Manejo Fitossanitario (ver dados/atividades.js,
+// campo "manejo") -- so essa marcacao; etapa e rateio continuam em Tratos Culturais
+const MANEJO_OPCOES = [["", "—"], ["broca", "Broca"], ["cigarrinha", "Cigarrinha"]];
 
 /* ---------- CADASTRO DE ATIVIDADES ----------
    Espelha o Cadastro de Insumos: lista as atividades do cadastro do sistema
@@ -81,6 +89,8 @@ function pintarAtividadesCad(){
       <td>${esc(M[a.cod]||a.cod)}<br><span class="calc" style="font-size:10.5px" title="Código interno — usado no documento salvo, não muda">${esc(a.cod)}</span></td>
       <td>${fixo ? esc(a.etapa) : `<select data-at="${i}" data-f="etapa">${ETAPAS.map(e =>
         `<option value="${esc(e)}"${a.etapa===e?" selected":""}>${esc(e)}</option>`).join("")}</select>`}</td>
+      <td><select data-at="${i}" data-f="manejo" title="Classifica a atividade para a aba/relatório Manejo Fitossanitário, sem mudar a etapa nem o rateio de custo">${MANEJO_OPCOES.map(([v,rot]) =>
+        `<option value="${esc(v)}"${(a.manejo||"")===v?" selected":""}>${esc(rot)}</option>`).join("")}</select></td>
       <td><input data-at="${i}" data-f="nome" value="${esc(a.nome)}" style="text-align:left;min-width:200px"${fixo?' title="Atividade do cadastro do sistema — nome pode ser ajustado"':""}></td>
       <td>${fixo ? esc(unRend(a.un)) : `<select data-at="${i}" data-f="un">${UNIDADES.map(([v,rot]) =>
         `<option value="${esc(v)}"${a.un===v?" selected":""}>${esc(rot)}</option>`).join("")}</select>`}</td>
@@ -103,7 +113,7 @@ function pintarAtividadesCad(){
       <td>${fixo ? "" : `<button class="btn d" data-atrm="${esc(a.cod)}">Remover</button>`}</td></tr>`;
   }).join("");
 
-  $("#t_ativ").innerHTML = th([["Código"],["Etapa"],["Nome"],["Unidade"],["Rendimento (por hora)",1],
+  $("#t_ativ").innerHTML = th([["Código"],["Etapa"],["Manejo Fitossanitário"],["Nome"],["Unidade"],["Rendimento (por hora)",1],
     ["Máquina"],["Implemento"],["Operadores",1],["Turnos",1],["Utilização %",1],["Ativo",1],
     ["Atividade no ERP"],["Origem"],[""]]) +
     "<tbody>" + linhas + "</tbody>";

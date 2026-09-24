@@ -169,7 +169,7 @@ function calcular(){
     etapas[e].direto+=r.direto;
     etapas[e].diesel+=r.cDiesel; etapas[e].litros+=r.litros; etapas[e].mdo+=r.cMDO; etapas[e].manut+=r.cManut;
     etapas[e].insumo+=r.cInsumo; etapas[e].terc+=r.cTerc;
-    if(r.ehHa) etapas[e].ha+=r.total; else if(r.a.tipo!=="transp") etapas[e].ton+=r.total;
+    if(r.ehHa) etapas[e].ha+=r.total; else if(r.ehTon) etapas[e].ton+=r.total;
     if(e==="TRATOS CULTURAIS"){
       const c = r.a.cultura||"Soca";
       tratosCult[c].direto += r.direto; tratosCult[c].litros += r.litros;

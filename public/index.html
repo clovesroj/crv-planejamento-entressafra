@@ -41,6 +41,13 @@
       <button data-s="valida">Validação <span id="vbadge"></span></button>
       <button type="button" id="nav_relatorio">Relatório</button>
     </div>
+    <div class="navgroup" data-g="Custos">
+      <div class="gl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20v-8M10.5 20V5M16 20v-6M21 20V9"/><path d="M2.5 20h19"/></svg>Custos</div>
+      <button data-s="arrend">Arrendamentos</button>
+      <button data-s="adm">Custos Administrativos</button>
+      <button data-s="custos">Custos</button>
+      <button data-s="contas">Plano de Contas</button>
+    </div>
     <div class="navgroup" data-g="Planejamento">
       <div class="gl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Planejamento</div>
       <button data-s="premissas">Premissas</button>
@@ -78,13 +85,6 @@
       <button data-s="frota">Manutenção de Frota</button>
       <button data-s="reforma">Reforma de Frota</button>
       <button data-s="resumofrota">Resumo de Frota</button>
-    </div>
-    <div class="navgroup" data-g="Custos">
-      <div class="gl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20v-8M10.5 20V5M16 20v-6M21 20V9"/><path d="M2.5 20h19"/></svg>Custos</div>
-      <button data-s="arrend">Arrendamentos</button>
-      <button data-s="adm">Custos Administrativos</button>
-      <button data-s="custos">Custos</button>
-      <button data-s="contas">Plano de Contas</button>
     </div>
     <div class="navgroup" data-g="Configurações">
       <div class="gl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2.1 2.1 0 1 1-2.97 2.97l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V20a2.1 2.1 0 0 1-4.2 0v-.09a1.7 1.7 0 0 0-1.11-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2.1 2.1 0 1 1-2.97-2.97l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H4a2.1 2.1 0 0 1 0-4.2h.09a1.7 1.7 0 0 0 1.55-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2.1 2.1 0 1 1 2.97-2.97l.06.06a1.7 1.7 0 0 0 1.87.34H10a1.7 1.7 0 0 0 1-1.55V4a2.1 2.1 0 0 1 4.2 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2.1 2.1 0 1 1 2.97 2.97l-.06.06a1.7 1.7 0 0 0-.34 1.87V10a1.7 1.7 0 0 0 1.55 1H20a2.1 2.1 0 0 1 0 4.2h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg>Configurações</div>
@@ -1471,17 +1471,60 @@
 <!-- ===== PAINEL ===== -->
 <section id="painel">
   <h2>Painel</h2>
-  <p class="lead">Visão executiva e aderência às referências do setor.</p>
-  <div class="panel"><h3>Indicadores gerais</h3>
-    <div class="grid g4" id="k_painel"></div></div>
-  <div class="row" style="margin:-4px 0 14px">
-    <button class="btn" data-rastro="total">Por que o custo é este? Abrir o rastro</button>
-  </div>
-  <div class="panel"><h3>Tratos culturais e manutenção</h3>
-    <div class="grid g4" id="k_tratos"></div></div>
-  <div class="panel"><h3>Custo por hectare — visão por operação</h3>
-    <div class="tblwrap"><table id="t_pec_ha" class="pec"></table></div>
-    <div class="hint" style="margin-top:9px">R$/ha de cada operação e o peso de cada item no total dela. Formação do
+  <p class="lead">Visão executiva do custo do plano e aderência às referências do setor. Quatro páginas — use o menu
+  ao lado para trocar. Passe o mouse sobre qualquer número, fatia ou barra para ver a composição; clique para o
+  detalhamento completo. Os gráficos seguem o período escolhido na barra do topo.</p>
+
+  <details class="bloco" id="bl_pn_exec" open>
+    <summary><span class="bl-tit">Visão executiva</span><span class="bl-sub" id="bl_pn_sub"></span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Indicadores gerais</h3>
+        <div class="grid g4" id="k_painel"></div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn" data-rastro="total">Por que o custo é este? Abrir o rastro</button></div></div>
+      <div class="panel"><h3>Tratos culturais e manutenção</h3>
+        <div class="grid g4" id="k_tratos"></div></div>
+      <div class="pes-dash dash3">
+        <div class="panel"><h3>Composição por grande conta</h3>
+          <div class="rosca-box"><div id="ch_pn_cat"></div><div class="rosca-leg" id="ch_pn_cat_leg"></div></div></div>
+        <div class="panel"><h3>Safra × entressafra</h3>
+          <div class="rosca-box"><div id="ch_pn_per"></div><div class="rosca-leg" id="ch_pn_per_leg"></div></div></div>
+        <div class="panel"><h3>Variável × fixo</h3>
+          <div class="rosca-box"><div id="ch_pn_fix"></div><div class="rosca-leg" id="ch_pn_fix_leg"></div></div></div>
+      </div>
+      <div class="panel"><h3>Custo mensal por período</h3>
+        <div id="ch_mes"></div><div class="leg-periodo" id="ch_mes_leg"></div>
+        <div class="hint" style="margin-top:9px">Safra no azul, entressafra no âmbar; o tracejado é a média mensal de cada
+        período. Cada barra abre o custo do mês.</div></div>
+    </div>
+  </details>
+
+  <details class="bloco" id="bl_pn_mes">
+    <summary><span class="bl-tit">Custos por mês</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Grandes contas mês a mês</h3>
+        <div id="ch_pn_catmes"></div><div class="leg-periodo" id="ch_pn_catmes_leg"></div>
+        <div class="hint" style="margin-top:9px">Valores em R$ milhões. Cada pedaço abre a grande conta no período do mês;
+        a barra inteira, o custo do mês.</div></div>
+      <div class="panel"><h3>Grandes contas por mês</h3><div class="tblwrap"><table id="t_grandes"></table></div>
+        <div class="hint" style="margin-top:9px">Custos diretos (mão de obra, manutenção, diesel, insumos,
+    terceirização) seguem a alocação real de cada atividade no Plano Operacional; custos indiretos e fixos
+    (apoio, irrigação, estrutura, arrendamento, administração, depreciação) são distribuídos proporcionalmente
+    à área operada de cada mês, o mesmo critério usado no gráfico de custo mensal.</div></div>
+    </div>
+  </details>
+
+  <details class="bloco" id="bl_pn_op">
+    <summary><span class="bl-tit">Etapas e operações</span></summary>
+    <div class="bloco-corpo">
+      <div class="pes-dash">
+        <div class="panel"><h3>Custo por etapa</h3><div id="ch_pn_etapa"></div></div>
+        <div class="panel"><h3>Custo por hectare — operações</h3><div id="ch_pn_opha"></div>
+          <div class="hint" style="margin-top:6px">Custo contábil da operação (direto + rateios) ÷ a base física dela.</div></div>
+      </div>
+      <div class="panel"><h3>Custo por hectare — visão por operação</h3>
+        <div class="tblwrap"><table id="t_pec_ha" class="pec"></table></div>
+        <div class="hint" style="margin-top:9px">R$/ha de cada operação e o peso de cada item no total dela. Formação do
     canavial = preparo + plantio + tratos de cana planta, como na referência setorial. Preparo, plantio e formação dividem pela área
     de plantio; tratos de cana planta e de cana soca, pela área de cada cultura (bloco Base física dos custos, aba
     Premissas). Além do que a referência mostra, a tabela traz o que o plano calcula: serviços terceirizados,
@@ -1489,21 +1532,29 @@
     operação, insumos e administrativo, para confrontar com o relatório de referência. Insumos pela classe agronômica do produto; produto
     sem classe cai em "Outros insumos", exceto fertilizantes e corretivos reconhecidos pelo nome (fórmula NPK, ureia,
     KCl, calcário). Royalties não têm dado no plano. <span id="pec_ha_nota"></span></div></div>
-  <div class="panel"><h3>Sistema de colheita (R$/t)</h3>
-    <div class="tblwrap"><table id="t_pec_colh" class="pec"></table></div>
-    <div class="hint" style="margin-top:9px">Corte, transbordo e transporte com o custo direto das atividades:
+      <div class="panel"><h3>Sistema de colheita — CTTA (R$/t)</h3>
+        <div id="ch_pn_ctta"></div><div class="hint" style="margin-top:6px" id="ch_pn_ctta_nota"></div>
+        <div class="tblwrap" style="margin-top:12px"><table id="t_pec_colh" class="pec"></table></div>
+        <div class="hint" style="margin-top:9px">Corte, transbordo e transporte com o custo direto das atividades:
     operador (equipe paga mês cheio), diesel, manutenção (CRM), locação (frentes terceirizadas) e outros. Apoio + Adm é
     a parte do CTTA nos rateios da colheita — equipamentos de apoio, custos gerais, administrativo e depreciação —
     pelo custo direto. <span id="pec_colh_nota"></span></div></div>
-  <div class="panel"><h3>Custo mensal</h3><div id="ch_mes"></div></div>
-  <div class="panel"><h3>Grandes contas por mês</h3><div class="tblwrap"><table id="t_grandes"></table></div>
-    <div class="hint" style="margin-top:9px">Custos diretos (mão de obra, manutenção, diesel, insumos,
-    terceirização) seguem a alocação real de cada atividade no Plano Operacional; custos indiretos e fixos
-    (apoio, irrigação, estrutura, arrendamento, administração, depreciação) são distribuídos proporcionalmente
-    à área operada de cada mês, o mesmo critério usado no gráfico de custo mensal.</div></div>
-  <div class="panel"><h3>Composição do custo</h3><div id="ch_comp"></div></div>
-  <div class="panel"><h3>Aderência à referência setorial</h3><div class="tblwrap"><table id="t_bench"></table></div>
-    <div class="hint" style="margin-top:9px">A comparação só é significativa com o plano preenchido.</div></div>
+    </div>
+  </details>
+
+  <details class="bloco" id="bl_pn_ref">
+    <summary><span class="bl-tit">Composição e referência</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Composição do custo</h3><div id="ch_comp"></div>
+        <div class="hint" style="margin-top:6px">Cada natureza de custo do plano, da maior para a menor, com o peso no total.</div></div>
+      <div class="panel"><h3>Aderência à referência setorial</h3>
+        <div class="legend" id="ch_bench_leg" style="margin:0 0 8px"></div>
+        <div id="ch_bench"></div>
+        <div class="tblwrap" style="margin-top:12px"><table id="t_bench"></table></div>
+        <div class="hint" style="margin-top:9px">Aderente até ±5 pontos percentuais da referência. Cada grupo abre o que o
+        compõe. A comparação só é significativa com o plano preenchido.</div></div>
+    </div>
+  </details>
 </section>
 
 <!-- ===== VALIDAÇÃO ===== -->
