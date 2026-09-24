@@ -76,12 +76,12 @@ function mesclarMapaSimples(atual, patch) {
 
 const PATCHES_ARRAY = { INSX_PATCH: { chave: 'INSX', id: 'prod' }, ATVX_PATCH: { chave: 'ATVX', id: 'cod' },
   CTT_NOVOS_PATCH: { chave: 'CTT_NOVOS', id: 'm' } };
-const PATCHES_MAPA_SIMPLES = { CTT_SAIDAS_PATCH: 'CTT_SAIDAS', CTT_MUDANCAS_PATCH: 'CTT_MUDANCAS' };
+const PATCHES_MAPA_SIMPLES = { CTT_SAIDAS_PATCH: 'CTT_SAIDAS', CTT_MUDANCAS_PATCH: 'CTT_MUDANCAS', CTT_OBS_PATCH: 'CTT_OBS' };
 
 /** true se o corpo tem algum patch de item — só aí vale travar a linha pra mesclar. */
 function temPatch(corpo) {
   return !!(corpo.INSX_PATCH || corpo.ATVX_PATCH || corpo.TRAT_PATCH || corpo.INSUMO_PATCH
-    || corpo.CTT_NOVOS_PATCH || corpo.CTT_SAIDAS_PATCH || corpo.CTT_MUDANCAS_PATCH);
+    || corpo.CTT_NOVOS_PATCH || corpo.CTT_SAIDAS_PATCH || corpo.CTT_MUDANCAS_PATCH || corpo.CTT_OBS_PATCH);
 }
 
 /** Corpo com os "_PATCH" trocados pelo valor real da chave, já mesclado com o que está gravado. */

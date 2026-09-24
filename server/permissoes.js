@@ -54,7 +54,7 @@ const AREAS = [
   // chaves aqui são só o que se ajusta na mão por cima da planilha (incluir
   // pessoa, marcar saída, registrar mudança de cadastro), não o cadastro
   // inteiro, que nunca é gravado.
-  { id: 'quadro-ctt', nome: 'Quadro CTT', grupo: 'CTT', chaves: ['CTT_NOVOS', 'CTT_SAIDAS', 'CTT_MUDANCAS'] },
+  { id: 'quadro-ctt', nome: 'Quadro CTT', grupo: 'CTT', chaves: ['CTT_NOVOS', 'CTT_SAIDAS', 'CTT_MUDANCAS', 'CTT_OBS'] },
 
   { id: 'insumos', nome: 'Insumos', grupo: 'Agricultura',
     chaves: ['INSUMO', 'INSX', 'INSX_V', 'TRATC', 'TRAT_NOME', 'TRAT_OBS', 'TRAT_ETAPA', 'TRAT_DEL', 'TRAT_ATIVO', 'MATX', 'GRUPOS_INS', 'FAM_NOME', 'FAM_CLASSE'] },
