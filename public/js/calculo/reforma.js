@@ -1,11 +1,10 @@
 import { conjuntosDe, familiaReforma } from '../dados/reforma.js';
 import { tagsBiDoConjunto } from '../dados/reforma-bi-map.js';
-import { GASTO_REFORMA_BI } from '../dados/gasto-reforma-bi.js';
 import { CFG } from '../dados/cfg.js';
 import { FROTA_UN } from '../nucleo/estado.js';
 import { num } from '../nucleo/formato.js';
 import { destinoDe } from './crm.js';
-import { desdeUltimoAno, itensDoEquipamento, produtosDoEquipamento } from './gasto-real.js';
+import { itensDoEquipamentoNaJanela, janelaGastoReal, normTag, produtosDoEquipamento } from './gasto-real.js';
 
 /* ================== REFORMA DE FROTA ==================
    Provisionamento da reforma de entressafra. Orcado por unidade de frota,
@@ -26,31 +25,40 @@ function refDe(cod){ return (FROTA_UN[cod] || {}).ref || {}; }
  * descricao, valor, data, empresa) chega.
  */
 function chaveItemReforma(cod, tag, it){
-  return `${cod}|${tag}|${it.desc}|${it.valor}|${it.data}|${it.empresa || ""}`;
+  return `${cod}|${normTag(tag)}|${it.desc}|${it.valor}|${it.data}|${it.empresa || ""}`;
 }
+/* Chave gravada antes da normalizacao da tag traz o espaco nao-separavel do
+   ERP ("CORTE BASE"); normalizar os dois lados faz a exclusao/inclusao
+   antiga continuar valendo depois da correcao. */
+const normChave = k => String(k).split("|").map((p,i)=> i===1 ? normTag(p) : p).join("|");
 
 /** Lancamentos que o usuario desmarcou pra nao contar no orcamento da unidade
  *  (tira do mapeamento automatico por tag -- nao mexe no que foi incluido a mao). */
 function itensExcluidosReforma(cod){
-  return new Set((FROTA_UN[cod] || {}).reformaExcl || []);
+  return new Set(((FROTA_UN[cod] || {}).reformaExcl || []).map(normChave));
 }
 
 /** Lancamentos que o usuario incluiu a mao num conjunto especifico -- de
  *  qualquer tag deste equipamento, nao so das que o mapeamento aponta pra ele
  *  (ver ui/rastro.js, a busca dentro do rastro do conjunto). */
 function itensIncluidosReforma(cod, conjunto){
-  return new Set(((FROTA_UN[cod] || {}).reformaIncl || {})[conjunto] || []);
+  return new Set((((FROTA_UN[cod] || {}).reformaIncl || {})[conjunto] || []).map(normChave));
 }
 
 // cod -> Map(chave -> item), pra resolver o que foi incluido a mao (a chave
 // nao guarda o item, so identifica -- o item mora em GASTO_REFORMA_BI, sob a
 // tag onde o ERP realmente lancou, que pode ser diferente do conjunto).
 const mapaItensCache = new Map();
+let janelaCache = "";
 function mapaItensPorChave(cod){
+  // a janela do painel (periodo, empresa, proprio, reforma) muda o que conta;
+  // o cache e por equipamento, entao ele cai inteiro quando a janela muda
+  const jc = JSON.stringify(janelaGastoReal());
+  if(jc !== janelaCache){ mapaItensCache.clear(); janelaCache = jc; }
   let m = mapaItensCache.get(cod);
   if(!m){
     m = new Map();
-    itensDoEquipamento(cod).forEach(it => m.set(chaveItemReforma(cod, it.compartimento, it), it));
+    itensDoEquipamentoNaJanela(cod).forEach(it => m.set(chaveItemReforma(cod, it.compartimento, it), it));
     mapaItensCache.set(cod, m);
   }
   return m;
@@ -64,24 +72,25 @@ function mapaItensPorChave(cod){
  * (rastroReformaBiItem, em calculo/rastro.js) -- uma conta so, uma lista so.
  */
 function itensReforma(cod, conjunto, familia){
-  const porFrota = GASTO_REFORMA_BI.porFrota[cod] || {};
-  const tags = tagsBiDoConjunto(familia, conjunto);
+  const tags = (tagsBiDoConjunto(familia, conjunto) || []).map(normTag);
   const excl = itensExcluidosReforma(cod);
   const incl = itensIncluidosReforma(cod, conjunto);
+  // uma fonte so: os lancamentos ja achatados e normalizados (e ja recortados
+  // pela janela do painel de filtros) -- antes isto lia GASTO_REFORMA_BI.
+  // porFrota[cod][tag] direto, e a tag crua do ERP com espaco nao-separavel
+  // nunca batia com o nome do conjunto
+  const doEquip = itensDoEquipamentoNaJanela(cod);
   const vistos = new Set();
   let total = 0;
   const itens = [];
-  tags.forEach(tag=>{
-    const dado = porFrota[tag];
-    if(!dado) return;
-    dado.itens.forEach(it=>{
-      const chave = chaveItemReforma(cod, tag, it);
-      if(vistos.has(chave)) return;
-      vistos.add(chave);
-      const ligado = !excl.has(chave);
-      if(ligado) total += it.valor;
-      itens.push({...it, chave, ligado, origem:"auto"});
-    });
+  doEquip.forEach(it=>{
+    if(!tags.includes(it.compartimento)) return;
+    const chave = chaveItemReforma(cod, it.compartimento, it);
+    if(vistos.has(chave)) return;
+    vistos.add(chave);
+    const ligado = !excl.has(chave);
+    if(ligado) total += it.valor;
+    itens.push({...it, chave, ligado, origem:"auto"});
   });
   if(incl.size){
     const porChave = mapaItensPorChave(cod);
@@ -118,7 +127,7 @@ function orcamentoProdutos(cod, conjunto, familia){
   const q = qtdProdutos(cod, conjunto);
   const chaves = Object.keys(q).filter(k => num(q[k]) > 0);
   if(!chaves.length) return {total:0, itens:[]};
-  const prods = produtosDoEquipamento(cod, {desde: desdeUltimoAno(),
+  const prods = produtosDoEquipamento(cod, {
     sistemas: [conjunto].concat(tagsBiDoConjunto(familia, conjunto) || [])});
   const porNome = Object.fromEntries(prods.map(p=>[p.produto, p]));
   const itens = chaves.map(k=>{
@@ -149,6 +158,55 @@ function valorConjunto(cod, conjunto, familia){
 /** Total (real do ERP + digitado, sem repetir conjunto nenhum) de uma unidade. */
 function totalUnidade(cod, conjuntos, familia){
   return conjuntos.reduce((s, c) => s + valorConjunto(cod, c, familia), 0);
+}
+
+/**
+ * PARA ONDE FOI O DINHEIRO FILTRADO: por que um lancamento da analise chega
+ * (ou nao chega) na grade de conjuntos. Sao quatro destinos possiveis, e cada
+ * um tem uma acao diferente -- e a resposta para "mudei o periodo e a tabela
+ * de baixo nao encheu".
+ *
+ *   naGrade      equipamento no cadastro, marcado pra reformar e tag com
+ *                coluna na familia dele: aparece na celula
+ *   semDestino   equipamento no cadastro e tag com coluna, mas a unidade nao
+ *                esta marcada "vai reformar" (Manutencao de Frota)
+ *   semColuna    equipamento no cadastro, mas a tag do ERP nao corresponde a
+ *                conjunto nenhum da familia (mapear em dados/reforma-bi-map.js)
+ *   semCadastro  codigo de frota que nao existe em dados/frota-base.js --
+ *                normalmente equipamento de outra unidade (CRV-GO); filtrar
+ *                por empresa resolve, ou cadastrar a frota
+ *   repetido     lancamento identico (mesmo equipamento, tag, descricao,
+ *                valor, data e empresa) que aparece duas vezes no extrato: a
+ *                grade conta uma vez so (itensReforma deduplica), a analise
+ *                conta as duas. Fica em linha propria pra soma bater dos dois
+ *                lados em vez de virar diferenca inexplicada
+ */
+function destinoDoGasto(lista){
+  const grupo = {naGrade:[], semDestino:[], semColuna:[], semCadastro:[], repetido:[]};
+  const vistos = new Set();
+  lista.forEach(l=>{
+    if(!l.esp){ grupo.semCadastro.push(l); return; }
+    const fam = familiaReforma(l.esp);
+    const temColuna = (conjuntosDe(l.esp) || []).some(c => (tagsBiDoConjunto(fam, c) || []).map(normTag).includes(l.compartimento));
+    if(!temColuna){ grupo.semColuna.push(l); return; }
+    if(destinoDe(l.frota) !== "reforma"){ grupo.semDestino.push(l); return; }
+    const chave = chaveItemReforma(l.frota, l.compartimento, l);
+    if(vistos.has(chave)){ grupo.repetido.push(l); return; }
+    vistos.add(chave);
+    grupo.naGrade.push(l);
+  });
+  const resumo = k => ({n: grupo[k].length, valor: grupo[k].reduce((s,l)=>s+l.valor,0)});
+  const porChave = (lista, f) => {
+    const m = new Map();
+    lista.forEach(l=>{ const k = f(l); m.set(k, (m.get(k) || 0) + l.valor); });
+    return [...m.entries()].sort((a,b)=>b[1]-a[1]);
+  };
+  return {
+    total: lista.reduce((s,l)=>s+l.valor,0),
+    naGrade: resumo("naGrade"), semDestino: resumo("semDestino"), repetido: resumo("repetido"),
+    semColuna: {...resumo("semColuna"), tags: porChave(grupo.semColuna, l=>l.esp+" · "+l.compartimento)},
+    semCadastro: {...resumo("semCadastro"), frotas: porChave(grupo.semCadastro, l=>String(l.frota))},
+  };
 }
 
 /**
@@ -201,5 +259,5 @@ function reforma(){
           media: unidades ? total/unidades : 0};
 }
 
-export { reforma, refDe, totalUnidade, valorConjunto, realDe, chaveItemReforma, orcamentoProdutos, qtdProdutos,
+export { reforma, refDe, totalUnidade, valorConjunto, realDe, chaveItemReforma, destinoDoGasto, orcamentoProdutos, qtdProdutos,
   itensExcluidosReforma, itensIncluidosReforma, itensReforma };

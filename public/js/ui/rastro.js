@@ -1,6 +1,6 @@
 import { rastro } from '../calculo/rastro.js';
 import { chaveItemReforma } from '../calculo/reforma.js';
-import { itensDoEquipamento } from '../calculo/gasto-real.js';
+import { itensDoEquipamentoNaJanela } from '../calculo/gasto-real.js';
 import { $, brl, esc } from '../nucleo/formato.js';
 
 /* ---------- MODAL DE RASTRO ----------
@@ -79,7 +79,7 @@ function pintarRastro(R){
     const {cod, conjunto} = r.buscaAdicionar;
     const jaContam = new Set((r.blocos||[]).flatMap(b=>b.linhas).map(l=>l.flag && l.flag.chave).filter(Boolean));
     const termo = buscaItem.trim().toLowerCase();
-    const candidatos = itensDoEquipamento(cod)
+    const candidatos = itensDoEquipamentoNaJanela(cod)
       .filter(it => !jaContam.has(chaveItemReforma(cod, it.compartimento, it)))
       .filter(it => !termo || it.desc.toLowerCase().includes(termo))
       .sort((a,b)=>b.valor-a.valor).slice(0, 30);
@@ -150,7 +150,7 @@ function pintarRastro(R){
       ${blocoBusca}
       ${(r.premissas||[]).length ? `<div class="ra-bloco ra-prem">
         <div class="ra-bloco-tit">Premissas usadas</div>
-        ${r.premissas.map(p=>`<div class="ra-linha"><div class="ra-rot">${esc(p.rot)}</div>
+        ${r.premissas.map(p=>`<div class="ra-linha"><div class="ra-rot">${esc(p.rot)}${p.sub?`<span class="ra-sub">${esc(p.sub)}</span>`:""}</div>
           <div class="ra-val">${esc(p.val)}</div></div>`).join("")}
       </div>` : ""}
       ${r.nota ? `<div class="hint" style="margin-top:10px">${esc(r.nota)}</div>` : ""}

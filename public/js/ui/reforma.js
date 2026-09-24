@@ -17,7 +17,9 @@ function pintarReforma(){
        extraído em ${new Date(bi.geradoEm).toLocaleString("pt-BR")},
        ${periodosResumo(bi.periodos)}.
        ${bi.truncado ? '<span class="badge b-warn">extração parcial — bateu no teto de segurança, pode faltar linha</span>' : ""}
-       Rode <code>npm run gasto-reforma-bi</code> para atualizar.`
+       O que aparece na grade abaixo é o gasto dessa extração dentro da <b>janela do painel de filtros</b>
+       (período, empresa, próprio, reforma) — mudou o filtro, muda a grade.
+       Rode <code>npm run gasto-reforma-bi -- --inicio=AAAA-MM-DD --fim=AAAA-MM-DD</code> para estender o período.`
     : `Sem extração do ERP ainda — os campos abaixo mostram só o orçamento digitado.
        Rode <code>npm run gasto-reforma-bi -- --inicio=AAAA-MM-DD --fim=AAAA-MM-DD</code> para trazer o gasto real.`;
 
@@ -152,13 +154,16 @@ function fmtDataISO(iso){
   return a ? `${d}/${m}/${a}` : "—";
 }
 
-/** Resumo do(s) período(s) cobertos pela extração — pode ter vindo de várias chamadas com --merge. */
+/** Resumo do(s) período(s) e especialidade(s) cobertos pela extração — pode ter vindo de várias fatias. */
 function periodosResumo(periodos){
   if(!periodos || !periodos.length) return "período desconhecido";
   const inicio = periodos.map(p=>p.inicio).sort()[0];
   const fim = periodos.map(p=>p.fim).sort().at(-1);
-  const faixa = `período ${fmtDataISO(inicio)}–${fmtDataISO(fim)}`;
-  return periodos.length > 1 ? `${faixa} (${periodos.length} extrações somadas)` : faixa;
+  const esps = [...new Set(periodos.map(p=>p.especialidade).filter(Boolean))];
+  const todas = periodos.some(p=>!p.especialidade);
+  const faixa = `período ${fmtDataISO(inicio)}–${fmtDataISO(fim)}` +
+    (todas ? ", todas as especialidades" : esps.length ? `, só ${esps.join(", ")}` : "");
+  return periodos.length > 1 ? `${faixa} (${periodos.length} fatias somadas)` : faixa;
 }
 
 export { pintarReforma };

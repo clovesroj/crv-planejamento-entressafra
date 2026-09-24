@@ -7,11 +7,10 @@ import { codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, d
 import { codigoAtividadeValido, criarAtividade, removerAtividade } from '../calculo/atividade.js';
 import { CFG } from '../dados/cfg.js';
 import { ATIVIDADES_ERP } from '../dados/atividades-erp.js';
-import { catalogoQuadro, previstoDaFuncao } from '../calculo/pessoal.js';
 import { buscarAgrofit, bulaDoProduto } from '../io/agrofit.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
-import { FAT, MO_APOIO, PESSOAL, REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TERC_SUB, TERC_DET, setTERC_DET, TPESS, TRATC, TRAT_ATIVO, TRAT_NOME, TRAT_OBS, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, atividadesLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE, setREF_BUSCA, setREF_AG, setREF_FAM, setREF_FROTA, setREF_PROP,
+import { FAT, MO_APOIO, REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TERC_SUB, TERC_DET, setTERC_DET, TPESS, TRATC, TRAT_ATIVO, TRAT_NOME, TRAT_OBS, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, atividadesLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE, setREF_BUSCA, setREF_AG, setREF_FAM, setREF_FROTA, setREF_PROP,
   setGR_INICIO, setGR_FIM, setGR_EMPRESA, setGR_ESP, setGR_AG, setGR_COMP, setGR_FROTA, setGR_PROP, setGR_REFORMA } from '../nucleo/estado.js';
 import { AGROFIT_BUSCA, DIM_DET, FITO_ABERTO, PLANO_ABERTO, FROTA_ABERTO, FROTA_UN, INS_EDIT, INS_FICHA, MAQ, setAGROFIT_BUSCA, setAPOIO_DET, setDIM_DET, setFROTA_DEST, setFROTA_ORIG, setINS_EDIT, setINS_FICHA } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
@@ -21,7 +20,7 @@ import { alternarFam, alternarUsos, aplicarFamIns, buscaExigeRedesenho, marcarIn
   marcarTratSujo, marcarTratNovo, marcarTratRenomeado, marcarTratRemovido, recolherTodas, salvarIns, salvarTrat, todasRecolhidas } from '../ui/insumos.js';
 import { alternarFrenteLinha, alternarMesLinha } from '../ui/dimensionamento.js';
 import { lerPremissas } from '../ui/premissas.js';
-import { calcularCompleto, leve, render, renderAgrofit, renderApoioMes, renderDimDet, renderEditIns, renderFichaIns, renderRastro, renderRendMensal, renderTercDet } from './ciclo.js';
+import { leve, render, renderAgrofit, renderApoioMes, renderDimDet, renderEditIns, renderFichaIns, renderRastro, renderRendMensal, renderTercDet } from './ciclo.js';
 import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarBuscaItem, filtrarRastro, voltarRastro } from '../ui/rastro.js';
 import { abrirRendMensal, aberto as rendMensalAberto, descartarRascunho, editarRascunho,
   fecharRendMensal, pendencias, salvarRascunho } from '../ui/rendmensal.js';
@@ -197,9 +196,6 @@ document.addEventListener("input",e=>{
   // FAT (aba Mao de Obra) e apoio operacional (Dimensionamento)
   if(t.dataset.fat!==undefined){ const l=FAT[+t.dataset.fat], f=t.dataset.f; if(!l) return;
     l[f] = f==="desc" ? t.value : num(t.value); salvar(); leve(); return; }
-  // quadro nominal do ADM e da oficina (aba Mao de Obra)
-  if(t.dataset.pes!==undefined){ const l=PESSOAL[+t.dataset.pes], f=t.dataset.f; if(!l) return;
-    l[f] = f==="sal" ? num(t.value) : t.value; salvar(); leve(); return; }
   if(t.dataset.moa!==undefined){ const l=MO_APOIO[+t.dataset.moa], f=t.dataset.f; if(!l) return;
     l[f] = f==="frente" ? t.value : num(t.value); salvar(); leve(); return; }
   if(t.dataset.mx!==undefined){ const c=t.dataset.mx;
@@ -272,15 +268,6 @@ document.addEventListener("change",e=>{
   if(t.id==="sel_pes_dept"){ setPES_DEPT(t.value); render(); return; }
   // FAT e apoio operacional: funcao da linha e meses marcados
   if(t.dataset.fatf!==undefined){ const l=FAT[+t.dataset.fatf]; if(l){ l.fcod=t.value; salvar(); render(); } return; }
-  if(t.dataset.pesf!==undefined){ const l=PESSOAL[+t.dataset.pesf]; if(l){
-      l.fcod = t.value;
-      const f = catalogoQuadro(calcularCompleto().QF).funcoes.find(x=>x.fcod===t.value); if(f) l.fnome = f.fnome;
-      salvar(); render(); } return; }
-  if(t.dataset.pesd!==undefined){ const l=PESSOAL[+t.dataset.pesd]; if(l){
-      const [g, dc] = String(t.value).split("|");
-      const d = catalogoQuadro(calcularCompleto().QF).deptos.find(x=>x.grupo===g && x.dcod===dc);
-      l.grupo = g; l.dcod = dc; if(d) l.depto = d.depto;
-      salvar(); render(); } return; }
   if(t.dataset.moaf!==undefined){ const l=MO_APOIO[+t.dataset.moaf]; if(l){ l.fcod=t.value; salvar(); render(); } return; }
   if(t.dataset.fatm!==undefined || t.dataset.moam!==undefined){
     const l = t.dataset.fatm!==undefined ? FAT[+t.dataset.fatm] : MO_APOIO[+t.dataset.moam]; if(!l) return;
@@ -774,9 +761,6 @@ document.addEventListener("click",e=>{
   const t=e.target;
   if(t.dataset.rm!==undefined){ ESPOR.splice(+t.dataset.rm,1); salvar(); render(); return; }
   if(t.dataset.fatrm!==undefined){ FAT.splice(+t.dataset.fatrm,1); salvar(); render(); return; }
-  if(t.dataset.pesrm!==undefined){ const l=PESSOAL[+t.dataset.pesrm]; if(!l) return;
-    if(!confirm(`Excluir ${l.nome || "este funcionário"}${l.mat?" (matrícula "+l.mat+")":""} do quadro?`)) return;
-    PESSOAL.splice(+t.dataset.pesrm,1); salvar(); render(); return; }
   if(t.dataset.moarm!==undefined){ MO_APOIO.splice(+t.dataset.moarm,1); salvar(); render(); return; }
   if(t.dataset.admrm!==undefined){ const l=admLista()[+t.dataset.admrm];
     if(!confirm(`Remover "${l.desc}" dos custos administrativos?`)) return;
@@ -841,28 +825,6 @@ $("#btn_fat_add").onclick=()=>{
 $("#btn_moa_add").onclick=()=>{
   MO_APOIO.push({fcod:FUNCAO_PADRAO(), qtd:1, frente:"", m:Array(NM).fill(1)});
   salvar(); render();
-};
-
-/* Lancamento do quadro nominal: matricula, nome, departamento, funcao e
-   salario. Departamento e funcao sao campos de consulta (datalist): aceitam o
-   codigo digitado ou o "codigo" que a lista devolve. Salario em branco assume
-   o salario medio previsto da funcao — e o que a controladoria orcou para a
-   vaga; a pessoa ajusta depois na linha. */
-$("#btn_pessoal_add").onclick=()=>{
-  const QF = calcularCompleto().QF;
-  const cat = catalogoQuadro(QF);
-  const cod = v => String(v||"").trim().split(/[\s—·|]/)[0];
-  const nome = $("#in_pes_nome").value.trim();
-  const d = cat.deptos.find(x=>x.dcod===cod($("#in_pes_dep").value));
-  const f = cat.funcoes.find(x=>x.fcod===cod($("#in_pes_fun").value));
-  if(!nome){ alert("Informe o nome do funcionário."); return; }
-  if(!d){ alert("Escolha o departamento na lista — digite o código ou o nome e selecione."); return; }
-  if(!f){ alert("Escolha a função na lista — digite o código ou o cargo e selecione."); return; }
-  const salDigitado = num($("#in_pes_sal").value);
-  PESSOAL.push({mat: $("#in_pes_mat").value.trim(), nome, grupo: d.grupo, dcod: d.dcod, depto: d.depto,
-                fcod: f.fcod, fnome: f.fnome, sal: salDigitado || +previstoDaFuncao(QF, f.fcod).sal.toFixed(2)});
-  ["#in_pes_mat","#in_pes_nome","#in_pes_sal"].forEach(id=>{ $(id).value=""; });
-  salvar(); render(); $("#in_pes_mat").focus();
 };
 
 $("#btn_pes_limpar").onclick=()=>{ setPES_GRUPO("todos"); setPES_DEPT("todos"); render(); };

@@ -237,17 +237,19 @@ async function api(req, res, rota) {
     const d = await store.ler();
     return json(res, 200, {
       armazenamento: store.tipo, duravel: store.duravel,
-      existe: !!d, data: d ? d.data : {}, updated_at: d ? d.updated_at : null,
+      existe: !!d, data: d ? perms.semRetiradas(d.data) : {}, updated_at: d ? d.updated_at : null,
     });
   }
 
   // PATCH e POST mesclam; POST existe porque navigator.sendBeacon só faz POST, e
   // é o único envio que sobrevive ao fechamento da aba.
   if (req.method === 'PATCH' || req.method === 'POST' || req.method === 'PUT') {
-    const corpo = await lerCorpo(req);
-    if (!corpo || typeof corpo !== 'object' || Array.isArray(corpo)) {
+    const bruto = await lerCorpo(req);
+    if (!bruto || typeof bruto !== 'object' || Array.isArray(bruto)) {
       throw erroHTTP(400, 'esperado um objeto JSON');
     }
+    // chave retirada do plano (ex.: o quadro nominal) não grava, nem para o admin
+    const corpo = perms.semRetiradas(bruto);
     const perm = await perms.permissoesDe(sessao, store);
 
     // Insumos, Atividades e Tratamentos não mandam mais o array/objeto
@@ -266,7 +268,7 @@ async function api(req, res, rota) {
           doc = r.doc; ignorados = r.ignorados;
         }
         if (!Object.keys(doc).some(k => k !== 'v')) return null;
-        const novo = { ...(atual || {}), ...doc };
+        const novo = perms.semRetiradas({ ...(atual || {}), ...doc });
         // P chega parcial (só os campos mudados): funde no P gravado
         if (doc.P && typeof doc.P === 'object') novo.P = { ...((atual || {}).P || {}), ...doc.P };
         return novo;

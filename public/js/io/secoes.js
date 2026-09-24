@@ -19,6 +19,7 @@ import { comps } from '../ui/custos.js';
 import { validar } from '../ui/validacao.js';
 import { custoPorOperacao } from '../calculo/custo-operacao.js';
 import { baseEtapa, custoUnit, rotuloBase } from '../calculo/base-fisica.js';
+import { dieselOrcado } from '../calculo/diesel.js';
 import { codExibir } from '../nucleo/codigo-atividade.js';
 
 /* ================== SEÇÕES DE RELATÓRIO ==================
@@ -164,7 +165,8 @@ const premissas = R => sec("Premissas","Premissas do plano",["Premissa","Valor",
   ["Dias de operação por semana", fmt(P.diasOper),"Fator de escala do efetivo"],
   ["Dias trabalhados por colaborador", fmt(P.diasTrab),"Fator de escala do efetivo"],
   ["Horas por turno", fmt(P.hTurno)+" h","Escala"],
-  ["Preço base do diesel", brl(P.diesel,2)+"/L","Custo de combustível"],
+  ["Diesel orçado — preço médio ponderado", brl(dieselOrcado(R.CB).medio,2)+"/L","Custo de combustível (preço de cada mês da aba Combustível, pelos litros)"],
+  ["Preço base do diesel", brl(P.diesel,2)+"/L","Vale no mês sem preço próprio na aba Combustível"],
   ["Administração", brl(R.ADM.mensal)+"/mês","Conta EST-01, aba Custos Administrativos"],
   ["Imobilizado da frota", brl(P.imob),"Depreciação"],
   ["Depreciação anual", fmt(P.dep,0)+"%","Custo fixo"],

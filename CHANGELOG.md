@@ -1,5 +1,51 @@
 # Histórico de mudanças
 
+## 2.45.2 — 2026-09-24 · Sem nomes de pessoas: sai a página "Funcionários do ADM e da oficina"
+
+O plano projeta gente de forma impessoal — por função, departamento e mês —, e
+não por quem ocupa cada vaga. Sai da aba Mão de Obra a página **"Funcionários
+do ADM e da oficina"** (árvore com matrícula, nome e salário por pessoa), com o
+lançamento, a exclusão e o que ela gravava no plano (a chave `PESSOAL`).
+
+- **O que já tinha sido lançado é apagado do banco** no próximo deploy: o
+  `schema.sql`, que o servidor roda ao subir, remove a chave do documento do
+  plano. Não toca em mais nada nem muda a data da última gravação, e rodar de
+  novo não faz nada.
+- **A chave não volta**: o servidor descarta `PESSOAL` em toda gravação (até do
+  administrador, e de um navegador que ainda esteja com a versão antiga aberta)
+  e não a devolve na leitura (`CHAVES_RETIRADAS`, em `server/permissoes.js`).
+- Continua tudo o que é por função e departamento: o bloco "Quadro ADM e
+  oficina" (previsto × realizado no ano anterior), o Resumo de Pessoas e o
+  cadastro-base de funcionários, que só guarda a contagem por cargo.
+
+Nenhum número muda: o custo do quadro sempre veio do previsto da controladoria,
+e a página nominal não entrava nele. 54 invariantes sem falha; 29 abas, 312
+rastros e 138 relatórios sem erro. SQL conferido no PGlite: a chave sai, o
+resto do documento fica, e a segunda execução não altera nada.
+
+## 2.45.1 — 2026-09-24 · Diesel orçado nas premissas do rastro, e o pico de mobilização explicado
+
+**Diesel.** O quadro "Premissas usadas" do rastro mostrava "Preço base do
+diesel R$ 6,20/L" — o campo da aba Premissas, que só vale no mês sem preço
+próprio. O custo de combustível usa o preço de cada mês da aba Combustível.
+Agora a premissa é **"Diesel orçado (aba Combustível)"**: o preço médio
+ponderado pelos litros de cada mês (o mesmo número do cartão "Preço médio
+ponderado" da aba Combustível), com a faixa de preços dos meses logo abaixo.
+A conta mora num lugar só (`dieselOrcado`, em `calculo/diesel.js`), usada pelo
+rastro, pela aba Combustível e pelo relatório de premissas — que passa a trazer
+o diesel orçado e, separado, o preço base com o que ele faz.
+
+**Pico de mobilização.** O rastro do cartão agora diz o que o número é: o maior
+número de pessoas trabalhando ao mesmo tempo num mês — operacional das
+atividades + ADM agrícola + oficina; o FAT fica fora, porque não opera. Mostra
+o mês de pico e a divisão por quadro, a série mês a mês (com quantos estão no
+FAT à parte) e, no mês de pico, de quais departamentos vem a gente. As
+premissas do rastro passam a ser as de pessoas (dias de operação e trabalhados,
+rodízio, horas por turno, quadro ADM/oficina), no lugar das de custo.
+
+Nenhum número de custo muda. 54 invariantes sem falha; 29 abas, 312 rastros e
+138 relatórios sem erro.
+
 ## 2.45.0 — 2026-09-23 · Resumo de Pessoas: filtro por quadro e departamento
 
 No topo do Resumo de Pessoas, dois filtros:

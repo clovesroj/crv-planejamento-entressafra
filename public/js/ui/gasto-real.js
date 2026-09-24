@@ -1,6 +1,7 @@
-import { agruparPor, filtrarLancamentos, opcoesDe } from '../calculo/gasto-real.js';
+import { agruparPor, coberturaBI, faltaExtrair, filtrarLancamentos, janelaGastoReal, janelaVazia, opcoesDe } from '../calculo/gasto-real.js';
 import { GR_INICIO, GR_FIM, GR_EMPRESA, GR_ESP, GR_AG, GR_COMP, GR_FROTA, GR_PROP, GR_REFORMA } from '../nucleo/estado.js';
 import { $, brl, esc, fmt } from '../nucleo/formato.js';
+import { destinoDoGasto } from '../calculo/reforma.js';
 import { th } from './componentes.js';
 
 /* ---------- ANÁLISE DO GASTO REAL (ERP) ----------
@@ -28,6 +29,80 @@ function popularSelect(id, valores, atual, rotuloTodos) {
   sel.value = atual;
 }
 
+/** "2026-04-01" -> "01/04/2026" */
+function dataBR(iso) {
+  const [a, m, d] = String(iso || "").split("-");
+  return a ? `${d}/${m}/${a}` : "—";
+}
+
+/* O aviso que faltava: com um período maior do que o extraído, o filtro
+   parece quebrado -- ele filtra certo, só não existe lançamento fora do que
+   a extração trouxe. Aqui a tela diz o que o arquivo cobre, o que foi pedido
+   e o comando que traz o resto, já com as datas digitadas. */
+function pintarAviso(nFiltrado) {
+  const el = $("#gr_aviso");
+  if (!el) return;
+  const c = coberturaBI(), j = janelaGastoReal(), falta = faltaExtrair(j);
+  const esp = c.todasEspecialidades ? "todas as especialidades"
+    : c.especialidades.length ? c.especialidades.join(", ") : "especialidade não registrada";
+  const cobertura = c.inicio
+    ? `O arquivo extraído do ERP cobre <b>${dataBR(c.inicio)} a ${dataBR(c.fim)}</b> (${esc(esp)}), ${fmt(c.lancamentos)} lançamentos.`
+    : "Nenhuma extração do ERP no arquivo ainda.";
+  const janela = janelaVazia(j)
+    ? "Sem filtro: a tela usa tudo o que foi extraído."
+    : `Janela em vigor: <b>${j.inicio ? dataBR(j.inicio) : "início livre"} a ${j.fim ? dataBR(j.fim) : "fim livre"}</b>` +
+      (j.empresa ? ` · ${esc(j.empresa)}` : "") +
+      (j.prop ? ` · ${j.prop === "proprio" ? "só próprios" : "só de terceiros"}` : "") +
+      (j.reforma ? ` · Reforma=${esc(j.reforma)}` : "") +
+      ` — vale também para o gasto real de cada conjunto na grade abaixo, para os produtos do orçamento e para o rastro.`;
+  const aviso = falta
+    ? `<br><span class="badge b-warn">período pedido além do extraído</span> Você pediu
+       ${falta.antes ? `de ${dataBR(falta.inicio)} ` : ""}${falta.depois ? `até ${dataBR(falta.fim)}` : ""} —
+       fora de ${dataBR(c.inicio)}–${dataBR(c.fim)} não existe lançamento no arquivo, então o filtro não tem o que trazer.
+       Rode <code>${esc(falta.comando)}</code> para extrair o período inteiro e recarregue a página.`
+    : (nFiltrado === 0 && !janelaVazia(j)
+        ? `<br><span class="badge b-warn">nada nesta janela</span> O período está dentro do extraído, mas nenhum
+           lançamento bate com os outros filtros.` : "");
+  el.innerHTML = cobertura + " " + janela + aviso;
+}
+
+/* O elo que faltava entre a analise e a grade: o filtro traz R$ X, mas so
+   parte disso PODE aparecer numa celula de conjunto. Aqui a tela mostra quanto
+   caiu em cada destino e o que fazer com o resto -- era a pergunta "mudei o
+   periodo e a tabela de baixo nao encheu". */
+function pintarDestino(lista) {
+  const tEl = $("#t_gr_destino");
+  if (!tEl) return;
+  const D = destinoDoGasto(lista);
+  const pct = v => D.total ? fmt(v / D.total * 100, 1) + "%" : "—";
+  const linha = (rot, o, detalhe) => `<tr><td>${rot}</td><td class="num calc">${fmt(o.n)}</td>
+    <td class="num tot">${brl(o.valor)}</td><td class="num calc">${pct(o.valor)}</td>
+    <td class="calc">${detalhe}</td></tr>`;
+  const lista10 = (arr, rotulo) => arr.length
+    ? arr.slice(0, 6).map(([k, v]) => `${esc(k)} (${brl(v)})`).join(" · ") +
+      (arr.length > 6 ? ` … +${arr.length - 6} ${rotulo}` : "")
+    : "—";
+  tEl.innerHTML = th([["Destino"], ["Lançamentos", 1], ["Total R$", 1], ["% do filtrado", 1], ["O que é / o que fazer"]]) + "<tbody>" +
+    linha("Aparece na grade", D.naGrade, "equipamento cadastrado, marcado <b>vai reformar</b> e com coluna para a tag") +
+    linha("Equipamento não vai reformar", D.semDestino,
+      "a tag tem coluna, mas a unidade está marcada para rodar — mude o destino em <b>Manutenção de Frota</b>") +
+    linha("Tag sem coluna na família", D.semColuna,
+      D.semColuna.n ? "mapeie em <code>dados/reforma-bi-map.js</code>: " + lista10(D.semColuna.tags, "tags") : "—") +
+    (D.repetido.n ? linha("Repetido no extrato", D.repetido,
+      "lançamento idêntico duas vezes na extração — a grade conta uma vez só") : "") +
+    linha("Frota fora do cadastro", D.semCadastro,
+      D.semCadastro.n ? "código que não existe em <code>dados/frota-base.js</code> (normalmente outra unidade): " +
+        lista10(D.semCadastro.frotas, "códigos") : "—") +
+    `<tr><td class="tot">TOTAL FILTRADO</td><td class="num tot">${fmt(lista.length)}</td>
+     <td class="num tot">${brl(D.total)}</td><td class="num tot">${D.total ? "100,0%" : "—"}</td><td></td></tr></tbody>`;
+  const dica = $("#gr_destino_dica");
+  if (dica) dica.innerHTML = D.total
+    ? `A análise acima conta <b>todo</b> lançamento do filtro; a grade de conjuntos só consegue mostrar o que tem
+       equipamento cadastrado, destino <b>vai reformar</b> e coluna para a tag do ERP. Esta tabela diz quanto de cada
+       real filtrado chega lá — e o que falta para o resto chegar.`
+    : "";
+}
+
 function pintarGastoReal() {
   const tEl = $("#t_gr_esp");
   if (!tEl) return; // painel não está nesta versão do index.html
@@ -47,6 +122,9 @@ function pintarGastoReal() {
     esp: GR_ESP || null, ag: GR_AG || null, compartimento: GR_COMP || null,
     frota: GR_FROTA || null, prop: GR_PROP || null, reforma: GR_REFORMA || null,
   });
+
+  pintarAviso(lista.length);
+  pintarDestino(lista);
 
   const porEsp = agruparPor(lista, "esp");
   const total = porEsp.reduce((s, e) => s + e.total, 0) || 1;

@@ -2,6 +2,7 @@ import { MESES, NM } from '../nucleo/calendario.js';
 import { DIESEL_MES, P } from '../nucleo/estado.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
 import { consumoDe, velPadrao } from '../calculo/consumo.js';
+import { dieselOrcado } from '../calculo/diesel.js';
 import { barras, serieDoPeriodo, kpi, somaSel, tdMeses, th, thMeses } from './componentes.js';
 
 /* ---------- COMBUSTÍVEL ---------- */
@@ -15,7 +16,7 @@ function pintarCombustivel(R){
   $("#k_comb").innerHTML =
     kpi("Volume de diesel necessário","",fmt(litrosT)+" L", fmt(litrosT/NM)+" L/mês em média","diesel:total") +
     kpi("Custo de diesel","t",brl(custoT),"conta 200-110 · Combustível","nat:diesel") +
-    kpi("Preço médio ponderado","g",brl(litrosT>0?custoT/litrosT:P.diesel,2)+"/L","ponderado pelo volume mensal","diesel:total") +
+    kpi("Preço médio ponderado","g",brl(dieselOrcado(C).medio,2)+"/L","ponderado pelo volume mensal","diesel:total") +
     kpi("Mês de pico","a",litrosT>0?MESES[iPico]:"—", litrosT>0?fmt(litrosMes[iPico])+" L":"sem volume lançado","diesel:total");
 
   const SEL = R.SEL;
