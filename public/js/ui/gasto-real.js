@@ -1,4 +1,4 @@
-import { agruparPor, coberturaBI, faltaExtrair, filtrarLancamentos, janelaGastoReal, janelaVazia, opcoesDe } from '../calculo/gasto-real.js';
+import { agruparPor, coberturaBI, faltaExtrair, filtrarLancamentos, janelaGastoReal, janelaVazia, opcoesDe, setDadosBI } from '../calculo/gasto-real.js';
 import { GR_INICIO, GR_FIM, GR_EMPRESA, GR_ESP, GR_AG, GR_COMP, GR_FROTA, GR_PROP, GR_REFORMA } from '../nucleo/estado.js';
 import { $, brl, esc, fmt } from '../nucleo/formato.js';
 import { destinoDoGasto } from '../calculo/reforma.js';
@@ -128,7 +128,7 @@ function pintarGastoReal() {
 
   const porEsp = agruparPor(lista, "esp");
   const total = porEsp.reduce((s, e) => s + e.total, 0) || 1;
-  tEl.innerHTML = th([["Especialidade"], ["Lançamentos", 1], ["Total R$", 1], ["% do filtrado", 1]]) + "<tbody>" +
+  tEl.innerHTML = th([[`Especialidade`], ["Lançamentos", 1], ["Total R$", 1], ["% do filtrado", 1]]) + "<tbody>" +
     (porEsp.length ? porEsp.map(e => `<tr><td>${esc(e.chave)}</td><td class="num calc">${fmt(e.qtd)}</td>
       <td class="num tot">${brl(e.total)}</td><td class="num calc">${fmt(e.total / total * 100, 1)}%</td></tr>`).join("")
       : `<tr><td colspan="4" class="calc">Nenhum lançamento com esse filtro.</td></tr>`) +
@@ -137,4 +137,67 @@ function pintarGastoReal() {
      <td class="num tot">${porEsp.length ? "100,0%" : "—"}</td></tr></tbody>`;
 }
 
-export { pintarGastoReal };
+/* ─── Busca ao vivo do Power BI ─────────────────────────────────────────────
+   Abre um EventSource para /api/reforma/gasto-real (Server-Sent Events).
+   O servidor envia eventos de progresso enquanto o Playwright roda, e ao
+   final um evento "resultado" com os dados ou "erro" com a mensagem. */
+
+let _buscaAtiva = null; // EventSource em andamento
+
+/**
+ * Inicia (ou aborta e reinicia) uma busca ao vivo do Power BI.
+ * Exibe loading animado no painel; ao terminar, carrega os dados e re-renderiza.
+ * @param {Function} renderFn - função render() do ciclo principal
+ */
+function buscarDoBI(renderFn) {
+  // Cancela busca anterior se ainda estiver em andamento
+  if (_buscaAtiva) { _buscaAtiva.close(); _buscaAtiva = null; }
+
+  const inicio = GR_INICIO || null;
+  const fim    = GR_FIM    || null;
+  if (!inicio || !fim) {
+    alert('Preencha os campos De e Até antes de buscar.');
+    return;
+  }
+
+  const overlay = $('#gr_loading');
+  const msgEl   = $('#gr_loading_msg');
+  if (overlay) overlay.hidden = false;
+  if (msgEl)   msgEl.textContent = 'Solicitando extração ao servidor…';
+
+  const params = new URLSearchParams({ inicio, fim });
+  if (GR_EMPRESA) params.set('empresas', GR_EMPRESA);
+  if (GR_ESP) params.set('especialidades', GR_ESP);
+
+  const es = new EventSource(`/api/reforma/gasto-real?${params}`);
+  _buscaAtiva = es;
+
+  es.addEventListener('progresso', e => {
+    const d = JSON.parse(e.data);
+    if (msgEl) msgEl.textContent = d.msg || 'Processando…';
+  });
+
+  es.addEventListener('resultado', e => {
+    es.close(); _buscaAtiva = null;
+    if (overlay) overlay.hidden = true;
+    setDadosBI(JSON.parse(e.data));
+    if (renderFn) renderFn();
+  });
+
+  es.addEventListener('erro', e => {
+    es.close(); _buscaAtiva = null;
+    if (overlay) overlay.hidden = true;
+    const d = JSON.parse(e.data);
+    alert(`Falha ao buscar do Power BI:\n${d.msg || 'erro desconhecido'}`);
+  });
+
+  es.onerror = () => {
+    if (es.readyState === EventSource.CLOSED) return;
+    es.close(); _buscaAtiva = null;
+    if (overlay) overlay.hidden = true;
+    alert('Conexão com o servidor perdida. O servidor pode ter reiniciado por limite de memória.');
+  };
+}
+
+export { pintarGastoReal, buscarDoBI };
+

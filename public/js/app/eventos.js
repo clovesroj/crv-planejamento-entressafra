@@ -22,6 +22,7 @@ import { alternarFam, alternarUsos, aplicarFamIns, buscaExigeRedesenho, marcarIn
 import { alternarFrenteLinha, alternarMesLinha } from '../ui/dimensionamento.js';
 import { lerPremissas } from '../ui/premissas.js';
 import { leve, render, renderAgrofit, renderApoioMes, renderDimDet, renderEditIns, renderFichaIns, renderRastro, renderRendMensal, renderTercDet } from './ciclo.js';
+import { buscarDoBI } from '../ui/gasto-real.js';
 import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarBuscaItem, filtrarRastro, voltarRastro } from '../ui/rastro.js';
 import { abrirRendMensal, aberto as rendMensalAberto, descartarRascunho, editarRascunho,
   fecharRendMensal, pendencias, salvarRascunho } from '../ui/rendmensal.js';
@@ -49,6 +50,11 @@ document.addEventListener("input",e=>{
   // busca de "incluir outro lançamento" dentro do rastro de um conjunto —
   // so filtra a lista do proprio modal, nao mexe no plano nem salva
   if(t.dataset.flagBusca!==undefined){ filtrarBuscaItem(t.value); return; }
+  // filtro de período do gasto real (ERP) — input type=date: o Chrome não
+  // dispara "change" ao selecionar pelo calendário nativo, só ao sair do
+  // campo; ouvir "input" garante reação imediata em qualquer forma de edição.
+  if(t.id==="gr_inicio"){ setGR_INICIO(t.value); render(); return; }
+  if(t.id==="gr_fim")   { setGR_FIM(t.value);    render(); return; }
   if(t.id&&t.id.startsWith("p_")){ lerPremissas(); salvar(); render(); return; }
   if(t.dataset.real!==undefined){ const c=t.dataset.real, i=+t.dataset.m;
     REAL[c] = REAL[c] || Array(NM).fill("");
@@ -539,6 +545,8 @@ function marcarPendencia(){
 }
 
 document.addEventListener("click",e=>{
+  // botão "Buscar dados do ERP" no painel de análise do gasto real da Reforma
+  if(e.target.id==="btn_gr_buscar"){ buscarDoBI(render); return; }
   // "incluir outro lançamento" na busca dentro do rastro de um conjunto —
   // soma no orcamento (reformaIncl) e ja tira da exclusao, se estivesse la
   // (ver itensReforma() em calculo/reforma.js pra regra de nao contar 2x)

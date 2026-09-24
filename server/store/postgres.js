@@ -238,6 +238,70 @@ function storePostgres(url) {
       await garantirTabela();
       await pool.query('UPDATE usuarios SET papel = $2 WHERE id = $1', [id, papel]);
     },
+
+    // ---------- gasto real do ERP (Reforma de Frota) ----------
+    // gravarGastoReformaBi: recebe porFrota do script e insere em lote,
+    // ignorando duplicatas (ON CONFLICT DO NOTHING = deduplicação automática).
+    async gravarGastoReformaBi(porFrota) {
+      await garantirTabela();
+      const itens = [];
+      for (const [frota, comps] of Object.entries(porFrota || {})) {
+        for (const [compartimento, dado] of Object.entries(comps)) {
+          for (const it of (dado.itens || [])) {
+            itens.push([frota, compartimento, it.desc || '', Number(it.valor) || 0,
+                        it.data, it.empresa || null, it.reforma || null]);
+          }
+        }
+      }
+      if (!itens.length) return 0;
+      let inseridos = 0;
+      const LOTE = 500; // evita estourar o limite de parâmetros do pg
+      for (let i = 0; i < itens.length; i += LOTE) {
+        const lote = itens.slice(i, i + LOTE);
+        const vals = lote.map((_, j) => {
+          const b = j * 7;
+          return `($${b+1},$${b+2},$${b+3},$${b+4},$${b+5},$${b+6},$${b+7})`;
+        }).join(',');
+        const r = await pool.query(
+          `INSERT INTO gasto_reforma_bi
+             (frota, compartimento, descricao, valor, data, empresa, reforma)
+           VALUES ${vals}
+           ON CONFLICT ON CONSTRAINT gasto_reforma_bi_uniq DO NOTHING`,
+          lote.flat());
+        inseridos += r.rowCount;
+      }
+      return inseridos;
+    },
+
+    // lerGastoReformaBi: devolve porFrota no mesmo formato que GASTO_REFORMA_BI
+    async lerGastoReformaBi({ inicio, fim, empresas = [], frotas = [] } = {}) {
+      await garantirTabela();
+      const params = [];
+      const conds = [];
+      if (inicio) { params.push(inicio); conds.push(`data >= $${params.length}`); }
+      if (fim)    { params.push(fim);    conds.push(`data <= $${params.length}`); }
+      if (empresas.length) { params.push(empresas); conds.push(`empresa = ANY($${params.length})`); }
+      if (frotas.length)   { params.push(frotas);   conds.push(`frota = ANY($${params.length})`); }
+      const where = conds.length ? 'WHERE ' + conds.join(' AND ') : '';
+      const r = await pool.query(
+        `SELECT frota, compartimento, descricao, valor::float, data::text, empresa, reforma
+           FROM gasto_reforma_bi ${where} ORDER BY data`,
+        params);
+      const porFrota = {};
+      for (const row of r.rows) {
+        const { frota, compartimento, descricao, valor, data, empresa, reforma } = row;
+        porFrota[frota] = porFrota[frota] || {};
+        const cel = (porFrota[frota][compartimento] =
+          porFrota[frota][compartimento] || { total: 0, itens: [] });
+        cel.total += valor;
+        cel.itens.push({ desc: descricao, valor, data, empresa, reforma });
+      }
+      const datas = r.rows.map(x => x.data).sort();
+      const periodos = datas.length
+        ? [{ inicio: datas[0], fim: datas.at(-1), especialidade: null }] : [];
+      return { porFrota, periodos, geradoEm: new Date().toISOString(),
+               empresas: empresas.length ? empresas : 'todas', truncado: false };
+    },
   };
 }
 

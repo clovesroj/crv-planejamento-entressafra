@@ -88,3 +88,14 @@
   color-scheme:dark;
 }
 
+/* ─── Spinner de loading (busca ao vivo do Power BI) ─── */
+@keyframes gr-spin { to { transform:rotate(360deg); } }
+.gr-spinner {
+  display:inline-block;
+  width:28px; height:28px;
+  border:3px solid var(--border,#dde3ec);
+  border-top-color:var(--leaf,#2A57A0);
+  border-radius:50%;
+  flex-shrink:0;
+  animation:gr-spin .8s linear infinite;
+}

@@ -22,9 +22,11 @@ const auth = require('./auth');
 const perms = require('./permissoes');
 const itens = require('./mesclaItens');
 const agrofit = require('./agrofit');
+const biReforma = require('./bi-reforma');
 
 const usuarioPublico = u => u && { id: u.id, login: u.login, nome: u.nome, papel: u.papel,
   ativo: u.ativo, criado_em: u.criado_em, ultimo_acesso: u.ultimo_acesso };
+
 
 // usuário da sessão + o que o perfil dele pode editar (para a interface travar as abas)
 async function usuarioComPermissoes(u) {
@@ -226,6 +228,48 @@ async function api(req, res, rota) {
       page: url.searchParams.get('page'),
     });
     return json(res, 200, { produtos: dados });
+  }
+
+  if (rota === '/api/reforma/gasto-real') {
+    if (req.method !== 'GET') throw erroHTTP(405, 'método não permitido');
+    await auth.exigirSessao(req, store);
+    const url = new URL(req.url, 'http://x');
+    const inicio = (url.searchParams.get('inicio') || '').trim();
+    const fim    = (url.searchParams.get('fim')    || '').trim();
+    if (!inicio || !fim) throw erroHTTP(400, 'parâmetros inicio e fim obrigatórios (AAAA-MM-DD)');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(inicio) || !/^\d{4}-\d{2}-\d{2}$/.test(fim))
+      throw erroHTTP(400, 'formato de data inválido — use AAAA-MM-DD');
+    if (fim < inicio) throw erroHTTP(400, 'fim anterior ao inicio');
+    const especialidades = (url.searchParams.get('especialidades') || '')
+      .split(',').map(s => s.trim()).filter(Boolean);
+    const empresas = (url.searchParams.get('empresas') || '')
+      .split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+
+    // Server-Sent Events: envia progresso em tempo real enquanto o Playwright roda.
+    // O cliente fecha quando recebe o evento "resultado" ou "erro".
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no', // Nginx/Render: não bufferiza SSE
+    });
+    const enviar = (evento, dados) =>
+      res.write(`event: ${evento}\ndata: ${JSON.stringify(dados)}\n\n`);
+
+    try {
+      enviar('progresso', { msg: 'Processando no servidor...' });
+      const dados = await biReforma.extrairGastoReforma({
+        inicio, fim, especialidades, empresas,
+        onProgresso: msg => enviar('progresso', { msg }),
+      });
+      enviar('resultado', dados);
+    } catch (e) {
+      console.error('[bi-reforma] Falha na extração:', e.message);
+      enviar('erro', { msg: e.message || 'falha ao extrair do Power BI' });
+    } finally {
+      res.end();
+    }
+    return;
   }
 
   if (rota !== '/api/plano') throw erroHTTP(404, 'rota inexistente');

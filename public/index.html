@@ -502,6 +502,19 @@
           <option value="SIM">Só marcado Reforma=SIM</option>
           <option value="NAO">Só marcado Reforma=NÃO</option>
         </select></div>
+      <div style="align-self:flex-end">
+        <button class="btn p" id="btn_gr_buscar" style="width:100%">🔄 Buscar dados do ERP</button>
+      </div>
+    </div>
+    <!-- Overlay de loading exibido durante a extração via Playwright -->
+    <div id="gr_loading" hidden style="display:flex;align-items:center;gap:14px;
+         background:var(--bg-panel,#f5f7fa);border:1px solid var(--border,#dde3ec);
+         border-radius:8px;padding:18px 22px;margin:10px 0">
+      <span class="gr-spinner"></span>
+      <div>
+        <b>Buscando dados do Power BI…</b><br>
+        <span id="gr_loading_msg" style="font-size:.85em;color:var(--txt-muted,#6b7280)">Abrindo o relatório…</span>
+      </div>
     </div>
     <p id="gr_aviso" class="hint" style="margin:-4px 0 12px"></p>
     <div class="tblwrap"><table id="t_gr_esp"></table></div>
@@ -1430,6 +1443,11 @@
   </div>
   <div class="tblwrap"><table id="t_ctt"></table></div>
 </section>
+
+<!-- ===== PLANEJAMENTO ENTRESSAFRA CTT ===== -->
+<!-- Conteudo todo montado por pintarPlanoCTT() (ui/planejamento-ctt.js) --
+     tela so de leitura, sem campos que precisem existir de antemao no HTML. -->
+<section id="planejamento-ctt"></section>
 
 <!-- ===== PAINEL ===== -->
 <section id="painel">

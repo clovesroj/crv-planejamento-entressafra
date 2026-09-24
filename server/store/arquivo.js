@@ -214,6 +214,45 @@ function storeArquivo() {
       if (u) u.papel = papel;
       await escritaAtomica(arqUsu, dir, doc);
     }),
+
+    // ---------- gasto real do ERP (Reforma de Frota) ----------
+    // Sem banco, grava é no-op (só o Postgres grava de verdade).
+    // Ler lê do arquivo JS estático gerado pelo script, filtrando em memória.
+    async gravarGastoReformaBi() { return 0; },
+    async lerGastoReformaBi({ inicio, fim, empresas = [], frotas = [] } = {}) {
+      // Carrega o módulo ES estático como fallback — funciona só com flag
+      // --input-type=module ou num contexto que suporte dynamic import de ESM.
+      // Na prática, o arquivo.js é só para desenvolvimento local sem banco.
+      let bi;
+      try {
+        const { pathToFileURL } = require('node:url');
+        const mod = await import(
+          pathToFileURL(path.resolve(__dirname, '../../public/js/dados/gasto-reforma-bi.js')).href
+        );
+        bi = mod.GASTO_REFORMA_BI;
+      } catch {
+        return { porFrota: {}, periodos: [], geradoEm: null, empresas: 'todas', truncado: false };
+      }
+      // Filtra os itens em memória
+      const porFrotaFiltrado = {};
+      for (const [frota, comps] of Object.entries(bi.porFrota || {})) {
+        if (frotas.length && !frotas.includes(frota)) continue;
+        for (const [compartimento, dado] of Object.entries(comps)) {
+          const itensFiltrados = (dado.itens || []).filter(it =>
+            (!inicio || it.data >= inicio) &&
+            (!fim    || it.data <= fim) &&
+            (!empresas.length || empresas.includes((it.empresa || '').toUpperCase())));
+          if (!itensFiltrados.length) continue;
+          porFrotaFiltrado[frota] = porFrotaFiltrado[frota] || {};
+          const cel = (porFrotaFiltrado[frota][compartimento] =
+            porFrotaFiltrado[frota][compartimento] || { total: 0, itens: [] });
+          for (const it of itensFiltrados) { cel.total += it.valor; cel.itens.push(it); }
+        }
+      }
+      const ps = bi.periodos || [];
+      return { porFrota: porFrotaFiltrado, periodos: ps,
+               geradoEm: bi.geradoEm || null, empresas: 'todas', truncado: false };
+    },
   };
 }
 
