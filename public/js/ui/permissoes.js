@@ -36,6 +36,7 @@ const VISUAIS = [
   '[data-dimdet]', '[data-ddaba]', '#dd_fechar', '[data-dimmes]', '[data-dimfrente]', '[data-apmes]', '#am_fechar',
   '#btn_export', '#btn_theme',
   '#sel_qf_mes', '#sel_qf_grupo', '#sel_pes_grupo', '#sel_pes_dept', '#btn_pes_limpar',
+  '#sel_cc_grupo', '#sel_cc_cls', '#sel_cc_cd', '#btn_cc_limpar', '[data-ccgrupo]', '#chk_dem_falta',
 ].join(',');
 
 const CONTROLES = 'input, select, textarea, button';

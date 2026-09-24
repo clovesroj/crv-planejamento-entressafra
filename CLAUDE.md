@@ -196,6 +196,7 @@ h(canon(R)) + ':' + canon(R).length;
 | Layout ou colunas de uma aba | `public/js/ui/<aba>.js` |
 | Alinhamento de coluna nova | nada de CSS: o flag `1` em `th([...])` marca a coluna numérica, e o cabeçalho cai sozinho no eixo do dado (`th`/`th.num` em `componentes.css`). Flag errado agora aparece na tela, não fica escondido atrás de um cabeçalho centralizado |
 | Frota ou efetivo mostrado numa tela | `frotaDaAtividade()` / `pessoasDaAtividade()` (`calculo/atividade.js`) — **`pico` é o que tem de existir, `media` é o que rateia custo**; nunca leia `r.frotaR`/`r.efetivo` direto para mostrar |
+| Quantidade de um ITEM (máquina/implemento) somando as atividades | `picoFrotaPorItem()` (`calculo/atividade.js`), que alimenta `crmFrotaL[].qtd` — é o pico de cada atividade somado por item; somar `p.frotaR` dá a média e faz o Resumo de Frota discordar do Dimensionamento |
 | Jornada/disponibilidade de uma atividade | `premissasDe(a)` (`calculo/atividade.js`) — transporte tem as suas (`hDiaTr`, `dispTr`); não leia `P.hdia`/`P.disp` direto |
 | Ordem de uma lista de atividades | `ordenarPorEtapa()` (`ui/componentes.js`) — ordem agronômica, estável dentro da etapa |
 | Tabela mensal nova | `clsMes(i)` no `<th>` e no `<td>` de cada mês, e `somaSel()`/`maxSel()` no total — senão o filtro de período desalinha a tabela e o total não fecha |

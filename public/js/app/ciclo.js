@@ -15,6 +15,7 @@ import { pintarCapa } from '../ui/capa.js';
 import { pintarCombustivel } from '../ui/combustivel.js';
 import { pintarConfig } from '../ui/configuracoes.js';
 import { pintarContas } from '../ui/contas.js';
+import { pintarDemandas } from '../ui/demandas.js';
 import { pintarCustos } from '../ui/custos.js';
 import { pintarBasesPremissas } from '../ui/premissas.js';
 import { pintarDim } from '../ui/dimensionamento.js';
@@ -26,6 +27,7 @@ import { pintarIrrig } from '../ui/irrigacao.js';
 import { pintarMDO } from '../ui/mao-de-obra.js';
 import { pintarPainel } from '../ui/painel.js';
 import { pintarPessoas } from '../ui/pessoas.js';
+import { pintarQuadroCTT } from '../ui/quadro-ctt.js';
 import { pintarPlano, pintarTercDet } from '../ui/plano.js';
 import { pintarRastro } from '../ui/rastro.js';
 import { pintarRendMensal } from '../ui/rendmensal.js';
@@ -52,7 +54,7 @@ const TABELAS_REORDENAVEIS = [
   ['#t_ref_resumo',0], ['#t_tp',0],
   ['#t_ins',0], ['#t_comp',0], ['#t_trat',0], ['#t_mat',0],
   ['#t_forn',0], ['#t_forn_qual',0], ['#t_arr',0], ['#t_adm',0],
-  ['#t_esp',0], ['#t_contas',0], ['#t_tarifa',0], ['#t_terc',0], ['#t_comb_maq',0],
+  ['#t_esp',0], ['#t_contas',0], ['#t_dem_ins',0], ['#t_dem_mat',0], ['#t_tarifa',0], ['#t_terc',0], ['#t_comb_maq',0],
   ['#t_rf_oper',0], ['#t_rf_tpess',0],
   ['#t_pes_dept',0], ['#t_pes_fun',0], ['#t_pes_det',0],
   ['#t_acomp_exc',0], ['#t_crit_mes',0], ['#t_meta_agricola',0], ['#t_meta_logistica',0],
@@ -150,8 +152,8 @@ function render(){
     b.classList.toggle("on", b.dataset.periodo===PERIODO_SEL));
   esconderMeses(R.SEL.meses);
   pintarCapa(R); pintarMDO(R); pintarPlano(R); pintarDim(R); pintarTransp(R); pintarApoio(R); pintarCRM(R); pintarReforma(); pintarTPess(R);
-  pintarIrrig(R); pintarInsumos(R); pintarFito(R); pintarArrend(R); pintarForn(R); pintarAdm(R); pintarCustos(R); pintarContas(R); pintarCombustivel(R); pintarResumoFrota(R); pintarPessoas(R);
-  pintarPainel(R); pintarValida(R); pintarAcomp(R); pintarRastro(R); pintarRendMensal(R); pintarDimDetalhe(R); pintarApoioMes(R); pintarConfig(); pintarAtividadesCad(); pintarFichaIns(); pintarEditIns(); pintarAgrofitModal(); pintarTercDet();
+  pintarIrrig(R); pintarInsumos(R); pintarFito(R); pintarArrend(R); pintarForn(R); pintarAdm(R); pintarCustos(R); pintarContas(R); pintarDemandas(R); pintarCombustivel(R); pintarResumoFrota(R); pintarPessoas(R);
+  pintarPainel(R); pintarValida(R); pintarAcomp(R); pintarRastro(R); pintarRendMensal(R); pintarDimDetalhe(R); pintarApoioMes(R); pintarConfig(); pintarAtividadesCad(); pintarFichaIns(); pintarEditIns(); pintarAgrofitModal(); pintarTercDet(); pintarQuadroCTT();
   // depois dos pintores: eles recriam a tabela do zero a cada render(), entao busca
   // e ordem de coluna (que vivem so no DOM) precisam ser reaplicadas por cima; a
   // trava de perfil roda por ultimo porque precisa valer sobre os controles novos

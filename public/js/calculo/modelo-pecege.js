@@ -23,22 +23,11 @@ import { insLista } from '../nucleo/estado.js';
 import { num } from '../nucleo/formato.js';
 import { baseOperacao } from './base-fisica.js';
 import { custoPorOperacao } from './custo-operacao.js';
-import { composicao, doseBase, familiaDe, freteEfetivo, precoInsumo } from './insumos.js';
+import { composicao, doseBase, familiaEfetiva, freteEfetivo, precoInsumo } from './insumos.js';
 
 /* ---------- categoria do insumo no modelo ----------
-   Pela família do cadastro (classe agronômica ou grupo escolhido). Produto sem
-   classe cai em "outros" — os fertilizantes do cadastro antigo, por exemplo;
-   para esses, o nome resolve os casos óbvios (fórmula NPK, ureia, KCl...). */
-const FERT_NOME = /\b\d{1,2}[-.]\d{2}[-.]\d{2}\b|ur[eé]ia|\bkcl\b|cloreto de pot|\bmap\b|sulfato de am|nitrato|\bn ?32\b|fosfat|pot[aá]ss|\bboro\b|zinco|mangan|cobre|micronut|multimicros|mag 8|kymon|ms cana|almax|potamol/i;
-const CORR_NOME = /calc[aá]rio|gesso|corretiv/i;
-function familiaEfetiva(i){
-  const fam = i.fam || familiaDe(i.classe).id;
-  if(fam!=="outros") return fam;
-  const t = String(i.prod||"");
-  if(CORR_NOME.test(t)) return "corretivo";
-  if(FERT_NOME.test(t)) return "fertilizante";
-  return "outros";
-}
+   Pela família efetiva do insumo (calculo/insumos.js): a do cadastro e, sem
+   ela, o nome para os casos óbvios -- a mesma que o Plano de Contas usa. */
 function categoriaInsumo(prod){
   const i = insLista().find(x=>x.prod===prod) || {prod};
   const texto = [i.prod, i.classe, i.pa, i.categ, i.obs].join(" ");

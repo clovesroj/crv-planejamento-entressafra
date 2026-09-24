@@ -943,9 +943,53 @@ table.qf tr.qf-sel td{background:color-mix(in srgb,var(--leaf) 9%,var(--card))}
 table.qf td.qf-mais{color:var(--bad)}
 table.qf td.qf-menos{color:var(--green)}
 
+/* Resumo geral de pessoas: painel com graficos (dica no mouse, detalhe no clique) */
+.pes-dash{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:12px}
+.pes-dash .panel{margin:0}
+@media (max-width:1100px){ .pes-dash{grid-template-columns:minmax(0,1fr)} }
+.rosca-box{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.rosca-box > div:first-child{flex:0 0 220px;max-width:100%}
+.rosca-leg{flex:1 1 220px;display:flex;flex-direction:column;gap:2px;font-size:12.5px}
+.rosca-leg-l{display:grid;grid-template-columns:12px minmax(0,1fr) auto 50px;gap:8px;align-items:center;padding:4px 6px;border-radius:var(--r-sm)}
+.rosca-leg-l:hover{background:var(--sunk)}
+.rosca-leg-l i{width:12px;height:12px;border-radius:3px}
+.rosca-leg-l span:first-of-type{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rosca-leg-l .calc{text-align:right}
+/* no layout largo o grafico mensal nao passa de 440px de altura (fica centrado) */
+.graf-mes{max-height:440px}
+.graf-pes g[data-rastro]:hover > rect.fundo{fill:var(--sunk)}
+.graf-pes rect[data-rastro]:hover,.graf-pes path[data-rastro]:hover{opacity:.8}
+i.pes-cor{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:7px}
+#t_pes_geral tr.qf-tot td,#t_pes_geral_mes tr.qf-tot td{font-weight:700;border-top:1px solid var(--line-strong)}
+/* .btn e display:inline-flex e venceria o [hidden] do navegador: o botao so aparece com filtro */
+#btn_pes_limpar[hidden],#btn_cc_limpar[hidden]{display:none}
+
+/* Plano de Contas: atalhos por grupo, subtotal e total; painel de tres roscas */
+.cc-chips{display:flex;flex-wrap:wrap;gap:8px}
+.cc-chip{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border:1px solid var(--line);border-radius:999px;
+  background:var(--card);color:var(--ink);font:inherit;font-size:12.5px;cursor:pointer}
+.cc-chip:hover{border-color:var(--leaf)}
+.cc-chip.on{border-color:var(--leaf);background:var(--leaf-soft);color:var(--leaf-strong)}
+.cc-chip i{width:10px;height:10px;border-radius:2px}
+.cc-chip b{font-weight:700}
+i.cc-cor{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px;box-shadow:0 0 0 1px rgba(255,255,255,.5)}
+tr.cc-sub td{background:var(--sunk);font-weight:700;border-top:1px solid var(--line-strong)}
+tr.cc-tot td{font-weight:700;border-top:2px solid var(--line-strong)}
+.dash3{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:1300px){ .dash3{grid-template-columns:minmax(0,1fr)} }
+.dash3 + .panel{margin-top:16px}
+td.dem-falta{color:var(--bad);font-weight:600}
+.aviso-cc{margin-top:12px;padding:10px 14px;border-radius:var(--r-sm);background:var(--warn-bg);color:var(--ink);font-size:13px;line-height:1.5}
+.aviso-cc[hidden]{display:none}
+
 /* Resumo de Pessoas no padrao das planilhas: grupo, departamento e funcao */
 #t_pes_dept tr.pes-grp td{background:color-mix(in srgb,var(--leaf) 10%,var(--card));font-weight:700;border-top:1px solid var(--line-strong)}
 #t_pes_dept tr.qf-dep td{background:var(--sunk);font-weight:600}
 #t_pes_dept td.pes-dep{padding-left:14px}
 #t_pes_dept tr.qf-f td.qf-fun{padding-left:30px;color:var(--grey)}
 #t_pes_dept tr.qf-tot td,#t_pes_fun tr.qf-tot td,#t_pes_matriz tr.qf-tot td,#t_pes_mes_qtd tr.qf-tot td,#t_pes_mes_custo tr.qf-tot td{font-weight:700;border-top:1px solid var(--line-strong)}
+
+/* ---------- Quadro CTT (Corte, Transbordo e Transporte) ---------- */
+.ctt-mov-lista{list-style:none;margin:10px 0 0;padding:0;max-height:200px;overflow-y:auto}
+.ctt-mov-lista li{display:flex;flex-direction:column;padding:5px 0;font-size:12.5px;border-top:1px solid var(--line)}
+.ctt-mov-lista li:first-child{border-top:none}

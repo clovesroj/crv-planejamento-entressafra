@@ -587,7 +587,9 @@ function barrasPeriodo(el, legEl, valores, SEL, perDe){
       <b>${p==="safra"?"Safra":"Entressafra"}</b> ${brl(tot)} · média ${brl(tot/ds.length)}/mês
       <span class="calc">(${ds.length} ${ds.length===1?"mês":"meses"}; tracejado = média)</span></span>`; }).join("");
 }
-function barrasH(el,dados){
+/** `un` (opcional): unidade do valor no tooltip (ex.: "pessoas") em vez de
+    dinheiro -- default = brl(), que é o que os gráficos de custo já usavam. */
+function barrasH(el,dados,un){
   // paleta do campo: folha, palha, céu, latossolo e tons intermediários
   /* Rampa do azul da marca, do escuro ao claro. A barra e ordenada da maior
      para a menor e cada uma tem o rotulo ao lado: quem identifica a categoria
@@ -599,12 +601,114 @@ function barrasH(el,dados){
   let s=`<svg viewBox="0 0 ${W} ${H}" class="chart">`;
   dados.forEach((d,i)=>{const y=i*rh+5,w=(W-ml-105)*(d.v/tot);
     s+=`<text x="${ml-8}" y="${y+13}" text-anchor="end" font-size="10.5" fill="var(--ink)">${d.l}</text>
-        <rect x="${ml}" y="${y+2}" width="${Math.max(w,1)}" height="14" fill="${cores[i%12]}" rx="3"><title>${brl(d.v)}</title></rect>
+        <rect x="${ml}" y="${y+2}" width="${Math.max(w,1)}" height="14" fill="${cores[i%12]}" rx="3"><title>${un?fmt(d.v)+" "+un:brl(d.v)}</title></rect>
         <text x="${ml+w+7}" y="${y+14}" font-size="10" fill="var(--grey)">${fmt(d.v/tot*100,1)}%</text>`;});
   el.innerHTML=s+`</svg>`;
 }
 
 
-export { barras, barrasH, barrasPeriodo, celulaBusca, exportarTabela, filtrarPorNome, habilitarReordenacao, kpi,
+/* ---------- GRÁFICOS DE PESSOAS (Resumo geral) ----------
+   Toda parte de gráfico leva a chave do rastro (data-rastro): passar o mouse
+   mostra a dica com o detalhe, e o clique abre o detalhamento completo -- o
+   mesmo mecanismo de qualquer número do app, sem dica escrita à mão. As chaves
+   chegam prontas de quem chama; aqui só se escapa o texto. */
+const qtdTxt = v => fmt(v, v>0 && v<10 && Math.abs(v-Math.round(v))>0.05 ? 1 : 0);
+// passo "redondo" do eixo (1, 2, 2,5 ou 5 × 10^n): o eixo lê 0, 250, 500... e não 311, 623
+const passoRedondo = v => { if(!(v>0)) return 1; const e = Math.pow(10, Math.floor(Math.log10(v))), f = v/e;
+  return (f<=1 ? 1 : f<=2 ? 2 : f<=2.5 ? 2.5 : f<=5 ? 5 : 10)*e; };
+
+/* Barras empilhadas por mês. o = {meses:[i], series:[{nome, cor, vals, rastro(i)}],
+   linha:{nome, cor, vals}|null, rastroCol(i), fmt?(v), fmtLeg?(v)} -- fmt formata
+   o eixo e o total de cada barra; fmtLeg, a média e o pico da legenda (padrão:
+   quantidade inteira). A coluna inteira tem a chave do
+   mês; cada pedaço, a do seu grupo naquele mês. A linha tracejada (ex.: quadro
+   atual disponível) não intercepta o mouse. */
+function barrasEmpilhadas(el, legEl, o){
+  const W=960,H=300,ml=54,mb=36,mt=24,mr=12, fx = o.fmt || (v=>fmt(v,0)), fl = o.fmtLeg || qtdTxt;
+  const meses = o.meses.length ? o.meses : MESES.map((m,i)=>i);
+  const somaCol = i => o.series.reduce((s,x)=>s+(+x.vals[i]||0),0);
+  const linhaV = i => o.linha ? (+o.linha.vals[i]||0) : 0;
+  const bruto = Math.max(1, ...meses.map(i=>Math.max(somaCol(i), linhaV(i))));
+  const passo = passoRedondo(bruto/4), nT = Math.max(1, Math.ceil(bruto/passo)), max = passo*nT;
+  const bw = (W-ml-mr)/meses.length, alt = H-mt-mb, yDe = v => H-mb-alt*(v/max);
+  let s = `<svg viewBox="0 0 ${W} ${H}" class="chart graf-pes graf-mes" role="img" aria-label="Pessoas por mês">`;
+  for(let k=0;k<=nT;k++){ const y = mt+alt*k/nT, v = max*(1-k/nT);
+    s += `<line x1="${ml}" y1="${y}" x2="${W-mr}" y2="${y}" stroke="var(--line)"/>
+      <text x="${ml-8}" y="${y+4}" text-anchor="end" font-size="12" fill="var(--grey)">${fx(v)}</text>`; }
+  meses.forEach((i,k)=>{
+    const x0 = ml+k*bw, x = x0+bw*.24, w = bw*.52;
+    let base = 0;
+    s += `<g data-rastro="${esc(o.rastroCol(i))}"><rect class="fundo" x="${x0}" y="${mt}" width="${bw}" height="${alt}" fill="transparent"/>`;
+    o.series.forEach(sr=>{ const v = +sr.vals[i]||0; if(!(v>0)) return;
+      const y1 = yDe(base+v), h = yDe(base)-y1;
+      s += `<rect x="${x}" y="${y1}" width="${w}" height="${Math.max(h,0.5)}" fill="${sr.cor}" data-rastro="${esc(sr.rastro(i))}"/>`;
+      base += v; });
+    s += `<text x="${x0+bw/2}" y="${Math.max(yDe(base)-6, mt-5)}" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--ink)">${base>0?fx(base):""}</text>
+      <text x="${x0+bw/2}" y="${H-mb+19}" text-anchor="middle" font-size="13" fill="var(--grey)">${MESES[i]}</text></g>`;
+  });
+  if(o.linha){
+    const pts = meses.map((i,k)=>`${ml+k*bw+bw/2},${yDe(linhaV(i))}`).join(" ");
+    s += `<g pointer-events="none"><polyline points="${pts}" fill="none" stroke="${o.linha.cor}" stroke-width="2" stroke-dasharray="6 4"/>` +
+      meses.map((i,k)=>`<circle cx="${ml+k*bw+bw/2}" cy="${yDe(linhaV(i))}" r="3.2" fill="${o.linha.cor}"/>`).join("") + `</g>`;
+  }
+  el.innerHTML = s + `</svg>`;
+  if(legEl) legEl.innerHTML = o.series.filter(sr=>meses.some(i=>+sr.vals[i]>0)).map(sr=>{
+      const vs = meses.map(i=>+sr.vals[i]||0), med = vs.reduce((a,b)=>a+b,0)/meses.length;
+      return `<span class="leg-per"${sr.rastroLeg?` data-rastro="${esc(sr.rastroLeg)}"`:""}><i style="background:${sr.cor}"></i>
+        <b>${esc(sr.nome)}</b> média ${fl(med)} · pico ${fl(Math.max(...vs))}</span>`; }).join("") +
+    (o.linha ? `<span class="leg-per"${o.linha.rastro?` data-rastro="${esc(o.linha.rastro)}"`:""}><i style="background:none;border-top:2px dashed ${o.linha.cor};height:0;border-radius:0"></i>
+      <b>${esc(o.linha.nome)}</b></span>` : "");
+}
+
+/* Rosca (pizza com furo): dados = [{l, v, cor, rastro}]; o centro traz o total
+   (centro.txt, quando o número do centro não é o total cru). Fatia e linha da
+   legenda levam a mesma chave; fmtV formata o valor da legenda (padrão:
+   quantidade). */
+function rosca(el, legEl, dados, centro, fmtV){
+  const ds = dados.filter(d=>d.v>0), tot = ds.reduce((s,d)=>s+d.v,0);
+  if(!(tot>0)){ el.innerHTML = `<div class="calc" style="padding:40px 0;text-align:center">Sem pessoas no período.</div>`;
+    if(legEl) legEl.innerHTML = ""; return; }
+  const c = 110, r = 100, ri = 62, pt = (a, rr) => `${(c+rr*Math.cos(a)).toFixed(2)},${(c+rr*Math.sin(a)).toFixed(2)}`;
+  let a0 = -Math.PI/2, s = `<svg viewBox="0 0 220 220" class="chart graf-pes" role="img" aria-label="${esc(centro.l)}">`;
+  ds.forEach(d=>{
+    const fr = d.v/tot, a1 = a0 + fr*2*Math.PI, grande = fr > .5 ? 1 : 0;
+    const dd = fr > .9999
+      ? `M${pt(-Math.PI/2,r)} A${r},${r} 0 1 1 ${pt(Math.PI/2,r)} A${r},${r} 0 1 1 ${pt(-Math.PI/2,r)} Z M${pt(-Math.PI/2,ri)} A${ri},${ri} 0 1 0 ${pt(Math.PI/2,ri)} A${ri},${ri} 0 1 0 ${pt(-Math.PI/2,ri)} Z`
+      : `M${pt(a0,r)} A${r},${r} 0 ${grande} 1 ${pt(a1,r)} L${pt(a1,ri)} A${ri},${ri} 0 ${grande} 0 ${pt(a0,ri)} Z`;
+    s += `<path d="${dd}" fill="${d.cor}" fill-rule="evenodd" stroke="var(--card)" stroke-width="1.5" data-rastro="${esc(d.rastro)}"/>`;
+    if(fr >= .07){ const am = (a0+a1)/2;
+      s += `<text x="${(c+(r+ri)/2*Math.cos(am)).toFixed(1)}" y="${(c+(r+ri)/2*Math.sin(am)+3.5).toFixed(1)}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#fff" pointer-events="none">${fmt(fr*100,0)}%</text>`; }
+    a0 = a1;
+  });
+  s += `<text x="${c}" y="${c-2}" text-anchor="middle" font-size="22" font-weight="700" fill="var(--ink)">${centro.txt!=null ? esc(centro.txt) : qtdTxt(centro.v)}</text>
+    <text x="${c}" y="${c+16}" text-anchor="middle" font-size="10" fill="var(--grey)">${esc(centro.l)}</text></svg>`;
+  el.innerHTML = s;
+  if(legEl) legEl.innerHTML = ds.map(d=>`<div class="rosca-leg-l" data-rastro="${esc(d.rastro)}">
+      <i style="background:${d.cor}"></i><span>${esc(d.l)}</span><b>${fmtV ? fmtV(d.v) : qtdTxt(d.v)}</b>
+      <span class="calc">${fmt(d.v/tot*100,1)}%</span></div>`).join("");
+}
+
+/* Barras horizontais, uma ou duas por linha: dados = [{l, a, b?, dir, dirCls, rastro}],
+   o = {corA, corB}. A linha inteira é o alvo do mouse. */
+function barrasLinhas(el, dados, o){
+  if(!dados.length){ el.innerHTML = `<div class="calc" style="padding:20px 0">Nada a mostrar.</div>`; return; }
+  const duas = dados.some(d=>d.b!=null), W=760, rh = duas ? 30 : 22, ml=230, mr=150, H=dados.length*rh+6;
+  const max = Math.max(1, ...dados.map(d=>Math.max(d.a||0, d.b||0))), wDe = v => (W-ml-mr)*(v/max);
+  const corta = t => { t = String(t||""); return t.length > 34 ? t.slice(0,33)+"…" : t; };
+  let s = `<svg viewBox="0 0 ${W} ${H}" class="chart graf-pes">`;
+  dados.forEach((d,k)=>{
+    const y = k*rh+3;
+    s += `<g${d.rastro?` data-rastro="${esc(d.rastro)}"`:""}><rect class="fundo" x="0" y="${y-1}" width="${W}" height="${rh}" fill="transparent" rx="4"/>
+      <text x="${ml-8}" y="${y+(duas?16:13)}" text-anchor="end" font-size="10.5" fill="var(--ink)">${esc(corta(d.l))}</text>
+      <rect x="${ml}" y="${y+(duas?3:4)}" width="${Math.max(wDe(d.a||0),1)}" height="${duas?10:12}" fill="${d.cor||o.corA}" rx="2"/>` +
+      (duas ? `<rect x="${ml}" y="${y+15}" width="${Math.max(wDe(d.b||0),1)}" height="10" fill="${o.corB}" rx="2"/>` : "") +
+      `<text x="${ml+Math.max(wDe(d.a||0), wDe(d.b||0))+7}" y="${y+(duas?16:14)}" font-size="10" fill="var(--grey)">${esc(d.num||"")}</text>
+      <text x="${W-4}" y="${y+(duas?16:14)}" text-anchor="end" font-size="10.5" font-weight="600" class="${d.dirCls||""}" fill="${d.dirCls==="falta"?"var(--bad)":d.dirCls==="sobra"?"var(--warn)":"var(--grey)"}">${esc(d.dir||"")}</text></g>`;
+  });
+  el.innerHTML = s + `</svg>`;
+}
+
+
+export { barras, barrasEmpilhadas, barrasLinhas, rosca, barrasH, barrasPeriodo, celulaBusca, exportarTabela, filtrarPorNome, habilitarReordenacao, kpi,
          ligarBuscaSelect, maxSel, ordenarPorEtapa, reaplicarBuscas, reaplicarExportar, registrarCombo, serieDoPeriodo,
          somaSel, tdMeses, th, thMeses };

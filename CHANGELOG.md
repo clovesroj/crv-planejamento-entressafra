@@ -1,5 +1,119 @@
 # Histórico de mudanças
 
+## 2.47.0 — 2026-09-24 · Plano de Contas com painel e subtotais, aba Demandas de Insumos e Materiais, e o insumo auditado
+
+### Plano de Contas: painel dinâmico e subtotal de cada grupo
+
+- **Nova página "Painel"** (a primeira): atalhos por grupo com o valor de cada
+  um (um clique filtra), cartões do recorte (custo, variável, fixo, maior
+  conta), pizzas por grupo, fixo × variável e custo × despesa, custo mensal
+  por grupo e as 15 contas de maior valor.
+- **Filtro** de grupo, classificação e custo/despesa, que vale para o painel e
+  para a tabela (só visão, não grava).
+- **Tabela das contas:** cada grupo fecha com o seu **subtotal**, o cabeçalho
+  do grupo traz a quantidade de contas e o valor, e a nova coluna "% do custo
+  do plano" mostra o peso de cada conta.
+- **De onde vem cada real:** toda conta, subtotal, fatia e barra tem rastro. A
+  apuração das contas passou a guardar a origem de cada valor (etapa, quadro,
+  produto, CRM, rota...), e o clique abre essa origem (`conta:<código>`,
+  `contas:grupo:<grupo>`).
+- **Insumo na conta certa:** o Plano de Contas classificava o insumo só pela
+  classe cadastrada, enquanto o R$/ha do Painel também reconhecia pelo nome os
+  fertilizantes e corretivos (NPK, KCl, ureia, calcário...). O mesmo produto
+  caía em conta diferente em cada tela. Agora as duas usam a mesma regra
+  (`familiaEfetiva`, em `calculo/insumos.js`). No cenário de teste, o grupo
+  5. Insumos passou de R$ 16,9 mi para R$ 53,4 mi. O que continua sem grupo
+  agronômico (herbicidas e inseticidas cadastrados só pelo nome comercial)
+  aparece num aviso com o valor e os produtos: define-se o grupo na aba
+  Insumos.
+
+### Nova aba "Demandas de Insumos e Materiais" (Agricultura)
+
+A diferença entre a necessidade do plano e o estoque, item a item:
+
+- **Insumos:** volume do plano, estoque (o da aba Insumos, com a data do
+  saldo), saldo após o plano, quantidade e valor a comprar, e o **mês em que o
+  estoque acaba**. A tabela é agrupada por grupo de insumo, com subtotal.
+- **Compra mês a mês:** a quantidade que o estoque deixa de cobrir em cada mês,
+  que é o que tem de estar comprado e entregue.
+- **Materiais de manutenção:** quantidade anual, estoque (informado nesta aba,
+  gravado na lista de materiais), quantidade e valor a comprar e mês de
+  compra.
+- **Painel:** compras por mês por grupo, pizza do valor a comprar, os 15
+  insumos de maior valor a comprar e a **conferência do custo de insumos**.
+- Filtro "só o que falta comprar"; rastro em todo produto e material
+  (`demanda:<produto>`, `demanda:mat:<i>`, `demandas`).
+
+### Revisão do custo de insumos: dois erros corrigidos
+
+- **Volume demandado com tratamento extra:** quando uma atividade tem mais de
+  um tratamento, cada um com a sua área, o volume usava só o tratamento
+  principal sobre a área **somada**. O produto do extra sumia da demanda, e o
+  do principal saía inflado. No teste, com um tratamento de adubação extra no
+  plantio: 12-00-24 com 4,69 mi em vez de 5,90 mi, e R$ 3,7 mi de insumo fora
+  da necessidade de compra e da divisão entre as contas de insumo. O custo em
+  R$ da atividade sempre esteve certo. Agora o volume segue cada tratamento
+  (`tratamentosDaLinha` e `demandaMensal`), o que corrige também a necessidade
+  de compra dos relatórios e a aba Insumos.
+- **Insumo mês a mês com tratamento extra:** o custo de insumo da atividade era
+  espalhado pela área somada de cada mês, então o adubo do extra caía nos meses
+  do tratamento principal. Agora cada tratamento entra nos seus meses
+  (`insumoMes`, e `diretoNoMes` em `calculo/atividade.js`). Isso vale para o
+  custo mensal, as etapas por mês, as grandes contas, o rastro, o relatório
+  por período e o Plano Operacional, que já fazia certo na linha, mas não no
+  total do rodapé. O total do ano não muda.
+- **Conferência permanente:** a aba Demandas refaz o custo de insumos pelo lado
+  do produto (volume × preço + frete) e confronta com a soma das atividades,
+  que tem de bater no centavo, e abre o custo por etapa: preparo, plantio,
+  tratos de cana planta e de cana soca, e formação do canavial. Duas
+  checagens novas na Validação: "insumos por produto = insumos por atividade"
+  e "tratamento inativo vinculado ao plano" (o custo entra, mas o tratamento
+  some das buscas).
+
+Sem tratamento extra, nenhum número muda. 54 invariantes sem falha; 31 abas,
+503 rastros e 138 relatórios sem erro.
+
+## 2.46.0 — 2026-09-24 · Resumo de Pessoas: página "Resumo geral", com painel de gráficos
+
+Nova primeira página do Resumo de Pessoas: todas as pessoas projetadas, o
+quadro atual e as pessoas por mês, num lugar só.
+
+- **Cartões:** média mensal na operação (e o pico), quadro atual (ativo no ERP,
+  com quantos estão no ERP, afastados e em funções que o plano não usa),
+  disponível, a contratar e excedente.
+- **Resumo por quadro:** Operacional, ADM agrícola, Oficina e FAT, com pico no
+  mês, mês do pico, média mensal, quadro atual, disponível, a contratar,
+  excedente e custo; "Na operação" e "Total com o FAT" no fim.
+- **Pessoas por mês:** gráfico de barras empilhadas por quadro com o quadro
+  atual disponível tracejado, e a tabela resumida mês a mês (por quadro, na
+  operação, FAT, quadro atual disponível e a contratar no mês).
+- **Painel:** pizza por quadro, pizza por tipo de função (operadores,
+  motoristas, equipe de campo, manutenção, liderança), barras projetado ×
+  quadro atual das 15 funções que mais pedem gente e barras dos 15
+  departamentos com mais gente.
+- **Detalhamento no mouse e no clique:** toda barra, fatia, linha, célula e
+  cartão tem rastro. Passar o mouse mostra quem está ali; clicar abre o
+  detalhamento completo por quadro, departamento, função e mês. Chaves novas:
+  `pessoas:mes`, `pessoas:grupo`, `pessoas:tipo` e `pessoas:quadro`; a de
+  função ganhou o quadro atual e o mês a mês, e a de departamento, o mês a mês.
+
+Segue o filtro de quadro e departamento e o período da barra do topo. O
+**a contratar** usa o pico de cada função **no período**: na entressafra, o
+que falta ou sobra de dezembro a março; com o ano todo, é exatamente o número
+da página "Necessidade x quadro ativo". Com departamento filtrado o confronto
+sai, porque o ativo do ERP é por função. Quando a base do ERP quase não traz um
+quadro (hoje, a oficina), a nota avisa que a necessidade inteira dele aparece
+como a contratar.
+
+A conta do confronto com o quadro ativo saiu da tela e foi para
+`calculo/quadro.js` (`confrontoQuadro`), lida pela primeira página, pelo
+Resumo geral e pelo rastro — a página "Necessidade x quadro ativo" continua
+com o HTML idêntico ao de antes. De quebra: o botão "Limpar filtro" só aparece
+com filtro (o `.btn` vencia o `[hidden]`).
+
+Nenhum número de custo muda. 54 invariantes sem falha; 29 abas, 383 rastros
+e 138 relatórios sem erro.
+
 ## 2.45.2 — 2026-09-24 · Sem nomes de pessoas: sai a página "Funcionários do ADM e da oficina"
 
 O plano projeta gente de forma impessoal — por função, departamento e mês —, e

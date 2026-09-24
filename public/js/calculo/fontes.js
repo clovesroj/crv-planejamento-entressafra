@@ -65,7 +65,7 @@ function fontesDaConta(R, k){
     porEtapa("Diesel das atividades", (r,i)=>num(r.dieselMes[i]), CRIT.litro);
     add("Diesel dos equipamentos de apoio", (R.AE.dieselMes||zeros()).slice(), CRIT.litro, "frota:apoio");
   }
-  if(k==="insumo") porEtapa("Insumos dos tratamentos", (r,i,f)=>num(r.cInsumo)*f, CRIT.volume);
+  if(k==="insumo") porEtapa("Insumos dos tratamentos", (r,i)=>num((r.insumoMes||[])[i]), CRIT.volume);
   if(k==="irrig")  add("Irrigação e fertirrigação", pelaArea(R.irrT), CRIT.area);
   if(k==="terc"){
     porEtapa("Aplicações terceirizadas", (r,i,f)=>num(r.cTerc)*f, CRIT.volume);

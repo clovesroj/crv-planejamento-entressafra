@@ -16,6 +16,7 @@ import { AGROFIT_BUSCA, DIM_DET, FITO_ABERTO, PLANO_ABERTO, FROTA_ABERTO, FROTA_
 import { $, num } from '../nucleo/formato.js';
 import { exportarTabela, filtrarPorNome } from '../ui/componentes.js';
 import { marcarAtivNovo, marcarAtivRemovido, marcarAtivSujo, salvarAtiv } from '../ui/atividades-cad.js';
+import { abrirEdicaoCtt, limparCttObs, marcarCttMudanca, marcarCttNovo, marcarCttObs, marcarCttSaida, salvarCtt } from '../ui/quadro-ctt.js';
 import { alternarFam, alternarUsos, aplicarFamIns, buscaExigeRedesenho, marcarInsSujo, marcarInsNovo, marcarInsRemovido,
   marcarTratSujo, marcarTratNovo, marcarTratRenomeado, marcarTratRemovido, recolherTodas, salvarIns, salvarTrat, todasRecolhidas } from '../ui/insumos.js';
 import { alternarFrenteLinha, alternarMesLinha } from '../ui/dimensionamento.js';
@@ -24,7 +25,7 @@ import { leve, render, renderAgrofit, renderApoioMes, renderDimDet, renderEditIn
 import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarBuscaItem, filtrarRastro, voltarRastro } from '../ui/rastro.js';
 import { abrirRendMensal, aberto as rendMensalAberto, descartarRascunho, editarRascunho,
   fecharRendMensal, pendencias, salvarRascunho } from '../ui/rendmensal.js';
-import { setQF_MES, setQF_GRUPO, setPES_GRUPO, setPES_DEPT } from '../nucleo/estado.js';
+import { setQF_MES, setQF_GRUPO, setPES_GRUPO, setPES_DEPT, setCONTAS_GRUPO, setCONTAS_CLS, setCONTAS_CD, setDEM_SO_FALTA } from '../nucleo/estado.js';
 import { setAPOIO, setATIV_TRAT_SEL, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setINSX_V, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
 import { USUARIO, areasDePermissao, podeEditar } from '../nucleo/sessao.js';
 
@@ -196,6 +197,9 @@ document.addEventListener("input",e=>{
   // FAT (aba Mao de Obra) e apoio operacional (Dimensionamento)
   if(t.dataset.fat!==undefined){ const l=FAT[+t.dataset.fat], f=t.dataset.f; if(!l) return;
     l[f] = f==="desc" ? t.value : num(t.value); salvar(); leve(); return; }
+  // estoque de um material de manutencao (aba Demandas)
+  if(t.dataset.mest!==undefined){ const m = matLista()[+t.dataset.mest]; if(!m) return;
+    m.est = num(t.value); salvar(); leve(); return; }
   if(t.dataset.moa!==undefined){ const l=MO_APOIO[+t.dataset.moa], f=t.dataset.f; if(!l) return;
     l[f] = f==="frente" ? t.value : num(t.value); salvar(); leve(); return; }
   if(t.dataset.mx!==undefined){ const c=t.dataset.mx;
@@ -266,6 +270,11 @@ document.addEventListener("change",e=>{
   // filtro do Resumo de Pessoas: quadro e departamento -- so visao, nao grava
   if(t.id==="sel_pes_grupo"){ setPES_GRUPO(t.value); setPES_DEPT("todos"); render(); return; }
   if(t.id==="sel_pes_dept"){ setPES_DEPT(t.value); render(); return; }
+  // filtros do Plano de Contas e das Demandas -- so visao, nao grava
+  if(t.id==="sel_cc_grupo"){ setCONTAS_GRUPO(t.value); render(); return; }
+  if(t.id==="sel_cc_cls"){ setCONTAS_CLS(t.value); render(); return; }
+  if(t.id==="sel_cc_cd"){ setCONTAS_CD(t.value); render(); return; }
+  if(t.id==="chk_dem_falta"){ setDEM_SO_FALTA(t.checked); render(); return; }
   // FAT e apoio operacional: funcao da linha e meses marcados
   if(t.dataset.fatf!==undefined){ const l=FAT[+t.dataset.fatf]; if(l){ l.fcod=t.value; salvar(); render(); } return; }
   if(t.dataset.moaf!==undefined){ const l=MO_APOIO[+t.dataset.moaf]; if(l){ l.fcod=t.value; salvar(); render(); } return; }
@@ -457,6 +466,12 @@ document.addEventListener("change",e=>{
     // leve() preserva o foco; render() reconstruia a tabela e derrubava a
     // digitacao no meio da data
     salvar(); leve(); return; }
+  // Quadro CTT: observação (Férias/FAT/Operação) e período -- editável direto
+  // na linha, sem precisar abrir "Editar" (mesmo critério do artefato
+  // original). marcarCttObs já lida com "voltou a vazio" tirando do rascunho.
+  if(t.dataset.cttobs!==undefined){ marcarCttObs(t.dataset.cttobs, {obs:t.value}); render(); return; }
+  if(t.dataset.cttobsini!==undefined){ marcarCttObs(t.dataset.cttobsini, {ini:t.value}); render(); return; }
+  if(t.dataset.cttobsfim!==undefined){ marcarCttObs(t.dataset.cttobsfim, {fim:t.value}); render(); return; }
   if(t.dataset.fc!==undefined){ const c=t.dataset.fc;
     PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""};
     PLANO[c].fcod=t.value; salvar(); render(); return; }
@@ -761,6 +776,8 @@ document.addEventListener("click",e=>{
   const t=e.target;
   if(t.dataset.rm!==undefined){ ESPOR.splice(+t.dataset.rm,1); salvar(); render(); return; }
   if(t.dataset.fatrm!==undefined){ FAT.splice(+t.dataset.fatrm,1); salvar(); render(); return; }
+  { const chip = t.closest && t.closest("[data-ccgrupo]");
+    if(chip){ setCONTAS_GRUPO(chip.dataset.ccgrupo); render(); return; } }
   if(t.dataset.moarm!==undefined){ MO_APOIO.splice(+t.dataset.moarm,1); salvar(); render(); return; }
   if(t.dataset.admrm!==undefined){ const l=admLista()[+t.dataset.admrm];
     if(!confirm(`Remover "${l.desc}" dos custos administrativos?`)) return;
@@ -812,6 +829,18 @@ document.addEventListener("click",e=>{
     const r = renomearGrupoInsumo(id, nome);
     if(!r.ok){ alert(r.erro); return; }
     salvar(); render(); return; }
+  if(t.closest && t.closest("#ctt_salvar")){ if(salvarCtt()){ salvar(); render(); } return; }
+  if(t.closest && t.closest("#ctt_obs_limpar")){
+    if(!confirm("Limpar a observação (Férias/FAT/Operação) e o período de todo mundo? Isso não desfaz sozinho.")) return;
+    if(limparCttObs()) render(); return; }
+  if(t.dataset.cttrm!==undefined){
+    if(!confirm(`Marcar a matrícula ${t.dataset.cttrm} como saída?`)) return;
+    marcarCttSaida(t.dataset.cttrm); render(); return; }
+  if(t.dataset.cttedit!==undefined){ abrirEdicaoCtt(t.dataset.cttedit); render(); return; }
+  if(t.dataset.cttconfirma!==undefined){
+    const m = t.dataset.cttconfirma, campo = sel => { const v = document.querySelector(`[data-cttf-${sel}="${m}"]`).value; return v===""?-1:+v; };
+    marcarCttMudanca(m, {f:campo("func"), ci:campo("cid"), g:campo("ger"), c:campo("cnh")});
+    render(); return; }
 });
 
 /* FAT: linha nova ja com os meses da entressafra, que e quando o contrato
@@ -828,6 +857,7 @@ $("#btn_moa_add").onclick=()=>{
 };
 
 $("#btn_pes_limpar").onclick=()=>{ setPES_GRUPO("todos"); setPES_DEPT("todos"); render(); };
+$("#btn_cc_limpar").onclick=()=>{ setCONTAS_GRUPO("todos"); setCONTAS_CLS("todos"); setCONTAS_CD("todos"); render(); };
 
 $("#btn_grp_add").onclick=()=>{
   const r = criarGrupoInsumo($("#in_grp_novo").value);
@@ -843,6 +873,20 @@ $("#btn_ativ_add").onclick=()=>{
   if(!criarAtividade(cod)){ alert(`Já existe uma atividade com o código "${cod}".`); return; }
   $("#in_ativ_novo").value="";
   marcarAtivNovo(atividadesLista().find(a=>a.cod===cod)); render();
+};
+
+// Quadro CTT: incluir gente que ainda não está na planilha do ERP (ver
+// ui/quadro-ctt.js) -- matrícula e nome são obrigatórios, o resto é opcional
+// porque nem toda função/cidade/gerência precisa ser conhecida na hora.
+$("#ctt_add").onclick=()=>{
+  const m = $("#ctt_add_m").value.trim(), n = $("#ctt_add_n").value.trim();
+  if(!m || !/^\d+$/.test(m)){ alert("Informe a matrícula (só números)."); return; }
+  if(!n){ alert("Informe o nome."); return; }
+  const campo = id => { const v = $(id).value; return v===""?-1:+v; };
+  marcarCttNovo({m:+m, n, f:campo("#ctt_add_func"), ci:campo("#ctt_add_cid"), g:campo("#ctt_add_ger"), c:campo("#ctt_add_cnh")});
+  $("#ctt_add_m").value=""; $("#ctt_add_n").value=""; $("#ctt_add_func").value=""; $("#ctt_add_cid").value="";
+  $("#ctt_add_ger").value=""; $("#ctt_add_cnh").value="";
+  salvar(); render();
 };
 
 $("#btn_trat_add").onclick=()=>{
