@@ -1,7 +1,7 @@
 import { composicao, doseBase, precoInsumo } from '../calculo/insumos.js';
 import { tarifaTercDe } from '../calculo/atividade.js';
 import { TERC_MODOS } from '../dados/modos.js';
-import { FITO_ABERTO, INSUMO, TERC_SUB, atividadesLista, insLista } from '../nucleo/estado.js';
+import { FITO_ABERTO, INSUMO, TERC_SUB, insLista } from '../nucleo/estado.js';
 import { codExibir } from '../nucleo/codigo-atividade.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
 import { kpi, th } from './componentes.js';
@@ -14,13 +14,8 @@ import { kpi, th } from './componentes.js';
    igual à planilha de origem ("Plano Inseticida": Resumo de Insumos e
    Serviços de Terceiros). Números vêm de R.L (o mesmo calculado pra toda
    a aba Plano Operacional) — nada recalculado aqui. */
-/* Antes uma lista fixa de códigos no código-fonte -- só um programador
-   conseguia incluir atividade nova aqui. Agora vem do campo "Manejo" do
-   Cadastro de Atividades (a.manejo): quem cadastra a atividade escolhe lá se
-   ela é Broca, Cigarrinha ou nenhuma das duas, sem etapa nem rateio novos.
-   Função (não array fixo) porque o cadastro muda em tempo de execução. */
-const BROCA  = () => atividadesLista().filter(a=>a.manejo==="broca").map(a=>a.cod);
-const CIGARRINHA = () => atividadesLista().filter(a=>a.manejo==="cigarrinha").map(a=>a.cod);
+const BROCA  = ["A44","A45","A46","A47","A48","A49"];
+const CIGARRINHA = ["A50","A51","A52","A53"];
 
 function linhasDe(R, cods){
   return cods.map(cod => R.L.find(r => r.a.cod === cod)).filter(Boolean);
@@ -180,8 +175,8 @@ function tabelaResumo(linhas){
 function pintarFito(R){
   const alvo = $("#fito");
   if(!alvo) return;
-  const linhasBroca = linhasDe(R, BROCA());
-  const linhasCig = linhasDe(R, CIGARRINHA());
+  const linhasBroca = linhasDe(R, BROCA);
+  const linhasCig = linhasDe(R, CIGARRINHA);
   const todas = [...linhasBroca, ...linhasCig];
 
   const areaBroca = linhasBroca.reduce((s, r) => s + r.total, 0);

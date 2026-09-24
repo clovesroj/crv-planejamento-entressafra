@@ -421,8 +421,8 @@ const insumosTratos = insumosDe(["TRATOS CULTURAIS"]);
    Mesmas linhas do painel de leitura (ui/fitossanitario.js) — nada
    recalculado aqui, só formatado como seção de relatório, no mesmo padrão
    das demais (sec() com cabeçalho e linha de TOTAL). */
-const fitoOndas = (titulo, codsFn) => R => {
-  const linhas = linhasDe(R, codsFn());
+const fitoOndas = (titulo, cods) => R => {
+  const linhas = linhasDe(R, cods);
   const totArea = linhas.reduce((s,r)=>s+r.total,0);
   const totInsumo = linhas.reduce((s,r)=>s+r.cInsumo,0);
   const totTerc = linhas.reduce((s,r)=>s+r.cTerc,0);
@@ -440,7 +440,7 @@ const fitoBroca = fitoOndas("Broca", BROCA);
 const fitoCigarrinha = fitoOndas("Cigarrinha", CIGARRINHA);
 
 const fitoResumo = R => {
-  const todas = [...linhasDe(R, BROCA()), ...linhasDe(R, CIGARRINHA())];
+  const todas = [...linhasDe(R, BROCA), ...linhasDe(R, CIGARRINHA)];
   const dados = resumoInsumos(todas);
   const totalValor = dados.reduce((s,d)=>s+d.valor,0);
   const totalInvestir = dados.reduce((s,d)=>s+d.valorInvestir,0);
@@ -454,7 +454,7 @@ const fitoResumo = R => {
 };
 
 const fitoTerc = R => {
-  const todas = [...linhasDe(R, BROCA()), ...linhasDe(R, CIGARRINHA())].filter(r=>r.cTerc>0);
+  const todas = [...linhasDe(R, BROCA), ...linhasDe(R, CIGARRINHA)].filter(r=>r.cTerc>0);
   const totTerc = todas.reduce((s,r)=>s+r.cTerc,0);
   return sec("Serviços de Terceiros","Manejo Fitossanitário — serviços de terceiros",
     ["Atividade","Área/ano (ha)","Valor (R$/ha)","Valor (R$)"],
