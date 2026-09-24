@@ -5,10 +5,11 @@ import { CAT_LBL, MESES, NM, PERIODOS, periodoMes } from '../nucleo/calendario.j
 import { P, insLista } from '../nucleo/estado.js';
 import { brl, fmt, num, pct } from '../nucleo/formato.js';
 import { ETAPAS_ORD, arrRat } from './arrendamento.js';
-import { criterioMensal, frotaDaAtividade, pessoasDaAtividade, premissasDe, tarifaTerc } from './atividade.js';
-import { tratCusto } from './insumos.js';
+import { criterioMensal, diretoNoMes, frotaDaAtividade, pessoasDaAtividade, premissasDe, tarifaTerc } from './atividade.js';
+import { composicao, doseBase, tratCusto, tratamentosDaLinha } from './insumos.js';
 import { comps, custoCorte, custoPorOperacao } from './custo-operacao.js';
-import { SEM_CONTA, contasValores, totaisContas } from './contas.js';
+import { CONTA_COMBINADA, SEM_CONTA, contasOrigens, contasValores, totaisContas } from './contas.js';
+import { demandas, demandasInsumos, demandasMateriais } from './demandas.js';
 import { baseEtapa, custoUnit, premissaBase, rotuloBase } from './base-fisica.js';
 import { reforma, itensReforma, orcamentoProdutos, qtdProdutos } from './reforma.js';
 import { desdeUltimoAno, janelaGastoReal, janelaVazia, produtosDoEquipamento } from './gasto-real.js';
@@ -398,8 +399,7 @@ function rastroEtapaPeriodo(R, etapa, p){
   const tot = idx.reduce((s,i)=>s+num(serie[i]),0), totAno = serie.reduce((s,x)=>s+num(x),0);
   const totPer = idx.reduce((s,i)=>s+num(R.meses[i]),0);
   const ativs = R.L.filter(r=>r.a.etapa===etapa && r.total>0).map(r=>{
-      const f = i => r.total>0 ? num(r.meses[i])/r.total : 0;
-      const v = idx.reduce((s,i)=>s+(r.direto-r.cDiesel-r.cMDO)*f(i)+num(r.dieselMes[i])+num((r.mdoMes||[])[i]),0);
+      const v = idx.reduce((s,i)=>s+diretoNoMes(r, i),0);
       return {r, v}; }).filter(x=>x.v>0.5).sort((a,b)=>b.v-a.v);
   const direto = ativs.reduce((s,x)=>s+x.v,0);
   return {
@@ -792,8 +792,7 @@ function rastroNatureza(R, nat){
 function rastroMes(R, i){
   const idx = +i;
   // mesmo critério do motor: MDO pela equipe do mês, diesel pelo litro do mês, o resto pelo volume
-  const itens = R.L.map(r=>({r, v:(r.direto-r.cDiesel-r.cMDO)*(r.total>0?num(r.meses[idx])/r.total:0)
-      + r.dieselMes[idx] + ((r.mdoMes||[])[idx]||0)}))
+  const itens = R.L.map(r=>({r, v:diretoNoMes(r, idx)}))
     .filter(x=>x.v>0).sort((a,b)=>b.v-a.v);
   const matMes = (R.MT.linhas||[]).filter(l=>l.mes===idx && l.total>0);
   return {titulo:MESES[idx], subtitulo:"Custo do mês", valor:brl(R.meses[idx]),
@@ -1253,6 +1252,127 @@ function rastroContas(R){
     nota:`${CFG.contas.length} contas cadastradas · ${fmt(R.total>0?mapeado/R.total*100:0,0)}% do custo total mapeado.`,
     premissas:premissasGerais()};
 }
+
+/* ---------- Plano de Contas: uma conta e um grupo de contas ----------
+   conta:<código> abre de onde vem cada real da conta (a origem que
+   contasOrigens guarda na apuração: etapa, quadro, produto...);
+   contas:grupo:<grupo> abre as contas do grupo. As linhas "sem conta"
+   (__insumos, __espor, __fat) também abrem por conta:<chave>. */
+const GRUPO_SEM_CONTA = "Sem conta no plano";
+function irDaOrigem(R, cod, rot){
+  if(/^(INS-0[1-4]|__insumos)$/.test(cod) && (R.volDem||{})[rot]) return "demanda:"+rot;
+  const m = /^Equipes das atividades — (.+)$/.exec(rot);
+  if(m){ const e = Object.keys(R.etapas||{}).find(x=>x.toLowerCase()===m[1].toLowerCase()); return e ? "etapa:"+e : undefined; }
+  if(/^Diesel/.test(rot)) return "nat:diesel";
+  if(/^CRM da frota/.test(rot)) return "nat:manut";
+  if(/^Quadro (ADM|da oficina)/.test(rot)) return "cat:mdo";
+  return undefined;
+}
+function rastroContaContabil(R, cod){
+  const c = CFG.contas.find(x=>x.conta===cod), semRot = SEM_CONTA[cod];
+  if(!c && !semRot) return null;
+  const CV = contasValores(R), {total} = totaisContas(CV);
+  const v = CV[cod]||0, combinada = CONTA_COMBINADA[cod];
+  const OR = contasOrigens(R)[cod] || [];
+  const mostra = OR.slice(0,25), resto = OR.slice(25).reduce((s,x)=>s+x.v,0);
+  const origem = mostra.length
+    ? mostra.map(o=>({rot:o.rot, val:brl(o.v), sub:pctDe(o.v, v)+" da conta", ir:irDaOrigem(R, cod, o.rot)}))
+        .concat(resto>0.5 ? [{rot:"Demais origens ("+(OR.length-25)+")", val:brl(resto)}] : [])
+    : [{rot: combinada ? "O valor desta conta está somado na "+combinada : "Sem valor no plano",
+        val:"—", ir: combinada ? "conta:"+combinada : undefined}];
+  return {titulo: c ? c.conta+" · "+c.desc : semRot,
+    subtitulo: c ? c.grupo+" · "+c.nat : GRUPO_SEM_CONTA,
+    valor: combinada ? "incluído em "+combinada : brl(v),
+    blocos:[{titulo:"De onde vem", linhas:origem},
+      c ? {titulo:"Cadastro da conta", linhas:[
+        {rot:"Grupo", val:c.grupo, ir:"contas:grupo:"+c.grupo},
+        {rot:"Natureza", val:c.nat},
+        {rot:"Classificação", val:c.cls},
+        {rot:"Custo ou despesa", val:c.cd},
+        {rot:"Direcionador", val:c.dir},
+        {rot:"Participação no custo do plano", val:pctDe(v, total)}]}
+        : {titulo:"Por que não tem conta", linhas:[{rot:"O plano de contas não tem conta própria para este item; ele soma no total para o total fechar com o custo do plano.", val:pctDe(v, total)+" do custo"}]}],
+    premissas:premissasGerais(), voltar:"contas:grupo:"+(c ? c.grupo : GRUPO_SEM_CONTA)};
+}
+function rastroContasGrupo(R, g){
+  const CV = contasValores(R), {total} = totaisContas(CV);
+  const semConta = g===GRUPO_SEM_CONTA;
+  const itens = semConta
+    ? Object.entries(SEM_CONTA).map(([k,rot])=>({k, rot, v:CV[k]||0, cls:"", cd:""}))
+    : CFG.contas.filter(c=>c.grupo===g).map(c=>({k:c.conta, rot:c.conta+" · "+c.desc, v:CONTA_COMBINADA[c.conta] ? 0 : (CV[c.conta]||0),
+        cls:c.cls, cd:c.cd, comb:CONTA_COMBINADA[c.conta]}));
+  if(!itens.length) return null;
+  const tot = itens.reduce((s,x)=>s+x.v,0);
+  const com = itens.filter(x=>x.v>0.5).sort((a,b)=>b.v-a.v), sem = itens.filter(x=>!(x.v>0.5));
+  const porCls = k => itens.filter(x=>x.cls===k).reduce((s,x)=>s+x.v,0), porCd = k => itens.filter(x=>x.cd===k).reduce((s,x)=>s+x.v,0);
+  const blocos = [{titulo:"Contas do grupo, da maior para a menor", linhas: com.length
+    ? com.map(x=>({rot:x.rot, val:brl(x.v), sub:pctDe(x.v, tot)+" do grupo"+(x.cls ? " · "+x.cls+" · "+x.cd : ""), ir:"conta:"+x.k}))
+    : [{rot:"Nenhuma conta com valor no plano", val:"—"}]}];
+  if(!semConta) blocos.push({titulo:"Composição do grupo", linhas:[
+    {rot:"Variável", val:brl(porCls("Variável")), sub:pctDe(porCls("Variável"), tot)},
+    {rot:"Fixo", val:brl(porCls("Fixo")), sub:pctDe(porCls("Fixo"), tot)},
+    {rot:"Custo", val:brl(porCd("Custo")), sub:pctDe(porCd("Custo"), tot)},
+    {rot:"Despesa", val:brl(porCd("Despesa")), sub:pctDe(porCd("Despesa"), tot)}]});
+  if(sem.length) blocos.push({titulo:"Sem valor no plano", linhas: sem.map(x=>({rot:x.rot, val: x.comb ? "em "+x.comb : "—",
+    ir: x.comb ? "conta:"+x.comb : "conta:"+x.k}))});
+  return {titulo:g, subtitulo:"Grupo do plano de contas", valor:brl(tot), blocos,
+    nota: pctDe(tot, total)+" do custo do plano.", premissas:premissasGerais(), voltar:"contas"};
+}
+
+/* ---------- Demandas de insumos e materiais ---------- */
+const nomeMes = i => i==null ? "—" : MESES[i];
+function rastroDemanda(R, prod){
+  const l = demandasInsumos(R).linhas.find(x=>x.prod===prod); if(!l) return null;
+  const un = l.un ? " "+l.un : "";
+  const usos = [];
+  R.L.forEach(r=>tratamentosDaLinha(r).forEach(t=>composicao(t.trat).forEach(c=>{
+    if(c.prod!==prod) return; const d = doseBase(c);
+    usos.push({rot:codExibir(r.a.cod)+" · "+r.a.nome, v:t.area*d, ir:"ativ:"+r.a.cod,
+      sub:"tratamento "+t.trat+" · "+fmt(t.area)+" ha × "+fmt(d, d<1?3:2)+un+"/ha"+(c.compra===false ? " · só consome estoque" : "")});
+  })));
+  usos.sort((a,b)=>b.v-a.v);
+  return {titulo:prod, subtitulo:"Demanda de insumo · "+l.famNome, valor: l.comprar>1e-9 ? "comprar "+fmt(l.comprar, l.comprar<10?2:0)+un : "estoque cobre o plano",
+    blocos:[
+      {titulo:"Necessidade × estoque", linhas:[
+        {rot:"Volume do plano", val:fmt(l.vol, l.vol<10?2:0)+un, sub:"tratamentos lançados no Plano Operacional"},
+        {rot:"Estoque", val:fmt(l.est, l.est<10?2:0)+un, sub:l.estData ? "saldo em "+l.estData : "aba Insumos"},
+        {rot:"Saldo após o plano", val:fmt(l.saldo, Math.abs(l.saldo)<10?2:0)+un, sub: l.saldo<0 ? "falta" : "sobra"},
+        {rot:"A comprar", val:fmt(l.comprar, l.comprar<10?2:0)+un, sub: l.soEstoque ? "sem as linhas marcadas para só consumir estoque" : ""},
+        {rot:"Valor a comprar", val:brl(l.valor), sub:l.preco>0 ? brl(l.preco,2)+"/"+(l.un||"un")+" (preço corrigido)" : "produto sem preço"},
+        {rot:"Estoque acaba em", val:nomeMes(l.acaba), sub: l.acaba!=null ? "a compra tem de chegar antes" : "o estoque cobre o ano"}]},
+      {titulo:"Onde é usado", linhas: usos.length ? usos.map(u=>({rot:u.rot, val:fmt(u.v, u.v<10?2:0)+un, sub:u.sub, ir:u.ir})) : [{rot:"—", val:"—"}]},
+      {titulo:"Mês a mês", linhas: MESES.map((m,i)=>({i, m})).filter(x=>l.mes[x.i]>0).map(x=>({rot:x.m,
+        val:fmt(l.mes[x.i], l.mes[x.i]<10?2:0)+un, sub: l.faltaMes[x.i]>1e-9 ? "comprar "+fmt(l.faltaMes[x.i], l.faltaMes[x.i]<10?2:0)+un : "coberto pelo estoque"}))}],
+    premissas:premissasGerais(), voltar:"demandas"};
+}
+function rastroDemandaMaterial(R, ix){
+  const l = demandasMateriais(R).linhas.find(x=>x.ix===+ix); if(!l) return null;
+  const un = l.un ? " "+l.un : "";
+  return {titulo:l.item, subtitulo:"Demanda de material · "+l.cat, valor: l.comprar>0 ? "comprar "+fmt(l.comprar)+un : "estoque cobre o plano",
+    blocos:[{titulo:"Necessidade × estoque", linhas:[
+      {rot:"Quantidade anual", val:fmt(l.qtd)+un, sub:"lista de materiais (aba Insumos)"},
+      {rot:"Estoque", val:fmt(l.est)+un, sub:"informado na aba Demandas"},
+      {rot:"A comprar", val:fmt(l.comprar)+un},
+      {rot:"Valor a comprar", val:brl(l.valor), sub:brl(l.preco,2)+"/"+(l.un||"un")},
+      {rot:"Mês de compra", val:nomeMes(l.mes), sub: l.mes!=null ? "mês de alocação do material" : "sem mês marcado: o custo vai pela área operada"}]}],
+    premissas:premissasGerais(), voltar:"demandas"};
+}
+function rastroDemandas(R){
+  const D = demandas(R);
+  const top = D.ins.linhas.filter(l=>l.valor>0.5).slice(0,15);
+  return {titulo:"Demandas de insumos e materiais", subtitulo:"O que o plano pede, o que há em estoque e o que falta comprar",
+    valor:brl(D.valor)+" a comprar",
+    blocos:[
+      {titulo:"Resumo", linhas:[
+        {rot:"Insumos a comprar", val:brl(D.ins.valor), sub:D.ins.nComprar+" de "+D.ins.n+" produtos"},
+        {rot:"Materiais a comprar", val:brl(D.mat.valor), sub:D.mat.nComprar+" de "+D.mat.n+" itens"},
+        {rot:"Consumo do plano (preço de compra)", val:brl(D.consumo), sub:"insumos e materiais"},
+        {rot:"Coberto pelo estoque", val:brl(D.usoEstoque)}]},
+      {titulo:"Insumos com maior valor a comprar", linhas: top.length ? top.map(l=>({rot:l.prod, val:brl(l.valor),
+        sub:"comprar "+fmt(l.comprar, l.comprar<10?2:0)+" "+l.un+(l.acaba!=null ? " · estoque acaba em "+MESES[l.acaba] : ""), ir:"demanda:"+l.prod}))
+        : [{rot:"O estoque cobre todos os insumos do plano", val:"—"}]}],
+    premissas:premissasGerais()};
+}
 /* ---------- hectares operados ---------- */
 function rastroHectares(R){
   const ativs = R.L.filter(r=>r.ehHa && r.total>0).sort((a,b)=>b.total-a.total);
@@ -1316,7 +1436,10 @@ function rastro(R, chave, periodo){
   if(tipo==="insumos") return rastroInsumos(R);
   if(tipo==="forn") return rastroForn(R);
   if(tipo==="tpess") return rastroTPess(R);
-  if(tipo==="contas") return rastroContas(R);
+  if(tipo==="contas") return arg.startsWith("grupo:") ? rastroContasGrupo(R, arg.slice(6)) : rastroContas(R);
+  if(tipo==="conta") return rastroContaContabil(R, arg);
+  if(tipo==="demandas") return rastroDemandas(R);
+  if(tipo==="demanda") return arg.startsWith("mat:") ? rastroDemandaMaterial(R, arg.slice(4)) : rastroDemanda(R, arg);
   if(tipo==="hect") return rastroHectares(R);
   return rastroTotal(R);
 }

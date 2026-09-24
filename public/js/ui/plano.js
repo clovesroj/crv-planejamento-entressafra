@@ -147,12 +147,8 @@ function subLinhasTrat(r, SEL){
 function custosDaLinha(r, SEL){
   const soSel = arr => SEL.meses.reduce((s,j)=>s+num((arr||[])[j]),0);
   const fatia = r.total>0 ? totalNoFiltro(r, SEL)/r.total : 0;
-  let insumo = r.cInsumo;
-  if(SEL.parcial){
-    insumo = r.tratsDetalhe
-      ? r.tratsDetalhe.reduce((s,d)=>s + (d.area>0 ? d.custo/d.area*soSel(d.m) : 0), 0)
-      : r.cInsumo*fatia;
-  }
+  // no período: o insumo dos meses de cada tratamento (insumoMes do motor)
+  const insumo = SEL.parcial ? soSel(r.insumoMes) : r.cInsumo;
   const servico = SEL.parcial ? r.cTerc*fatia : r.cTerc;
   const mdo = SEL.parcial ? soSel(r.mdoMes) : r.cMDO;
   const areaTerc = r.partes.filter(p=>p.terc).reduce((s,p)=>s+p.area,0);
@@ -302,7 +298,7 @@ function pintarPlano(R){
   const fatia = r => r.total>0 ? totalNoFiltro(r, SEL)/r.total : 0;
   const prog  = R.L.filter(r=>totalNoFiltro(r, SEL)>0).length;
   const haOp  = parcial ? R.L.reduce((s,r)=>s+(r.ehHa?totalNoFiltro(r, SEL):0),0) : R.haOp;
-  const ins   = parcial ? R.L.reduce((s,r)=>s+r.cInsumo*fatia(r),0) : R.insumoT;
+  const ins   = parcial ? R.L.reduce((s,r)=>s+SEL.meses.reduce((t,j)=>t+num((r.insumoMes||[])[j]),0),0) : R.insumoT;
   // horasT do motor = horas das atividades + horas da frota de apoio. A frota de
   // apoio roda todo mês, independente de quando a atividade acontece, então a
   // parcela dela é a fração de meses do período — não a fração de volume.

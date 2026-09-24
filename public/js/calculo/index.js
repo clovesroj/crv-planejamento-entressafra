@@ -5,7 +5,7 @@ import { num } from '../nucleo/formato.js';
 import { apoioCalc, frotaApoio } from './apoio.js';
 import { admCalc, admRateio } from './administrativo.js';
 import { ETAPAS_ORD, arrRat, arrendCalc } from './arrendamento.js';
-import { linha, picoFrotaPorItem } from './atividade.js';
+import { diretoNoMes, linha, picoFrotaPorItem } from './atividade.js';
 import { CRM_COMP, crmFrota } from './crm.js';
 import { precoDiesel } from './diesel.js';
 import { volumeDemandado } from './insumos.js';
@@ -125,7 +125,8 @@ function calcular(){
     const tot = r.total||0;
     // diesel entra pelo litro e preço de cada mês; a MDO, pela equipe paga em cada
     // mês com volume; o restante do custo direto, pela quantidade
-    r.meses.forEach((q,i)=>{ if(tot>0) meses[i] += (r.direto-r.cDiesel-r.cMDO)*(num(q)/tot) + r.dieselMes[i] + r.mdoMes[i]; });
+    // o insumo, pelos meses de cada tratamento (diretoNoMes, calculo/atividade.js)
+    if(tot>0) for(let i=0;i<NM;i++) meses[i] += diretoNoMes(r, i);
   });
   // materiais de manutenção: os que têm mês marcado caem no mês; o resto, pela área operada
   // o quadro ADM e oficina tem mês próprio (a folha prevista de cada mês): não vai pela área
@@ -144,7 +145,7 @@ function calcular(){
     const tot=r.total||0; if(tot<=0) return;
     r.meses.forEach((q,i)=>{ const f=num(q)/tot;
       mesesCat.mdo[i]+=r.mdoMes[i]; mesesCat.manut[i]+=r.cManut*f;
-      mesesCat.diesel[i]+=r.dieselMes[i]; mesesCat.insumo[i]+=r.cInsumo*f; mesesCat.terc[i]+=r.cTerc*f; });
+      mesesCat.diesel[i]+=r.dieselMes[i]; mesesCat.insumo[i]+=r.insumoMes[i]; mesesCat.terc[i]+=r.cTerc*f; });
   });
   const indiretoMdo = AE.mdo, indiretoManut = AE.manut+crmExtra+MT.distribuido;
   for(let i=0;i<NM;i++){ const h=pesoMes(i);
@@ -218,7 +219,7 @@ function calcular(){
   L.forEach(r=>{
     const tot = r.total||0; if(tot<=0) return;
     const em = etapaMes[r.a.etapa];
-    r.meses.forEach((q,i)=>{ em[i] += (r.direto-r.cDiesel-r.cMDO)*(num(q)/tot) + r.dieselMes[i] + r.mdoMes[i]; });
+    for(let i=0;i<NM;i++) em[i] += diretoNoMes(r, i);
   });
   const litrosTotEt = litrosDir + AE.litros;
   Object.entries(etapas).forEach(([e,d])=>{

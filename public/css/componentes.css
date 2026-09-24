@@ -962,7 +962,25 @@ table.qf td.qf-menos{color:var(--green)}
 i.pes-cor{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:7px}
 #t_pes_geral tr.qf-tot td,#t_pes_geral_mes tr.qf-tot td{font-weight:700;border-top:1px solid var(--line-strong)}
 /* .btn e display:inline-flex e venceria o [hidden] do navegador: o botao so aparece com filtro */
-#btn_pes_limpar[hidden]{display:none}
+#btn_pes_limpar[hidden],#btn_cc_limpar[hidden]{display:none}
+
+/* Plano de Contas: atalhos por grupo, subtotal e total; painel de tres roscas */
+.cc-chips{display:flex;flex-wrap:wrap;gap:8px}
+.cc-chip{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border:1px solid var(--line);border-radius:999px;
+  background:var(--card);color:var(--ink);font:inherit;font-size:12.5px;cursor:pointer}
+.cc-chip:hover{border-color:var(--leaf)}
+.cc-chip.on{border-color:var(--leaf);background:var(--leaf-soft);color:var(--leaf-strong)}
+.cc-chip i{width:10px;height:10px;border-radius:2px}
+.cc-chip b{font-weight:700}
+i.cc-cor{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px;box-shadow:0 0 0 1px rgba(255,255,255,.5)}
+tr.cc-sub td{background:var(--sunk);font-weight:700;border-top:1px solid var(--line-strong)}
+tr.cc-tot td{font-weight:700;border-top:2px solid var(--line-strong)}
+.dash3{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:1300px){ .dash3{grid-template-columns:minmax(0,1fr)} }
+.dash3 + .panel{margin-top:16px}
+td.dem-falta{color:var(--bad);font-weight:600}
+.aviso-cc{margin-top:12px;padding:10px 14px;border-radius:var(--r-sm);background:var(--warn-bg);color:var(--ink);font-size:13px;line-height:1.5}
+.aviso-cc[hidden]{display:none}
 
 /* Resumo de Pessoas no padrao das planilhas: grupo, departamento e funcao */
 #t_pes_dept tr.pes-grp td{background:color-mix(in srgb,var(--leaf) 10%,var(--card));font-weight:700;border-top:1px solid var(--line-strong)}

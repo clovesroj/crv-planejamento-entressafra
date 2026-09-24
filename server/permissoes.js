@@ -60,6 +60,8 @@ const AREAS = [
     chaves: ['INSUMO', 'INSX', 'INSX_V', 'TRATC', 'TRAT_NOME', 'TRAT_OBS', 'TRAT_ETAPA', 'TRAT_DEL', 'TRAT_ATIVO', 'MATX', 'GRUPOS_INS', 'FAM_NOME', 'FAM_CLASSE'] },
   { id: 'irrig', nome: 'Irrigação', grupo: 'Agricultura',
     chaves: ['PLANO'], campos: ['perdaCarga', 'desnivel', 'rendBomba', 'kwh', 'fonte'] },
+  // estoque dos materiais de manutencao (MATX[i].est): informado na aba Demandas
+  { id: 'demandas', nome: 'Demandas de Insumos e Materiais', grupo: 'Agricultura', chaves: ['MATX'] },
   { id: 'forn', nome: 'Fornecedores de Cana', grupo: 'Agricultura', chaves: ['FORN', 'FORN_PAR'] },
 
   // capTransb é derivado (volume × densidade) e recalculado a cada conta

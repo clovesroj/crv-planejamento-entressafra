@@ -60,6 +60,7 @@
       <div class="gl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21V4"/><path d="M12 9.5C9 9.5 6.5 7.5 5.5 4.5c3 0 5.5 2 6.5 5z"/><path d="M12 14.5c3 0 5.5-2 6.5-5-3 0-5.5 2-6.5 5z"/><path d="M8.5 21h7"/></svg>Agricultura</div>
       <button data-s="insumos">Insumos</button>
       <button data-s="fito">Manejo Fitossanitário</button>
+      <button data-s="demandas">Demandas de Insumos e Materiais</button>
       <button data-s="irrig">Irrigação</button>
       <button data-s="forn">Fornecedores de Cana</button>
     </div>
@@ -1029,17 +1030,52 @@
 <section id="contas">
   <h2>Plano de Contas</h2>
   <p class="lead">Estrutura oficial de contas do departamento agrícola, agrupada por natureza, com o custo
-  projetado de cada conta calculado automaticamente a partir do plano. Duas páginas — use o menu ao lado para
-  trocar.</p>
+  projetado de cada conta calculado automaticamente a partir do plano. Três páginas — use o menu ao lado para
+  trocar. Passe o mouse sobre qualquer número para ver de onde ele vem; clique para o detalhamento completo.</p>
   <div class="grid g4" id="k_cc" style="margin-bottom:16px"></div>
+  <div class="row cc-filtro" style="margin-bottom:12px;align-items:flex-end">
+    <div style="min-width:220px"><label for="sel_cc_grupo">Grupo de contas</label>
+      <select id="sel_cc_grupo"></select></div>
+    <div style="min-width:170px"><label for="sel_cc_cls">Classificação</label>
+      <select id="sel_cc_cls"><option value="todos">Fixo e variável</option><option value="Fixo">Fixo</option><option value="Variável">Variável</option></select></div>
+    <div style="min-width:170px"><label for="sel_cc_cd">Custo ou despesa</label>
+      <select id="sel_cc_cd"><option value="todos">Custo e despesa</option><option value="Custo">Custo</option><option value="Despesa">Despesa</option></select></div>
+    <button class="btn" id="btn_cc_limpar" type="button">Limpar filtro</button>
+    <div class="hint" id="cc_filtro_nota" style="flex:1;margin:0"></div>
+  </div>
 
-  <details class="bloco" id="bl_contas_lista" open>
+  <details class="bloco" id="bl_contas_painel" open>
+    <summary><span class="bl-tit">Painel</span><span class="bl-sub" id="bl_cc_sub"></span></summary>
+    <div class="bloco-corpo">
+      <div class="cc-chips" id="cc_chips"></div>
+      <div class="aviso-cc" id="cc_alerta" hidden></div>
+      <div class="grid g4" id="k_cc_painel" style="margin:14px 0 16px"></div>
+      <div class="pes-dash dash3">
+        <div class="panel"><h3>Por grupo de contas</h3>
+          <div class="rosca-box"><div id="ch_cc_grupo"></div><div class="rosca-leg" id="ch_cc_grupo_leg"></div></div></div>
+        <div class="panel"><h3>Fixo × variável</h3>
+          <div class="rosca-box"><div id="ch_cc_cls"></div><div class="rosca-leg" id="ch_cc_cls_leg"></div></div></div>
+        <div class="panel"><h3>Custo × despesa</h3>
+          <div class="rosca-box"><div id="ch_cc_cd"></div><div class="rosca-leg" id="ch_cc_cd_leg"></div></div></div>
+      </div>
+      <div class="panel"><h3>Custo mensal por grupo de contas</h3>
+        <div id="ch_cc_mes"></div><div class="leg-periodo" id="ch_cc_mes_leg"></div>
+        <div class="hint" style="margin-top:9px" id="ch_cc_mes_nota"></div></div>
+      <div class="panel"><h3>Contas com maior valor</h3>
+        <div id="ch_cc_top"></div><div class="hint" style="margin-top:6px" id="ch_cc_top_nota"></div></div>
+      <div class="hint">Os atalhos no alto filtram o painel e a tabela por grupo. Passe o mouse sobre qualquer fatia,
+      barra ou cartão para ver o que tem ali; clique para abrir de onde vem cada real da conta.</div>
+    </div>
+  </details>
+
+  <details class="bloco" id="bl_contas_lista">
     <summary><span class="bl-tit">Contas</span></summary>
     <div class="bloco-corpo">
       <div class="panel"><h3>Contas</h3>
         <input type="search" class="tbl-busca" data-alvo="#t_contas" placeholder="Buscar conta...">
         <div class="tblwrap"><table id="t_contas"></table></div>
-        <div class="hint" style="margin-top:9px">O custo projetado é apurado direto do plano onde há uma fonte
+        <div class="hint" style="margin-top:9px">Cada grupo fecha com o seu <b>subtotal</b>, e a última coluna é o
+        peso da conta no custo do plano. Clique numa conta para ver de onde vem cada real dela. O custo projetado é apurado direto do plano onde há uma fonte
         de dados equivalente (mão de obra por origem, CRM por componente, diesel, insumos, irrigação, terceirizações
         depreciação/administração e arrendamento). Contas marcadas "—" não têm um detalhamento equivalente neste modelo
         (ex.: pneus, EPC, cursos) — o valor delas está diluído em contas mais amplas do mesmo grupo, não é
@@ -1061,6 +1097,73 @@
         <input type="search" class="tbl-busca" data-alvo="#t_terc" placeholder="Buscar serviço...">
         <div class="tblwrap"><table id="t_terc"></table></div>
         <div class="hint" style="margin-top:9px">T01 alimenta a conta 200-126; T02 e T03 alimentam a conta 200-124.</div></div>
+    </div>
+  </details>
+</section>
+
+<!-- ===== DEMANDAS DE INSUMOS E MATERIAIS ===== -->
+<section id="demandas">
+  <h2>Demandas de Insumos e Materiais</h2>
+  <p class="lead">O que o plano pede de cada insumo e de cada material de manutenção, o que já existe em estoque e
+  a diferença: o que precisa ser comprado, quanto custa e até quando tem de chegar. Quatro páginas — use o menu ao
+  lado para trocar.</p>
+  <div class="grid g5" id="k_dem" style="margin-bottom:12px"></div>
+  <label class="row" style="gap:8px;align-items:center;margin:0 0 14px;font-size:13px;cursor:pointer">
+    <input type="checkbox" id="chk_dem_falta"> Mostrar só o que falta comprar</label>
+
+  <details class="bloco" id="bl_dem_painel" open>
+    <summary><span class="bl-tit">Painel</span><span class="bl-sub" id="bl_dem_sub"></span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Compras por mês</h3>
+        <div id="ch_dem_mes"></div><div class="leg-periodo" id="ch_dem_mes_leg"></div>
+        <div class="hint" style="margin-top:9px" id="ch_dem_mes_nota"></div></div>
+      <div class="pes-dash">
+        <div class="panel"><h3>Valor a comprar por grupo</h3>
+          <div class="rosca-box"><div id="ch_dem_fam"></div><div class="rosca-leg" id="ch_dem_fam_leg"></div></div></div>
+        <div class="panel"><h3>Insumos com maior valor a comprar</h3>
+          <div id="ch_dem_top"></div><div class="hint" style="margin-top:6px" id="ch_dem_top_nota"></div></div>
+      </div>
+      <div class="panel"><h3>Conferência: todo insumo está no custo do plano?</h3>
+        <div class="tblwrap"><table id="t_dem_conf"></table></div>
+        <div class="hint" style="margin-top:9px" id="dem_conf_nota"></div></div>
+    </div>
+  </details>
+
+  <details class="bloco" id="bl_dem_ins">
+    <summary><span class="bl-tit">Insumos</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Necessidade × estoque, por grupo de insumo</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_dem_ins" placeholder="Buscar produto...">
+        <div class="tblwrap"><table id="t_dem_ins"></table></div>
+        <div class="hint" style="margin-top:9px"><b>Volume do plano</b> é o dos tratamentos lançados no Plano
+        Operacional, cada tratamento na sua área e nos seus meses, na unidade do cadastro. <b>Estoque</b> é o da aba
+        Insumos (é lá que se ajusta). <b>A comprar</b> é a necessidade que o estoque não cobre — sem as linhas de
+        composição marcadas para só consumir o estoque. <b>Estoque acaba em</b> é o mês em que o consumo acumulado passa
+        o estoque: a compra tem de chegar antes.</div></div>
+    </div>
+  </details>
+
+  <details class="bloco" id="bl_dem_mes">
+    <summary><span class="bl-tit">Compra mês a mês</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Quantidade a comprar em cada mês</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_dem_mes" placeholder="Buscar produto...">
+        <div class="tblwrap"><table id="t_dem_mes"></table></div>
+        <div class="hint" style="margin-top:9px">O estoque é gasto na ordem dos meses; cada célula é o consumo do mês
+        que o estoque já não cobre — o que tem de estar comprado e entregue naquele mês. Segue o período da barra do
+        topo.</div></div>
+    </div>
+  </details>
+
+  <details class="bloco" id="bl_dem_mat">
+    <summary><span class="bl-tit">Materiais de manutenção</span></summary>
+    <div class="bloco-corpo">
+      <div class="panel"><h3>Necessidade × estoque, por categoria</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_dem_mat" placeholder="Buscar material...">
+        <div class="tblwrap"><table id="t_dem_mat"></table></div>
+        <div class="hint" style="margin-top:9px">A quantidade anual, o preço e o mês de alocação vêm da lista de
+        materiais (aba Insumos). Informe aqui o <b>estoque</b> de cada item: a compra é a quantidade anual menos o
+        estoque.</div></div>
     </div>
   </details>
 </section>

@@ -73,9 +73,11 @@ function ativP(r){
   const cDiesel = noPer(r.dieselMes);
   // MDO: a equipe paga nos meses do período (mês cheio em cada mês com volume)
   const cMDO = noPer(r.mdoMes);
+  // insumo: pelos meses de cada tratamento (insumoMes), não pela fração do volume
+  const cInsumo = noPer(r.insumoMes);
   return {...r, total:vol, horas:r.horas*f, litros:noPer(r.litrosMes), cDiesel,
-    cMDO, cManut:r.cManut*f, cInsumo:r.cInsumo*f, cTerc:r.cTerc*f,
-    direto:(r.direto-r.cDiesel-r.cMDO)*f + cDiesel + cMDO};
+    cMDO, cManut:r.cManut*f, cInsumo, cTerc:r.cTerc*f,
+    direto:(r.direto-r.cDiesel-r.cMDO-r.cInsumo)*f + cDiesel + cMDO + cInsumo};
 }
 
 /* Etapa no período. O total vem pronto do motor (etapaMes). O direto é o das

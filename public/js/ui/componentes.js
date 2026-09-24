@@ -618,11 +618,13 @@ const passoRedondo = v => { if(!(v>0)) return 1; const e = Math.pow(10, Math.flo
   return (f<=1 ? 1 : f<=2 ? 2 : f<=2.5 ? 2.5 : f<=5 ? 5 : 10)*e; };
 
 /* Barras empilhadas por mês. o = {meses:[i], series:[{nome, cor, vals, rastro(i)}],
-   linha:{nome, cor, vals}|null, rastroCol(i)}. A coluna inteira tem a chave do
+   linha:{nome, cor, vals}|null, rastroCol(i), fmt?(v), fmtLeg?(v)} -- fmt formata
+   o eixo e o total de cada barra; fmtLeg, a média e o pico da legenda (padrão:
+   quantidade inteira). A coluna inteira tem a chave do
    mês; cada pedaço, a do seu grupo naquele mês. A linha tracejada (ex.: quadro
    atual disponível) não intercepta o mouse. */
 function barrasEmpilhadas(el, legEl, o){
-  const W=960,H=300,ml=54,mb=36,mt=24,mr=12;
+  const W=960,H=300,ml=54,mb=36,mt=24,mr=12, fx = o.fmt || (v=>fmt(v,0)), fl = o.fmtLeg || qtdTxt;
   const meses = o.meses.length ? o.meses : MESES.map((m,i)=>i);
   const somaCol = i => o.series.reduce((s,x)=>s+(+x.vals[i]||0),0);
   const linhaV = i => o.linha ? (+o.linha.vals[i]||0) : 0;
@@ -632,7 +634,7 @@ function barrasEmpilhadas(el, legEl, o){
   let s = `<svg viewBox="0 0 ${W} ${H}" class="chart graf-pes graf-mes" role="img" aria-label="Pessoas por mês">`;
   for(let k=0;k<=nT;k++){ const y = mt+alt*k/nT, v = max*(1-k/nT);
     s += `<line x1="${ml}" y1="${y}" x2="${W-mr}" y2="${y}" stroke="var(--line)"/>
-      <text x="${ml-8}" y="${y+4}" text-anchor="end" font-size="12" fill="var(--grey)">${fmt(v,0)}</text>`; }
+      <text x="${ml-8}" y="${y+4}" text-anchor="end" font-size="12" fill="var(--grey)">${fx(v)}</text>`; }
   meses.forEach((i,k)=>{
     const x0 = ml+k*bw, x = x0+bw*.24, w = bw*.52;
     let base = 0;
@@ -641,7 +643,7 @@ function barrasEmpilhadas(el, legEl, o){
       const y1 = yDe(base+v), h = yDe(base)-y1;
       s += `<rect x="${x}" y="${y1}" width="${w}" height="${Math.max(h,0.5)}" fill="${sr.cor}" data-rastro="${esc(sr.rastro(i))}"/>`;
       base += v; });
-    s += `<text x="${x0+bw/2}" y="${Math.max(yDe(base)-6, mt-5)}" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--ink)">${base>0?fmt(base,0):""}</text>
+    s += `<text x="${x0+bw/2}" y="${Math.max(yDe(base)-6, mt-5)}" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--ink)">${base>0?fx(base):""}</text>
       <text x="${x0+bw/2}" y="${H-mb+19}" text-anchor="middle" font-size="13" fill="var(--grey)">${MESES[i]}</text></g>`;
   });
   if(o.linha){
@@ -653,14 +655,16 @@ function barrasEmpilhadas(el, legEl, o){
   if(legEl) legEl.innerHTML = o.series.filter(sr=>meses.some(i=>+sr.vals[i]>0)).map(sr=>{
       const vs = meses.map(i=>+sr.vals[i]||0), med = vs.reduce((a,b)=>a+b,0)/meses.length;
       return `<span class="leg-per"${sr.rastroLeg?` data-rastro="${esc(sr.rastroLeg)}"`:""}><i style="background:${sr.cor}"></i>
-        <b>${esc(sr.nome)}</b> média ${qtdTxt(med)} · pico ${fmt(Math.max(...vs),0)}</span>`; }).join("") +
+        <b>${esc(sr.nome)}</b> média ${fl(med)} · pico ${fl(Math.max(...vs))}</span>`; }).join("") +
     (o.linha ? `<span class="leg-per"${o.linha.rastro?` data-rastro="${esc(o.linha.rastro)}"`:""}><i style="background:none;border-top:2px dashed ${o.linha.cor};height:0;border-radius:0"></i>
       <b>${esc(o.linha.nome)}</b></span>` : "");
 }
 
-/* Rosca (pizza com furo): dados = [{l, v, cor, rastro}]; o centro traz o total.
-   Fatia e linha da legenda levam a mesma chave. */
-function rosca(el, legEl, dados, centro){
+/* Rosca (pizza com furo): dados = [{l, v, cor, rastro}]; o centro traz o total
+   (centro.txt, quando o número do centro não é o total cru). Fatia e linha da
+   legenda levam a mesma chave; fmtV formata o valor da legenda (padrão:
+   quantidade). */
+function rosca(el, legEl, dados, centro, fmtV){
   const ds = dados.filter(d=>d.v>0), tot = ds.reduce((s,d)=>s+d.v,0);
   if(!(tot>0)){ el.innerHTML = `<div class="calc" style="padding:40px 0;text-align:center">Sem pessoas no período.</div>`;
     if(legEl) legEl.innerHTML = ""; return; }
@@ -676,11 +680,11 @@ function rosca(el, legEl, dados, centro){
       s += `<text x="${(c+(r+ri)/2*Math.cos(am)).toFixed(1)}" y="${(c+(r+ri)/2*Math.sin(am)+3.5).toFixed(1)}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#fff" pointer-events="none">${fmt(fr*100,0)}%</text>`; }
     a0 = a1;
   });
-  s += `<text x="${c}" y="${c-2}" text-anchor="middle" font-size="22" font-weight="700" fill="var(--ink)">${qtdTxt(centro.v)}</text>
+  s += `<text x="${c}" y="${c-2}" text-anchor="middle" font-size="22" font-weight="700" fill="var(--ink)">${centro.txt!=null ? esc(centro.txt) : qtdTxt(centro.v)}</text>
     <text x="${c}" y="${c+16}" text-anchor="middle" font-size="10" fill="var(--grey)">${esc(centro.l)}</text></svg>`;
   el.innerHTML = s;
   if(legEl) legEl.innerHTML = ds.map(d=>`<div class="rosca-leg-l" data-rastro="${esc(d.rastro)}">
-      <i style="background:${d.cor}"></i><span>${esc(d.l)}</span><b>${qtdTxt(d.v)}</b>
+      <i style="background:${d.cor}"></i><span>${esc(d.l)}</span><b>${fmtV ? fmtV(d.v) : qtdTxt(d.v)}</b>
       <span class="calc">${fmt(d.v/tot*100,1)}%</span></div>`).join("");
 }
 

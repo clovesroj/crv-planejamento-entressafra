@@ -561,9 +561,28 @@ function linha(a, MP){
           modo: M ? "mix" : "", maqEfetiva: partes.map(x=>x.maq).join(" + "),
           impEfetivo: partes.map(x=>x.imp).join(" + "),
           direto: soma("direto")+cInsumo, trat:p.trat, ehHa,
+          /* insumo de cada mes: com tratamento extra, cada tratamento pelos
+             SEUS meses (custo do tratamento x area do mes / area dele); sem
+             extra, o custo pela fracao do volume, como sempre. Espalhar o
+             custo somado pela area somada punha o adubo do extra nos meses do
+             tratamento principal. */
+          insumoMes: tratsDetalhe
+            ? MESES.map((m,i)=>tratsDetalhe.reduce((s,d)=>s+(d.area>0 ? d.custo*num((d.m||[])[i])/d.area : 0), 0))
+            : meses.map(q=>total>0 ? cInsumo*num(q)/total : 0),
           litros: soma("litros"),
           litrosMes: fracMes.map(fr=>fr*soma("litros")),
           dieselMes: fracMes.map((fr,i)=>fr*soma("litros")*precoDiesel(i))};
+}
+
+/* Custo direto de uma atividade no mes i, pelo criterio do motor: diesel pelo
+   litro e preco do mes, MDO pela equipe paga no mes, insumo pelos meses de
+   cada tratamento (insumoMes) e o resto -- manutencao e terceiro -- pela
+   fracao do volume. Um lugar so para o total mensal, as etapas por mes, o
+   rastro e o relatorio por periodo. */
+function diretoNoMes(r, i){
+  const tot = r.total||0;
+  const resto = tot>0 ? (r.direto - r.cDiesel - r.cMDO - num(r.cInsumo))*num(r.meses[i])/tot : 0;
+  return resto + num((r.insumoMes||[])[i]) + num((r.dieselMes||[])[i]) + num((r.mdoMes||[])[i]);
 }
 
 /* ---------- cadastro de atividades: incluir e remover ----------
@@ -627,6 +646,6 @@ function removerAtividade(cod){
   return true;
 }
 
-export { MODOS_ORD, criterioMensal, diasDoMes, fatorDe, frotaDaAtividade, modoLiberado, modosDe, linha, mixDe, pessoasDaAtividade, picoFrotaPorItem,
+export { MODOS_ORD, criterioMensal, diasDoMes, diretoNoMes, fatorDe, frotaDaAtividade, modoLiberado, modosDe, linha, mixDe, pessoasDaAtividade, picoFrotaPorItem,
          premissasDe, tarifaTerc, tarifaTercDe, temDetalheTerc, metaDe,
   temCriterioMensal, mesclarBaseAtividades, codigoAtividadeValido, criarAtividade, removerAtividade, removerAtividadesRetiradas };

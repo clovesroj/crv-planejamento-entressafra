@@ -1,5 +1,78 @@
 # Histórico de mudanças
 
+## 2.47.0 — 2026-09-24 · Plano de Contas com painel e subtotais, aba Demandas de Insumos e Materiais, e o insumo auditado
+
+### Plano de Contas: painel dinâmico e subtotal de cada grupo
+
+- **Nova página "Painel"** (a primeira): atalhos por grupo com o valor de cada
+  um (um clique filtra), cartões do recorte (custo, variável, fixo, maior
+  conta), pizzas por grupo, fixo × variável e custo × despesa, custo mensal
+  por grupo e as 15 contas de maior valor.
+- **Filtro** de grupo, classificação e custo/despesa, que vale para o painel e
+  para a tabela (só visão, não grava).
+- **Tabela das contas:** cada grupo fecha com o seu **subtotal**, o cabeçalho
+  do grupo traz a quantidade de contas e o valor, e a nova coluna "% do custo
+  do plano" mostra o peso de cada conta.
+- **De onde vem cada real:** toda conta, subtotal, fatia e barra tem rastro. A
+  apuração das contas passou a guardar a origem de cada valor (etapa, quadro,
+  produto, CRM, rota...), e o clique abre essa origem (`conta:<código>`,
+  `contas:grupo:<grupo>`).
+- **Insumo na conta certa:** o Plano de Contas classificava o insumo só pela
+  classe cadastrada, enquanto o R$/ha do Painel também reconhecia pelo nome os
+  fertilizantes e corretivos (NPK, KCl, ureia, calcário...). O mesmo produto
+  caía em conta diferente em cada tela. Agora as duas usam a mesma regra
+  (`familiaEfetiva`, em `calculo/insumos.js`). No cenário de teste, o grupo
+  5. Insumos passou de R$ 16,9 mi para R$ 53,4 mi. O que continua sem grupo
+  agronômico (herbicidas e inseticidas cadastrados só pelo nome comercial)
+  aparece num aviso com o valor e os produtos: define-se o grupo na aba
+  Insumos.
+
+### Nova aba "Demandas de Insumos e Materiais" (Agricultura)
+
+A diferença entre a necessidade do plano e o estoque, item a item:
+
+- **Insumos:** volume do plano, estoque (o da aba Insumos, com a data do
+  saldo), saldo após o plano, quantidade e valor a comprar, e o **mês em que o
+  estoque acaba**. A tabela é agrupada por grupo de insumo, com subtotal.
+- **Compra mês a mês:** a quantidade que o estoque deixa de cobrir em cada mês,
+  que é o que tem de estar comprado e entregue.
+- **Materiais de manutenção:** quantidade anual, estoque (informado nesta aba,
+  gravado na lista de materiais), quantidade e valor a comprar e mês de
+  compra.
+- **Painel:** compras por mês por grupo, pizza do valor a comprar, os 15
+  insumos de maior valor a comprar e a **conferência do custo de insumos**.
+- Filtro "só o que falta comprar"; rastro em todo produto e material
+  (`demanda:<produto>`, `demanda:mat:<i>`, `demandas`).
+
+### Revisão do custo de insumos: dois erros corrigidos
+
+- **Volume demandado com tratamento extra:** quando uma atividade tem mais de
+  um tratamento, cada um com a sua área, o volume usava só o tratamento
+  principal sobre a área **somada**. O produto do extra sumia da demanda, e o
+  do principal saía inflado. No teste, com um tratamento de adubação extra no
+  plantio: 12-00-24 com 4,69 mi em vez de 5,90 mi, e R$ 3,7 mi de insumo fora
+  da necessidade de compra e da divisão entre as contas de insumo. O custo em
+  R$ da atividade sempre esteve certo. Agora o volume segue cada tratamento
+  (`tratamentosDaLinha` e `demandaMensal`), o que corrige também a necessidade
+  de compra dos relatórios e a aba Insumos.
+- **Insumo mês a mês com tratamento extra:** o custo de insumo da atividade era
+  espalhado pela área somada de cada mês, então o adubo do extra caía nos meses
+  do tratamento principal. Agora cada tratamento entra nos seus meses
+  (`insumoMes`, e `diretoNoMes` em `calculo/atividade.js`). Isso vale para o
+  custo mensal, as etapas por mês, as grandes contas, o rastro, o relatório
+  por período e o Plano Operacional, que já fazia certo na linha, mas não no
+  total do rodapé. O total do ano não muda.
+- **Conferência permanente:** a aba Demandas refaz o custo de insumos pelo lado
+  do produto (volume × preço + frete) e confronta com a soma das atividades,
+  que tem de bater no centavo, e abre o custo por etapa: preparo, plantio,
+  tratos de cana planta e de cana soca, e formação do canavial. Duas
+  checagens novas na Validação: "insumos por produto = insumos por atividade"
+  e "tratamento inativo vinculado ao plano" (o custo entra, mas o tratamento
+  some das buscas).
+
+Sem tratamento extra, nenhum número muda. 54 invariantes sem falha; 31 abas,
+503 rastros e 138 relatórios sem erro.
+
 ## 2.46.0 — 2026-09-24 · Resumo de Pessoas: página "Resumo geral", com painel de gráficos
 
 Nova primeira página do Resumo de Pessoas: todas as pessoas projetadas, o

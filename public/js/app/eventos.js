@@ -25,7 +25,7 @@ import { leve, render, renderAgrofit, renderApoioMes, renderDimDet, renderEditIn
 import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarBuscaItem, filtrarRastro, voltarRastro } from '../ui/rastro.js';
 import { abrirRendMensal, aberto as rendMensalAberto, descartarRascunho, editarRascunho,
   fecharRendMensal, pendencias, salvarRascunho } from '../ui/rendmensal.js';
-import { setQF_MES, setQF_GRUPO, setPES_GRUPO, setPES_DEPT } from '../nucleo/estado.js';
+import { setQF_MES, setQF_GRUPO, setPES_GRUPO, setPES_DEPT, setCONTAS_GRUPO, setCONTAS_CLS, setCONTAS_CD, setDEM_SO_FALTA } from '../nucleo/estado.js';
 import { setAPOIO, setATIV_TRAT_SEL, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setINSX_V, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
 import { USUARIO, areasDePermissao, podeEditar } from '../nucleo/sessao.js';
 
@@ -197,6 +197,9 @@ document.addEventListener("input",e=>{
   // FAT (aba Mao de Obra) e apoio operacional (Dimensionamento)
   if(t.dataset.fat!==undefined){ const l=FAT[+t.dataset.fat], f=t.dataset.f; if(!l) return;
     l[f] = f==="desc" ? t.value : num(t.value); salvar(); leve(); return; }
+  // estoque de um material de manutencao (aba Demandas)
+  if(t.dataset.mest!==undefined){ const m = matLista()[+t.dataset.mest]; if(!m) return;
+    m.est = num(t.value); salvar(); leve(); return; }
   if(t.dataset.moa!==undefined){ const l=MO_APOIO[+t.dataset.moa], f=t.dataset.f; if(!l) return;
     l[f] = f==="frente" ? t.value : num(t.value); salvar(); leve(); return; }
   if(t.dataset.mx!==undefined){ const c=t.dataset.mx;
@@ -267,6 +270,11 @@ document.addEventListener("change",e=>{
   // filtro do Resumo de Pessoas: quadro e departamento -- so visao, nao grava
   if(t.id==="sel_pes_grupo"){ setPES_GRUPO(t.value); setPES_DEPT("todos"); render(); return; }
   if(t.id==="sel_pes_dept"){ setPES_DEPT(t.value); render(); return; }
+  // filtros do Plano de Contas e das Demandas -- so visao, nao grava
+  if(t.id==="sel_cc_grupo"){ setCONTAS_GRUPO(t.value); render(); return; }
+  if(t.id==="sel_cc_cls"){ setCONTAS_CLS(t.value); render(); return; }
+  if(t.id==="sel_cc_cd"){ setCONTAS_CD(t.value); render(); return; }
+  if(t.id==="chk_dem_falta"){ setDEM_SO_FALTA(t.checked); render(); return; }
   // FAT e apoio operacional: funcao da linha e meses marcados
   if(t.dataset.fatf!==undefined){ const l=FAT[+t.dataset.fatf]; if(l){ l.fcod=t.value; salvar(); render(); } return; }
   if(t.dataset.moaf!==undefined){ const l=MO_APOIO[+t.dataset.moaf]; if(l){ l.fcod=t.value; salvar(); render(); } return; }
@@ -768,6 +776,8 @@ document.addEventListener("click",e=>{
   const t=e.target;
   if(t.dataset.rm!==undefined){ ESPOR.splice(+t.dataset.rm,1); salvar(); render(); return; }
   if(t.dataset.fatrm!==undefined){ FAT.splice(+t.dataset.fatrm,1); salvar(); render(); return; }
+  { const chip = t.closest && t.closest("[data-ccgrupo]");
+    if(chip){ setCONTAS_GRUPO(chip.dataset.ccgrupo); render(); return; } }
   if(t.dataset.moarm!==undefined){ MO_APOIO.splice(+t.dataset.moarm,1); salvar(); render(); return; }
   if(t.dataset.admrm!==undefined){ const l=admLista()[+t.dataset.admrm];
     if(!confirm(`Remover "${l.desc}" dos custos administrativos?`)) return;
@@ -847,6 +857,7 @@ $("#btn_moa_add").onclick=()=>{
 };
 
 $("#btn_pes_limpar").onclick=()=>{ setPES_GRUPO("todos"); setPES_DEPT("todos"); render(); };
+$("#btn_cc_limpar").onclick=()=>{ setCONTAS_GRUPO("todos"); setCONTAS_CLS("todos"); setCONTAS_CD("todos"); render(); };
 
 $("#btn_grp_add").onclick=()=>{
   const r = criarGrupoInsumo($("#in_grp_novo").value);

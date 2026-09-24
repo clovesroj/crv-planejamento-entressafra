@@ -13,6 +13,7 @@ import { MESES, NM, diasNoMesEntre, mesesEntre } from '../nucleo/calendario.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
 import { th } from './componentes.js';
 import { contasValores, totaisContas } from '../calculo/contas.js';
+import { conferenciaInsumos } from '../calculo/demandas.js';
 import { estado } from '../io/persistencia.js';
 import { areasDePermissao } from '../nucleo/sessao.js';
 
@@ -231,6 +232,15 @@ function validar(R){
     const opTot = custoPorOperacao(R).totalContabil;
     add(Math.abs(opTot-R.total)<1, "Auditoria: custo contábil das operações soma o custo total", brl(opTot), ir("custos","#t_contabil"));
   }
+  /* Insumos pelos dois lados: volume x preço (+ frete) de cada produto contra a
+     soma das atividades. Se não fecham, algum tratamento -- extra, junto da
+     plantadora -- está num lado e não no outro (ver aba Demandas). */
+  const CI = conferenciaInsumos(R);
+  add(CI.confere, "Auditoria: insumos por produto = insumos por atividade",
+      CI.confere ? brl(CI.insumoT) : "diferença de "+brl(CI.dif)+" — veja a conferência na aba Demandas", ir("demandas","#t_dem_conf"));
+  add(!CI.inativos.length, "Nenhum tratamento inativo vinculado ao plano",
+      CI.inativos.length ? CI.inativos.length+" vínculo(s): "+CI.inativos.slice(0,3).map(x=>codExibir(x.cod)+" ("+x.trat+")").join(", ")+" — o custo entra, mas o tratamento some das buscas" : "",
+      ir("demandas","#dem_conf_nota"));
   const TC_ = totaisContas(contasValores(R));
   add(Math.abs(TC_.total-R.total)<1,"Plano de Contas confere com o total",
       brl(TC_.total)+(R.total>0?" — "+fmt(TC_.total/R.total*100,1)+"% do custo total":""), ir("contas","#t_contas"));

@@ -1,6 +1,7 @@
 import { CFG } from '../dados/cfg.js';
 import { CLASSES_GRUPO, FAMILIAS_INSUMO, TRAT_ETAPAS } from '../dados/insumos.js';
 import { FAM_CLASSE, FAM_NOME, INSUMO, P, PLANO, TRATC, TRAT_ATIVO, TRAT_DEL, TRAT_ETAPA, TRAT_NOME, TRAT_OBS, insLista, gruposInsLista, atividadesLista } from '../nucleo/estado.js';
+import { NM } from '../nucleo/calendario.js';
 import { num } from '../nucleo/formato.js';
 import { fatorParaBase } from '../nucleo/unidades.js';
 
@@ -39,6 +40,24 @@ function familiaDe(classe){
   const f = !c ? FAMILIAS_INSUMO[FAMILIAS_INSUMO.length - 1]
     : FAMILIAS_INSUMO.find(f => f.termos.some(t => c.includes(t))) || FAMILIAS_INSUMO[FAMILIAS_INSUMO.length - 1];
   return comNomeFixo(f);
+}
+
+/* Família "efetiva" de um insumo, para classificar custo -- o Plano de Contas
+   (qual conta de insumo) e o R$/ha do Painel (herbicida, fertilizante...): a
+   do cadastro (grupo escolhido ou classe agronômica); produto sem nenhuma cai
+   em "outros", e para esses o nome resolve os casos óbvios (fórmula NPK,
+   ureia, KCl, calcário...). Um lugar só: antes o Painel reconhecia o adubo
+   pelo nome e o Plano de Contas não, e o mesmo produto caía em conta
+   diferente em cada tela. */
+const FERT_NOME = /\b\d{1,2}[-.]\d{2}[-.]\d{2}\b|ur[eé]ia|\bkcl\b|cloreto de pot|\bmap\b|sulfato de am|nitrato|\bn ?32\b|fosfat|pot[aá]ss|\bboro\b|zinco|mangan|cobre|micronut|multimicros|mag 8|kymon|ms cana|almax|potamol/i;
+const CORR_NOME = /calc[aá]rio|gesso|corretiv/i;
+function familiaEfetiva(i){
+  const fam = (i && i.fam) || familiaDe(i && i.classe).id;
+  if(fam!=="outros") return fam;
+  const t = String((i && i.prod)||"");
+  if(CORR_NOME.test(t)) return "corretivo";
+  if(FERT_NOME.test(t)) return "fertilizante";
+  return "outros";
 }
 
 /* Todos os grupos que um insumo pode receber: os fixos do cadastro (com
@@ -352,33 +371,44 @@ function tratListaTodos(){
   return tratCodigos().map(cod=>({cod, custo_ha:m[cod]||0}))
     .sort((a,b)=>b.custo_ha-a.custo_ha || a.cod.localeCompare(b.cod));
 }
-// volume de cada produto projetado pela alocação real dos tratamentos no plano operacional
-function volumeDemandado(L){
+/* Os tratamentos de uma linha do plano, cada um com a SUA área e os seus
+   meses. Com tratamento extra (PLANO[cod].trats), o motor já traz o detalhe
+   (tratsDetalhe: principal + extras); sem extra, é o tratamento da atividade na
+   área inteira. Antes o volume usava só o principal sobre a área SOMADA: o
+   produto do extra sumia da demanda e o do principal saía inflado. */
+function tratamentosDaLinha(r){
+  if(!r || !r.ehHa || !(r.total>0)) return [];
+  if(Array.isArray(r.tratsDetalhe) && r.tratsDetalhe.length)
+    return r.tratsDetalhe.filter(d=>d.trat && d.area>0)
+      .map(d=>({trat:d.trat, area:d.area, m:(d.m||[]).map(num)}));
+  return r.trat ? [{trat:r.trat, area:r.total, m:(r.meses||[]).map(num)}] : [];
+}
+/* Volume de cada produto mês a mês, na unidade do cadastro (doseBase).
+   soCompra: pula a linha de composição marcada "compra:false" (produto que só
+   consome o estoque que já existe) -- é a base da necessidade de compra. */
+function demandaMensal(L, soCompra){
   const v = {};
-  L.forEach(r=>{
-    if(!r.trat || !r.ehHa || r.total<=0) return;
-    composicao(r.trat).forEach(l=>{ v[l.prod]=(v[l.prod]||0)+r.total*doseBase(l); });
-  });
+  L.forEach(r=>tratamentosDaLinha(r).forEach(t=>{
+    composicao(t.trat).forEach(l=>{
+      if(soCompra && l.compra===false) return;
+      const dose = doseBase(l), arr = v[l.prod] = v[l.prod] || Array(NM).fill(0);
+      for(let i=0;i<NM;i++) arr[i] += num(t.m[i])*dose;
+    });
+  }));
   return v;
 }
+const somarMeses = v => Object.fromEntries(Object.entries(v).map(([k,a])=>[k, a.reduce((s,x)=>s+x,0)]));
+// volume de cada produto projetado pela alocação real dos tratamentos no plano operacional
+function volumeDemandado(L){ return somarMeses(demandaMensal(L, false)); }
 /* Mesma conta de volumeDemandado(), mas pula a linha de composição marcada
    "compra:false" -- produto que o cadastro de tratamentos já sabe que só vai
    consumir o saldo em estoque, sem reposição (ex.: formulação sendo
    descontinuada). Serve só para calcular "necessidade de compra": quanto se
    usa de fato (volumeDemandado, mostrado à parte) não muda, só quanto disso
    deveria virar pedido de compra. */
-function volumeCompra(L){
-  const v = {};
-  L.forEach(r=>{
-    if(!r.trat || !r.ehHa || r.total<=0) return;
-    composicao(r.trat).forEach(l=>{ if(l.compra===false) return;
-      v[l.prod]=(v[l.prod]||0)+r.total*doseBase(l); });
-  });
-  return v;
-}
+function volumeCompra(L){ return somarMeses(demandaMensal(L, true)); }
 
-
-export { _tratCache, _tratKey, codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, doseBase, duplicarTrat, etapaTrat, etapasNoPlano, familiaDe, freteEfetivo,
+export { _tratCache, _tratKey, codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, doseBase, duplicarTrat, etapaTrat, etapasNoPlano, familiaDe, familiaEfetiva, freteEfetivo,
   familiaDoInsumo, insumosPorFamilia, mesclarBaseInsumos,
   marcarEtapa, precoInsumo, removerGrupoInsumo, removerTrat, renomearGrupoInsumo, renomearTrat, setClasseGrupo, todasFamilias, tratCodigos, tratCusto, tratEtapas,
-  tratLista, tratListaTodos, tratTabela, usosTrat, volumeDemandado, volumeCompra };
+  tratLista, tratListaTodos, tratTabela, tratamentosDaLinha, demandaMensal, usosTrat, volumeDemandado, volumeCompra };
