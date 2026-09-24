@@ -72,9 +72,12 @@ function calcular(){
     // média — o que não fosse cobrado ficava calculado e sem etapa nenhuma.
     const v = l.horas*it.conv*it.rh;
     l.manut = v; l.total += v; crmAlocado += v;
+    // o CRM segue as horas: cai nos meses em que o equipamento trabalha
+    l.manutMes = l.horasMes.map(h=>v*h/l.horas);
     addCrm("APOIO", v);
   });
   AE.manut = AE.linhas.reduce((s,l)=>s+l.manut,0);
+  AE.manutMes = MESES.map((m,i)=>AE.linhas.reduce((s,l)=>s+l.manutMes[i],0));
   AE.total = AE.linhas.reduce((s,l)=>s+l.total,0);
   const crmExtra = CF.exced;   // frota excedente: prevista além do que o plano consome
   if(crmExtra>0) addCrm("FROTA EXCEDENTE", crmExtra);
@@ -130,8 +133,9 @@ function calcular(){
   });
   // materiais de manutenção: os que têm mês marcado caem no mês; o resto, pela área operada
   // o quadro ADM e oficina tem mês próprio (a folha prevista de cada mês): não vai pela área
-  const outros = (AE.total-AE.diesel) + IR.total + MT.distribuido + TC.total + TP.total + crmExtra;
-  for(let i=0;i<NM;i++){ meses[i] += outros*pesoMes(i) + fixoMes + AE.dieselMes[i] + AR.mes[i] + MT.mesFixo[i]
+  // equipamentos de apoio: diesel, operador e CRM nos meses em que cada um trabalha (período do equipamento)
+  const outros = IR.total + MT.distribuido + TC.total + TP.total + crmExtra;
+  for(let i=0;i<NM;i++){ meses[i] += outros*pesoMes(i) + fixoMes + AE.dieselMes[i] + AE.mdoMes[i] + AE.manutMes[i] + AR.mes[i] + MT.mesFixo[i]
                                    + FT.mes[i] + MOA.mes[i] + QF.mes[i]; }
   MT.mes = MESES.map((m,i)=>MT.mesFixo[i] + MT.distribuido*pesoMes(i));
   ESPOR.forEach(e=>{ const i = MESES.indexOf(e.mes); if(i>=0) meses[i]+=num(e.valor); });
@@ -147,9 +151,9 @@ function calcular(){
       mesesCat.mdo[i]+=r.mdoMes[i]; mesesCat.manut[i]+=r.cManut*f;
       mesesCat.diesel[i]+=r.dieselMes[i]; mesesCat.insumo[i]+=r.insumoMes[i]; mesesCat.terc[i]+=r.cTerc*f; });
   });
-  const indiretoMdo = AE.mdo, indiretoManut = AE.manut+crmExtra+MT.distribuido;
+  const indiretoManut = crmExtra+MT.distribuido;
   for(let i=0;i<NM;i++){ const h=pesoMes(i);
-    mesesCat.mdo[i]+=indiretoMdo*h; mesesCat.manut[i]+=indiretoManut*h;
+    mesesCat.mdo[i]+=AE.mdoMes[i]; mesesCat.manut[i]+=indiretoManut*h + AE.manutMes[i];
     mesesCat.diesel[i]+=AE.dieselMes[i]; mesesCat.irrig[i]+=IR.total*h;
     mesesCat.terc[i]+=TC.total*h; mesesCat.tpess[i]+=TP.total*h;
     mesesCat.fixo[i]+=fixoMes; mesesCat.arrend[i]+=AR.mes[i]; mesesCat.manut[i]+=MT.mesFixo[i];

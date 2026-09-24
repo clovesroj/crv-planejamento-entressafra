@@ -1,6 +1,6 @@
 import { litrosDe } from './consumo.js';
 import { CFG } from '../dados/cfg.js';
-import { MESES, NM } from '../nucleo/calendario.js';
+import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
 import { APOIO_FIXO, apoioLista } from '../nucleo/estado.js';
 import { apoioDeFrente } from './apoio-frente.js';
 import { ESP_ERP } from '../dados/atividades-erp.js';
@@ -8,27 +8,47 @@ import { num } from '../nucleo/formato.js';
 import { precoDiesel } from './diesel.js';
 import { custoDaFuncao } from './mao-de-obra.js';
 
-/* ================== EQUIPAMENTOS DE APOIO ================== */
+/* ================== EQUIPAMENTOS DE APOIO ==================
+   Cada equipamento trabalha num período: o ano todo (o padrão, e o que valia
+   antes), a safra, a entressafra ou os meses marcados. Nos meses em que
+   trabalha, as mesmas horas todo mês; fora deles, nada -- nem hora, nem diesel,
+   nem operador, nem manutenção (o CRM segue as horas, em calculo/index.js). */
+const PERIODOS_APOIO = {ano:"Ano todo", safra:"Safra (abr–nov)", entressafra:"Entressafra (dez–mar)", meses:"Meses escolhidos"};
+function mesesDoApoio(a){
+  const per = (a && a.per) || "ano";
+  if(per==="safra" || per==="entressafra") return MESES.map((m,i)=>periodoMes(i)===per ? 1 : 0);
+  if(per==="meses") return Array.from({length:NM}, (_,i)=>Array.isArray(a.m) && num(a.m[i])>0 ? 1 : 0);
+  return Array(NM).fill(1);
+}
 function apoioCalc(MP){
   const linhas = apoioLista().map(a=>{
-    const horas = num(a.qtd)*num(a.hmes)*NM;
+    const on = mesesDoApoio(a), nMeses = on.reduce((s,x)=>s+x,0);
+    const hMes = num(a.qtd)*num(a.hmes);
+    const horasMes = on.map(b=>b ? hMes : 0);
+    const horas = horasMes.reduce((s,x)=>s+x,0);
     const cf = custoDaFuncao(a.fcod, MP);
-    // apoio trabalha as mesmas horas todo mês: volume mensal constante, preço de cada mês
+    // nos meses em que trabalha: volume mensal constante, preço de cada mês
     // L/h × horas ou L/km × (horas × velocidade média), conforme o equipamento
-    const cons = litrosDe(a.maq, num(a.qtd)*num(a.hmes));
-    const litrosMes = Array(NM).fill(cons.litros);
+    const cons = litrosDe(a.maq, hMes);
+    const litrosMes = on.map(b=>b ? cons.litros : 0);
     const dieselMes = litrosMes.map((l,i)=>l*precoDiesel(i));
     const litros = litrosMes.reduce((s,x)=>s+x,0);
     const diesel = dieselMes.reduce((s,x)=>s+x,0);
     const manut  = 0;   // idem: vem do CRM da frota
-    const mdo    = num(a.qtd)*cf.mensal*NM*MP.fatorEscala;
-    return {...a, horas, diesel, manut, mdo, fnome:cf.nome,
+    const manutMes = Array(NM).fill(0);
+    // operador pago nos meses em que o equipamento trabalha (mês cheio), como o diesel
+    const mdoMes = on.map(b=>b ? num(a.qtd)*cf.mensal*MP.fatorEscala : 0);
+    const mdo    = mdoMes.reduce((s,x)=>s+x,0);
+    const efetivo = Math.ceil(num(a.qtd)*MP.fatorEscala);
+    return {...a, per:(a.per||"ano"), on, nMeses, horas, horasMes, diesel, manut, manutMes, mdo, mdoMes, fnome:cf.nome,
             litros, litrosMes, dieselMes, consumoLh:cons.lh,
-            consumoUn:cons.un, consumoLkm:cons.lkm, km: cons.km!=null ? cons.km*NM : null, fonteKm:cons.fonteKm,
-            efetivo: Math.ceil(num(a.qtd)*MP.fatorEscala),
+            consumoUn:cons.un, consumoLkm:cons.lkm, km: cons.km!=null ? cons.km*nMeses : null, fonteKm:cons.fonteKm,
+            efetivo, efetivoMes: on.map(b=>b ? efetivo : 0),
             total: diesel+manut+mdo};
   });
+  const porMes = k => MESES.map((m,i)=>linhas.reduce((s,l)=>s+l[k][i],0));
   return {linhas,
+    horasMes: porMes("horasMes"), mdoMes: porMes("mdoMes"), manutMes: Array(NM).fill(0),
     total:   linhas.reduce((s,l)=>s+l.total,0),
     diesel:  linhas.reduce((s,l)=>s+l.diesel,0),
     litros:  linhas.reduce((s,l)=>s+l.litros,0),
@@ -77,4 +97,4 @@ function frotaApoio(L){
 }
 
 
-export { apoioCalc, frotaApoio };
+export { PERIODOS_APOIO, apoioCalc, frotaApoio, mesesDoApoio };

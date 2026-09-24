@@ -399,10 +399,16 @@
 <section id="apoio">
   <h2>Equipamentos de Apoio</h2>
   <p class="lead">Demanda calculada pelo número de equipamentos e horas de uso, não por área.
-  Cada equipamento tem função e nível próprios.</p>
+  Cada equipamento tem função e nível próprios, e o <b>período</b> em que trabalha: o ano todo, só a safra, só a
+  entressafra ou os meses escolhidos. Horas, diesel, operador e manutenção entram só nesses meses.</p>
   <div class="grid g4" id="k_apoio" style="margin-bottom:16px"></div>
+  <div class="row ap-todos" id="ap_periodo_todos" style="margin-bottom:12px;align-items:center;gap:8px"></div>
   <input type="search" class="tbl-busca" data-alvo="#t_apoio_eq" placeholder="Buscar equipamento...">
   <div class="tblwrap"><table id="t_apoio_eq"></table></div>
+  <div class="panel" style="margin-top:16px"><h3>Projeção mês a mês do apoio</h3>
+    <div class="tblwrap"><table id="t_apoio_mes"></table></div>
+    <div class="hint" style="margin-top:9px">Horas, litros e custo dos equipamentos de apoio em cada mês, conforme o
+    período de cada um. Segue o filtro de período da barra do topo. O diesel usa o preço de cada mês da aba Combustível.</div></div>
   <div class="row" style="margin-top:12px">
     <div style="min-width:220px"><label>Novo equipamento</label><input id="in_ap_nome" placeholder="Ex.: Trator de esteira"></div>
     <div style="min-width:200px;position:relative"><label for="busca_ap_maq">Máquina base</label>

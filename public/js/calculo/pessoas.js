@@ -105,14 +105,12 @@ function pessoasCalc(R){
     add("COLHEITA","902","Transporte de cana — reserva do efetivo", extraCam, at.map(b=>b?extraCam:0), fixo(0), "TR1/TR2"); }
   if(extraTot-extraCam>0){ const n=extraTot-extraCam, at=ativos(["TR3","TR4"]);
     add("COLHEITA","918","Transbordo — reserva do efetivo", n, at.map(b=>b?n:0), fixo(0), "TR3/TR4"); }
-  /* equipamentos de apoio: mesmo efetivo em todos os meses; o custo, pelo
-     criterio do motor (calculo/index.js) -- a area operada de cada mes. Dividir
-     o custo igual pelos doze meses fechava no ano, mas nao num recorte: a
-     entressafra saia com mao de obra diferente da aba Custos. */
-  const haTot = (R.haMes||[]).reduce((t,x)=>t+num(x),0);
-  const pesoMes = MESES.map((m,i)=> haTot>0 ? num(R.haMes[i])/haTot : 1/NM);
-  R.AE.linhas.forEach(l=>{ if(l.efetivo>0)
-    add("APOIO E CONSERVAÇÃO", l.fcod, l.nome, l.efetivo, fixo(l.efetivo), pesoMes.map(w=>num(l.mdo)*w)); });
+  /* equipamentos de apoio: o efetivo e o custo nos meses do periodo de cada
+     equipamento (ano todo, safra, entressafra ou meses marcados) -- a mesma
+     serie mensal que o motor usa (calculo/apoio.js, mdoMes), para o recorte
+     de periodo fechar com a aba Custos. */
+  R.AE.linhas.forEach(l=>{ if(l.efetivo>0 && l.nMeses>0)
+    add("APOIO E CONSERVAÇÃO", l.fcod, l.nome, l.efetivo, l.efetivoMes.slice(), l.mdoMes.slice()); });
   /* quadro ADM agricola e oficina, previsto da controladoria: departamento e
      cargo do ERP, pessoas, folha e custo de cada mes (calculo/quadro-fixo.js).
      Substitui a estrutura indireta generica e a equipe de manutencao estimada. */

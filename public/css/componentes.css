@@ -979,6 +979,10 @@ tr.cc-tot td{font-weight:700;border-top:2px solid var(--line-strong)}
 @media (max-width:1300px){ .dash3{grid-template-columns:minmax(0,1fr)} }
 .dash3 + .panel{margin-top:16px}
 td.dem-falta{color:var(--bad);font-weight:600}
+/* periodo dos equipamentos de apoio: meses escolhidos */
+.ap-meses{display:grid;grid-template-columns:repeat(6,auto);gap:2px 8px;margin-top:6px;font-size:11px}
+.ap-meses label{display:inline-flex;align-items:center;gap:3px;white-space:nowrap;cursor:pointer}
+.ap-meses input{width:auto;margin:0}
 .aviso-cc{margin-top:12px;padding:10px 14px;border-radius:var(--r-sm);background:var(--warn-bg);color:var(--ink);font-size:13px;line-height:1.5}
 .aviso-cc[hidden]{display:none}
 
