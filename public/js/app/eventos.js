@@ -10,22 +10,24 @@ import { ATIVIDADES_ERP } from '../dados/atividades-erp.js';
 import { buscarAgrofit, bulaDoProduto } from '../io/agrofit.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
+import { migrarApoio } from '../calculo/apoio.js';
 import { FAT, MO_APOIO, REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TERC_SUB, TERC_DET, setTERC_DET, TPESS, TRATC, TRAT_ATIVO, TRAT_NOME, TRAT_OBS, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, atividadesLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE, setREF_BUSCA, setREF_AG, setREF_FAM, setREF_FROTA, setREF_PROP,
   setGR_INICIO, setGR_FIM, setGR_EMPRESA, setGR_ESP, setGR_AG, setGR_COMP, setGR_FROTA, setGR_PROP, setGR_REFORMA } from '../nucleo/estado.js';
 import { AGROFIT_BUSCA, DIM_DET, FITO_ABERTO, PLANO_ABERTO, FROTA_ABERTO, FROTA_UN, INS_EDIT, INS_FICHA, MAQ, setAGROFIT_BUSCA, setAPOIO_DET, setDIM_DET, setFROTA_DEST, setFROTA_ORIG, setINS_EDIT, setINS_FICHA } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
 import { exportarTabela, filtrarPorNome } from '../ui/componentes.js';
 import { marcarAtivNovo, marcarAtivRemovido, marcarAtivSujo, salvarAtiv } from '../ui/atividades-cad.js';
-import { abrirEdicaoCtt, limparCttObs, marcarCttMudanca, marcarCttNovo, marcarCttObs, marcarCttSaida, salvarCtt } from '../ui/quadro-ctt.js';
+import { abrirEdicaoCtt, adicionarGerenciaCtt, marcarCttMudanca, marcarCttNovo, marcarCttSaida, salvarCtt } from '../ui/quadro-ctt.js';
 import { alternarFam, alternarUsos, aplicarFamIns, buscaExigeRedesenho, marcarInsSujo, marcarInsNovo, marcarInsRemovido,
   marcarTratSujo, marcarTratNovo, marcarTratRenomeado, marcarTratRemovido, recolherTodas, salvarIns, salvarTrat, todasRecolhidas } from '../ui/insumos.js';
 import { alternarFrenteLinha, alternarMesLinha } from '../ui/dimensionamento.js';
 import { lerPremissas } from '../ui/premissas.js';
 import { leve, render, renderAgrofit, renderApoioMes, renderDimDet, renderEditIns, renderFichaIns, renderRastro, renderRendMensal, renderTercDet } from './ciclo.js';
+import { buscarDoBI } from '../ui/gasto-real.js';
 import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarBuscaItem, filtrarRastro, voltarRastro } from '../ui/rastro.js';
 import { abrirRendMensal, aberto as rendMensalAberto, descartarRascunho, editarRascunho,
   fecharRendMensal, pendencias, salvarRascunho } from '../ui/rendmensal.js';
-import { setQF_MES, setQF_GRUPO, setPES_GRUPO, setPES_DEPT, setCONTAS_GRUPO, setCONTAS_CLS, setCONTAS_CD, setDEM_SO_FALTA } from '../nucleo/estado.js';
+import { setQF_MES, setQF_GRUPO, setPES_GRUPO, setPES_DEPT, setCONTAS_GRUPO, setCONTAS_CLS, setCONTAS_CD, setDEM_SO_FALTA, setAPOIO_PER, APOIO_PER } from '../nucleo/estado.js';
 import { setAPOIO, setATIV_TRAT_SEL, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setINSX_V, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
 import { USUARIO, areasDePermissao, podeEditar } from '../nucleo/sessao.js';
 
@@ -49,6 +51,11 @@ document.addEventListener("input",e=>{
   // busca de "incluir outro lançamento" dentro do rastro de um conjunto —
   // so filtra a lista do proprio modal, nao mexe no plano nem salva
   if(t.dataset.flagBusca!==undefined){ filtrarBuscaItem(t.value); return; }
+  // filtro de período do gasto real (ERP) — input type=date: o Chrome não
+  // dispara "change" ao selecionar pelo calendário nativo, só ao sair do
+  // campo; ouvir "input" garante reação imediata em qualquer forma de edição.
+  if(t.id==="gr_inicio"){ setGR_INICIO(t.value); render(); return; }
+  if(t.id==="gr_fim")   { setGR_FIM(t.value);    render(); return; }
   if(t.id&&t.id.startsWith("p_")){ lerPremissas(); salvar(); render(); return; }
   if(t.dataset.real!==undefined){ const c=t.dataset.real, i=+t.dataset.m;
     REAL[c] = REAL[c] || Array(NM).fill("");
@@ -124,6 +131,10 @@ document.addEventListener("input",e=>{
   if(t.id==="in_grat"){ GRAT[FUN_SEL]={tipo:$("#sel_grat_tipo").value, valor:num(t.value)}; salvar(); leve(); return; }
   if(t.dataset.ap!==undefined){ const l=apoioLista()[+t.dataset.ap];
     l[t.dataset.f] = (t.dataset.f==="nome") ? t.value : num(t.value); salvar(); leve(); return; }
+  // quantidade e horas/mes de UM periodo (safra "s" ou entressafra "e"): o outro nao muda
+  if(t.dataset.apq!==undefined){ const l=apoioLista()[+t.dataset.apq]; if(!l) return;
+    migrarApoio(l); const k = t.dataset.per==="e" ? "e" : "s";
+    l[k][t.dataset.f==="hmes" ? "hmes" : "qtd"] = num(t.value); salvar(); leve(); return; }
   if(t.dataset.apf!==undefined){ APOIO_FIXO[t.dataset.apf]=num(t.value); salvar(); leve(); return; }
   if(t.dataset.tt!==undefined){ TERC_TAR[t.dataset.tt]=num(t.value); salvar(); leve(); return; }
   if(t.dataset.tsub!==undefined){ const c=t.dataset.tsub, m=t.dataset.tsm, f=t.dataset.tsf;
@@ -276,6 +287,12 @@ document.addEventListener("change",e=>{
   if(t.id==="sel_cc_cd"){ setCONTAS_CD(t.value); render(); return; }
   if(t.id==="chk_dem_falta"){ setDEM_SO_FALTA(t.checked); render(); return; }
   // FAT e apoio operacional: funcao da linha e meses marcados
+  // tirar/devolver um mes do periodo de um equipamento de apoio
+  if(t.dataset.apm!==undefined){ const l=apoioLista()[+t.dataset.apm]; if(!l) return;
+    migrarApoio(l); l.m = Array.isArray(l.m) ? l.m : Array(NM).fill(1);
+    l.m[+t.dataset.m] = t.checked ? 1 : 0;
+    if(l.m.every(v=>v)) delete l.m;
+    salvar(); render(); return; }
   if(t.dataset.fatf!==undefined){ const l=FAT[+t.dataset.fatf]; if(l){ l.fcod=t.value; salvar(); render(); } return; }
   if(t.dataset.moaf!==undefined){ const l=MO_APOIO[+t.dataset.moaf]; if(l){ l.fcod=t.value; salvar(); render(); } return; }
   if(t.dataset.fatm!==undefined || t.dataset.moam!==undefined){
@@ -466,12 +483,6 @@ document.addEventListener("change",e=>{
     // leve() preserva o foco; render() reconstruia a tabela e derrubava a
     // digitacao no meio da data
     salvar(); leve(); return; }
-  // Quadro CTT: observação (Férias/FAT/Operação) e período -- editável direto
-  // na linha, sem precisar abrir "Editar" (mesmo critério do artefato
-  // original). marcarCttObs já lida com "voltou a vazio" tirando do rascunho.
-  if(t.dataset.cttobs!==undefined){ marcarCttObs(t.dataset.cttobs, {obs:t.value}); render(); return; }
-  if(t.dataset.cttobsini!==undefined){ marcarCttObs(t.dataset.cttobsini, {ini:t.value}); render(); return; }
-  if(t.dataset.cttobsfim!==undefined){ marcarCttObs(t.dataset.cttobsfim, {fim:t.value}); render(); return; }
   if(t.dataset.fc!==undefined){ const c=t.dataset.fc;
     PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""};
     PLANO[c].fcod=t.value; salvar(); render(); return; }
@@ -539,6 +550,8 @@ function marcarPendencia(){
 }
 
 document.addEventListener("click",e=>{
+  // botão "Buscar dados do ERP" no painel de análise do gasto real da Reforma
+  if(e.target.id==="btn_gr_buscar"){ buscarDoBI(render); return; }
   // "incluir outro lançamento" na busca dentro do rastro de um conjunto —
   // soma no orcamento (reformaIncl) e ja tira da exclusao, se estivesse la
   // (ver itensReforma() em calculo/reforma.js pra regra de nao contar 2x)
@@ -805,6 +818,16 @@ document.addEventListener("click",e=>{
     if(usos.length) avisoPlano(usos, "removido");
     marcarTratRemovido(cod); render(); return; }
   if(t.dataset.aprm!==undefined){ apoioLista().splice(+t.dataset.aprm,1); salvar(); render(); return; }
+  // aba Apoio: qual estrutura mostrar (so visao), copiar para o outro periodo, zerar o periodo
+  { const b = t.closest && t.closest("[data-apvis],[data-apcopia],[data-apzera]");
+    if(b && b.dataset.apvis!==undefined){ setAPOIO_PER(b.dataset.apvis); render(); return; }
+    if(b && b.dataset.apcopia!==undefined){ const de = b.dataset.apcopia==="e" ? "e" : "s", para = de==="s" ? "e" : "s";
+      const nome = {s:"safra", e:"entressafra"};
+      if(!confirm(`Substituir a estrutura de apoio da ${nome[para]} pela da ${nome[de]} (quantidade e horas/mês de todos os equipamentos)?`)) return;
+      apoioLista().forEach(l=>{ migrarApoio(l); l[para] = {...l[de]}; }); salvar(); render(); return; }
+    if(b && b.dataset.apzera!==undefined){ const k = b.dataset.apzera==="e" ? "e" : "s";
+      if(!confirm(`Zerar a quantidade de todos os equipamentos de apoio na ${k==="s"?"safra":"entressafra"}?`)) return;
+      apoioLista().forEach(l=>{ migrarApoio(l); l[k].qtd = 0; }); salvar(); render(); return; } }
   if(t.dataset.mtrm!==undefined){ matLista().splice(+t.dataset.mtrm,1); salvar(); render(); return; }
   if(t.dataset.tprm!==undefined){ tpessLista().splice(+t.dataset.tprm,1); salvar(); render(); return; }
   if(t.dataset.inrm!==undefined){
@@ -830,9 +853,10 @@ document.addEventListener("click",e=>{
     if(!r.ok){ alert(r.erro); return; }
     salvar(); render(); return; }
   if(t.closest && t.closest("#ctt_salvar")){ if(salvarCtt()){ salvar(); render(); } return; }
-  if(t.closest && t.closest("#ctt_obs_limpar")){
-    if(!confirm("Limpar a observação (Férias/FAT/Operação) e o período de todo mundo? Isso não desfaz sozinho.")) return;
-    if(limparCttObs()) render(); return; }
+  if(t.closest && t.closest("#ctt_ger_add")){
+    const input = document.getElementById("ctt_ger_nova");
+    if(adicionarGerenciaCtt(input.value)){ input.value = ""; render(); }
+    return; }
   if(t.dataset.cttrm!==undefined){
     if(!confirm(`Marcar a matrícula ${t.dataset.cttrm} como saída?`)) return;
     marcarCttSaida(t.dataset.cttrm); render(); return; }
@@ -984,7 +1008,9 @@ $("#btn_ap_add").onclick=()=>{
   const qtd=num($("#in_ap_qtd").value), h=num($("#in_ap_h").value);
   if(!nome){ alert("Informe o nome do equipamento."); return; }
   if(qtd<=0||h<=0){ alert("Quantidade e horas/mês devem ser maiores que zero."); return; }
-  apoioLista().push({nome, maq, qtd, hmes:h, fcod:"918"});
+  // entra na estrutura do periodo que a tela mostra; no outro, parado (quantidade 0)
+  const k = APOIO_PER==="e" ? "e" : "s", o = k==="s" ? "e" : "s";
+  apoioLista().push({nome, maq, fcod:"918", [k]:{qtd, hmes:h}, [o]:{qtd:0, hmes:h}});
   $("#in_ap_nome").value=""; salvar(); render();
 };
 $("#btn_ap_reset").onclick=()=>{

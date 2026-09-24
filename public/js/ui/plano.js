@@ -305,7 +305,7 @@ function pintarPlano(R){
   const hAtiv  = R.L.reduce((s,r)=>s+r.horas,0);
   const hApoio = R.horasT - hAtiv;
   const hrs    = parcial
-    ? R.L.reduce((s,r)=>s+r.horas*fatia(r),0) + hApoio*(SEL.meses.length/NM)
+    ? R.L.reduce((s,r)=>s+r.horas*fatia(r),0) + SEL.meses.reduce((t,j)=>t+num((R.AE.horasMes||[])[j]),0)
     : R.horasT;
   $("#plano_resumo").innerHTML=`<b>${prog}</b>/<b>${R.L.length}</b> atividades · <b>${fmt(haOp)}</b> ha-operação · `+
     `insumos <b>${brl(ins)}</b> · horas <b>${fmt(hrs)}</b> · `+

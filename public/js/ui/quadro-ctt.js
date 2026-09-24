@@ -1,36 +1,39 @@
 import { $, esc, fmt } from '../nucleo/formato.js';
 import { barrasH, kpi, th } from './componentes.js';
 import { marcarRascunhoPendente, definirPatchItens } from '../io/persistencia.js';
-import { CTT_NOVOS, CTT_SAIDAS, CTT_MUDANCAS, CTT_OBS } from '../nucleo/estado.js';
+import { CTT_NOVOS, CTT_SAIDAS, CTT_MUDANCAS, CTT_GERENCIAS_NOVAS, setCTT_GERENCIAS_NOVAS } from '../nucleo/estado.js';
 import { QUADRO_CTT_CATEGORIAS_CNH, QUADRO_CTT_CIDADES, QUADRO_CTT_COLABORADORES, QUADRO_CTT_FUNCOES,
   QUADRO_CTT_GERENCIAS, QUADRO_CTT_HISTORICO, QUADRO_CTT_META, QUADRO_CTT_MOVIMENTACAO } from '../dados/quadro-ctt.js';
 
 /* ---------- QUADRO CTT ----------
-   Corte, Transbordo e Transporte: cadastro de referência dos colaboradores
-   ativos do time, extraído do ERP (ver dados/quadro-ctt.js — planilha "QUADRO
-   CTT - FUNCIONARIOS ATIVOS", atualizada à mão a cada nova base, sem carga
-   automática por ora).
+   Corte, Transbordo e Transporte: cadastro de referência dos 610
+   colaboradores ATIVOS do time, extraído do ERP (ver dados/quadro-ctt.js —
+   planilha "QUADRO CTT - FUNCIONARIOS ATIVOS", atualizada à mão a cada nova
+   base, sem carga automática por ora). Exclusiva desse grupo — Observação
+   (Férias/FAT/Operação) e a base de colaboradores da empresa inteira ficam
+   na aba Planejamento Entressafra CTT (ver ui/planejamento-ctt.js), que
+   também é dona da chave CTT_OBS.
 
    A planilha em si (QUADRO_CTT_COLABORADORES) nunca é gravada -- ela é
    substituída inteira na próxima extração. O que ESTE app grava é só o ajuste
    por cima dela: incluir gente que ainda não está na planilha, marcar quem
-   saiu e registrar mudança de função/cidade/gerência/CNH -- três chaves
-   próprias (CTT_NOVOS, CTT_SAIDAS, CTT_MUDANCAS, ver nucleo/estado.js e
-   server/permissoes.js), mescladas por matrícula contra o que já está
-   gravado (server/mesclaItens.js) -- o mesmo mecanismo do Cadastro de
-   Atividades e de Insumos, pelo mesmo motivo: duas pessoas mexendo em gente
-   diferente do quadro ao mesmo tempo não se apagam.
+   saiu, registrar mudança de função/cidade/gerência/CNH e cadastrar gerência
+   nova -- chaves próprias (CTT_NOVOS, CTT_SAIDAS, CTT_MUDANCAS,
+   CTT_GERENCIAS_NOVAS, ver nucleo/estado.js e server/permissoes.js). As três
+   primeiras são mescladas por matrícula contra o que já está gravado
+   (server/mesclaItens.js) -- o mesmo mecanismo do Cadastro de Atividades e
+   de Insumos, pelo mesmo motivo: duas pessoas mexendo em gente diferente do
+   quadro ao mesmo tempo não se apagam. CTT_GERENCIAS_NOVAS é só uma lista
+   simples (soma, não mescla por item) porque é rara a colisão de duas
+   pessoas cadastrando a mesma gerência nova no mesmo instante.
 
-   Nada grava sozinho: "Adicionar", "Marcar saída" e "Confirmar" só enchem um
-   rascunho local (NOVOS_SESSAO/SAIDAS_SESSAO/MUDANCAS_SESSAO); só o clique em
-   "Salvar alterações" (salvarCtt()) vira patch de verdade. */
-const OBS_OPCOES = ["Férias","FAT","Operação"];
+   Nada grava sozinho: "Adicionar", "Marcar saída", "Confirmar" e "Adicionar
+   gerência" só enchem um rascunho local; só o clique em "Salvar alterações"
+   (salvarCtt()) vira patch de verdade. */
 let CTT_SUJO = false;
 const NOVOS_SESSAO = [];           // pessoas incluídas nesta leva: {m,n,f,ci,g,c}
 const SAIDAS_SESSAO = new Map();   // matrícula(string) -> {data}
 const MUDANCAS_SESSAO = new Map(); // matrícula(string) -> {f,ci,g,c,data}
-const OBS_SESSAO = new Map();      // matrícula(string) -> {obs,ini,fim}
-const OBS_REMOVER_SESSAO = new Set(); // matrículas com observação limpa nesta leva
 let EDITANDO = null;               // matrícula com a linha de edição aberta (visão, não grava)
 let ULTIMA_PINTURA = null;         // assinatura da última vez que a tabela foi montada (ver precisaRepintar)
 
@@ -44,30 +47,21 @@ function marcarCttMudanca(matricula, campos){
   EDITANDO = null;
   marcarCttSujo();
 }
-// Observação (Férias/FAT/Operação) e período: ao contrário de função/cidade/
-// gerência/CNH, é editável direto na linha (mesmo critério do artefato
-// original) -- sem precisar abrir "Editar" antes. Campo vazio (obs==="") some
-// da lista pendente e entra em remover, senão CTT_OBS acumulava matrícula
-// zerada pra sempre.
-function marcarCttObs(matricula, campos){
-  const chave = String(matricula);
-  const atual = obsDe(chave);
-  const novo = {...atual, ...campos};
-  if(!novo.obs){ OBS_SESSAO.delete(chave); OBS_REMOVER_SESSAO.add(chave); }
-  else{ OBS_REMOVER_SESSAO.delete(chave); OBS_SESSAO.set(chave, novo); }
-  marcarCttSujo();
-}
-function obsDe(chaveString){
-  if(OBS_REMOVER_SESSAO.has(chaveString) && !OBS_SESSAO.has(chaveString)) return {};
-  return OBS_SESSAO.get(chaveString) || (CTT_OBS||{})[chaveString] || {};
-}
-function limparCttObs(){
-  const chaves = new Set([...Object.keys(CTT_OBS||{}), ...OBS_SESSAO.keys()]);
-  if(!chaves.size) return false;
-  OBS_SESSAO.clear();
-  chaves.forEach(c=>OBS_REMOVER_SESSAO.add(c));
+/** Gerência nova, fora da planilha do ERP -- soma na lista (CTT_GERENCIAS_NOVAS
+ * é chave simples, sem mesclagem por item), não some se já existir (nem aqui
+ * nem na planilha), sem diferenciar maiúsculas/acentos. */
+function adicionarGerenciaCtt(nome){
+  const limpo = String(nome||"").trim();
+  if(!limpo) return false;
+  const chave = normaliza(limpo);
+  const jaExiste = gerenciasAtuais().some(g=>normaliza(g.l)===chave);
+  if(jaExiste) return false;
+  setCTT_GERENCIAS_NOVAS([...(CTT_GERENCIAS_NOVAS||[]), limpo]);
   marcarCttSujo();
   return true;
+}
+function gerenciasAtuais(){
+  return [...QUADRO_CTT_GERENCIAS, ...(CTT_GERENCIAS_NOVAS||[]).map(nome=>({l:nome, raw:nome}))];
 }
 /** Monta e registra os patches pendentes; diz se havia algo pra salvar (chamador decide gravar). */
 function salvarCtt(){
@@ -78,9 +72,7 @@ function salvarCtt(){
     definirPatchItens("CTT_SAIDAS_PATCH", {upsert: Object.fromEntries(SAIDAS_SESSAO), remover:[]});
   if(MUDANCAS_SESSAO.size)
     definirPatchItens("CTT_MUDANCAS_PATCH", {upsert: Object.fromEntries(MUDANCAS_SESSAO), remover:[]});
-  if(OBS_SESSAO.size || OBS_REMOVER_SESSAO.size)
-    definirPatchItens("CTT_OBS_PATCH", {upsert: Object.fromEntries(OBS_SESSAO), remover:[...OBS_REMOVER_SESSAO]});
-  NOVOS_SESSAO.length = 0; SAIDAS_SESSAO.clear(); MUDANCAS_SESSAO.clear(); OBS_SESSAO.clear(); OBS_REMOVER_SESSAO.clear();
+  NOVOS_SESSAO.length = 0; SAIDAS_SESSAO.clear(); MUDANCAS_SESSAO.clear();
   CTT_SUJO = false;
   return true;
 }
@@ -127,14 +119,15 @@ function linhaVariacao(){
 // pra mesma pergunta ("o que mudou nesta gente desde a última vez")
 function blocoMovimentacao(todosComSaida){
   const porM = new Map(todosComSaida.map(r=>[String(r.m), r]));
-  const rotuloDe = r => ({n:r?r.n:"Matrícula sem cadastro", f:r&&r.f>=0?QUADRO_CTT_FUNCOES[r.f].l:"", g:r&&r.g>=0?QUADRO_CTT_GERENCIAS[r.g].l:""});
+  const gerencias = gerenciasAtuais();
+  const rotuloDe = r => ({n:r?r.n:"Matrícula sem cadastro", f:r&&r.f>=0?QUADRO_CTT_FUNCOES[r.f].l:"", g:r&&r.g>=0?gerencias[r.g].l:""});
   const mv = QUADRO_CTT_MOVIMENTACAO || {prev:null, entered:[], left:[], moved:[]};
   const saidasManuais = [...SAIDAS_SESSAO.keys(), ...Object.keys(CTT_SAIDAS||{})]
     .filter((m,i,arr)=>arr.indexOf(m)===i).map(m=>rotuloDe(porM.get(m)));
   const mudancasManuais = [...MUDANCAS_SESSAO.keys(), ...Object.keys(CTT_MUDANCAS||{})]
     .filter((m,i,arr)=>arr.indexOf(m)===i).map(m=>rotuloDe(porM.get(m)));
-  const entrados = [...mv.entered, ...NOVOS_SESSAO.map(p=>({n:p.n, f:p.f>=0?QUADRO_CTT_FUNCOES[p.f].l:"", g:p.g>=0?QUADRO_CTT_GERENCIAS[p.g].l:""})),
-    ...(CTT_NOVOS||[]).map(p=>({n:p.n, f:p.f>=0?QUADRO_CTT_FUNCOES[p.f].l:"", g:p.g>=0?QUADRO_CTT_GERENCIAS[p.g].l:""}))];
+  const entrados = [...mv.entered, ...NOVOS_SESSAO.map(p=>({n:p.n, f:p.f>=0?QUADRO_CTT_FUNCOES[p.f].l:"", g:p.g>=0?gerencias[p.g].l:""})),
+    ...(CTT_NOVOS||[]).map(p=>({n:p.n, f:p.f>=0?QUADRO_CTT_FUNCOES[p.f].l:"", g:p.g>=0?gerencias[p.g].l:""}))];
   const bloco = (titulo, lista, cor) => `<div class="panel">
     <div style="display:flex;align-items:baseline;gap:8px">
       <span style="font-family:var(--f-display);font-size:26px;font-weight:600;color:var(${cor})">${fmt(lista.length)}</span>
@@ -158,25 +151,21 @@ function opcoesFiltro(lista, rotuloTodos, selecionado){
 }
 function linhaTabela(r){
   const emEdicao = EDITANDO===String(r.m);
+  const gerencias = gerenciasAtuais();
   const funcao = r.f>=0 ? QUADRO_CTT_FUNCOES[r.f].l : "—";
   const cidade = r.ci>=0 ? QUADRO_CTT_CIDADES[r.ci].l : "—";
-  const gerencia = r.g>=0 ? QUADRO_CTT_GERENCIAS[r.g].l : "—";
+  const gerencia = r.g>=0 ? gerencias[r.g].l : "—";
   const cnh = r.c>=0 ? QUADRO_CTT_CATEGORIAS_CNH[r.c] : null;
-  const o = obsDe(String(r.m));
   return `<tr><td class="num calc">${r.m}</td><td>${esc(r.n)}</td><td>${esc(funcao)}</td>
     <td>${cnh ? esc(cnh) : '<span class="calc">sem CNH</span>'}</td>
     <td>${esc(cidade)}</td><td>${esc(gerencia)}</td>
-    <td><select data-cttobs="${r.m}"><option value=""${o.obs?"":" selected"}>—</option>${
-      OBS_OPCOES.map(v=>`<option value="${esc(v)}"${o.obs===v?" selected":""}>${esc(v)}</option>`).join("")}</select></td>
-    <td class="calc" style="white-space:nowrap"><input type="date" data-cttobsini="${r.m}" value="${o.ini||""}" style="width:118px">
-      <span>a</span> <input type="date" data-cttobsfim="${r.m}" value="${o.fim||""}" style="width:118px"></td>
     <td><button type="button" class="btn xs" data-cttedit="${r.m}">${emEdicao?"Cancelar":"Editar"}</button>
       <button type="button" class="btn xs d" data-cttrm="${r.m}">Marcar saída</button></td></tr>` +
-    (emEdicao ? `<tr class="sub"><td></td><td colspan="8">
+    (emEdicao ? `<tr class="sub"><td></td><td colspan="6">
       <div class="row" style="align-items:flex-end">
         <div style="min-width:200px"><label>Função</label><select data-cttf-func="${r.m}">${opcoesFiltro(QUADRO_CTT_FUNCOES,"— sem função —",r.f)}</select></div>
         <div style="min-width:150px"><label>Cidade</label><select data-cttf-cid="${r.m}">${opcoesFiltro(QUADRO_CTT_CIDADES,"— sem cidade —",r.ci)}</select></div>
-        <div style="min-width:210px"><label>Gerência</label><select data-cttf-ger="${r.m}">${opcoesFiltro(QUADRO_CTT_GERENCIAS,"— sem gerência —",r.g)}</select></div>
+        <div style="min-width:210px"><label>Gerência</label><select data-cttf-ger="${r.m}">${opcoesFiltro(gerencias,"— sem gerência —",r.g)}</select></div>
         <div style="min-width:110px"><label>CNH</label><select data-cttf-cnh="${r.m}">${opcoesFiltro(QUADRO_CTT_CATEGORIAS_CNH,"— sem CNH —",r.c)}</select></div>
         <button type="button" class="btn p" data-cttconfirma="${r.m}">Confirmar mudança</button>
       </div></td></tr>` : "");
@@ -186,7 +175,7 @@ function estadoFiltros(){
   return {
     termo: normaliza($("#ctt_busca").value),
     f: $("#ctt_f_func").value, ci: $("#ctt_f_cid").value,
-    g: $("#ctt_f_ger").value, c: $("#ctt_f_cnh").value, obs: $("#ctt_f_obs").value,
+    g: $("#ctt_f_ger").value, c: $("#ctt_f_cnh").value,
   };
 }
 function bateFiltro(r, tr, fl){
@@ -194,32 +183,17 @@ function bateFiltro(r, tr, fl){
   if(fl.ci!=="" && String(r.ci)!==fl.ci) return false;
   if(fl.g!=="" && String(r.g)!==fl.g) return false;
   if(fl.c!=="" && String(r.c)!==fl.c) return false;
-  if(fl.obs!==""){
-    const atual = obsDe(String(r.m)).obs || "";
-    if(fl.obs==="__vazio" ? atual!=="" : atual!==fl.obs) return false;
-  }
   if(fl.termo && !normaliza(tr.textContent).includes(fl.termo)) return false;
   return true;
 }
-// contagem por observação lê o rascunho local (obsDe), não a coluna crua --
-// assim marcar "Férias" agora mesmo já entra na contagem, antes de salvar
-function contarObs(rows){
-  const c = {"":0, "Férias":0, "FAT":0, "Operação":0};
-  rows.forEach(r=>{ const v = obsDe(String(r.m)).obs || ""; c[v] = (c[v]||0)+1; });
-  return c;
-}
 function atualizarResumo(rows){
+  const gerencias = gerenciasAtuais();
   const porFuncao = contarPor(rows, "f", QUADRO_CTT_FUNCOES);
   const porCidade = contarPor(rows, "ci", QUADRO_CTT_CIDADES);
-  const porGerencia = contarPor(rows, "g", QUADRO_CTT_GERENCIAS);
-  const porObs = contarObs(rows);
+  const porGerencia = contarPor(rows, "g", gerencias);
 
   $("#k_ctt").innerHTML = kpi("No filtro","",fmt(rows.length)) +
     porFuncao.slice(0,4).map(([label,n])=>kpi(esc(label),"",fmt(n))).join("");
-  $("#k_ctt_obs").innerHTML = kpi("Sem observação","",fmt(porObs[""])) +
-    kpi("Marcados como Férias","g",fmt(porObs["Férias"])) +
-    kpi("Marcados como FAT","a",fmt(porObs["FAT"])) +
-    kpi("Marcados como Operação","t",fmt(porObs["Operação"]));
   $("#ctt_count").textContent = `${fmt(rows.length)} registros`;
 
   const elCid = $("#ctt_graf_cidade");
@@ -244,7 +218,7 @@ function aplicarFiltros(ativos){
 }
 
 function precisaRepintar(){
-  const assinatura = {novos:CTT_NOVOS, saidas:CTT_SAIDAS, mudancas:CTT_MUDANCAS, editando:EDITANDO,
+  const assinatura = {novos:CTT_NOVOS, saidas:CTT_SAIDAS, mudancas:CTT_MUDANCAS, gerenciasNovas:CTT_GERENCIAS_NOVAS, editando:EDITANDO,
     revNovos:NOVOS_SESSAO.length, revSaidas:SAIDAS_SESSAO.size, revMudancas:MUDANCAS_SESSAO.size};
   const igual = ULTIMA_PINTURA && Object.keys(assinatura).every(k=>assinatura[k]===ULTIMA_PINTURA[k]);
   ULTIMA_PINTURA = assinatura;
@@ -253,24 +227,22 @@ function precisaRepintar(){
 
 let ESQUELETO_PRONTO = false;
 function montarEsqueleto(){
+  const gerencias = gerenciasAtuais();
   $("#ctt_f_func").innerHTML = opcoesFiltro(QUADRO_CTT_FUNCOES, "Todas as funções");
   $("#ctt_f_cid").innerHTML = opcoesFiltro(QUADRO_CTT_CIDADES, "Todas as cidades");
-  $("#ctt_f_ger").innerHTML = opcoesFiltro(QUADRO_CTT_GERENCIAS, "Todas as gerências");
+  $("#ctt_f_ger").innerHTML = opcoesFiltro(gerencias, "Todas as gerências");
   $("#ctt_f_cnh").innerHTML = opcoesFiltro(QUADRO_CTT_CATEGORIAS_CNH, "Todas as categorias");
   $("#ctt_add_func").innerHTML = opcoesFiltro(QUADRO_CTT_FUNCOES, "— sem função —");
   $("#ctt_add_cid").innerHTML = opcoesFiltro(QUADRO_CTT_CIDADES, "— sem cidade —");
-  $("#ctt_add_ger").innerHTML = opcoesFiltro(QUADRO_CTT_GERENCIAS, "— sem gerência —");
+  $("#ctt_add_ger").innerHTML = opcoesFiltro(gerencias, "— sem gerência —");
   $("#ctt_add_cnh").innerHTML = opcoesFiltro(QUADRO_CTT_CATEGORIAS_CNH, "— sem CNH —");
-  $("#ctt_f_obs").innerHTML = `<option value="">Toda observação</option>
-    <option value="__vazio">Sem observação</option>
-    ${OBS_OPCOES.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join("")}`;
-  // filtro (função/cidade/gerência/CNH/observação/busca) é visão local, não
-  // dado -- refiltra na hora, sem passar pelo render() geral do app
-  ["#ctt_f_func","#ctt_f_cid","#ctt_f_ger","#ctt_f_cnh","#ctt_f_obs"].forEach(sel=>$(sel).addEventListener("change", refiltrar));
+  // filtro (função/cidade/gerência/CNH/busca) é visão local, não dado --
+  // refiltra na hora, sem passar pelo render() geral do app
+  ["#ctt_f_func","#ctt_f_cid","#ctt_f_ger","#ctt_f_cnh"].forEach(sel=>$(sel).addEventListener("change", refiltrar));
   $("#ctt_busca").addEventListener("input", refiltrar);
   $("#ctt_limpar").addEventListener("click", ()=>{
     $("#ctt_busca").value = "";
-    ["#ctt_f_func","#ctt_f_cid","#ctt_f_ger","#ctt_f_cnh","#ctt_f_obs"].forEach(sel=>$(sel).value="");
+    ["#ctt_f_func","#ctt_f_cid","#ctt_f_ger","#ctt_f_cnh"].forEach(sel=>$(sel).value="");
     refiltrar();
   });
 }
@@ -293,11 +265,17 @@ function pintarQuadroCTT(){
     <button class="btn p" id="ctt_salvar" ${CTT_SUJO?"":"disabled"}>Salvar alterações</button>`;
   $("#ctt_mov").innerHTML = blocoMovimentacao(todos);
 
+  // sempre atualiza (não entra em precisaRepintar): lista de opções depende
+  // de CTT_GERENCIAS_NOVAS, que muda sem re-montar a tabela inteira
+  const gerencias = gerenciasAtuais();
+  $("#ctt_f_ger").innerHTML = opcoesFiltro(gerencias, "Todas as gerências", $("#ctt_f_ger").value);
+  $("#ctt_add_ger").innerHTML = opcoesFiltro(gerencias, "— sem gerência —", $("#ctt_add_ger").value);
+
   if(precisaRepintar()){
-    $("#t_ctt").innerHTML = th([["Matrícula",1],["Nome"],["Função"],["CNH"],["Cidade"],["Gerência"],["Observação"],["Período"],[""]]) +
+    $("#t_ctt").innerHTML = th([["Matrícula",1],["Nome"],["Função"],["CNH"],["Cidade"],["Gerência"],[""]]) +
       "<tbody>" + ativos.map(linhaTabela).join("") + "</tbody>";
   }
   aplicarFiltros(ativos);
 }
 
-export { pintarQuadroCTT, marcarCttNovo, marcarCttSaida, marcarCttMudanca, marcarCttObs, limparCttObs, salvarCtt, abrirEdicaoCtt };
+export { pintarQuadroCTT, marcarCttNovo, marcarCttSaida, marcarCttMudanca, adicionarGerenciaCtt, salvarCtt, abrirEdicaoCtt };

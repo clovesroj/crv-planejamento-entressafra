@@ -5,7 +5,7 @@ import { GR_INICIO, GR_FIM, GR_EMPRESA, GR_PROP, GR_REFORMA } from '../nucleo/es
 
 /**
  * Gasto real (ERP, via Power BI) achatado em lançamentos individuais e
- * cruzado com o cadastro de frota -- é o que dá pra Especialidade, Agrupamento,
+ * cruzado com o cadastro de frota — é o que dá pra Especialidade, Agrupamento,
  * Frota e Próprio funcionarem como filtro sobre o gasto, do mesmo jeito que
  * funcionam no relatório de origem (BI). Função pura: só lê CFG e o arquivo
  * gerado pela extração, sem DOM.
@@ -25,6 +25,24 @@ const INFO_COD = {};
 
 const infoDeCod = cod => INFO_COD[cod] || null;
 
+// ─── Dados mutáveis ───────────────────────────────────────────────────────────
+// O import estático (gasto-reforma-bi.js, gerado pelo script) é o ponto de
+// partida. Quando o usuário busca dados ao vivo pela API, setDadosBI() substitui
+// e invalida os caches — sem recarregar a página.
+let _dadosBIOverride = null;
+
+/** Substitui os dados do BI pelos recém-buscados da API e invalida caches. */
+function setDadosBI(dados) {
+  _dadosBIOverride = dados;
+  cache = null;
+  porFrotaIdx = null;
+}
+
+/** Dados ativos: override da API, ou o arquivo estático como fallback. */
+function dadosAtivos() {
+  return _dadosBIOverride || GASTO_REFORMA_BI;
+}
+
 /**
  * Tag de compartimento do ERP, normalizada.
  *
@@ -40,14 +58,13 @@ const infoDeCod = cod => INFO_COD[cod] || null;
  */
 const normTag = t => String(t || "").replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim().toUpperCase();
 
-// Achata uma vez por render e reaproveita — GASTO_REFORMA_BI não muda em
-// tempo de execução (só quando o script de extração roda de novo e recarrega
-// a página), não precisa recalcular a cada tecla do filtro.
+// Achata uma vez por render e reaproveita — dadosAtivos() não muda em
+// tempo de execução (só quando setDadosBI() é chamado), não precisa recalcular a cada tecla do filtro.
 let cache = null;
 function lancamentos() {
   if (cache) return cache;
   const out = [];
-  for (const [cod, porComp] of Object.entries(GASTO_REFORMA_BI.porFrota || {})) {
+  for (const [cod, porComp] of Object.entries(dadosAtivos().porFrota || {})) {
     const info = infoDeCod(cod);
     for (const [compartimento, dado] of Object.entries(porComp)) {
       for (const it of dado.itens || []) {
@@ -231,26 +248,30 @@ function desdeUltimoAno(){
    filtro nao funciona. Por isso a tela compara a janela com a cobertura e diz
    o comando que falta rodar. */
 function coberturaBI(){
-  const ps = GASTO_REFORMA_BI.periodos || [];
+  const d = dadosAtivos();
+  const ps = d.periodos || [];
   const datas = lancamentos().map(l=>l.data).filter(Boolean).sort();
   return {
-    geradoEm: GASTO_REFORMA_BI.geradoEm || null,
+    geradoEm: d.geradoEm || null,
     periodos: ps,
     inicio: ps.length ? ps.map(p=>p.inicio).sort()[0] : (datas[0] || null),
     fim: ps.length ? ps.map(p=>p.fim).sort().at(-1) : (datas.at(-1) || null),
     especialidades: [...new Set(ps.map(p=>p.especialidade).filter(Boolean))],
     todasEspecialidades: ps.length > 0 && ps.some(p=>!p.especialidade),
-    truncado: !!GASTO_REFORMA_BI.truncado,
+    truncado: !!d.truncado,
     lancamentos: datas.length,
+    aoVivo: !!_dadosBIOverride,  // true quando veio da API, não do arquivo estático
   };
 }
 
 /**
  * O pedaco da janela que a extracao NAO cobre, com o comando que traz o resto.
  * null quando a janela cabe no que ja foi extraido.
+ * Quando os dados são ao vivo (aoVivo), sempre null — não há "falta".
  */
 function faltaExtrair(j = janelaGastoReal()){
   const c = coberturaBI();
+  if(c.aoVivo) return null;
   if(!c.inicio || !c.fim) return {inicio: j.inicio, fim: j.fim, cobertura: c, comando: comandoExtracao(j.inicio, j.fim)};
   const antes = j.inicio && j.inicio < c.inicio;
   const depois = j.fim && j.fim > c.fim;
@@ -267,4 +288,6 @@ function comandoExtracao(inicio, fim){
 
 export { lancamentos, filtrarLancamentos, agruparPor, opcoesDe, infoDeCod, itensDoEquipamento,
          itensDoEquipamentoNaJanela, janelaGastoReal, janelaVazia, naJanela, coberturaBI, faltaExtrair, comandoExtracao,
-         normTag, produtoDe, produtoGenerico, produtosDoEquipamento, sistemaDoLancamento, sistemaDoProduto, desdeUltimoAno };
+         normTag, produtoDe, produtoGenerico, produtosDoEquipamento, sistemaDoLancamento, sistemaDoProduto, desdeUltimoAno,
+         setDadosBI };
+

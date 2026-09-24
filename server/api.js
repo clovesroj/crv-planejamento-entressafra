@@ -26,6 +26,7 @@ const agrofit = require('./agrofit');
 const usuarioPublico = u => u && { id: u.id, login: u.login, nome: u.nome, papel: u.papel,
   ativo: u.ativo, criado_em: u.criado_em, ultimo_acesso: u.ultimo_acesso };
 
+
 // usuário da sessão + o que o perfil dele pode editar (para a interface travar as abas)
 async function usuarioComPermissoes(u) {
   return { ...usuarioPublico(u), permissoes: perms.permissoesPublicas(await perms.permissoesDe(u, store)) };
@@ -226,6 +227,26 @@ async function api(req, res, rota) {
       page: url.searchParams.get('page'),
     });
     return json(res, 200, { produtos: dados });
+  }
+
+  if (rota === '/api/reforma/gasto-real') {
+    if (req.method !== 'GET') throw erroHTTP(405, 'método não permitido');
+    await auth.exigirSessao(req, store);
+    const url = new URL(req.url, 'http://x');
+    const inicio = (url.searchParams.get('inicio') || '').trim();
+    const fim    = (url.searchParams.get('fim')    || '').trim();
+    if (!inicio || !fim) throw erroHTTP(400, 'parâmetros inicio e fim obrigatórios (AAAA-MM-DD)');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(inicio) || !/^\d{4}-\d{2}-\d{2}$/.test(fim))
+      throw erroHTTP(400, 'formato de data inválido — use AAAA-MM-DD');
+    if (fim < inicio) throw erroHTTP(400, 'fim anterior ao inicio');
+    const empresas = (url.searchParams.get('empresas') || '')
+      .split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+    const frotas = (url.searchParams.get('frotas') || '')
+      .split(',').map(s => s.trim()).filter(Boolean);
+    
+    // Busca do banco de dados (rápido e não usa memória do servidor)
+    const dados = await store.lerGastoReformaBi({ inicio, fim, empresas, frotas });
+    return json(res, 200, dados);
   }
 
   if (rota !== '/api/plano') throw erroHTTP(404, 'rota inexistente');

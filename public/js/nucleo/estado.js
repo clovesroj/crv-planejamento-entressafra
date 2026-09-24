@@ -35,7 +35,8 @@ let ATVX_V = 0;          // versão do cadastro base de atividades que este docu
 let CTT_NOVOS = null;    // pessoas do Quadro CTT incluídas na mão (fora da planilha do ERP), por matrícula
 let CTT_SAIDAS = null;   // matrícula -> {data} de quem saiu, registrado na mão
 let CTT_MUDANCAS = null; // matrícula -> {f,ci,g,c,data} override de função/cidade/gerência/CNH, registrado na mão
-let CTT_OBS = null;      // matrícula -> {obs:"Férias"|"FAT"|"Operação", ini, fim} status temporário, registrado na mão
+let CTT_OBS = null;      // matrícula -> {obs:"Férias"|"FAT"|"Operação", ini, fim} status temporário, registrado na mão (aba Planejamento Entressafra CTT, base de colaboradores da empresa inteira)
+let CTT_GERENCIAS_NOVAS = null; // [nome,...] gerências do Quadro CTT cadastradas na mão, fora da planilha do ERP
 let FROTA = {};          // item -> {qtd, hmes} frota prevista para manutenção
 let MAQ = {};            // item -> {d,h,u} ajustados: diesel L/h, horas/mês, utilização
 let CRM_ESP = {};        // especialidade -> taxa padrão herdada pelos modelos dela
@@ -109,6 +110,8 @@ let QF_MES = 10, QF_GRUPO = "todos";
 let PES_GRUPO = "todos", PES_DEPT = "todos";
 // visao do Plano de Contas (grupo, fixo/variavel, custo/despesa) e das Demandas -- nao e gravado
 let CONTAS_GRUPO = "todos", CONTAS_CLS = "todos", CONTAS_CD = "todos", DEM_SO_FALTA = false;
+// estrutura de apoio em edicao na aba Apoio: "s" safra, "e" entressafra -- so visao
+let APOIO_PER = "s";
 let ENC = {};            // índice do encargo -> % ajustado
 let BEN = {};            // índice do benefício -> valor ajustado
 let EDITADO = false;     // true assim que o usuário mexe em algo — trava o carregamento
@@ -125,8 +128,8 @@ let AGROFIT_BUSCA = null;
 
 export {
   P, PLANO, DIM, INSUMO, ESPOR, TRATC, NIV, GRAT, APOIO, TERC_TAR, TERC_SUB, TERC_DET, CRM, MATX,
-  INSX, INSX_V, ATVX, ATVX_V, CTT_NOVOS, CTT_SAIDAS, CTT_MUDANCAS, CTT_OBS, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, CRIT_GER, CRIT_CABE, REF_BUSCA, REF_AG, REF_FAM, REF_FROTA, REF_PROP, GR_INICIO, GR_FIM, GR_EMPRESA, GR_ESP, GR_AG, GR_COMP, GR_FROTA, GR_PROP, GR_REFORMA, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, FITO_ABERTO, PLANO_ABERTO, INS_FICHA, DIM_DET, APOIO_DET, APOIO_FIXO, TRAT_NOME, TRAT_OBS, TRAT_ETAPA, TRAT_DEL, TRAT_ATIVO, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
-  TPESS, FAT, MO_APOIO, QF_MES, QF_GRUPO, PES_GRUPO, PES_DEPT, CONTAS_GRUPO, CONTAS_CLS, CONTAS_CD, DEM_SO_FALTA, QUADRO, ADM, ADM_RAT, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL, ATIV_TRAT_SEL, GRUPOS_INS, FAM_NOME, FAM_CLASSE, AGROFIT_BUSCA, INS_EDIT,
+  INSX, INSX_V, ATVX, ATVX_V, CTT_NOVOS, CTT_SAIDAS, CTT_MUDANCAS, CTT_OBS, CTT_GERENCIAS_NOVAS, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, CRIT_GER, CRIT_CABE, REF_BUSCA, REF_AG, REF_FAM, REF_FROTA, REF_PROP, GR_INICIO, GR_FIM, GR_EMPRESA, GR_ESP, GR_AG, GR_COMP, GR_FROTA, GR_PROP, GR_REFORMA, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, FITO_ABERTO, PLANO_ABERTO, INS_FICHA, DIM_DET, APOIO_DET, APOIO_FIXO, TRAT_NOME, TRAT_OBS, TRAT_ETAPA, TRAT_DEL, TRAT_ATIVO, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
+  TPESS, FAT, MO_APOIO, QF_MES, QF_GRUPO, PES_GRUPO, PES_DEPT, CONTAS_GRUPO, CONTAS_CLS, CONTAS_CD, DEM_SO_FALTA, APOIO_PER, QUADRO, ADM, ADM_RAT, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL, ATIV_TRAT_SEL, GRUPOS_INS, FAM_NOME, FAM_CLASSE, AGROFIT_BUSCA, INS_EDIT,
 };
 
 export const setP          = v => { P = v; };
@@ -151,6 +154,7 @@ export const setCTT_NOVOS    = v => { CTT_NOVOS = v; };
 export const setCTT_SAIDAS   = v => { CTT_SAIDAS = v; };
 export const setCTT_MUDANCAS = v => { CTT_MUDANCAS = v; };
 export const setCTT_OBS      = v => { CTT_OBS = v; };
+export const setCTT_GERENCIAS_NOVAS = v => { CTT_GERENCIAS_NOVAS = v; };
 export const setFROTA      = v => { FROTA = v; };
 export const setCRM_ESP    = v => { CRM_ESP = v; };
 export const setMAQ        = v => { MAQ = v; };
@@ -204,6 +208,7 @@ export const setCONTAS_GRUPO = v => { CONTAS_GRUPO = v || "todos"; };
 export const setCONTAS_CLS   = v => { CONTAS_CLS = v || "todos"; };
 export const setCONTAS_CD    = v => { CONTAS_CD = v || "todos"; };
 export const setDEM_SO_FALTA = v => { DEM_SO_FALTA = !!v; };
+export const setAPOIO_PER    = v => { APOIO_PER = v==="e" ? "e" : "s"; };
 export const setPES_DEPT   = v => { PES_DEPT = v || "todos"; };
 export const setQUADRO     = v => { QUADRO = v; };
 export const setGRUPOS_INS = v => { GRUPOS_INS = v; };

@@ -22,6 +22,7 @@ const CRIT = {
   pag:     "no mês de pagamento de cada contrato",
   lanc:    "no mês em que foi lançado",
   folha:   "pela folha prevista de cada mês, só de dez/26 a mar/27",
+  apoio:   "nos meses do período de cada equipamento (aba Apoio)",
 };
 
 function fontesDaConta(R, k){
@@ -46,7 +47,7 @@ function fontesDaConta(R, k){
 
   if(k==="mdo"){
     porEtapa("Equipes das atividades", (r,i)=>num((r.mdoMes||[])[i]), CRIT.equipe);
-    add("Operadores dos equipamentos de apoio", pelaArea(R.AE.mdo), CRIT.area, "frota:apoio");
+    add("Operadores dos equipamentos de apoio", (R.AE.mdoMes||zeros()).slice(), CRIT.apoio, "frota:apoio");
     if(R.QF){
       add("Quadro ADM agrícola (previsto da controladoria)", R.QF.adm.mes.slice(), CRIT.folha);
       add("Quadro da oficina (previsto da controladoria)", R.QF.oficina.mes.slice(), CRIT.folha);
@@ -56,7 +57,7 @@ function fontesDaConta(R, k){
   }
   if(k==="manut"){
     porEtapa("CRM da frota das atividades", (r,i,f)=>num(r.cManut)*f, CRIT.volume);
-    add("CRM dos equipamentos de apoio", pelaArea(R.AE.manut), CRIT.area, "frota:apoio");
+    add("CRM dos equipamentos de apoio", (R.AE.manutMes||zeros()).slice(), CRIT.apoio, "frota:apoio");
     add("CRM da frota prevista além do plano", pelaArea(R.crmExtra), CRIT.area, "frota:crmexced");
     add("Materiais de manutenção sem mês", pelaArea(R.MT.distribuido), CRIT.area);
     add("Materiais de manutenção com mês marcado", (R.MT.mesFixo||zeros()).slice(), CRIT.marcado);

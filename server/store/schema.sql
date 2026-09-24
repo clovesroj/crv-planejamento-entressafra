@@ -63,3 +63,24 @@ END $$;
 -- sem a chave nao e tocado. A API tambem nao deixa a chave voltar
 -- (CHAVES_RETIRADAS, server/permissoes.js).
 UPDATE plano SET data = data - 'PESSOAL' WHERE data ? 'PESSOAL';
+
+-- Lancamentos de gasto real do ERP (Power BI, Movimentacoes Internas).
+-- Gravados pelo script local (npm run gasto-reforma-bi -- --banco ...) e lidos
+-- pelo servidor para o filtro de datas ao vivo na aba Reforma de Frota.
+-- A restricao UNIQUE evita contar o mesmo lancamento duas vezes (deduplicacao).
+CREATE TABLE IF NOT EXISTS gasto_reforma_bi (
+  id            bigserial PRIMARY KEY,
+  frota         text        NOT NULL,
+  compartimento text        NOT NULL,
+  descricao     text        NOT NULL,
+  valor         numeric(14,2) NOT NULL,
+  data          date        NOT NULL,
+  empresa       text,
+  reforma       text        CHECK (reforma IN ('SIM', 'NAO')),
+  extraido_em   timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT gasto_reforma_bi_uniq
+    UNIQUE (frota, compartimento, descricao, valor, data, empresa)
+);
+CREATE INDEX IF NOT EXISTS idx_grbi_data  ON gasto_reforma_bi(data);
+CREATE INDEX IF NOT EXISTS idx_grbi_frota ON gasto_reforma_bi(frota);
+

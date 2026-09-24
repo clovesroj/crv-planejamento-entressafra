@@ -1,4 +1,4 @@
-import { agruparPor, coberturaBI, faltaExtrair, filtrarLancamentos, janelaGastoReal, janelaVazia, opcoesDe } from '../calculo/gasto-real.js';
+import { agruparPor, coberturaBI, faltaExtrair, filtrarLancamentos, janelaGastoReal, janelaVazia, opcoesDe, setDadosBI } from '../calculo/gasto-real.js';
 import { GR_INICIO, GR_FIM, GR_EMPRESA, GR_ESP, GR_AG, GR_COMP, GR_FROTA, GR_PROP, GR_REFORMA } from '../nucleo/estado.js';
 import { $, brl, esc, fmt } from '../nucleo/formato.js';
 import { destinoDoGasto } from '../calculo/reforma.js';
@@ -128,7 +128,7 @@ function pintarGastoReal() {
 
   const porEsp = agruparPor(lista, "esp");
   const total = porEsp.reduce((s, e) => s + e.total, 0) || 1;
-  tEl.innerHTML = th([["Especialidade"], ["Lançamentos", 1], ["Total R$", 1], ["% do filtrado", 1]]) + "<tbody>" +
+  tEl.innerHTML = th([[`Especialidade`], ["Lançamentos", 1], ["Total R$", 1], ["% do filtrado", 1]]) + "<tbody>" +
     (porEsp.length ? porEsp.map(e => `<tr><td>${esc(e.chave)}</td><td class="num calc">${fmt(e.qtd)}</td>
       <td class="num tot">${brl(e.total)}</td><td class="num calc">${fmt(e.total / total * 100, 1)}%</td></tr>`).join("")
       : `<tr><td colspan="4" class="calc">Nenhum lançamento com esse filtro.</td></tr>`) +
@@ -137,4 +137,59 @@ function pintarGastoReal() {
      <td class="num tot">${porEsp.length ? "100,0%" : "—"}</td></tr></tbody>`;
 }
 
-export { pintarGastoReal };
+/* ─── Busca ao vivo ─────────────────────────────────────────────
+   Consulta o banco de dados do servidor via API para trazer lançamentos 
+   do período selecionado. */
+
+let _buscaAtiva = null; // AbortController em andamento
+
+/**
+ * Inicia (ou aborta e reinicia) uma busca ao vivo no ERP/Banco.
+ * Exibe loading animado no painel; ao terminar, carrega os dados e re-renderiza.
+ * @param {Function} renderFn - função render() do ciclo principal
+ */
+async function buscarDoBI(renderFn) {
+  // Cancela busca anterior se ainda estiver em andamento
+  if (_buscaAtiva) { _buscaAtiva.abort(); _buscaAtiva = null; }
+
+  const inicio = GR_INICIO || null;
+  const fim    = GR_FIM    || null;
+  if (!inicio || !fim) {
+    alert('Preencha os campos De e Até antes de buscar.');
+    return;
+  }
+
+  const overlay = $('#gr_loading');
+  const msgEl   = $('#gr_loading_msg');
+  if (overlay) overlay.hidden = false;
+  if (msgEl)   msgEl.textContent = 'Consultando banco de dados…';
+
+  const params = new URLSearchParams({ inicio, fim });
+  if (GR_EMPRESA) params.set('empresas', GR_EMPRESA);
+  if (GR_FROTA) params.set('frotas', GR_FROTA);
+
+  const ctrl = new AbortController();
+  _buscaAtiva = ctrl;
+
+  try {
+    const res = await fetch(`/api/reforma/gasto-real?${params}`, { signal: ctrl.signal });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ msg: 'Erro HTTP ' + res.status }));
+      throw new Error(err.msg || 'Falha na requisição');
+    }
+    const dados = await res.json();
+    if (overlay) overlay.hidden = true;
+    setDadosBI(dados);
+    if (renderFn) renderFn();
+  } catch (e) {
+    if (e.name === 'AbortError') return; // abortada intencionalmente
+    console.error(e);
+    if (overlay) overlay.hidden = true;
+    alert(`Falha ao buscar do ERP:\n${e.message || 'Erro desconhecido'}`);
+  } finally {
+    if (_buscaAtiva === ctrl) _buscaAtiva = null;
+  }
+}
+
+export { pintarGastoReal, buscarDoBI };
+

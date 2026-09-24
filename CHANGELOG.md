@@ -1,5 +1,69 @@
 # Histórico de mudanças
 
+## 2.49.0 — 2026-09-24 · Apoio: safra e entressafra com estruturas independentes
+
+**Correção.** Na 2.48 cada equipamento de apoio tinha uma quantidade e umas
+horas/mês só, e o "período" apenas ligava ou desligava meses. Mudar a
+quantidade para a entressafra mudava também a safra. Os botões "Ano todo /
+Safra / Entressafra" pareciam trocar de período, mas aplicavam o mesmo período
+a todos os equipamentos.
+
+Agora **safra (abr–nov) e entressafra (dez–mar) são estruturas
+independentes**. Cada equipamento tem a quantidade e as horas/mês de cada
+período, e mudar uma não mexe na outra:
+
+- **Chave "Estrutura do período"** no alto da tabela (Safra · N un /
+  Entressafra · N un): a tabela mostra e edita a quantidade, as horas/mês e os
+  meses do período escolhido, com horas, litros, diesel, operadores,
+  manutenção e total **daquele período**.
+- **Coluna "Na safra" / "Na entressafra":** o que o mesmo equipamento tem no
+  outro período, só para comparar. Quantidade zero é "não trabalha".
+- Nome, máquina e função são do equipamento e valem nos dois períodos.
+- **Botões:** "Copiar esta estrutura para a outra" e "Nenhum apoio neste
+  período" (os dois pedem confirmação). "Adicionar" põe o equipamento novo no
+  período que está na tela.
+- **Nova tabela "Safra × entressafra":** equipamentos, horas, litros, diesel,
+  operadores, manutenção e custo de cada período e do ano. Equipamentos do ano
+  é o que tem de existir no pátio: o maior dos dois períodos.
+- A projeção mês a mês ganhou a linha de equipamentos por mês; o relatório
+  mostra "Safra (qtd × h/mês)" e "Entressafra (qtd × h/mês)".
+- Plano salvo no formato antigo é lido como as duas estruturas iguais, zerando
+  o período que ficava de fora. A linha é gravada no formato novo na primeira
+  edição, e o total não muda (conferido: R$ 240.380.363 e R$ 240.889.391 no
+  cenário de teste).
+
+54 invariantes sem falha (com estruturas diferentes por período); 32 abas,
+503 rastros e 138 relatórios sem erro.
+
+## 2.48.0 — 2026-09-24 · Equipamentos de apoio com período: ano todo, safra, entressafra ou meses
+
+Os equipamentos de apoio (aba Apoio) eram projetados sempre para os doze meses:
+um plano de entressafra saía com diesel e operador de apoio de abril a
+novembro. Agora cada equipamento tem o **período em que trabalha**:
+
+- **Botões no alto da tabela** aplicam um período a todos os equipamentos de
+  uma vez: Ano todo, Safra (abr–nov) ou Entressafra (dez–mar).
+- **Seletor na linha** muda um equipamento só; em "Meses escolhidos"
+  aparecem os doze meses para marcar. O ponto de partida é o período que ele
+  já tinha.
+- **Nova tabela "Projeção mês a mês do apoio":** horas, litros de diesel,
+  diesel em R$, operadores, manutenção (CRM) e custo em cada mês.
+- Horas, litros, diesel, operador e CRM entram **só nos meses do período**.
+  Isso vale para o custo mensal, o Painel (safra × entressafra), a aba
+  Combustível, o Resumo de Pessoas (efetivo e custo por mês), as grandes
+  contas, o rastro e o relatório (com a coluna "Período").
+- O padrão continua "Ano todo": sem escolher nada, o total do ano não muda.
+
+**Uma mudança de critério no mês a mês:** o operador e o CRM do apoio eram
+espalhados pela área operada de cada mês, e o diesel já era igual todo mês.
+Agora os três seguem os meses em que o equipamento trabalha. O total do ano é
+o mesmo, mas a divisão entre safra e entressafra muda. No cenário de teste,
+R$ 314 mil passaram da safra para a entressafra, porque a área do teste
+concentra-se na safra.
+
+54 invariantes sem falha (com períodos misturados); 32 abas, 503 rastros e 138
+relatórios sem erro.
+
 ## 2.47.0 — 2026-09-24 · Plano de Contas com painel e subtotais, aba Demandas de Insumos e Materiais, e o insumo auditado
 
 ### Plano de Contas: painel dinâmico e subtotal de cada grupo

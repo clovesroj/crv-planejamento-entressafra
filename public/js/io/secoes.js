@@ -9,6 +9,7 @@ import { QUADRO_FONTE } from '../dados/quadro-fixo.js';
 import { GERENCIAS, criterioPorMes, excecoes, execucao, metasDeFrota, metasPorAtividade, porGerencia } from '../calculo/acompanhamento.js';
 import { CFG } from '../dados/cfg.js';
 import { CAT_LBL, MESES, NM, PERIODOS, periodoMes } from '../nucleo/calendario.js';
+import { estruturaApoio } from '../calculo/apoio.js';
 import { composicao, etapasNoPlano, tratEtapas, tratListaTodos, volumeCompra, volumeDemandado } from '../calculo/insumos.js';
 import { BROCA, CIGARRINHA, custoTotal, fmtVolume, linhasDe, resumoInsumos, valorHa, volumeInsumo } from '../ui/fitossanitario.js';
 import { TRAT_ETAPAS } from '../dados/insumos.js';
@@ -109,7 +110,7 @@ const etapasP = R => Object.fromEntries(Object.keys(R.etapas).map(e=>[e, etapaP(
    os equipamentos de apoio — caminhão bombeiro, motoniveladora — que trabalham
    as mesmas horas todo mês. Sem o apoio, safra + entressafra não fechava. */
 const horasP = R => REC.parcial
-  ? R.L.map(ativP).reduce((t,r)=>t+r.horas,0) + (R.AE.horas||0)*REC.fracMeses
+  ? R.L.map(ativP).reduce((t,r)=>t+r.horas,0) + noPer(R.AE.horasMes)
   : R.horasT;
 const totEtapas = R => Object.values(R.etapas).reduce((s,e)=>s+e.total,0)||1;
 const ativosDe = (R, etapa) => R.L.filter(r=>r.a.etapa===etapa && r.total>0);
@@ -776,11 +777,14 @@ const combustivel = R => {
   .concat([["TOTAL","","","", fmt(lit), lit>0?brl(cus/lit,2):"—", brl(cus)]]));
 };
 
+// estrutura de um período do apoio: "6 × 180 h/mês" ou "—" quando não trabalha
+const estrApoio = x => x.qtd>0 ? fmt(x.qtd)+" × "+fmt(x.hmes)+" h/mês" : "—";
 const apoio = R => sec("Apoio","Equipamentos de apoio",
-  ["Equipamento","Máquina","Qtd","Horas/mês","Horas totais","Litros","Diesel","MDO","Total"],
-  R.AE.linhas.map(l=>[l.nome, l.maq, l.qtd, fmt(num(l.hmes)), fmt(l.horas), fmt(l.litros),
-    brl(l.diesel), brl(l.mdo), brl(l.total)])
-  .concat([["TOTAL","","","", fmt(R.AE.horas), fmt(R.AE.litros), brl(R.AE.diesel), brl(R.AE.mdo),
+  ["Equipamento","Máquina","Safra (qtd × h/mês)","Entressafra (qtd × h/mês)","Meses","Horas totais","Litros","Diesel","MDO","Total"],
+  R.AE.linhas.map(l=>{ const E = estruturaApoio(l);
+    return [l.nome, l.maq, estrApoio(E.s), estrApoio(E.e), l.nMeses, fmt(l.horas), fmt(l.litros),
+      brl(l.diesel), brl(l.mdo), brl(l.total)]; })
+  .concat([["TOTAL","","","","", fmt(R.AE.horas), fmt(R.AE.litros), brl(R.AE.diesel), brl(R.AE.mdo),
     brl(R.AE.total)]]));
 
 const irrigacao = R => sec("Irrigação","Irrigação e fertirrigação",

@@ -83,6 +83,10 @@ import { chromium } from 'playwright';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const { storePostgres } = require('../server/store/postgres.js');
 
 // Acima disso, rolar a tabela inteira arrisca travar o Chromium: o Power BI
 // nao reaproveita as linhas ja rolamdas (a arvore de acessibilidade so
@@ -100,6 +104,8 @@ function argValor(nome, padrao = null) {
 function argFlag(nome) {
   return process.argv.includes(`--${nome}`);
 }
+
+const BANCO = argValor('banco') || process.env.DATABASE_URL;
 
 const INICIO = argValor('inicio');
 const FIM = argValor('fim');
@@ -590,7 +596,14 @@ async function main() {
       await writeFile(SAIDA, conteudoDoArquivo(saida), 'utf8');
       const nLanc = Object.values(porFrotaFinal)
         .reduce((s, c) => s + Object.values(c).reduce((s2, d) => s2 + d.itens.length, 0), 0);
-      console.log(`  Gravado: ${nLanc} lancamentos acumulados, ${Object.keys(porFrotaFinal).length} frotas.`);
+      console.log(`  Gravado no arquivo estático: ${nLanc} lancamentos acumulados, ${Object.keys(porFrotaFinal).length} frotas.`);
+      
+      if (BANCO) {
+        console.log(`  Gravando no banco de dados (${BANCO.split('@')[1] || BANCO})...`);
+        const pg = storePostgres(BANCO);
+        const inseridos = await pg.gravarGastoReformaBi(porFrotaFinal);
+        console.log(`  Banco atualizado: +${inseridos} registros novos inseridos (deduplicados).`);
+      }
     }
     if (truncadas.length) {
       console.warn(`\nAtencao: ${truncadas.length} fatia(s) bateram no teto mesmo depois de partidas: ${truncadas.join(', ')}. ` +

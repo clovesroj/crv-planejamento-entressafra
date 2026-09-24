@@ -1101,9 +1101,13 @@ function rastroTransbordo(R){
 function rastroApoio(R){
   const AE = R.AE;
   const itens = [...AE.linhas].sort((a,b)=>b.total-a.total);
-  return {titulo:"Equipamentos de apoio", subtitulo:"Utilização fixa, por número de equipamentos e horas", valor:fmt(AE.equip)+" un",
+  const estr = x => x.qtd>0 ? fmt(x.qtd)+" un × "+fmt(x.hmes)+" h" : "parado";
+  const perRot = l => "safra "+estr(l.s)+" · entressafra "+estr(l.e);
+  return {titulo:"Equipamentos de apoio", subtitulo:"Por número de equipamentos e horas, nos meses do período de cada um", valor:fmt(AE.equip)+" un",
     blocos:[{titulo:"Equipamentos", linhas: itens.map(l=>({rot:l.nome, val:fmt(num(l.qtd))+" un",
-      sub:`${fmt(l.horas)} h · ${l.efetivo} pessoas · ${brl(l.total)}`}))}],
+      sub:`${perRot(l)} · ${fmt(l.horas)} h · ${fmt(l.litros)} L · ${l.efetivo} pessoas · ${brl(l.total)}`}))},
+      {titulo:"Mês a mês", linhas: MESES.map((m,i)=>({rot:m, val:brl(AE.dieselMes[i]+AE.mdoMes[i]+AE.manutMes[i]), ir:"mes:"+i,
+        sub:`${fmt(AE.horasMes[i])} h · ${fmt(AE.litrosMes[i])} L de diesel`})).filter((x,i)=>AE.horasMes[i]>0)}],
     premissas:premissasGerais()};
 }
 function rastroCRM(R){
