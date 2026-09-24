@@ -203,4 +203,4 @@ function pintarFito(R){
     `<tr><td class="tot" colspan="3">TOTAL</td><td class="num tot">${brl(custoTerc)}</td></tr></tbody>`;
 }
 
-export { pintarFito };
+export { pintarFito, BROCA, CIGARRINHA, linhasDe, custoTotal, valorHa, volumeInsumo, fmtVolume, resumoInsumos };
