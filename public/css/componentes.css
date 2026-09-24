@@ -943,6 +943,27 @@ table.qf tr.qf-sel td{background:color-mix(in srgb,var(--leaf) 9%,var(--card))}
 table.qf td.qf-mais{color:var(--bad)}
 table.qf td.qf-menos{color:var(--green)}
 
+/* Resumo geral de pessoas: painel com graficos (dica no mouse, detalhe no clique) */
+.pes-dash{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:12px}
+.pes-dash .panel{margin:0}
+@media (max-width:1100px){ .pes-dash{grid-template-columns:minmax(0,1fr)} }
+.rosca-box{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.rosca-box > div:first-child{flex:0 0 220px;max-width:100%}
+.rosca-leg{flex:1 1 220px;display:flex;flex-direction:column;gap:2px;font-size:12.5px}
+.rosca-leg-l{display:grid;grid-template-columns:12px minmax(0,1fr) auto 50px;gap:8px;align-items:center;padding:4px 6px;border-radius:var(--r-sm)}
+.rosca-leg-l:hover{background:var(--sunk)}
+.rosca-leg-l i{width:12px;height:12px;border-radius:3px}
+.rosca-leg-l span:first-of-type{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rosca-leg-l .calc{text-align:right}
+/* no layout largo o grafico mensal nao passa de 440px de altura (fica centrado) */
+.graf-mes{max-height:440px}
+.graf-pes g[data-rastro]:hover > rect.fundo{fill:var(--sunk)}
+.graf-pes rect[data-rastro]:hover,.graf-pes path[data-rastro]:hover{opacity:.8}
+i.pes-cor{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:7px}
+#t_pes_geral tr.qf-tot td,#t_pes_geral_mes tr.qf-tot td{font-weight:700;border-top:1px solid var(--line-strong)}
+/* .btn e display:inline-flex e venceria o [hidden] do navegador: o botao so aparece com filtro */
+#btn_pes_limpar[hidden]{display:none}
+
 /* Resumo de Pessoas no padrao das planilhas: grupo, departamento e funcao */
 #t_pes_dept tr.pes-grp td{background:color-mix(in srgb,var(--leaf) 10%,var(--card));font-weight:700;border-top:1px solid var(--line-strong)}
 #t_pes_dept tr.qf-dep td{background:var(--sunk);font-weight:600}

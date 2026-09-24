@@ -1178,10 +1178,10 @@
 <!-- ===== RESUMO DE PESSOAS ===== -->
 <section id="pessoas">
   <h2>Resumo de Pessoas</h2>
-  <p class="lead">Efetivo dimensionado pelo plano: o confronto com o quadro ativo, o recorte por departamento e
-  por função, e de onde vem cada pessoa, mês a mês. O operacional (motoristas, operadores e rurais) sai das
-  atividades do plano, por etapa; o ADM agrícola e a oficina, do quadro previsto da controladoria, por departamento;
-  e o FAT, fora da operação. Quatro páginas — use o menu ao lado para trocar.</p>
+  <p class="lead">Efetivo dimensionado pelo plano: o resumo geral, o confronto com o quadro ativo, o recorte por
+  departamento e por função, e de onde vem cada pessoa, mês a mês. O operacional (motoristas, operadores e rurais) sai
+  das atividades do plano, por etapa; o ADM agrícola e a oficina, do quadro previsto da controladoria, por
+  departamento; e o FAT, fora da operação. Cinco páginas — use o menu ao lado para trocar.</p>
   <div class="row pes-filtro" style="margin-bottom:12px;align-items:flex-end">
     <div style="min-width:220px"><label for="sel_pes_grupo">Quadro</label>
       <select id="sel_pes_grupo"></select></div>
@@ -1192,7 +1192,40 @@
   </div>
   <div class="grid g4" id="k_pes" style="margin-bottom:16px"></div>
 
-  <details class="bloco" id="bl_pes_quadro" open>
+  <details class="bloco" id="bl_pes_geral" open>
+    <summary><span class="bl-tit">Resumo geral</span>
+      <span class="bl-sub" id="bl_pes_geral_sub"></span></summary>
+    <div class="bloco-corpo">
+      <div class="grid g5" id="k_pes_geral" style="margin-bottom:16px"></div>
+      <div class="panel"><h3 class="h-secao">Resumo por quadro</h3>
+        <div class="tblwrap"><table id="t_pes_geral"></table></div>
+        <div class="hint" style="margin-top:9px" id="pes_geral_nota"></div></div>
+      <div class="panel"><h3 class="h-secao">Pessoas por mês</h3>
+        <div id="ch_pes_mes"></div>
+        <div class="leg-periodo" id="ch_pes_mes_leg"></div>
+        <div class="tblwrap" style="margin-top:14px"><table id="t_pes_geral_mes"></table></div>
+        <div class="hint" style="margin-top:9px">Cada barra é o total de pessoas do mês, empilhado por quadro; o
+        tracejado é o quadro atual disponível no mês (ativo do ERP − férias − demissões − quem está no FAT).
+        <b>A contratar no mês</b> soma função por função: sobra numa função não cobre falta em outra.</div></div>
+      <div class="pes-dash">
+        <div class="panel"><h3>Por quadro — média mensal</h3>
+          <div class="rosca-box"><div id="ch_pes_quadro"></div><div class="rosca-leg" id="ch_pes_quadro_leg"></div></div></div>
+        <div class="panel"><h3>Por tipo de função — média mensal</h3>
+          <div class="rosca-box"><div id="ch_pes_tipo"></div><div class="rosca-leg" id="ch_pes_tipo_leg"></div></div></div>
+        <div class="panel"><h3>Projetado × quadro atual, por função</h3>
+          <div class="legend" id="ch_pes_fun_leg" style="margin:0 0 8px"></div>
+          <div id="ch_pes_fun"></div>
+          <div class="hint" style="margin-top:6px" id="ch_pes_fun_nota"></div></div>
+        <div class="panel"><h3>Por departamento — média mensal</h3>
+          <div id="ch_pes_dep"></div>
+          <div class="hint" style="margin-top:6px" id="ch_pes_dep_nota"></div></div>
+      </div>
+      <div class="hint">Passe o mouse sobre qualquer barra, fatia, linha ou cartão para ver quem está ali; clique
+      para abrir o detalhamento completo — por quadro, departamento, função e mês.</div>
+    </div>
+  </details>
+
+  <details class="bloco" id="bl_pes_quadro">
     <summary><span class="bl-tit">Necessidade x quadro ativo</span>
       <span class="bl-sub" id="bl_pes_sub"></span></summary>
     <div class="bloco-corpo">

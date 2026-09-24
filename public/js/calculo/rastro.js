@@ -15,6 +15,8 @@ import { desdeUltimoAno, janelaGastoReal, janelaVazia, produtosDoEquipamento } f
 import { tagsBiDoConjunto } from '../dados/reforma-bi-map.js';
 import { fontesDaConta } from './fontes.js';
 import { dieselOrcado } from './diesel.js';
+import { filtrarPessoas, grupoIdx } from './pessoas.js';
+import { confrontoQuadro, linhaNoPeriodo, somarConfronto } from './quadro.js';
 import { codExibir } from '../nucleo/codigo-atividade.js';
 
 // soma um array de NM meses respeitando o filtro de período (mesmo critério de R.PER)
@@ -836,14 +838,16 @@ function rastroPessoasDept(R, dept){
   const o = R.PS.porDept[dept]; if(!o) return null;
   const itens = R.PS.itens.filter(i=>i.dept===dept);
   return {titulo:dept, subtitulo:"Departamento · efetivo dimensionado", valor:fmt(o.qtd)+" pessoas",
-    blocos:[{titulo:"Origem do efetivo", linhas: itens.map(i=>({rot:i.origem, val:fmt(i.qtd)+" pessoas", sub:i.fnome}))}],
+    blocos:[{titulo:"Origem do efetivo", linhas: itens.map(i=>({rot:i.origem, val:fmt(i.qtd)+" pessoas", sub:i.fnome}))},
+      blocoMesAMes(o.qtdMes, i=>"pessoas:mes:"+i+":todos:"+dept)].filter(Boolean),
     premissas:premissasGerais(), voltar:"pessoas:total"};
 }
 function rastroPessoasFun(R, fcod){
   const o = R.PS.porFun[fcod]; if(!o) return null;
   const itens = R.PS.itens.filter(i=>i.fcod===fcod);
   return {titulo:(itens[0]||{}).fnome||fcod, subtitulo:"Função · efetivo dimensionado", valor:fmt(o.qtd)+" pessoas",
-    blocos:[{titulo:"Onde esta função é usada", linhas: itens.map(i=>({rot:i.origem, val:fmt(i.qtd)+" pessoas", sub:i.dept}))}],
+    blocos:[{titulo:"Onde esta função é usada", linhas: itens.map(i=>({rot:i.origem, val:fmt(i.qtd)+" pessoas", sub:i.dept}))},
+      blocoQuadroDaFuncao(R, fcod), blocoMesAMes(o.qtdMes, i=>"pessoas:mes:"+i)].filter(Boolean),
     premissas:premissasGerais(), voltar:"pessoas:total"};
 }
 /* Pico de mobilização: o mês em que mais gente trabalha ao mesmo tempo --
@@ -889,6 +893,175 @@ function rastroPessoasPico(R, periodo){
     ],
     nota: iPico!=null&&pico>0 ? `Pico em ${MESES[iPico]}: ${fmt(pico)} pessoas trabalhando ao mesmo tempo.` : "",
     premissas:premissasPessoas(R)};
+}
+
+/* ---------- Resumo geral de pessoas: mês, quadro, tipo de função e quadro atual ----------
+   Chaves do painel do Resumo de Pessoas (ui/pessoas.js). As de recorte levam o
+   filtro da tela no fim -- quadro e departamento, "todos" quando não filtra --,
+   para a dica de um gráfico filtrado falar do mesmo recorte que ele mostra:
+     pessoas:mes:<i>[:<quadro>[:<departamento>]]
+     pessoas:grupo:<quadro>[:<departamento>]
+     pessoas:tipo:<tipo de função>[:<quadro>[:<departamento>]]
+     pessoas:quadro[:<quadro>]      necessidade × quadro ativo do ERP
+   Média e pico seguem o período do rastro (ano, safra ou entressafra). */
+const CURTO_GR = {"OPERACIONAL":"Operacional", "ADM AGRÍCOLA":"ADM agrícola", "OFICINA":"Oficina", "FAT":"FAT (fora da operação)"};
+const semFiltro = v => !v || v==="todos";
+const nomeRecorte = (g, d) => [semFiltro(g) ? "" : (CURTO_GR[g]||g), semFiltro(d) ? "" : d].filter(Boolean).join(" › ") || "Todos os quadros";
+const idxPeriodo = p => MESES.map((m,i)=>i).filter(i=>p==="todos"||periodoMes(i)===p);
+const nomePeriodo = p => p==="safra" ? "na safra" : p==="entressafra" ? "na entressafra" : "no ano";
+const casasQtd = v => v>0 && v<10 && Math.abs(v-Math.round(v))>0.05 ? 1 : 0;
+const qtdP = v => fmt(v, casasQtd(v)) + (Math.abs(v-1)<1e-9 ? " pessoa" : " pessoas");
+const pctDe = (v, t) => t>0 ? fmt(v/t*100,1)+"%" : "—";
+// soma de uma lista de itens de pessoas por uma chave, com média e pico nos meses idx
+function juntarPessoas(itens, chave, idx){
+  const g = {};
+  itens.forEach(it=>{ const k = chave(it);
+    const o = g[k] = g[k] || {k, grupo:it.grupo, fnome:it.fnome, dept:it.dept, qtdMes:Array(NM).fill(0)};
+    it.qtdMes.forEach((v,i)=>{ o.qtdMes[i] += +v||0; }); });
+  const n = Math.max(1, idx.length);
+  return Object.values(g).map(o=>{ const pico = Math.max(0, ...idx.map(i=>o.qtdMes[i]));
+    return {...o, media: idx.reduce((s,i)=>s+o.qtdMes[i],0)/n, pico, iPico: idx.find(i=>o.qtdMes[i]===pico)}; })
+    .filter(o=>o.pico>0);
+}
+function blocoMesAMes(qtdMes, irDe, idx){
+  const ls = (idx || MESES.map((m,i)=>i)).filter(i=>(+qtdMes[i]||0)>0)
+    .map(i=>({rot:MESES[i], val:qtdP(+qtdMes[i]||0), ir:irDe(i)}));
+  return ls.length ? {titulo:"Mês a mês", linhas:ls} : null;
+}
+// o confronto com o quadro ativo de uma função (primeira página do Resumo de Pessoas)
+function blocoQuadroDaFuncao(R, fcod){
+  const l = confrontoQuadro(R.PS).linhas.find(x=>x.fcod===fcod); if(!l) return null;
+  return {titulo:"Quadro atual", linhas:[
+    {rot:"Ativo no ERP", val:fmt(l.ativo), sub: l.ajuste!=null ? "ajustado no Resumo de Pessoas (ERP: "+fmt(l.base)+")" : "base do ERP"},
+    {rot:"Férias e demissões programadas", val:fmt(l.ferias+l.demis)},
+    {rot:"Disponível", val:fmt(l.disp), sub:"ativo − férias − demissões"},
+    {rot:"Pico mensal da função", val:fmt(l.pico), sub:(l.pico>0 ? MESES[l.iPico] : "")+(l.fatPico ? " · e "+fmt(l.fatPico)+" no FAT no pico do FAT" : "")},
+    {rot: l.contratar>0 ? "A contratar" : l.exced>0 ? "Excedente" : "Situação",
+     val: l.contratar>0 ? "+"+fmt(l.contratar) : l.exced>0 ? fmt(l.exced) : "em dia", ir:"pessoas:quadro",
+     sub:"no mês que mais ocupa a função (operação + FAT)"}]};
+}
+
+function rastroPessoasMes(R, i, g, d){
+  i = +i; if(!(i>=0 && i<NM)) return null;
+  const S = filtrarPessoas(R.PS, semFiltro(g) ? "todos" : g, semFiltro(d) ? "todos" : d);
+  const um = [i], v = it => +it.qtdMes[i]||0;
+  const itens = S.itens.filter(it=>v(it)>0);
+  const naOper = itens.filter(it=>!it.fora).reduce((s,it)=>s+v(it),0), noFat = itens.filter(it=>it.fora).reduce((s,it)=>s+v(it),0);
+  const tot = naOper + noFat, dd = semFiltro(d) ? "todos" : d;
+  const porGrupo = juntarPessoas(itens, it=>it.grupo, um).sort((a,b)=>grupoIdx(a.k)-grupoIdx(b.k));
+  const porDept  = juntarPessoas(itens, it=>it.dept, um).sort((a,b)=>b.media-a.media);
+  const porFun   = juntarPessoas(itens, it=>it.fcod, um).sort((a,b)=>b.media-a.media);
+  const blocos = [];
+  if(porGrupo.length>1) blocos.push({titulo:"Por quadro", linhas: porGrupo.map(o=>({rot:CURTO_GR[o.k]||o.k, val:qtdP(o.media),
+    ir:`pessoas:mes:${i}:${o.k}:${dd}`, sub: o.k==="FAT" ? "contrato suspenso: é do quadro, mas não opera" : pctDe(o.media, tot)+" do mês"}))});
+  blocos.push({titulo:"Por departamento", linhas: porDept.length ? porDept.map(o=>({rot:o.k, val:qtdP(o.media), ir:"pessoas:dept:"+o.k,
+    sub:(CURTO_GR[o.grupo]||o.grupo)+" · "+pctDe(o.media, tot)+" do mês"})) : [{rot:"Ninguém neste mês", val:"—"}]});
+  if(porFun.length) blocos.push({titulo:"Por função", linhas: porFun.map(o=>({rot:o.fnome||o.k, val:qtdP(o.media),
+    ir: R.PS.porFun[o.k] ? "pessoas:fun:"+o.k : undefined, sub:"função "+o.k})) });
+  // o quadro ativo do ERP é por função, sem departamento: com departamento filtrado não há confronto
+  if(semFiltro(d)){
+    const C = confrontoQuadro(R.PS), ls = C.linhas.filter(l=>semFiltro(g) || l.grupo===g);
+    if(C.temQuadro && ls.length){ const t = somarConfronto(ls);
+      blocos.push({titulo:"Quadro atual no mês", linhas:[
+        {rot:"Disponível no mês", val:qtdP(t.dispMes[i]), sub:"ativo do ERP − férias − demissões − quem está no FAT no mês"},
+        {rot:"A contratar no mês", val: t.faltaMes[i]>0 ? "+"+fmt(t.faltaMes[i]) : "—", ir:"pessoas:quadro"+(semFiltro(g) ? "" : ":"+g),
+         sub:"função por função: sobra numa função não cobre falta em outra"}]}); }
+  }
+  return {titulo:MESES[i]+" — pessoas", subtitulo:nomeRecorte(g, d)+" · "+(periodoMes(i)==="safra" ? "safra" : "entressafra"),
+    valor: naOper>0 || !noFat ? qtdP(naOper)+" na operação"+(noFat ? " + "+fmt(noFat)+" no FAT" : "")
+                               : qtdP(noFat)+" no FAT (fora da operação)", blocos,
+    nota: tot>0 ? "Pessoas trabalhando neste mês: as equipes das atividades com volume no Plano Operacional, o quadro ADM agrícola e o da oficina (dez/26 a mar/27)." : "",
+    premissas:premissasPessoas(R), voltar:"pessoas:pico"};
+}
+
+function rastroPessoasGrupo(R, G, d, p){
+  const S = filtrarPessoas(R.PS, semFiltro(G) ? "todos" : G, semFiltro(d) ? "todos" : d);
+  if(!S.itens.length) return null;
+  const idx = idxPeriodo(p), n = Math.max(1, idx.length), dd = semFiltro(d) ? "todos" : d;
+  const serie = MESES.map((m,i)=>S.itens.reduce((s,it)=>s+(+it.qtdMes[i]||0),0));
+  const media = idx.reduce((s,i)=>s+serie[i],0)/n, pico = Math.max(0, ...idx.map(i=>serie[i]));
+  const iPico = idx.find(i=>serie[i]===pico), custo = idx.reduce((s,i)=>s+(+S.custoMes[i]||0),0);
+  const deps = juntarPessoas(S.itens, it=>it.dept, idx).sort((a,b)=>b.media-a.media);
+  const funs = juntarPessoas(S.itens, it=>it.fcod, idx).sort((a,b)=>b.media-a.media);
+  const resumo = [
+    {rot:"Média mensal", val:qtdP(media), sub:nomePeriodo(p)+" ("+idx.length+" meses)"},
+    {rot:"Pico no mês", val:qtdP(pico), sub: pico>0 ? MESES[iPico] : "", ir: pico>0 ? `pessoas:mes:${iPico}:${G}:${dd}` : undefined},
+    {rot:"Custo de mão de obra", val:brl(custo), sub:nomePeriodo(p)},
+  ];
+  if(semFiltro(d) && G!=="FAT"){
+    const ls = confrontoQuadro(R.PS).linhas.filter(l=>semFiltro(G) || l.grupo===G);
+    if(ls.length){ const t = somarConfronto(ls, idx);
+      const kq = "pessoas:quadro:"+(semFiltro(G) ? "todos" : G)+(p==="todos" ? "" : ":"+p);
+      resumo.push({rot:"Quadro atual (ativo no ERP)", val:qtdP(t.ativo), sub:"disponível "+fmt(t.disp)+" · "+t.n+" funções", ir:kq},
+                  {rot:"A contratar", val: t.contratar>0 ? "+"+fmt(t.contratar) : "—", ir:kq,
+                   sub:"pelo pico de cada função "+nomePeriodo(p)+(t.exced>0 ? " · excedente de "+fmt(t.exced)+" em outras funções" : "")}); }
+  }
+  return {titulo:nomeRecorte(G, d), subtitulo:"Pessoas · média mensal "+nomePeriodo(p),
+    valor:qtdP(media)+"/mês", temPeriodo:true,
+    blocos:[{titulo:"Resumo", linhas:resumo},
+      {titulo:"Por departamento — média mensal", linhas: deps.map(o=>({rot:o.k, val:qtdP(o.media), ir:"pessoas:dept:"+o.k,
+        sub:"pico "+fmt(o.pico,0)+" em "+MESES[o.iPico]+" · "+pctDe(o.media, media)}))},
+      {titulo:"Por função — média mensal", linhas: funs.map(o=>({rot:o.fnome||o.k, val:qtdP(o.media),
+        ir: R.PS.porFun[o.k] ? "pessoas:fun:"+o.k : undefined, sub:"função "+o.k+" · pico "+fmt(o.pico,0)}))},
+      blocoMesAMes(serie, i=>`pessoas:mes:${i}:${G}:${dd}`, idx)].filter(Boolean),
+    premissas:premissasPessoas(R), voltar:"pessoas:total"};
+}
+
+function rastroPessoasTipo(R, cat, g, d, p){
+  const S = filtrarPessoas(R.PS, semFiltro(g) ? "todos" : g, semFiltro(d) ? "todos" : d);
+  const itens = S.itens.filter(it=>it.categoria===cat);
+  if(!itens.length) return null;
+  const idx = idxPeriodo(p), n = Math.max(1, idx.length);
+  const serie = MESES.map((m,i)=>itens.reduce((s,it)=>s+(+it.qtdMes[i]||0),0));
+  const media = idx.reduce((s,i)=>s+serie[i],0)/n;
+  const funs = juntarPessoas(itens, it=>it.fcod, idx).sort((a,b)=>b.media-a.media);
+  const grs  = juntarPessoas(itens, it=>it.grupo, idx).sort((a,b)=>grupoIdx(a.k)-grupoIdx(b.k));
+  const deps = juntarPessoas(itens, it=>it.dept, idx).sort((a,b)=>b.media-a.media);
+  return {titulo:cat, subtitulo:"Tipo de função · "+nomeRecorte(g, d)+" · média mensal "+nomePeriodo(p),
+    valor:qtdP(media)+"/mês", temPeriodo:true,
+    blocos:[
+      {titulo:"Por função — média mensal", linhas: funs.map(o=>({rot:o.fnome||o.k, val:qtdP(o.media),
+        ir: R.PS.porFun[o.k] ? "pessoas:fun:"+o.k : undefined, sub:"função "+o.k+" · pico "+fmt(o.pico,0)+" em "+MESES[o.iPico]}))},
+      {titulo:"Por quadro", linhas: grs.map(o=>({rot:CURTO_GR[o.k]||o.k, val:qtdP(o.media), sub:pctDe(o.media, media)}))},
+      {titulo:"Por departamento", linhas: deps.map(o=>({rot:o.k, val:qtdP(o.media), ir:"pessoas:dept:"+o.k, sub:"pico "+fmt(o.pico,0)}))},
+      blocoMesAMes(serie, i=>`pessoas:mes:${i}:${semFiltro(g)?"todos":g}:${semFiltro(d)?"todos":d}`, idx)].filter(Boolean),
+    nota:"O tipo sai do nome do cargo (operador, motorista, mecânico, trabalhador rural, liderança...).",
+    premissas:premissasPessoas(R), voltar:"pessoas:total"};
+}
+
+function rastroPessoasQuadro(R, g, p){
+  const C = confrontoQuadro(R.PS), idx = idxPeriodo(p);
+  const ls = C.linhas.filter(l=>semFiltro(g) || l.grupo===g).map(l=>linhaNoPeriodo(l, idx));
+  const t = somarConfronto(ls), nome = f => (R.PS.nomeFun && R.PS.nomeFun[f]) || f;
+  const irF = f => R.PS.porFun[f] ? "pessoas:fun:"+f : undefined;
+  const falta = ls.filter(l=>l.contratar>0).sort((a,b)=>b.contratar-a.contratar);
+  const sobra = ls.filter(l=>l.exced>0).sort((a,b)=>b.exced-a.exced);
+  const resumo = [
+    {rot:"Ativo no ERP", val:qtdP(t.ativo), sub:"com os ajustes do Resumo de Pessoas, nas "+t.n+" funções que o plano usa"},
+    {rot:"Férias e demissões programadas", val:fmt(t.ferias+t.demis)},
+    {rot:"Disponível", val:qtdP(t.disp), sub:"ativo − férias − demissões"},
+    {rot:"Pico somado das funções", val:qtdP(t.ocupa), sub:"cada função no seu mês de pico "+nomePeriodo(p)+", com quem está no FAT"},
+    {rot:"A contratar", val: t.contratar>0 ? "+"+fmt(t.contratar) : "—", sub:falta.length+" funções"},
+    {rot:"Excedente", val: t.exced>0 ? fmt(t.exced) : "—", sub:sobra.length+" funções"},
+  ];
+  if(semFiltro(g)) resumo.push(
+    {rot:"Afastados no ERP", val:fmt(C.afastados), sub:"contam no quadro da empresa, fora do disponível"},
+    {rot:"Em funções que o plano não usa", val:fmt(C.foraDoPlanoQtd), sub:C.foraDoPlano.map(x=>nome(x.fcod)+" "+fmt(x.ativo)).join(" · ")});
+  const blocos = [{titulo:"Resumo", linhas:resumo}];
+  if(semFiltro(g)) blocos.push({titulo:"Por quadro", linhas:["OPERACIONAL","ADM AGRÍCOLA","OFICINA","FAT"].map(G=>{
+      const lg = ls.filter(l=>l.grupo===G); if(!lg.length) return null; const tg = somarConfronto(lg);
+      return {rot:CURTO_GR[G], val: tg.contratar>0 ? "+"+fmt(tg.contratar)+" a contratar" : "em dia", ir:"pessoas:quadro:"+G+(p==="todos" ? "" : ":"+p),
+        sub:"ativo "+fmt(tg.ativo)+" · disponível "+fmt(tg.disp)+" · pico "+fmt(tg.ocupa)+(tg.exced>0 ? " · excedente "+fmt(tg.exced) : "")}; }).filter(Boolean)});
+  blocos.push({titulo:"Funções a contratar", linhas: falta.length ? falta.map(l=>({rot:nome(l.fcod), val:"+"+fmt(l.contratar), ir:irF(l.fcod),
+      sub:"pico "+fmt(l.ocupa)+(l.pico>0 ? " em "+MESES[l.iPico] : "")+" · disponível "+fmt(l.disp)})) : [{rot:"Nenhuma", val:"—"}]});
+  if(sobra.length) blocos.push({titulo:"Funções com excedente", linhas: sobra.map(l=>({rot:nome(l.fcod), val:fmt(l.exced), ir:irF(l.fcod),
+      sub:"disponível "+fmt(l.disp)+" · pico "+fmt(l.ocupa)}))});
+  return {titulo:"Quadro atual × projetado"+(semFiltro(g) ? "" : " — "+(CURTO_GR[g]||g)),
+    subtitulo:"Necessidade do plano × quadro ativo do ERP, por função · pico "+nomePeriodo(p), temPeriodo:true,
+    valor: t.contratar>0 ? "+"+fmt(t.contratar)+" a contratar" : "Quadro cobre o plano", blocos,
+    nota:"A contratar soma função por função, cada uma no seu mês de pico do período: sobra numa função não cobre falta em outra. "+
+         "O ADM agrícola e a oficina vêm do quadro previsto da controladoria; o ativo do ERP só tem as funções que ele cadastra.",
+    premissas:premissasPessoas(R), voltar:"pessoas:total"};
 }
 
 /* ---------- frota: horas, equipamentos, CRM ---------- */
@@ -1118,6 +1291,12 @@ function rastro(R, chave, periodo){
     if(arg==="pico") return rastroPessoasPico(R, p);
     if(arg.startsWith("dept:")) return rastroPessoasDept(R, arg.slice(5));
     if(arg.startsWith("fun:"))  return rastroPessoasFun(R, arg.slice(4));
+    // painel do Resumo geral; o sufixo de período (:safra/:entressafra) já veio em p
+    const a = arg.replace(/:(safra|entressafra)$/, "");
+    if(a.startsWith("mes:")){ const [i, g, ...d] = a.slice(4).split(":"); return rastroPessoasMes(R, i, g, d.join(":")); }
+    if(a.startsWith("grupo:")){ const [g, ...d] = a.slice(6).split(":"); return rastroPessoasGrupo(R, g, d.join(":"), p); }
+    if(a.startsWith("tipo:")){ const [c, g, ...d] = a.slice(5).split(":"); return rastroPessoasTipo(R, c, g, d.join(":"), p); }
+    if(a==="quadro" || a.startsWith("quadro:")) return rastroPessoasQuadro(R, a.slice(7), p);
   }
   if(tipo==="frota"){
     if(arg==="horas") return rastroFrotaHoras(R);

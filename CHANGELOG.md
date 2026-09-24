@@ -1,5 +1,46 @@
 # Histórico de mudanças
 
+## 2.46.0 — 2026-09-24 · Resumo de Pessoas: página "Resumo geral", com painel de gráficos
+
+Nova primeira página do Resumo de Pessoas: todas as pessoas projetadas, o
+quadro atual e as pessoas por mês, num lugar só.
+
+- **Cartões:** média mensal na operação (e o pico), quadro atual (ativo no ERP,
+  com quantos estão no ERP, afastados e em funções que o plano não usa),
+  disponível, a contratar e excedente.
+- **Resumo por quadro:** Operacional, ADM agrícola, Oficina e FAT, com pico no
+  mês, mês do pico, média mensal, quadro atual, disponível, a contratar,
+  excedente e custo; "Na operação" e "Total com o FAT" no fim.
+- **Pessoas por mês:** gráfico de barras empilhadas por quadro com o quadro
+  atual disponível tracejado, e a tabela resumida mês a mês (por quadro, na
+  operação, FAT, quadro atual disponível e a contratar no mês).
+- **Painel:** pizza por quadro, pizza por tipo de função (operadores,
+  motoristas, equipe de campo, manutenção, liderança), barras projetado ×
+  quadro atual das 15 funções que mais pedem gente e barras dos 15
+  departamentos com mais gente.
+- **Detalhamento no mouse e no clique:** toda barra, fatia, linha, célula e
+  cartão tem rastro. Passar o mouse mostra quem está ali; clicar abre o
+  detalhamento completo por quadro, departamento, função e mês. Chaves novas:
+  `pessoas:mes`, `pessoas:grupo`, `pessoas:tipo` e `pessoas:quadro`; a de
+  função ganhou o quadro atual e o mês a mês, e a de departamento, o mês a mês.
+
+Segue o filtro de quadro e departamento e o período da barra do topo. O
+**a contratar** usa o pico de cada função **no período**: na entressafra, o
+que falta ou sobra de dezembro a março; com o ano todo, é exatamente o número
+da página "Necessidade x quadro ativo". Com departamento filtrado o confronto
+sai, porque o ativo do ERP é por função. Quando a base do ERP quase não traz um
+quadro (hoje, a oficina), a nota avisa que a necessidade inteira dele aparece
+como a contratar.
+
+A conta do confronto com o quadro ativo saiu da tela e foi para
+`calculo/quadro.js` (`confrontoQuadro`), lida pela primeira página, pelo
+Resumo geral e pelo rastro — a página "Necessidade x quadro ativo" continua
+com o HTML idêntico ao de antes. De quebra: o botão "Limpar filtro" só aparece
+com filtro (o `.btn` vencia o `[hidden]`).
+
+Nenhum número de custo muda. 54 invariantes sem falha; 29 abas, 383 rastros
+e 138 relatórios sem erro.
+
 ## 2.45.2 — 2026-09-24 · Sem nomes de pessoas: sai a página "Funcionários do ADM e da oficina"
 
 O plano projeta gente de forma impessoal — por função, departamento e mês —, e
