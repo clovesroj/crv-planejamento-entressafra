@@ -1,4 +1,4 @@
-import { agruparPor, filtrarLancamentos, opcoesDe } from '../calculo/gasto-real.js';
+import { agruparPor, coberturaBI, faltaExtrair, filtrarLancamentos, janelaGastoReal, janelaVazia, opcoesDe } from '../calculo/gasto-real.js';
 import { GR_INICIO, GR_FIM, GR_EMPRESA, GR_ESP, GR_AG, GR_COMP, GR_FROTA, GR_PROP, GR_REFORMA } from '../nucleo/estado.js';
 import { $, brl, esc, fmt } from '../nucleo/formato.js';
 import { th } from './componentes.js';
@@ -28,6 +28,43 @@ function popularSelect(id, valores, atual, rotuloTodos) {
   sel.value = atual;
 }
 
+/** "2026-04-01" -> "01/04/2026" */
+function dataBR(iso) {
+  const [a, m, d] = String(iso || "").split("-");
+  return a ? `${d}/${m}/${a}` : "—";
+}
+
+/* O aviso que faltava: com um período maior do que o extraído, o filtro
+   parece quebrado -- ele filtra certo, só não existe lançamento fora do que
+   a extração trouxe. Aqui a tela diz o que o arquivo cobre, o que foi pedido
+   e o comando que traz o resto, já com as datas digitadas. */
+function pintarAviso(nFiltrado) {
+  const el = $("#gr_aviso");
+  if (!el) return;
+  const c = coberturaBI(), j = janelaGastoReal(), falta = faltaExtrair(j);
+  const esp = c.todasEspecialidades ? "todas as especialidades"
+    : c.especialidades.length ? c.especialidades.join(", ") : "especialidade não registrada";
+  const cobertura = c.inicio
+    ? `O arquivo extraído do ERP cobre <b>${dataBR(c.inicio)} a ${dataBR(c.fim)}</b> (${esc(esp)}), ${fmt(c.lancamentos)} lançamentos.`
+    : "Nenhuma extração do ERP no arquivo ainda.";
+  const janela = janelaVazia(j)
+    ? "Sem filtro: a tela usa tudo o que foi extraído."
+    : `Janela em vigor: <b>${j.inicio ? dataBR(j.inicio) : "início livre"} a ${j.fim ? dataBR(j.fim) : "fim livre"}</b>` +
+      (j.empresa ? ` · ${esc(j.empresa)}` : "") +
+      (j.prop ? ` · ${j.prop === "proprio" ? "só próprios" : "só de terceiros"}` : "") +
+      (j.reforma ? ` · Reforma=${esc(j.reforma)}` : "") +
+      ` — vale também para o gasto real de cada conjunto na grade abaixo, para os produtos do orçamento e para o rastro.`;
+  const aviso = falta
+    ? `<br><span class="badge b-warn">período pedido além do extraído</span> Você pediu
+       ${falta.antes ? `de ${dataBR(falta.inicio)} ` : ""}${falta.depois ? `até ${dataBR(falta.fim)}` : ""} —
+       fora de ${dataBR(c.inicio)}–${dataBR(c.fim)} não existe lançamento no arquivo, então o filtro não tem o que trazer.
+       Rode <code>${esc(falta.comando)}</code> para extrair o período inteiro e recarregue a página.`
+    : (nFiltrado === 0 && !janelaVazia(j)
+        ? `<br><span class="badge b-warn">nada nesta janela</span> O período está dentro do extraído, mas nenhum
+           lançamento bate com os outros filtros.` : "");
+  el.innerHTML = cobertura + " " + janela + aviso;
+}
+
 function pintarGastoReal() {
   const tEl = $("#t_gr_esp");
   if (!tEl) return; // painel não está nesta versão do index.html
@@ -47,6 +84,8 @@ function pintarGastoReal() {
     esp: GR_ESP || null, ag: GR_AG || null, compartimento: GR_COMP || null,
     frota: GR_FROTA || null, prop: GR_PROP || null, reforma: GR_REFORMA || null,
   });
+
+  pintarAviso(lista.length);
 
   const porEsp = agruparPor(lista, "esp");
   const total = porEsp.reduce((s, e) => s + e.total, 0) || 1;

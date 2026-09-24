@@ -5,7 +5,7 @@ import { CFG } from '../dados/cfg.js';
 import { FROTA_UN } from '../nucleo/estado.js';
 import { num } from '../nucleo/formato.js';
 import { destinoDe } from './crm.js';
-import { desdeUltimoAno, itensDoEquipamento, produtosDoEquipamento } from './gasto-real.js';
+import { infoDeCod, itensDoEquipamentoNaJanela, janelaGastoReal, naJanela, produtosDoEquipamento } from './gasto-real.js';
 
 /* ================== REFORMA DE FROTA ==================
    Provisionamento da reforma de entressafra. Orcado por unidade de frota,
@@ -46,11 +46,16 @@ function itensIncluidosReforma(cod, conjunto){
 // nao guarda o item, so identifica -- o item mora em GASTO_REFORMA_BI, sob a
 // tag onde o ERP realmente lancou, que pode ser diferente do conjunto).
 const mapaItensCache = new Map();
+let janelaCache = "";
 function mapaItensPorChave(cod){
+  // a janela do painel (periodo, empresa, proprio, reforma) muda o que conta;
+  // o cache e por equipamento, entao ele cai inteiro quando a janela muda
+  const jc = JSON.stringify(janelaGastoReal());
+  if(jc !== janelaCache){ mapaItensCache.clear(); janelaCache = jc; }
   let m = mapaItensCache.get(cod);
   if(!m){
     m = new Map();
-    itensDoEquipamento(cod).forEach(it => m.set(chaveItemReforma(cod, it.compartimento, it), it));
+    itensDoEquipamentoNaJanela(cod).forEach(it => m.set(chaveItemReforma(cod, it.compartimento, it), it));
     mapaItensCache.set(cod, m);
   }
   return m;
@@ -68,6 +73,11 @@ function itensReforma(cod, conjunto, familia){
   const tags = tagsBiDoConjunto(familia, conjunto);
   const excl = itensExcluidosReforma(cod);
   const incl = itensIncluidosReforma(cod, conjunto);
+  // a janela do painel de gasto real manda aqui tambem: o que esta fora do
+  // periodo (ou da empresa, proprio, reforma) nem entra na lista -- e a mesma
+  // janela da analise em cima e dos produtos, para a tela dar UM numero so
+  const jan = janelaGastoReal();
+  const prop = (infoDeCod(cod) || {}).prop;
   const vistos = new Set();
   let total = 0;
   const itens = [];
@@ -78,6 +88,7 @@ function itensReforma(cod, conjunto, familia){
       const chave = chaveItemReforma(cod, tag, it);
       if(vistos.has(chave)) return;
       vistos.add(chave);
+      if(!naJanela({...it, prop}, jan)) return;
       const ligado = !excl.has(chave);
       if(ligado) total += it.valor;
       itens.push({...it, chave, ligado, origem:"auto"});
@@ -118,7 +129,7 @@ function orcamentoProdutos(cod, conjunto, familia){
   const q = qtdProdutos(cod, conjunto);
   const chaves = Object.keys(q).filter(k => num(q[k]) > 0);
   if(!chaves.length) return {total:0, itens:[]};
-  const prods = produtosDoEquipamento(cod, {desde: desdeUltimoAno(),
+  const prods = produtosDoEquipamento(cod, {
     sistemas: [conjunto].concat(tagsBiDoConjunto(familia, conjunto) || [])});
   const porNome = Object.fromEntries(prods.map(p=>[p.produto, p]));
   const itens = chaves.map(k=>{

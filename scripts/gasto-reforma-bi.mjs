@@ -12,28 +12,41 @@
  * um instantaneo (arquivo gerado com data), nao dado ao vivo.
  *
  * Uso:
- *   npm run gasto-reforma-bi -- --inicio=2026-04-01 --fim=2026-09-22
- *   npm run gasto-reforma-bi -- --inicio=2026-04-01 --fim=2026-09-22 --empresas=CRV-MG
- *   npm run gasto-reforma-bi -- --inicio=2026-01-01 --fim=2026-03-31 --especialidade="COLHEDORA - CANA"
- *   npm run gasto-reforma-bi -- --inicio=2026-04-01 --fim=2026-06-30 --especialidade="COLHEDORA - CANA" --merge
+ *   npm run gasto-reforma-bi -- --inicio=2025-01-01 --fim=2026-09-23
+ *   npm run gasto-reforma-bi -- --inicio=2026-04-01 --fim=2026-09-22 --passo=trimestre
+ *   npm run gasto-reforma-bi -- --inicio=2026-01-01 --fim=2026-03-31 --especialidades="COLHEDORA - CANA"
  *   npm run gasto-reforma-bi -- --inicio=2026-04-01 --fim=2026-09-22 --frotas=62522,62523 --visivel
+ *
+ * PERIODO LONGO EM UMA CHAMADA SO: o teto de seguranca da rolagem (abaixo) e
+ * por rolagem, nao por pedido -- um ano nao cabe numa so. Por isso o script
+ * quebra o periodo em FATIAS (padrao: uma por mes), extrai uma a uma, soma
+ * deduplicando e GRAVA A CADA FATIA. Consequencias praticas:
+ *   - "--inicio=2025-01-01 --fim=2026-09-23" funciona direto; nao precisa mais
+ *     orquestrar varias chamadas com --merge;
+ *   - fatia que mesmo assim bate no teto e partida ao meio e refeita sozinha,
+ *     ate o dia, em vez de devolver dado incompleto em silencio;
+ *   - interrompeu no meio? rode o MESMO comando de novo: as fatias ja gravadas
+ *     sao puladas e a extracao continua de onde parou;
+ *   - re-rodar uma fatia nao conta em dobro (deduplicacao por lancamento).
  *
  * Parametros:
  *   --inicio=AAAA-MM-DD    (obrigatorio) inicio do periodo que conta como "ja gasto"
  *   --fim=AAAA-MM-DD       (obrigatorio) fim do periodo
- *   --especialidade=texto  (opcional, recomendado) filtra pelo slicer "Especialidade" do
- *                          proprio relatorio ANTES de rolar -- e o maior redutor de volume
- *                          que existe (testado: 769mi -> 62mi so com "COLHEDORA - CANA").
- *                          Use o nome como aparece em dados/frota-base.js (esp). Sem isso,
- *                          rola TODAS as especialidades do periodo -- pode ser bem mais lento.
+ *   --passo=...            (opcional) tamanho da fatia: mes (padrao), trimestre,
+ *                          semana ou tudo (uma fatia so -- o comportamento antigo)
+ *   --especialidades=A,B   (opcional) filtra pelo slicer "Especialidade" do proprio
+ *                          relatorio ANTES de rolar -- e o maior redutor de volume que
+ *                          existe (testado: 769mi -> 62mi so com "COLHEDORA - CANA").
+ *                          Use o nome como aparece em dados/frota-base.js (esp). Sem
+ *                          isso, cada fatia traz TODAS as especialidades, que e o que
+ *                          a tela precisa pra grade de conjuntos ficar completa.
+ *                          (--especialidade=, no singular, segue aceito.)
  *   --empresas=A,B         (opcional) filtra por Emp Destino; sem isso, soma todas
  *   --frotas=62522,...     (opcional) filtra por codigo de Frota; sem isso, guarda todo
- *                         codigo de frota que aparecer com produto marcado *COMPARTIMENTO*
- *   --merge                (opcional) soma ao arquivo gerado anterior em vez de sobrescrever --
- *                          use pra juntar varias chamadas com periodos SEM SOBREPOSICAO
- *                          (ex.: um trimestre por chamada) quando um periodo so nao coube
- *                          no teto de seguranca. Rodar duas vezes o MESMO periodo com
- *                          --merge conta o gasto em dobro.
+ *                          codigo de frota que aparecer com produto marcado *COMPARTIMENTO*
+ *   --refazer              (opcional) extrai de novo tambem as fatias que ja estao no
+ *                          arquivo (por padrao elas sao puladas)
+ *   --zerar                (opcional) ignora o arquivo anterior e comeca do zero
  *   --visivel              (opcional) abre o Chromium com janela, para acompanhar/depurar
  *
  * Saida: public/js/dados/gasto-reforma-bi.js -- modulo ES simples, no mesmo
@@ -61,10 +74,10 @@
  * acessibilidade so cresce) e a aba derruba ("Target crashed") depois de uns
  * 6-7 mil elementos acumulados. Por isso o script para sozinho em
  * LIMITE_SEGURO_LINHAS (5000, com folga) e avisa no console e no arquivo
- * gerado (`truncado: true`) se cortou antes do fim. Especialidades grandes
- * (ex.: colhedora, com dezenas de conjuntos por unidade) passam facil desse
- * teto mesmo num trimestre -- nesse caso, quebre o periodo em pedacos
- * menores e rode de novo com --merge pra ir somando.
+ * gerado (`truncado: true`, com a lista em `truncadas`) se cortou antes do
+ * fim. Hoje quem reage a isso e o proprio script: a fatia truncada e partida
+ * ao meio e refeita. Se mesmo no dia ela truncar, ai sim vale estreitar com
+ * --especialidades.
  */
 import { chromium } from 'playwright';
 import { writeFile } from 'node:fs/promises';
@@ -92,14 +105,22 @@ const INICIO = argValor('inicio');
 const FIM = argValor('fim');
 const EMPRESAS = (argValor('empresas', '') || '').split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
 const FROTAS = (argValor('frotas', '') || '').split(',').map(s => s.trim()).filter(Boolean);
-const ESPECIALIDADE = argValor('especialidade');
+// --especialidade= (uma) segue valendo; --especialidades= aceita varias
+const ESPECIALIDADES = (argValor('especialidades', '') || argValor('especialidade', '') || '')
+  .split(',').map(t => t.trim()).filter(Boolean);
+const PASSO = (argValor('passo', 'mes') || 'mes').toLowerCase();
 const VISIVEL = argFlag('visivel');
-const MERGE = argFlag('merge');
+const REFAZER = argFlag('refazer');
+// --merge era como se somava periodo a periodo; agora somar e o padrao (e
+// deduplicado), entao a flag so existe pra nao quebrar quem ja a usa
+const ZERAR = argFlag('zerar') && !argFlag('merge');
 
 if (!INICIO || !FIM) {
-  console.error('Uso: npm run gasto-reforma-bi -- --inicio=AAAA-MM-DD --fim=AAAA-MM-DD [--empresas=CRV-MG,...] [--frotas=62522,...] [--visivel]');
+  console.error('Uso: npm run gasto-reforma-bi -- --inicio=AAAA-MM-DD --fim=AAAA-MM-DD ' +
+    '[--passo=mes|trimestre|semana|tudo] [--especialidades=A,B] [--empresas=CRV-MG,...] [--frotas=62522,...] [--refazer] [--zerar] [--visivel]');
   process.exit(1);
 }
+if (FIM < INICIO) { console.error('O --fim e anterior ao --inicio.'); process.exit(1); }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SAIDA = path.resolve(__dirname, '../public/js/dados/gasto-reforma-bi.js');
@@ -295,151 +316,182 @@ async function rolarGrade(page, largura, idxData, rotulo) {
   return { linhasVistas, truncado };
 }
 
-async function main() {
-  console.log(`Periodo: ${INICIO} a ${FIM}` +
-    (EMPRESAS.length ? ` | empresas: ${EMPRESAS.join(', ')}` : ' | todas as empresas') +
-    (FROTAS.length ? ` | frotas: ${FROTAS.join(', ')}` : ' | todas as frotas com compartimento'));
-  console.log('Abrindo o relatorio publico do Power BI...');
+/* ================== FATIAS DE PERIODO ==================
+   O teto de seguranca (LIMITE_SEGURO_LINHAS) e por ROLAGEM, nao por pedido:
+   um ano inteiro nao cabe numa rolagem so. Por isso o script quebra o periodo
+   pedido em fatias (padrao: um mes), roda uma por vez e soma. Fatia que ainda
+   assim bate no teto e partida ao meio e refeita, ate o dia. Assim
+   "--inicio=2025-01-01 --fim=2026-09-23" funciona numa chamada so, sem
+   ninguem precisar orquestrar --merge a mao. */
+function somaDias(iso, n) {
+  const d = new Date(iso + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+function fimDoPasso(iso, passo) {
+  const d = new Date(iso + 'T00:00:00Z');
+  if (passo === 'semana') return somaDias(iso, 6);
+  if (passo === 'trimestre') { d.setUTCMonth(d.getUTCMonth() + 3, 0); return d.toISOString().slice(0, 10); }
+  d.setUTCMonth(d.getUTCMonth() + 1, 0); // ultimo dia do mes corrente
+  return d.toISOString().slice(0, 10);
+}
+function fatias(inicio, fim, passo) {
+  if (passo === 'tudo') return [{ inicio, fim }];
+  const out = [];
+  let ini = inicio;
+  while (ini <= fim) {
+    const f = fimDoPasso(ini, passo);
+    out.push({ inicio: ini, fim: f > fim ? fim : f });
+    ini = somaDias(f, 1);
+  }
+  return out;
+}
+const chaveFatia = f => `${f.inicio}|${f.fim}|${f.especialidade || ''}`;
 
-  const browser = await chromium.launch({ headless: !VISIVEL });
-  // locale explicito: sem isso o Power BI as vezes renderiza numero/data no
-  // formato en-US (1,234.56 e 1/1/2026) mesmo com o relatorio em portugues,
-  // dependendo do SO onde o script roda -- e o parser abaixo espera BR.
-  const page = await browser.newPage({ viewport: { width: 1600, height: 1000 }, locale: 'pt-BR' });
+/** Prepara a pagina para uma fatia: recarrega, abre o Analitico e aplica os filtros do proprio relatorio. */
+async function prepararPagina(page, { inicio, fim, especialidade }) {
+  // recarrega a cada fatia de proposito: e mais lento que so trocar as datas,
+  // mas devolve os slicers (inclusive o "Reforma = SIM" da 2ª passada) ao
+  // estado limpo -- sem isso a fatia seguinte herdaria o filtro da anterior
+  await page.goto(LINK_BI, { waitUntil: 'load', timeout: 60000 });
+  await page.getByText(/Analítico|Movimenta/i).first().waitFor({ state: 'attached', timeout: 45000 });
+  const abriu = await abrirAba(page, 'Analítico');
+  if (!abriu) throw new Error('Nao encontrei a aba "Analitico" na navegacao do relatorio. O layout deve ter mudado -- confira manualmente com --visivel.');
+  await page.waitForTimeout(3000);
 
-  try {
-    await page.goto(LINK_BI, { waitUntil: 'load', timeout: 60000 });
+  const dataOk = await aplicarFiltroData(page, inicio, fim).catch(() => false);
+  if (!dataOk) console.warn('  Nao encontrei os campos de data do relatorio -- vai ler o periodo todo disponivel (mais lento).');
+  await page.waitForTimeout(1500);
 
-    console.log('Aguardando o relatorio carregar...');
-    // attached, nao visible: o Power BI pinta via canvas e mantem a arvore de
-    // acessibilidade escondida (visibility:hidden) -- ver nota em abrirAba().
-    await page.getByText(/Analítico|Movimenta/i).first().waitFor({ state: 'attached', timeout: 45000 });
-
-    console.log('Abrindo a aba "Analítico"...');
-    const abriu = await abrirAba(page, 'Analítico');
-    if (!abriu) throw new Error('Não encontrei a aba "Analítico" na navegação do relatório. O layout deve ter mudado -- confira manualmente com --visivel.');
-    await page.waitForTimeout(3000);
-
-    console.log('Aplicando filtro de período no próprio relatório...');
-    const dataOk = await aplicarFiltroData(page, INICIO, FIM).catch(() => false);
-    console.log(dataOk
-      ? `Período restrito a ${INICIO}..${FIM} no relatório.`
-      : 'Não encontrei os campos de data do relatório -- vai ler o período todo disponível (mais lento).');
+  if (especialidade) {
+    const espOk = await aplicarFiltroEspecialidade(page, especialidade).catch(() => false);
+    if (!espOk) console.warn(`  Nao achei "${especialidade}" no slicer Especialidade -- confira a grafia (igual a dados/frota-base.js).`);
     await page.waitForTimeout(1500);
+  }
+}
 
-    if (ESPECIALIDADE) {
-      console.log(`Filtrando Especialidade = "${ESPECIALIDADE}"...`);
-      const espOk = await aplicarFiltroEspecialidade(page, ESPECIALIDADE).catch(() => false);
-      console.log(espOk
-        ? 'Filtro de especialidade aplicado.'
-        : `Não achei "${ESPECIALIDADE}" no slicer Especialidade -- confira a grafia (igual a dados/frota-base.js) ou rode com --visivel.`);
-      await page.waitForTimeout(1500);
-    }
+/** Indices das colunas da tabela Analitico, descobertos pelo cabecalho (nao fixos). */
+async function colunasDaTabela(page) {
+  const cabecalhos = await page.getByRole('columnheader').allTextContents();
+  const colunas = cabecalhos.map(c => c.trim()).filter(Boolean);
+  const idx = {
+    largura: colunas.length,
+    data: colunas.findIndex(c => c === 'Data'),
+    frota: colunas.findIndex(c => c === 'Frota'),
+    desc: colunas.findIndex(c => c === 'Descricao Produto' || c === 'Descrição Produto'),
+    valor: colunas.findIndex(c => c === 'Valor Total'),
+    emp: colunas.findIndex(c => c === 'Emp Destino'),
+  };
+  if ([idx.data, idx.frota, idx.desc, idx.valor, idx.emp].some(i => i < 0)) {
+    throw new Error(`Nao achei todas as colunas esperadas no cabecalho da tabela Analitico. Colunas vistas: ${colunas.join(' | ')}`);
+  }
+  return idx;
+}
 
-    // aria-rowcount da grade NAO e confiavel como "total filtrado" -- em
-    // testes ele voltou 501 e 7487 pros MESMOS filtros, provavelmente porque
-    // reflete quanto ja esta montado no DOM num dado instante, nao o total
-    // real. Serve so de indicio no log; quem garante contra o travamento e o
-    // teto duro dentro do loop de rolagem, abaixo.
-    const indicio = await checarTotalLinhas(page);
-    if (indicio != null) console.log(`Indício inicial: ~${indicio} linhas montadas (não é o total real, só um sinal).`);
+/**
+ * Extrai UMA fatia (periodo + especialidade). Duas passadas de rolagem: tudo,
+ * depois so Reforma=SIM, pra marcar cada lancamento (ver o topo do arquivo).
+ */
+async function extrairFatia(page, fatia) {
+  const { inicio, fim, especialidade } = fatia;
+  console.log(`\n=== Fatia ${inicio}..${fim}${especialidade ? ' ' + especialidade : ''} ===`);
+  await prepararPagina(page, fatia);
 
-    // Cabecalho da tabela: descobre a ordem das colunas em vez de fixar
-    // indice, pra nao quebrar se o relatorio ganhar/perder uma coluna.
-    const cabecalhos = await page.getByRole('columnheader').allTextContents();
-    const colunas = cabecalhos.map(c => c.trim()).filter(Boolean);
-    const largura = colunas.length;
-    const idxData = colunas.findIndex(c => c === 'Data');
-    const idxFrota = colunas.findIndex(c => c === 'Frota');
-    const idxDesc = colunas.findIndex(c => c === 'Descricao Produto' || c === 'Descrição Produto');
-    const idxValor = colunas.findIndex(c => c === 'Valor Total');
-    const idxEmp = colunas.findIndex(c => c === 'Emp Destino');
-    if ([idxData, idxFrota, idxDesc, idxValor, idxEmp].some(i => i < 0)) {
-      throw new Error(`Não achei todas as colunas esperadas no cabeçalho da tabela Analítico. Colunas vistas: ${colunas.join(' | ')}`);
-    }
-    console.log(`Colunas identificadas (${colunas.length} ao todo).`);
+  const idx = await colunasDaTabela(page);
+  // aria-rowcount NAO e confiavel como "total filtrado" (em testes voltou 501
+  // e 7487 pros MESMOS filtros): serve so de indicio no log. Quem garante
+  // contra o travamento e o teto duro dentro do loop de rolagem.
+  const indicio = await checarTotalLinhas(page);
+  if (indicio != null) console.log(`  Indicio: ~${indicio} linhas montadas (nao e o total real).`);
+  const passaTudo = await rolarGrade(page, idx.largura, idx.data, `tudo ${inicio}`);
+  if (passaTudo.linhasVistas.size === 0) {
+    console.log('  Nenhuma linha nesta fatia (periodo sem movimento, ou filtro sem resultado).');
+    return { porFrota: {}, truncado: false, linhas: 0 };
+  }
 
-    // Duas passadas: TUDO primeiro (maior, sem filtro de Reforma), depois SO
-    // Reforma=SIM (menor -- e um subconjunto da primeira). O item que aparece
-    // nas duas e Reforma=SIM; o que so aparece na primeira e Reforma=NAO. E
-    // o unico jeito de marcar isso por lancamento, porque "Reforma" e filtro
-    // do proprio relatorio, nao uma coluna que a tabela mostra.
-    const passaTudo = await rolarGrade(page, largura, idxData, 'tudo');
-    if (passaTudo.linhasVistas.size === 0) throw new Error('Nenhuma linha coletada -- a tabela pode ter outra estrutura de acessibilidade. Rode com --visivel para inspecionar.');
+  const reformaOk = await aplicarFiltroReformaSim(page).catch(() => false);
+  let chavesReformaSim = new Set(), truncadoSim = false;
+  if (reformaOk) {
+    await page.waitForTimeout(1500);
+    const passaSim = await rolarGrade(page, idx.largura, idx.data, `reforma=sim ${inicio}`);
+    chavesReformaSim = new Set(passaSim.linhasVistas.keys());
+    truncadoSim = passaSim.truncado;
+  } else {
+    console.warn('  Nao encontrei o filtro "Reforma" nesta fatia -- as linhas dela ficam como NAO.');
+  }
 
-    console.log('Isolando "Reforma = SIM" pra marcar cada lançamento (2ª passada, mais rápida)...');
-    const reformaOk = await aplicarFiltroReformaSim(page).catch(() => false);
-    let chavesReformaSim = new Set();
-    let truncadoSim = false;
-    if (reformaOk) {
-      await page.waitForTimeout(1500);
-      const passaSim = await rolarGrade(page, largura, idxData, 'reforma=sim');
-      chavesReformaSim = new Set(passaSim.linhasVistas.keys());
-      truncadoSim = passaSim.truncado;
-    } else {
-      console.warn('Não encontrei o filtro "Reforma" no relatório -- toda linha vai ficar marcada como NAO (confira manualmente com --visivel).');
-    }
+  const porFrota = {};
+  let linhas = 0;
+  for (const [chave, celulas] of passaTudo.linhasVistas) {
+    const dataISO = isoDe(celulas[idx.data]);
+    if (!dataISO || dataISO < inicio || dataISO > fim) continue;
+    const emp = (celulas[idx.emp] || '').trim().toUpperCase();
+    if (EMPRESAS.length && !EMPRESAS.includes(emp)) continue;
+    const frota = (celulas[idx.frota] || '').trim();
+    if (!frota) continue;
+    if (FROTAS.length && !FROTAS.includes(frota)) continue;
+    const compartimento = compartimentoDe(celulas[idx.desc] || '');
+    if (!compartimento) continue;
+    const valor = numBR(celulas[idx.valor]);
+    porFrota[frota] ??= {};
+    const cel = (porFrota[frota][compartimento] ??= { total: 0, itens: [] });
+    cel.total += valor;
+    cel.itens.push({
+      desc: (celulas[idx.desc] || '').trim(), valor, data: dataISO, empresa: emp,
+      reforma: chavesReformaSim.has(chave) ? 'SIM' : 'NAO',
+    });
+    linhas++;
+  }
+  console.log(`  ${linhas} linhas com *compartimento*, ${Object.keys(porFrota).length} frotas.`);
+  return { porFrota, truncado: passaTudo.truncado || truncadoSim, linhas };
+}
 
-    // Filtra (periodo, empresa, frota) e agrupa por (frota, compartimento).
-    // Guarda total E os itens (descricao/valor/data/reforma) que compoem esse
-    // total -- e o que a tela usa pra mostrar "de onde veio" e filtrar por
-    // Reforma SIM/NAO quando a pessoa clica ou usa o painel.
-    const porFrota = {};
-    let linhasComCompartimento = 0;
-    for (const [chave, celulas] of passaTudo.linhasVistas) {
-      const dataISO = isoDe(celulas[idxData]);
-      if (!dataISO || dataISO < INICIO || dataISO > FIM) continue;
-      const emp = (celulas[idxEmp] || '').trim().toUpperCase();
-      if (EMPRESAS.length && !EMPRESAS.includes(emp)) continue;
-      const frota = (celulas[idxFrota] || '').trim();
-      if (!frota) continue;
-      if (FROTAS.length && !FROTAS.includes(frota)) continue;
-      const compartimento = compartimentoDe(celulas[idxDesc] || '');
-      if (!compartimento) continue;
-      const valor = numBR(celulas[idxValor]);
-      porFrota[frota] ??= {};
-      const cel = (porFrota[frota][compartimento] ??= { total: 0, itens: [] });
-      cel.total += valor;
-      cel.itens.push({
-        desc: (celulas[idxDesc] || '').trim(), valor, data: dataISO, empresa: emp,
-        reforma: chavesReformaSim.has(chave) ? 'SIM' : 'NAO',
-      });
-      linhasComCompartimento++;
-    }
+/**
+ * Extrai a fatia; se ela bateu no teto de seguranca, parte ao meio e refaz as
+ * duas metades (recursivo, ate o dia). Assim um mes "grande demais" vira duas
+ * quinzenas sozinho, em vez de devolver dado incompleto em silencio.
+ */
+async function extrairFatiaOuPartir(page, fatia, profundidade = 0) {
+  const r = await extrairFatia(page, fatia);
+  if (!r.truncado || fatia.inicio === fatia.fim || profundidade >= 6) return [{ fatia, ...r }];
+  const dias = Math.round((Date.parse(fatia.fim) - Date.parse(fatia.inicio)) / 86400000);
+  const meio = somaDias(fatia.inicio, Math.floor(dias / 2));
+  console.warn(`  Fatia ${fatia.inicio}..${fatia.fim} bateu no teto -- partindo em ${fatia.inicio}..${meio} e ${somaDias(meio, 1)}..${fatia.fim}.`);
+  const a = await extrairFatiaOuPartir(page, { ...fatia, fim: meio }, profundidade + 1);
+  const b = await extrairFatiaOuPartir(page, { ...fatia, inicio: somaDias(meio, 1) }, profundidade + 1);
+  return a.concat(b);
+}
 
-    const truncado = passaTudo.truncado || truncadoSim;
-    console.log(`${linhasComCompartimento} linhas com *compartimento* dentro do período, ${Object.keys(porFrota).length} frotas distintas.`);
+/** Chave de deduplicacao de um lancamento -- a mesma linha extraida duas vezes nao conta duas vezes. */
+const chaveItem = it => `${it.desc}|${it.valor}|${it.data}|${it.empresa || ''}`;
 
-    let anterior = null;
-    if (MERGE) {
-      try {
-        const mod = await import(pathToFileURL(SAIDA).href + `?t=${Date.now()}`);
-        anterior = mod.GASTO_REFORMA_BI?.geradoEm ? mod.GASTO_REFORMA_BI : null;
-      } catch { /* sem arquivo anterior ainda -- comeca do zero */ }
-    }
-
-    const porFrotaFinal = anterior ? JSON.parse(JSON.stringify(anterior.porFrota)) : {};
-    for (const [frota, compartimentos] of Object.entries(porFrota)) {
-      porFrotaFinal[frota] ??= {};
-      for (const [comp, dado] of Object.entries(compartimentos)) {
-        const atual = (porFrotaFinal[frota][comp] ??= { total: 0, itens: [] });
-        atual.total += dado.total;
-        atual.itens.push(...dado.itens);
+/**
+ * Soma o resultado de uma fatia ao acumulado, SEM repetir lancamento ja
+ * gravado. E o que torna re-rodar uma fatia inofensivo (antes, --merge do
+ * mesmo periodo contava em dobro) e permite retomar uma extracao interrompida
+ * rodando o mesmo comando de novo. Linha identica ja era deduplicada dentro
+ * de uma rolagem (rolarGrade usa o texto da linha como chave), entao isto nao
+ * perde informacao que a extracao de uma fatia so teria.
+ */
+function somarPorFrota(destino, origem) {
+  for (const [frota, comps] of Object.entries(origem)) {
+    destino[frota] ??= {};
+    for (const [comp, dado] of Object.entries(comps)) {
+      const atual = (destino[frota][comp] ??= { total: 0, itens: [] });
+      const vistos = new Set(atual.itens.map(chaveItem));
+      for (const it of dado.itens) {
+        const k = chaveItem(it);
+        if (vistos.has(k)) continue;
+        vistos.add(k);
+        atual.itens.push(it);
+        atual.total += it.valor;
       }
     }
+  }
+}
 
-    const saida = {
-      geradoEm: new Date().toISOString(),
-      // Varias extracoes (--merge) podem cobrir periodos diferentes -- por
-      // isso e uma lista, nao um unico {inicio,fim}. Rodar duas vezes o MESMO
-      // periodo com --merge soma em dobro; escolha periodos sem sobreposicao.
-      periodos: [...(anterior?.periodos || []), { inicio: INICIO, fim: FIM, especialidade: ESPECIALIDADE || null }],
-      empresas: EMPRESAS.length ? EMPRESAS : 'todas',
-      truncado: truncado || !!anterior?.truncado, // true se ESTA ou qualquer extracao anterior mesclada bateu no teto
-      porFrota: porFrotaFinal,
-    };
-
-    const conteudo = `/**
+function conteudoDoArquivo(saida) {
+  return `/**
  * GERADO por scripts/gasto-reforma-bi.mjs em ${saida.geradoEm}.
  * Nao editar a mao -- rode o script de novo para atualizar. Ver o cabecalho
  * do script para os parametros usados nesta extracao.
@@ -452,13 +504,92 @@ async function main() {
  * -- reforma e "SIM" ou "NAO", vinda de uma 2ª passada de rolagem (ver
  * REFORMA SIM/NAO POR LANCAMENTO no topo do arquivo).
  * -- o total alimenta o "real: R$ X" ao lado do campo; os itens sao o que
- * aparece ao clicar nesse número (rastro "reformabi:<familia>|<cod>|<conjunto>",
+ * aparece ao clicar nesse numero (rastro "reformabi:<familia>|<cod>|<conjunto>",
  * ver calculo/rastro.js).
+ *
+ * periodos[] sao as fatias ja extraidas. A tela usa isso pra dizer o que o
+ * arquivo cobre e pra avisar quando o filtro de data pede periodo alem do
+ * extraido -- coberturaBI() e faltaExtrair(), em calculo/gasto-real.js.
  */
 export const GASTO_REFORMA_BI = ${JSON.stringify(saida, null, 2)};
 `;
-    await writeFile(SAIDA, conteudo, 'utf8');
-    console.log(`Gravado em ${path.relative(process.cwd(), SAIDA)}`);
+}
+
+async function main() {
+  const passo = ['mes', 'trimestre', 'semana', 'tudo'].includes(PASSO) ? PASSO : 'mes';
+  const esps = ESPECIALIDADES.length ? ESPECIALIDADES : [null];
+  const pedidas = esps.flatMap(esp => fatias(INICIO, FIM, passo).map(f => ({ ...f, especialidade: esp })));
+
+  // arquivo anterior: por padrao o script SOMA ao que ja existe e pula fatia
+  // ja extraida -- retomar uma extracao longa e so rodar o mesmo comando de
+  // novo. --zerar comeca do zero; --refazer extrai de novo as ja gravadas.
+  let anterior = null;
+  if (!ZERAR) {
+    try {
+      const mod = await import(pathToFileURL(SAIDA).href + `?t=${Date.now()}`);
+      anterior = mod.GASTO_REFORMA_BI?.geradoEm ? mod.GASTO_REFORMA_BI : null;
+    } catch { /* sem arquivo anterior ainda -- comeca do zero */ }
+  }
+  const jaFeitas = new Set((anterior?.periodos || []).map(chaveFatia));
+  const aFazer = REFAZER ? pedidas : pedidas.filter(f => !jaFeitas.has(chaveFatia(f)));
+
+  console.log(`Periodo pedido: ${INICIO} a ${FIM} | passo: ${passo} | ${pedidas.length} fatia(s)` +
+    (esps[0] ? ` | especialidades: ${esps.join(', ')}` : ' | todas as especialidades') +
+    (EMPRESAS.length ? ` | empresas: ${EMPRESAS.join(', ')}` : ' | todas as empresas') +
+    (FROTAS.length ? ` | frotas: ${FROTAS.join(', ')}` : ''));
+  if (aFazer.length < pedidas.length) {
+    console.log(`${pedidas.length - aFazer.length} fatia(s) ja estao no arquivo anterior -- pulando (use --refazer para extrair de novo).`);
+  }
+  if (!aFazer.length) { console.log('Nada a extrair. O arquivo ja cobre o que foi pedido.'); return; }
+
+  const porFrotaFinal = anterior ? JSON.parse(JSON.stringify(anterior.porFrota)) : {};
+  const periodos = [...(anterior?.periodos || [])];
+  const chavesPeriodos = new Set(periodos.map(chaveFatia));
+  const truncadas = [...(anterior?.truncadas || [])];
+
+  console.log('Abrindo o relatorio publico do Power BI...');
+  const browser = await chromium.launch({ headless: !VISIVEL });
+  // locale explicito: sem isso o Power BI as vezes renderiza numero/data no
+  // formato en-US (1,234.56 e 1/1/2026) mesmo com o relatorio em portugues,
+  // dependendo do SO onde o script roda -- e o parser espera BR.
+  const page = await browser.newPage({ viewport: { width: 1600, height: 1000 }, locale: 'pt-BR' });
+
+  try {
+    let n = 0;
+    for (const fatia of aFazer) {
+      n++;
+      console.log(`\n--- fatia ${n}/${aFazer.length} ---`);
+      const partes = await extrairFatiaOuPartir(page, fatia);
+      partes.forEach(p => {
+        somarPorFrota(porFrotaFinal, p.porFrota);
+        if (p.truncado) truncadas.push(`${p.fatia.inicio}..${p.fatia.fim}${p.fatia.especialidade ? ' ' + p.fatia.especialidade : ''}`);
+      });
+      // a fatia PEDIDA entra inteira em periodos, mesmo tendo sido partida --
+      // e ela que descreve a cobertura, e e por ela que o proximo run pula
+      if (!chavesPeriodos.has(chaveFatia(fatia))) {
+        periodos.push({ inicio: fatia.inicio, fim: fatia.fim, especialidade: fatia.especialidade || null });
+        chavesPeriodos.add(chaveFatia(fatia));
+      }
+      // grava a cada fatia: extracao longa interrompida no meio nao se perde,
+      // e rodar o mesmo comando de novo retoma de onde parou
+      const saida = {
+        geradoEm: new Date().toISOString(),
+        periodos: periodos.slice().sort((a, b) => a.inicio.localeCompare(b.inicio)),
+        empresas: EMPRESAS.length ? EMPRESAS : 'todas',
+        truncado: truncadas.length > 0,
+        truncadas,
+        porFrota: porFrotaFinal,
+      };
+      await writeFile(SAIDA, conteudoDoArquivo(saida), 'utf8');
+      const nLanc = Object.values(porFrotaFinal)
+        .reduce((s, c) => s + Object.values(c).reduce((s2, d) => s2 + d.itens.length, 0), 0);
+      console.log(`  Gravado: ${nLanc} lancamentos acumulados, ${Object.keys(porFrotaFinal).length} frotas.`);
+    }
+    if (truncadas.length) {
+      console.warn(`\nAtencao: ${truncadas.length} fatia(s) bateram no teto mesmo depois de partidas: ${truncadas.join(', ')}. ` +
+        `Rode essas com --especialidades=... para reduzir o volume.`);
+    }
+    console.log(`\nPronto. ${path.relative(process.cwd(), SAIDA)} cobre ${periodos.length} fatia(s).`);
   } finally {
     await browser.close();
   }
