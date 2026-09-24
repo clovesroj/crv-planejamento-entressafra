@@ -9,7 +9,7 @@ import { QUADRO_FONTE } from '../dados/quadro-fixo.js';
 import { GERENCIAS, criterioPorMes, excecoes, execucao, metasDeFrota, metasPorAtividade, porGerencia } from '../calculo/acompanhamento.js';
 import { CFG } from '../dados/cfg.js';
 import { CAT_LBL, MESES, NM, PERIODOS, periodoMes } from '../nucleo/calendario.js';
-import { PERIODOS_APOIO } from '../calculo/apoio.js';
+import { estruturaApoio } from '../calculo/apoio.js';
 import { composicao, etapasNoPlano, tratEtapas, tratListaTodos, volumeCompra, volumeDemandado } from '../calculo/insumos.js';
 import { BROCA, CIGARRINHA, custoTotal, fmtVolume, linhasDe, resumoInsumos, valorHa, volumeInsumo } from '../ui/fitossanitario.js';
 import { TRAT_ETAPAS } from '../dados/insumos.js';
@@ -777,13 +777,13 @@ const combustivel = R => {
   .concat([["TOTAL","","","", fmt(lit), lit>0?brl(cus/lit,2):"—", brl(cus)]]));
 };
 
-// período de trabalho de um equipamento de apoio, por extenso ("Dez/26 a Mar/27" quando são meses escolhidos)
-const rotuloPeriodoApoio = l => l.per==="meses"
-  ? (l.nMeses ? MESES.filter((m,i)=>l.on[i]).join(", ") : "nenhum mês") : (PERIODOS_APOIO[l.per] || "Ano todo");
+// estrutura de um período do apoio: "6 × 180 h/mês" ou "—" quando não trabalha
+const estrApoio = x => x.qtd>0 ? fmt(x.qtd)+" × "+fmt(x.hmes)+" h/mês" : "—";
 const apoio = R => sec("Apoio","Equipamentos de apoio",
-  ["Equipamento","Máquina","Qtd","Horas/mês","Período","Horas totais","Litros","Diesel","MDO","Total"],
-  R.AE.linhas.map(l=>[l.nome, l.maq, l.qtd, fmt(num(l.hmes)), rotuloPeriodoApoio(l), fmt(l.horas), fmt(l.litros),
-    brl(l.diesel), brl(l.mdo), brl(l.total)])
+  ["Equipamento","Máquina","Safra (qtd × h/mês)","Entressafra (qtd × h/mês)","Meses","Horas totais","Litros","Diesel","MDO","Total"],
+  R.AE.linhas.map(l=>{ const E = estruturaApoio(l);
+    return [l.nome, l.maq, estrApoio(E.s), estrApoio(E.e), l.nMeses, fmt(l.horas), fmt(l.litros),
+      brl(l.diesel), brl(l.mdo), brl(l.total)]; })
   .concat([["TOTAL","","","","", fmt(R.AE.horas), fmt(R.AE.litros), brl(R.AE.diesel), brl(R.AE.mdo),
     brl(R.AE.total)]]));
 

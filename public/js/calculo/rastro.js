@@ -1101,8 +1101,8 @@ function rastroTransbordo(R){
 function rastroApoio(R){
   const AE = R.AE;
   const itens = [...AE.linhas].sort((a,b)=>b.total-a.total);
-  const perRot = l => l.per==="meses" ? MESES.filter((m,i)=>l.on[i]).join(", ")||"nenhum mês"
-    : ({ano:"ano todo", safra:"safra", entressafra:"entressafra"})[l.per] || "ano todo";
+  const estr = x => x.qtd>0 ? fmt(x.qtd)+" un × "+fmt(x.hmes)+" h" : "parado";
+  const perRot = l => "safra "+estr(l.s)+" · entressafra "+estr(l.e);
   return {titulo:"Equipamentos de apoio", subtitulo:"Por número de equipamentos e horas, nos meses do período de cada um", valor:fmt(AE.equip)+" un",
     blocos:[{titulo:"Equipamentos", linhas: itens.map(l=>({rot:l.nome, val:fmt(num(l.qtd))+" un",
       sub:`${perRot(l)} · ${fmt(l.horas)} h · ${fmt(l.litros)} L · ${l.efetivo} pessoas · ${brl(l.total)}`}))},

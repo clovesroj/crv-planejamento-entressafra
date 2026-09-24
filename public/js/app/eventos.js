@@ -10,7 +10,7 @@ import { ATIVIDADES_ERP } from '../dados/atividades-erp.js';
 import { buscarAgrofit, bulaDoProduto } from '../io/agrofit.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
-import { mesesDoApoio } from '../calculo/apoio.js';
+import { migrarApoio } from '../calculo/apoio.js';
 import { FAT, MO_APOIO, REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TERC_SUB, TERC_DET, setTERC_DET, TPESS, TRATC, TRAT_ATIVO, TRAT_NOME, TRAT_OBS, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, atividadesLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE, setREF_BUSCA, setREF_AG, setREF_FAM, setREF_FROTA, setREF_PROP,
   setGR_INICIO, setGR_FIM, setGR_EMPRESA, setGR_ESP, setGR_AG, setGR_COMP, setGR_FROTA, setGR_PROP, setGR_REFORMA } from '../nucleo/estado.js';
 import { AGROFIT_BUSCA, DIM_DET, FITO_ABERTO, PLANO_ABERTO, FROTA_ABERTO, FROTA_UN, INS_EDIT, INS_FICHA, MAQ, setAGROFIT_BUSCA, setAPOIO_DET, setDIM_DET, setFROTA_DEST, setFROTA_ORIG, setINS_EDIT, setINS_FICHA } from '../nucleo/estado.js';
@@ -27,7 +27,7 @@ import { buscarDoBI } from '../ui/gasto-real.js';
 import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarBuscaItem, filtrarRastro, voltarRastro } from '../ui/rastro.js';
 import { abrirRendMensal, aberto as rendMensalAberto, descartarRascunho, editarRascunho,
   fecharRendMensal, pendencias, salvarRascunho } from '../ui/rendmensal.js';
-import { setQF_MES, setQF_GRUPO, setPES_GRUPO, setPES_DEPT, setCONTAS_GRUPO, setCONTAS_CLS, setCONTAS_CD, setDEM_SO_FALTA } from '../nucleo/estado.js';
+import { setQF_MES, setQF_GRUPO, setPES_GRUPO, setPES_DEPT, setCONTAS_GRUPO, setCONTAS_CLS, setCONTAS_CD, setDEM_SO_FALTA, setAPOIO_PER, APOIO_PER } from '../nucleo/estado.js';
 import { setAPOIO, setATIV_TRAT_SEL, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setINSX_V, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
 import { USUARIO, areasDePermissao, podeEditar } from '../nucleo/sessao.js';
 
@@ -131,6 +131,10 @@ document.addEventListener("input",e=>{
   if(t.id==="in_grat"){ GRAT[FUN_SEL]={tipo:$("#sel_grat_tipo").value, valor:num(t.value)}; salvar(); leve(); return; }
   if(t.dataset.ap!==undefined){ const l=apoioLista()[+t.dataset.ap];
     l[t.dataset.f] = (t.dataset.f==="nome") ? t.value : num(t.value); salvar(); leve(); return; }
+  // quantidade e horas/mes de UM periodo (safra "s" ou entressafra "e"): o outro nao muda
+  if(t.dataset.apq!==undefined){ const l=apoioLista()[+t.dataset.apq]; if(!l) return;
+    migrarApoio(l); const k = t.dataset.per==="e" ? "e" : "s";
+    l[k][t.dataset.f==="hmes" ? "hmes" : "qtd"] = num(t.value); salvar(); leve(); return; }
   if(t.dataset.apf!==undefined){ APOIO_FIXO[t.dataset.apf]=num(t.value); salvar(); leve(); return; }
   if(t.dataset.tt!==undefined){ TERC_TAR[t.dataset.tt]=num(t.value); salvar(); leve(); return; }
   if(t.dataset.tsub!==undefined){ const c=t.dataset.tsub, m=t.dataset.tsm, f=t.dataset.tsf;
@@ -283,13 +287,12 @@ document.addEventListener("change",e=>{
   if(t.id==="sel_cc_cd"){ setCONTAS_CD(t.value); render(); return; }
   if(t.id==="chk_dem_falta"){ setDEM_SO_FALTA(t.checked); render(); return; }
   // FAT e apoio operacional: funcao da linha e meses marcados
-  // periodo de um equipamento de apoio; "meses" parte do periodo que ele ja tinha
-  if(t.dataset.apper!==undefined){ const l=apoioLista()[+t.dataset.apper]; if(!l) return;
-    if(t.value==="meses" && !Array.isArray(l.m)) l.m = mesesDoApoio(l);
-    l.per = t.value; salvar(); render(); return; }
+  // tirar/devolver um mes do periodo de um equipamento de apoio
   if(t.dataset.apm!==undefined){ const l=apoioLista()[+t.dataset.apm]; if(!l) return;
-    l.m = mesesDoApoio(l); l.per = "meses";
-    l.m[+t.dataset.m] = t.checked ? 1 : 0; salvar(); render(); return; }
+    migrarApoio(l); l.m = Array.isArray(l.m) ? l.m : Array(NM).fill(1);
+    l.m[+t.dataset.m] = t.checked ? 1 : 0;
+    if(l.m.every(v=>v)) delete l.m;
+    salvar(); render(); return; }
   if(t.dataset.fatf!==undefined){ const l=FAT[+t.dataset.fatf]; if(l){ l.fcod=t.value; salvar(); render(); } return; }
   if(t.dataset.moaf!==undefined){ const l=MO_APOIO[+t.dataset.moaf]; if(l){ l.fcod=t.value; salvar(); render(); } return; }
   if(t.dataset.fatm!==undefined || t.dataset.moam!==undefined){
@@ -821,9 +824,16 @@ document.addEventListener("click",e=>{
     if(usos.length) avisoPlano(usos, "removido");
     marcarTratRemovido(cod); render(); return; }
   if(t.dataset.aprm!==undefined){ apoioLista().splice(+t.dataset.aprm,1); salvar(); render(); return; }
-  // um periodo para todos os equipamentos de apoio
-  if(t.dataset.aptodos!==undefined){ const k = t.dataset.aptodos;
-    apoioLista().forEach(l=>{ l.per = k; }); salvar(); render(); return; }
+  // aba Apoio: qual estrutura mostrar (so visao), copiar para o outro periodo, zerar o periodo
+  { const b = t.closest && t.closest("[data-apvis],[data-apcopia],[data-apzera]");
+    if(b && b.dataset.apvis!==undefined){ setAPOIO_PER(b.dataset.apvis); render(); return; }
+    if(b && b.dataset.apcopia!==undefined){ const de = b.dataset.apcopia==="e" ? "e" : "s", para = de==="s" ? "e" : "s";
+      const nome = {s:"safra", e:"entressafra"};
+      if(!confirm(`Substituir a estrutura de apoio da ${nome[para]} pela da ${nome[de]} (quantidade e horas/mês de todos os equipamentos)?`)) return;
+      apoioLista().forEach(l=>{ migrarApoio(l); l[para] = {...l[de]}; }); salvar(); render(); return; }
+    if(b && b.dataset.apzera!==undefined){ const k = b.dataset.apzera==="e" ? "e" : "s";
+      if(!confirm(`Zerar a quantidade de todos os equipamentos de apoio na ${k==="s"?"safra":"entressafra"}?`)) return;
+      apoioLista().forEach(l=>{ migrarApoio(l); l[k].qtd = 0; }); salvar(); render(); return; } }
   if(t.dataset.mtrm!==undefined){ matLista().splice(+t.dataset.mtrm,1); salvar(); render(); return; }
   if(t.dataset.tprm!==undefined){ tpessLista().splice(+t.dataset.tprm,1); salvar(); render(); return; }
   if(t.dataset.inrm!==undefined){
@@ -1003,7 +1013,9 @@ $("#btn_ap_add").onclick=()=>{
   const qtd=num($("#in_ap_qtd").value), h=num($("#in_ap_h").value);
   if(!nome){ alert("Informe o nome do equipamento."); return; }
   if(qtd<=0||h<=0){ alert("Quantidade e horas/mês devem ser maiores que zero."); return; }
-  apoioLista().push({nome, maq, qtd, hmes:h, fcod:"918"});
+  // entra na estrutura do periodo que a tela mostra; no outro, parado (quantidade 0)
+  const k = APOIO_PER==="e" ? "e" : "s", o = k==="s" ? "e" : "s";
+  apoioLista().push({nome, maq, fcod:"918", [k]:{qtd, hmes:h}, [o]:{qtd:0, hmes:h}});
   $("#in_ap_nome").value=""; salvar(); render();
 };
 $("#btn_ap_reset").onclick=()=>{
