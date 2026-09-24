@@ -6,6 +6,7 @@
   "license": "UNLICENSED",
   "engines": {
     "node": ">=20"
+  },
   "scripts": {
     "start": "node server/index.js",
     "gasto-reforma-bi": "node scripts/gasto-reforma-bi.mjs"
