@@ -196,14 +196,16 @@ function horasPorItem(L, AE){
   AE.linhas.forEach(l=>{ if(l.horas>0) soma(l.maq,l.horas); });
   return h;
 }
-// Frota dimensionada pelo plano (arredondada) por item
-function frotaPorItem(L, AE){
-  const f = {};
+/* Frota dimensionada pelo plano, por item. `picoItem` vem de
+   picoFrotaPorItem() (calculo/atividade.js) e ja traz o PICO de cada
+   atividade, que e o que a tela pergunta ("quantas preciso ter"); aqui so se
+   somam os equipamentos de apoio, que ja sao quantidade fixa. Antes isto
+   somava a `frotaR` de cada parte -- a media da janela --, e por isso o
+   Resumo de Frota discordava da tabela por mes da mesma aba e do
+   Dimensionamento. Ver "Pico e media sao respostas diferentes" no CLAUDE.md. */
+function frotaPorItem(picoItem, AE){
+  const f = {...picoItem};
   const soma=(k,v)=>{ if(!k||k==="----"||k==="—") return; f[k]=(f[k]||0)+v; };
-  L.forEach(r=>r.partes.forEach(p=>{
-    if(p.terc||p.frotaR<=0) return;
-    soma(p.maq,p.frotaR); soma(p.imp,p.frotaR);
-  }));
   AE.linhas.forEach(l=>{ if(num(l.qtd)>0) soma(l.maq,num(l.qtd)); });
   return f;
 }
@@ -225,9 +227,9 @@ const CAT_VEICULO = ["Veículos pesados","Veículos leves"];
 function baseDe(esp){ const e = FROTA_ESP[esp]; return e ? e.base : "H"; }
 function velMediaVeic(){ return ((P.velC||0)+(P.velV||0))/2 || 1; }
 // Para cada item: quantidade e horas/equipamento previstas (editáveis) e o CRM resultante
-function crmFrota(L, AE){
+function crmFrota(L, AE, picoItem){
   const hPlano = horasPorItem(L, AE);
-  const fPlano = frotaPorItem(L, AE);
+  const fPlano = frotaPorItem(picoItem || {}, AE);
   // O registro reúne os arquétipos do planejamento, o que o plano usar e todo
   // modelo da base real — é ela que responde "o que existe hoje".
   const itens = [...new Set([...Object.keys(CFG.crm), ...Object.keys(hPlano), ...Object.keys(INFO_MODELO)])];

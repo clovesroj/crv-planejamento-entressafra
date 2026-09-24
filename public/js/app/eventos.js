@@ -368,6 +368,10 @@ document.addEventListener("change",e=>{
   // (valor unico vs valor+quantidade), por isso redesenha (render), nao leve()
   if(t.dataset.tfrete!==undefined){ const c=destravar(TRAT_SEL), l=c[+t.dataset.tfrete];
     l.frete = l.frete || {tipo:"unit"}; l.frete.on = t.checked; salvar(); render(); return; }
+  // desmarcado: produto so consome o estoque que ja existe, sem entrar na
+  // "necessidade de compra" dos relatorios (ver calculo/insumos.js, volumeCompra)
+  if(t.dataset.tcompra!==undefined){ const c=destravar(TRAT_SEL), l=c[+t.dataset.tcompra];
+    l.compra = t.checked; salvar(); render(); return; }
   if(t.dataset.tfretetipo!==undefined){ const c=destravar(TRAT_SEL), l=c[+t.dataset.tfretetipo];
     l.frete = l.frete || {}; l.frete.tipo = t.value; salvar(); render(); return; }
   // codigo do tratamento: leva composicao, nome, etapas e as atividades que o usam

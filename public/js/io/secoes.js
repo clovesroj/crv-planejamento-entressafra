@@ -9,10 +9,10 @@ import { QUADRO_FONTE } from '../dados/quadro-fixo.js';
 import { GERENCIAS, criterioPorMes, excecoes, execucao, metasDeFrota, metasPorAtividade, porGerencia } from '../calculo/acompanhamento.js';
 import { CFG } from '../dados/cfg.js';
 import { CAT_LBL, MESES, NM, PERIODOS, periodoMes } from '../nucleo/calendario.js';
-import { composicao, etapasNoPlano, tratEtapas, tratListaTodos, volumeDemandado } from '../calculo/insumos.js';
+import { composicao, etapasNoPlano, tratEtapas, tratListaTodos, volumeCompra, volumeDemandado } from '../calculo/insumos.js';
 import { BROCA, CIGARRINHA, custoTotal, fmtVolume, linhasDe, resumoInsumos, valorHa, volumeInsumo } from '../ui/fitossanitario.js';
 import { TRAT_ETAPAS } from '../dados/insumos.js';
-import { INSUMO, P, TRAT_NOME, insLista } from '../nucleo/estado.js';
+import { INSUMO, P, TRAT_ATIVO, TRAT_NOME, insLista } from '../nucleo/estado.js';
 import { brl, fmt, num, pct } from '../nucleo/formato.js';
 import { CONTA_COMBINADA, SEM_CONTA, contasValores, totaisContas } from '../calculo/contas.js';
 import { comps } from '../ui/custos.js';
@@ -374,16 +374,26 @@ const quadroAdmOficinaMes = R => {
 
 /* ---------- 12. insumos ----------
    Sem etapa: cadastro inteiro, como sempre (relatório anual — referência
-   completa). Com etapa(s): só o insumo que algum tratamento das atividades
-   lançadas naquelas etapas realmente usa (volumeDemandado, mesma conta da
-   coluna "Volume dem." da aba Insumos, aqui restrita à etapa) — é o que evita
-   um relatório de Plantio, por exemplo, arrastar os 500+ produtos do cadastro
-   todo, a maioria sem nenhuma relação com plantio. */
+   completa). Com etapa(s): só o insumo que algum tratamento ATIVO das
+   atividades lançadas naquelas etapas realmente usa (volumeDemandado, mesma
+   conta da coluna "Volume dem." da aba Insumos, aqui restrita à etapa e sem
+   tratamento inativo) — é o que evita um relatório de Plantio, por exemplo,
+   arrastar os 500+ produtos do cadastro todo, a maioria sem nenhuma relação
+   com plantio, ou insumo de um tratamento que não se usa mais.
+
+   "Necessidade de compra" e "Custo", em qualquer um dos dois casos, usam
+   volumeCompra() em vez de volumeDemandado(): pula a linha de composição que
+   o cadastro marcou "compra:false" (produto que só vai consumir o estoque
+   que já existe, sem reposição) — sem isso o relatório sugeria comprar um
+   insumo que ninguém vai comprar de novo. O "Volume demandado" mostrado
+   continua sendo o total de fato usado, sem essa exclusão. */
 const insumosDe = etapas => R => {
   const lista = etapas ? etapas : null;
-  const vol = lista ? volumeDemandado(R.L.filter(r=>lista.includes(r.a.etapa))) : R.volDem;
+  const L = lista ? R.L.filter(r=>lista.includes(r.a.etapa) && TRAT_ATIVO[r.trat]!==false) : R.L;
+  const vol = lista ? volumeDemandado(L) : R.volDem;
+  const volC = volumeCompra(L);
   const totalCusto = lista ? lista.reduce((s,e)=>s+((etapaP(R,e)||{}).insumo||0),0) : R.insumoT;
-  const titulo = lista ? "Insumos vinculados aos tratamentos das atividades lançadas" : "Insumos — cadastro, classificação técnica e necessidade";
+  const titulo = lista ? "Insumos vinculados aos tratamentos ativos das atividades lançadas" : "Insumos — cadastro, classificação técnica e necessidade";
   return sec("Insumos", titulo,
     ["Nome comercial","Princípio ativo","Código","Un","Concentração","Classe agronômica",
      "Categoria operacional","Formulação","Grupo químico","Fabricante","Class. toxicológica",
@@ -391,7 +401,7 @@ const insumosDe = etapas => R => {
     insLista().filter(i=>!lista || (vol[i.prod]||0)>0).map(i=>{ const ov=INSUMO[i.prod]||{};
       const preco=(ov.preco!=null?num(ov.preco):num(i.preco))*(1+P.ipreco/100);
       const est=ov.est!=null?num(ov.est):num(i.est), v=vol[i.prod]||0;
-      const falta=Math.max(0,v-est);
+      const falta=Math.max(0,(volC[i.prod]||0)-est);
       return [i.prod, i.pa||"—", i.cod||"—", i.un||"—", i.conc||"—", i.classe||"—", i.categ||"—",
         i.form||"—", i.grupo||"—", i.fab||"—", i.tox||"—",
         fmt(v,1), fmt(est), preco>0?brl(preco,2):"sem preço", fmt(falta,1),
@@ -450,10 +460,16 @@ const fitoTerc = R => {
 };
 
 /* ---------- tratamentos ---------- */
-const tratamentos = R => secP("Tratamentos","Tratamentos — composição, etapa e uso no plano",
+/* Sem etapa: todo tratamento do cadastro (relatório anual — referência
+   completa, mesmo padrão de insumosDe). Com etapa(s): só tratamento ATIVO que
+   alguma atividade lançada naquelas etapas de fato usa. */
+const tratamentosDe = etapas => R => {
+  const usados = etapas ? new Set(R.L.filter(r=>etapas.includes(r.a.etapa) && r.trat).map(r=>r.trat)) : null;
+  const lista = tratListaTodos().filter(t => TRAT_ATIVO[t.cod]!==false && (!usados || usados.has(t.cod)));
+  return secP("Tratamentos","Tratamentos — composição, etapa e uso no plano",
   ["Cod_Trat","Nome","Etapas marcadas","Etapas em que o plano usa","Produtos","Composição",
    "Custo/ha","Atividades que usam","Área tratada","Custo no plano"],
-  tratListaTodos().map(t=>{
+  lista.map(t=>{
     const usos = R.L.filter(r=>r.trat===t.cod).map(ativP).filter(r=>r.total>0);
     const area = usos.reduce((s,u)=>s+u.total,0);
     const marc = tratEtapas(t.cod).map(e=>TRAT_ETAPAS[e].nome).join(" · ");
@@ -463,6 +479,10 @@ const tratamentos = R => secP("Tratamentos","Tratamentos — composição, etapa
       composicao(t.cod).map(l=>l.prod+" "+fmt(num(l.dose),2)+" "+(l.un||"")).join(" · ")||"—",
       t.custo_ha>0?brl(t.custo_ha,2):"—", usos.map(u=>codExibir(u.a.cod)).join(", ")||"—",
       area>0?fmt(area)+" ha":"—", area>0?brl(area*t.custo_ha):"—"];}));
+};
+const tratamentos = tratamentosDe(null);
+const tratamentosPlantio = tratamentosDe(["PLANTIO","PREPARO DE SOLO"]);
+const tratamentosTratos = tratamentosDe(["TRATOS CULTURAIS"]);
 
 /* ---------- 13. arrendamentos ---------- */
 const arrendamentos = R => {
@@ -817,7 +837,7 @@ const SECOES = {
   transporte, frota, frotaBase, modelos, manutencao, maoDeObra, pessoasDept, pessoasAtividade, fluxoMdo,
   insumos, insumosPlantio, insumosTratos,
   quadroAdmOficina, quadroAdmOficinaMes,
-  tratamentos,
+  tratamentos, tratamentosPlantio, tratamentosTratos,
   arrendamentos, fornecedores, administracao, custoEtapa, natureza, mensal, periodos,
   contas, fluxo, cenarios, validacao, porFazenda, porCentroCusto, porAtividade,
   indicadores, logistica, planoOperacional, dimensionamento, combustivel, apoio, irrigacao,
@@ -940,8 +960,8 @@ const RELATORIOS = [
   {id:"ativ",    nome:"Orçamento por Atividade",      secoes:["resumo","porAtividade","planoOperacional","dimensionamento"]},
   {id:"nat",     nome:"Orçamento por Natureza",       secoes:["resumo","natureza","custoEtapa","contas"]},
   {id:"mensal",  nome:"Orçamento Mensal",             secoes:["resumo","mensal","periodos","fluxo"]},
-  {id:"plantio", nome:"Orçamento de Plantio",         secoes:["plantio","preparo","insumosPlantio","tratamentos","dimensionamento"]},
-  {id:"tratos",  nome:"Orçamento de Tratos",          secoes:["tratos","insumosTratos","tratamentos","irrigacao","dimensionamento"]},
+  {id:"plantio", nome:"Orçamento de Plantio",         secoes:["plantio","preparo","insumosPlantio","tratamentosPlantio","dimensionamento"]},
+  {id:"tratos",  nome:"Orçamento de Tratos",          secoes:["tratos","insumosTratos","tratamentosTratos","irrigacao","dimensionamento"]},
   {id:"fito",    nome:"Manejo Fitossanitário",        secoes:["fitoBroca","fitoCigarrinha","fitoResumo","fitoTerc"]},
   {id:"colheita",nome:"Orçamento de Colheita",        secoes:["colheita","transporte","combustivel","dimensionamento"]},
   {id:"log",     nome:"Orçamento de Logística",       secoes:["logistica","transporte","combustivel"]},

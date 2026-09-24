@@ -361,9 +361,24 @@ function volumeDemandado(L){
   });
   return v;
 }
+/* Mesma conta de volumeDemandado(), mas pula a linha de composição marcada
+   "compra:false" -- produto que o cadastro de tratamentos já sabe que só vai
+   consumir o saldo em estoque, sem reposição (ex.: formulação sendo
+   descontinuada). Serve só para calcular "necessidade de compra": quanto se
+   usa de fato (volumeDemandado, mostrado à parte) não muda, só quanto disso
+   deveria virar pedido de compra. */
+function volumeCompra(L){
+  const v = {};
+  L.forEach(r=>{
+    if(!r.trat || !r.ehHa || r.total<=0) return;
+    composicao(r.trat).forEach(l=>{ if(l.compra===false) return;
+      v[l.prod]=(v[l.prod]||0)+r.total*doseBase(l); });
+  });
+  return v;
+}
 
 
 export { _tratCache, _tratKey, codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, doseBase, duplicarTrat, etapaTrat, etapasNoPlano, familiaDe, freteEfetivo,
   familiaDoInsumo, insumosPorFamilia, mesclarBaseInsumos,
   marcarEtapa, precoInsumo, removerGrupoInsumo, removerTrat, renomearGrupoInsumo, renomearTrat, setClasseGrupo, todasFamilias, tratCodigos, tratCusto, tratEtapas,
-  tratLista, tratListaTodos, tratTabela, usosTrat, volumeDemandado };
+  tratLista, tratListaTodos, tratTabela, usosTrat, volumeDemandado, volumeCompra };

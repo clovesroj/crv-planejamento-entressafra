@@ -358,7 +358,7 @@ function pintarInsumos(R){
   $("#c_trat").value = brl(custoHa,2) + "/ha";
 
   $("#t_comp").innerHTML = th([["Produto"],["Princípio ativo"],["Dose",1],["Un."],
-    ["Preço corrigido",1],["Frete"],["Custo/ha",1],["% do tratamento",1],[""]])+"<tbody>"+
+    ["Preço corrigido",1],["Frete"],["Custo/ha",1],["% do tratamento",1],["Necessidade de compra"],[""]])+"<tbody>"+
     (comp.length? comp.map((l,i)=>{
       const pr = precoInsumo(l.prod), fr = freteEfetivo(l), c = doseBase(l)*(pr+fr);
       const pp = custoHa>0 ? c/custoHa*100 : 0;
@@ -398,10 +398,12 @@ function pintarInsumos(R){
         </td>
         <td class="num tot">${brl(c,2)}</td>
         <td class="num calc">${fmt(pp,1)}%</td>
+        <td class="num"><input type="checkbox" data-tcompra="${i}" ${l.compra===false?"":"checked"}
+          title="Desmarque quando este produto só vai consumir o estoque que já existe e não será comprado de novo — some da necessidade de compra e do custo de reposição nos relatórios, sem deixar de contar o quanto é usado"></td>
         <td><button class="btn d" data-tr="${i}">Remover</button></td></tr>`;}).join("")
-      : `<tr><td colspan="9" class="calc">Tratamento sem produtos. Use o campo abaixo para adicionar.</td></tr>`)+
+      : `<tr><td colspan="10" class="calc">Tratamento sem produtos. Use o campo abaixo para adicionar.</td></tr>`)+
     `<tr><td class="tot" colspan="4">CUSTO/HA DO TRATAMENTO</td><td></td><td></td>
-     <td class="num tot">${brl(custoHa,2)}</td><td class="num tot">${custoHa>0?"100,0%":"—"}</td><td></td></tr></tbody>`;
+     <td class="num tot">${brl(custoHa,2)}</td><td class="num tot">${custoHa>0?"100,0%":"—"}</td><td></td><td></td></tr></tbody>`;
 
   // --- 2. atividade e período: liga o tratamento a uma atividade do Plano
   // Operacional e lança a mesma janela de datas e os mesmos meses que a aba

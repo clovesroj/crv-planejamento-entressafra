@@ -25,6 +25,21 @@ const INFO_COD = {};
 
 const infoDeCod = cod => INFO_COD[cod] || null;
 
+/**
+ * Tag de compartimento do ERP, normalizada.
+ *
+ * O Power BI devolve a descricao com ESPACO NAO-SEPARAVEL (U+00A0) no lugar
+ * do espaco, e a tag sai junto: "CORTE<U+00A0>BASE", nao "CORTE BASE". Os
+ * conjuntos em dados/reforma.js tem espaco normal, entao toda tag de duas
+ * palavras -- CORTE BASE, DIVISOR LINHA, TREM FORCA, EXT PRIMARIO, SIST
+ * COMB, ROLO ALIMENTACAO, ROLO PRE TOMBADOR, MANUT BASICA, MEC DEDICADO --
+ * nunca casava com a coluna dela: o dinheiro aparecia na analise e a coluna
+ * da grade ficava "—" para sempre. Eram R$ 24.193,73 so na janela de
+ * 01/11/2025 a 30/04/2026. Normalizar aqui conserta o arquivo que ja esta
+ * gravado, sem precisar extrair de novo.
+ */
+const normTag = t => String(t || "").replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim().toUpperCase();
+
 // Achata uma vez por render e reaproveita — GASTO_REFORMA_BI não muda em
 // tempo de execução (só quando o script de extração roda de novo e recarrega
 // a página), não precisa recalcular a cada tecla do filtro.
@@ -37,7 +52,7 @@ function lancamentos() {
     for (const [compartimento, dado] of Object.entries(porComp)) {
       for (const it of dado.itens || []) {
         out.push({
-          frota: cod, compartimento, desc: it.desc, valor: it.valor, data: it.data, empresa: it.empresa || null,
+          frota: cod, compartimento: normTag(compartimento), desc: it.desc, valor: it.valor, data: it.data, empresa: it.empresa || null,
           reforma: it.reforma || null, // "SIM" | "NAO" | null (extração antiga, sem a 2ª passada)
           esp: info?.esp || null, ag: info?.ag || null, grp: info?.grp || null,
           mod: info?.mod || null, prop: info?.prop,
@@ -252,4 +267,4 @@ function comandoExtracao(inicio, fim){
 
 export { lancamentos, filtrarLancamentos, agruparPor, opcoesDe, infoDeCod, itensDoEquipamento,
          itensDoEquipamentoNaJanela, janelaGastoReal, janelaVazia, naJanela, coberturaBI, faltaExtrair, comandoExtracao,
-         produtoDe, produtoGenerico, produtosDoEquipamento, sistemaDoLancamento, sistemaDoProduto, desdeUltimoAno };
+         normTag, produtoDe, produtoGenerico, produtosDoEquipamento, sistemaDoLancamento, sistemaDoProduto, desdeUltimoAno };
