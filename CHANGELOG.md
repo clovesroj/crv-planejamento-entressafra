@@ -1,5 +1,29 @@
 # Histórico de mudanças
 
+## 2.50.1 — 2026-09-24 · Correção: seção do CTT aparecendo em todas as abas (a "pílula" cinza no Painel)
+
+O Painel, e qualquer outra aba, abria com uma forma cinza enorme no topo, e o
+conteúdo da aba ficava empurrado para baixo dela. A forma era a **seção do
+Planejamento Entressafra CTT**, visível em todas as abas.
+
+**Causa:** ao estender os estilos do CTT para a aba nova de Desligamentos
+(5b2ef57), as regras `#planejamento-ctt .pctt-x` viraram
+`#planejamento-ctt, #desligamentos-ctt .pctt-x`. A primeira parte da lista
+passou a valer para a **seção inteira**: `display:flex` / `inline-flex`,
+borda de 999px e fundo. Seletor de id vence o `section{display:none}` que
+esconde as abas inativas, então a seção aparecia sempre.
+
+**Correção:**
+- As 117 regras voltaram à forma pretendida:
+  `#planejamento-ctt .pctt-x, #desligamentos-ctt .pctt-x`. As duas abas do
+  CTT continuam com o mesmo visual.
+- **Trava no layout:** `main > section:not(.on){display:none !important}`.
+  Só a aba ativa aparece, mesmo que outra regra por id tente mostrar uma
+  seção.
+
+Conferido nas 33 abas: em cada uma, só a seção ativa fica visível. 54
+invariantes sem falha; 509 rastros sem erro.
+
 ## 2.50.0 — 2026-09-24 · Painel reorganizado em páginas, gráficos novos e grupo Custos logo abaixo da Visão geral
 
 **Painel** — o que já existia fica, organizado em quatro páginas (menu ao lado):

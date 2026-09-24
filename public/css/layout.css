@@ -156,6 +156,11 @@ main:has(> section#resumofrota.on),
 main:has(> section#acomp.on){max-width:2200px;padding-left:20px;padding-right:20px}
 section{display:none}
 section.on{display:block;animation:entra .18s ease-out}
+/* Trava: so a aba ativa aparece. Uma regra por id de secao (ex.: #minha-aba{display:flex})
+   vence o section{display:none} acima pela especificidade, e a secao passa a aparecer
+   em cima de TODAS as abas -- foi o que empurrou o Painel para baixo de uma "pilula"
+   cinza (seletor "#planejamento-ctt, #desligamentos-ctt .x" aplicado a secao inteira). */
+main > section:not(.on){display:none !important}
 @keyframes entra{from{opacity:.5;transform:translateY(3px)}to{opacity:1;transform:none}}
 h2{font-family:var(--f-display);font-size:28px;font-weight:600;line-height:1.1;letter-spacing:-.2px;margin:0 0 6px;text-wrap:balance}
 .lead{color:var(--grey);font-size:13.5px;margin:0 0 20px;max-width:80ch;line-height:1.55}
