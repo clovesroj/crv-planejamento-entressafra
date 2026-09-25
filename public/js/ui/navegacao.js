@@ -30,9 +30,23 @@ function irPara(b){
   cascatear(secao);
   window.scrollTo({top:0,behavior:"instant"});
 }
+/* Qual aba (e, se ela tiver sub-paginas, qual pagina) ficou aberta -- so
+   preferencia de tela, nao dado do plano, mesmo criterio de crv_menu_recolhido
+   logo abaixo. Sem isso, atualizar a pagina sempre voltava pra Capa. */
+const CHAVE_SECAO = "crv_secao_atual";
+function lerSecaoAtual(){
+  try{ return JSON.parse(localStorage.getItem(CHAVE_SECAO)); }catch(e){ return null; }
+}
+function salvarSecaoAtual(){
+  const btn = document.querySelector("nav button.on[data-s]");
+  if(!btn) return;
+  const secao = document.getElementById(btn.dataset.s);
+  const blocoAberto = secao ? secao.querySelector(":scope > details.bloco[id]:not([hidden])") : null;
+  try{ localStorage.setItem(CHAVE_SECAO, JSON.stringify({s: btn.dataset.s, bloco: blocoAberto ? blocoAberto.id : null})); }catch(e){}
+}
 // so os botoes de secao navegam — o de Relatorio (acao, nao secao) tem logica
 // propria em io/relatorio.js, no mesmo idioma visual deste sub-menu
-document.querySelectorAll("nav button[data-s]").forEach(b=>{ b.onclick=()=>irPara(b); });
+document.querySelectorAll("nav button[data-s]").forEach(b=>{ b.onclick=()=>{ irPara(b); salvarSecaoAtual(); }; });
 
 /* ---------- busca e recolher agrupamento, no menu lateral ----------
    Preferencia de tela (que grupo esta recolhido), nao dado do plano: fica no
@@ -148,6 +162,7 @@ document.querySelectorAll("nav button[data-s]").forEach(b=>{
       irPara(b);
       mostrar(i);
       marcarLocal(b);
+      salvarSecaoAtual();
       document.body.classList.remove("menu-open");   // no celular, escolher a página já fecha o menu
     };
   });
@@ -168,6 +183,25 @@ document.querySelectorAll("nav button[data-s]").forEach(b=>{
     b.setAttribute("aria-expanded", String(abrindo));
   });
 });
+// restaura a aba (e a sub-pagina, se houver) que estava aberta antes de
+// atualizar a pagina -- roda depois do forEach acima pra "sub" ja existir
+(function restaurarSecao(){
+  const salvo = lerSecaoAtual();
+  if(!salvo || !salvo.s) return;
+  const b = document.querySelector(`nav button[data-s="${salvo.s}"]`);
+  if(!b) return;
+  const sub = b.nextElementSibling && b.nextElementSibling.classList.contains("subnav") ? b.nextElementSibling : null;
+  if(salvo.bloco && sub){
+    const secao = document.getElementById(salvo.s);
+    const blocos = secao ? [...secao.querySelectorAll(":scope > details.bloco[id]")] : [];
+    const i = blocos.findIndex(bl=>bl.id===salvo.bloco);
+    const item = i>=0 ? sub.querySelectorAll("button")[i] : null;
+    if(item){ item.click(); return; }
+  }
+  irPara(b);
+  marcarLocal(b);
+})();
+
 // a barra superior diz onde o usuário está; no celular o menu lateral fecha ao escolher a aba
 function marcarLocal(b){
   const g = b.closest(".navgroup");
@@ -220,7 +254,7 @@ function abrirDestino(dest){
   const sub = b.nextElementSibling && b.nextElementSibling.classList.contains("subnav") ? b.nextElementSibling : null;
   const i = bloco ? blocos.indexOf(bloco) : -1;
   if(sub && i>=0) sub.querySelectorAll("button")[i].click();
-  else { irPara(b); marcarLocal(b); }
+  else { irPara(b); marcarLocal(b); salvarSecaoAtual(); }
   document.body.classList.remove("menu-open");
   if(!alvo) return true;
   // o alvo é o campo ou a linha: destaca a linha inteira quando o alvo é um campo de tabela
