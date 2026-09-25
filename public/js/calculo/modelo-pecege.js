@@ -66,7 +66,7 @@ function insumosDaAtividade(r){
 const CATS = ["mudas","corretivo","fertilizante","herbicida","inseticida","fungicida","nematicida",
               "biologico","maturador","inibidor","torta","outros"];
 const culturaDe = a => a.cultura || "Soca";
-const ehMuda = a => a.cod==="A02" || a.src==="A02";
+const ehMuda = a => a.cod==="PL01" || a.src==="PL01";   // PL01 = Colheita muda (antigo A02)
 
 /* ---------- 1. custo por hectare ---------- */
 function tabelaHa(R){

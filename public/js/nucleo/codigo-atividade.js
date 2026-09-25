@@ -1,57 +1,28 @@
 /**
- * Código de EXIBIÇÃO da atividade — camada de apresentação só, não dado.
+ * Etapa de EXIBIÇÃO da atividade — camada de apresentação só, não dado.
  *
- * O código interno (A03, TR1, AD1...) continua sendo a chave de tudo: PLANO,
- * DIM, ATVX, data-* de todo controle, chave de rastro ("ativ:A03"), o "cod" do
- * ERP-catálogo (dados/atividades-erp.js). Nada disso muda — mudar a chave
- * exigiria migrar o documento salvo em produção (invariante nº5 do CLAUDE.md)
- * e quebraria todo v vínculo (tratamento, terceiro, realizado) já lançado.
+ * Até a versão 8 do cadastro de atividades (dados/atividades.js), este
+ * arquivo também calculava um código de exibição (PS03 no lugar de A03,
+ * numerado pela posição no cadastro) por cima do código interno, que era a
+ * chave de tudo. Migrado: o código interno agora É o PS03/CO01/MF06... (ver
+ * RENOMEACOES_ATIVIDADE em dados/atividades.js), então recalcular um código
+ * de exibição por cima dele voltaria a ter o problema que essa camada
+ * evitava — o número muda se o cadastro for reordenado ou ganhar atividade
+ * nova no meio, só que agora por cima de um código que já é permanente.
  *
- * O que muda é só o texto que a pessoa lê: PS03 no lugar de A03, numeração
- * sequencial por grupo, na ordem do cadastro (a ordem de atividadesLista()).
- * Broca e Cigarrinha (A44-A53) formam o grupo "MF" à parte, porque já
- * aparecem separados do resto de Tratos Culturais no Plano Operacional e no
- * Manejo Fitossanitário — numerar junto com TC escondia essa separação.
- *
- * Quem usa: toda tela que mostra o código da atividade como texto (Plano
- * Operacional, Dimensionamento, Manejo Fitossanitário, Cadastro de
- * Atividades, Validação, Acompanhamento, relatórios, rastro). NUNCA usar isto
- * em atributo que serve de chave (data-c, data-t, data-r, "ativ:"+cod...) —
- * só em texto que a pessoa lê.
+ * O que sobra aqui é só a ETAPA de exibição: Broca e Cigarrinha (MF01-MF10)
+ * aparecem com etapa "MANEJO FITOSSANITÁRIO" no Plano Operacional e no
+ * Dimensionamento, mas continuam etapa "TRATOS CULTURAIS" de verdade — é
+ * essa etapa real que decide rateio de arrendamento/administrativo e os
+ * relatórios por etapa. Só o texto que a pessoa lê muda.
  */
 import { atividadesLista } from './estado.js';
 
-const SIGLA_ETAPA = {
-  "COLHEITA": "CO",
-  "PLANTIO": "PL",
-  "PREPARO DE SOLO": "PS",
-  "TRATOS CULTURAIS": "TC",
-  "APOIO E CONSERVAÇÃO": "AC",
-};
-// mesmo grupo que a tela já separa do resto dos tratos culturais — mora aqui
-// (não em ui/) porque tanto o código de exibição quanto a etapa de exibição
-// (abaixo) precisam dela, e nucleo/ não pode importar de ui/.
-const COD_FITOSSANITARIO = new Set(["A44","A45","A46","A47","A48","A49","A50","A51","A52","A53"]);
-const siglaDe = a => COD_FITOSSANITARIO.has(a.cod) ? "MF" : (SIGLA_ETAPA[a.etapa] || "??");
-/** Etapa de EXIBIÇÃO: "MANEJO FITOSSANITÁRIO" para Broca/Cigarrinha, senão a
-    etapa real. A etapa que decide rateio de arrendamento/administrativo e os
-    relatórios por etapa continua sendo a.etapa ("TRATOS CULTURAIS" para
-    essas dez) — só o texto que a pessoa lê muda, mesmo princípio do código
-    de exibição acima. */
+// MF01-MF10: mesmo grupo que a tela já separa do resto dos tratos culturais.
+// O prefixo do código (e não mais um Set de 10 códigos fixos) já basta,
+// porque agora o código em si nasce "MF..." — um MF11 futuro entra sozinho.
+const COD_FITOSSANITARIO = { has: cod => typeof cod === "string" && cod.startsWith("MF") };
+
 function etapaExibir(a){ return COD_FITOSSANITARIO.has(a.cod) ? "MANEJO FITOSSANITÁRIO" : a.etapa; }
 
-/** {codigoInterno -> codigoDeExibicao}, numerado na ordem do cadastro. */
-function mapaCodigos(){
-  const contagem = {}, m = {};
-  atividadesLista().forEach(a=>{
-    const sigla = siglaDe(a);
-    contagem[sigla] = (contagem[sigla]||0) + 1;
-    m[a.cod] = sigla + String(contagem[sigla]).padStart(2,"0");
-  });
-  return m;
-}
-/** Código de exibição de UM código interno. Para uma tabela inteira, prefira
-    mapaCodigos() uma vez e indexar nela — mais barato que recalcular a cada célula. */
-function codExibir(cod){ return mapaCodigos()[cod] || cod; }
-
-export { codExibir, mapaCodigos, etapaExibir, COD_FITOSSANITARIO };
+export { etapaExibir, COD_FITOSSANITARIO };

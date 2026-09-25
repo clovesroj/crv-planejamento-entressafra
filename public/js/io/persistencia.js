@@ -298,8 +298,8 @@ function aplicar(d){
   if(d.ATVX && ATVX_V < CFG.atividades_v){
     const r = mesclarBaseAtividades();
     setATVX_V(CFG.atividades_v);
-    if(r.novas || r.corrigidas || r.removidas)
-      console.info(`cadastro de atividades atualizado: +${r.novas} atividade(s), ${r.corrigidas} corrigida(s), -${r.removidas} retirada(s), ${r.total} no total`);
+    if(r.novas || r.corrigidas || r.removidas || r.renomeadas)
+      console.info(`cadastro de atividades atualizado: +${r.novas} atividade(s), ${r.corrigidas} corrigida(s), -${r.removidas} retirada(s), ${r.renomeadas} renomeada(s), ${r.total} no total`);
   } else if(!d.ATVX){ setATVX_V(CFG.atividades_v); removerAtividadesRetiradas(); }
   if(d.CTT_NOVOS) setCTT_NOVOS(d.CTT_NOVOS);
   if(d.CTT_SAIDAS) setCTT_SAIDAS(d.CTT_SAIDAS);

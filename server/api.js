@@ -21,6 +21,7 @@ const { SERVICO } = require('./config');
 const auth = require('./auth');
 const perms = require('./permissoes');
 const itens = require('./mesclaItens');
+const atividadesCod = require('./atividades-cod');
 const agrofit = require('./agrofit');
 
 const usuarioPublico = u => u && { id: u.id, login: u.login, nome: u.nome, papel: u.papel,
@@ -281,8 +282,15 @@ async function api(req, res, rota) {
     // nível) deixava quando duas pessoas editavam a mesma tabela ao mesmo tempo.
     if (req.method !== 'PUT' && itens.temPatch(corpo)) {
       let ignorados = [];
-      const d = await store.mesclarItens(atual => {
-        const efetivo = itens.aplicarPatches(corpo, atual || {});
+      const d = await store.mesclarItens(atualBruto => {
+        // ATVX_PATCH mescla por código (mesclarArray, em mesclaItens.js) contra
+        // o ATVX gravado: se o banco ainda estiver no código antigo e o patch
+        // já chegar com o novo (ver ui/atividades-cad.js), o find por código
+        // não acha a linha e empurra um item novo — duplica a atividade em vez
+        // de atualizá-la. Migra ANTES de mesclar, pelas mesmas regras do
+        // navegador (ver atividades-cod.js e calculo/atividade.js).
+        const atual = atividadesCod.versaoAntiga(atualBruto) ? atividadesCod.migrar(atualBruto) : (atualBruto || {});
+        const efetivo = itens.aplicarPatches(corpo, atual);
         let doc = efetivo;
         if (!perm.tudo) {
           const r = perms.filtrarGravacao(efetivo, atual || {}, perm, false);

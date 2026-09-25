@@ -101,10 +101,10 @@ function pessoasCalc(R){
   const extraTot = Math.ceil(TR.frota*fe);
   const extraCam = Math.min(extraTot, Math.ceil(((TR.camSafra.frotaR||0)+(TR.camMuda.frotaR||0))*fe));
   const ativos = cods => MESES.map((m,i)=>cods.some(c=>{ const r=R.L.find(x=>x.a.cod===c); return r && num(r.meses[i])>0; }));
-  if(extraCam>0){ const at=ativos(["TR1","TR2"]);
-    add("COLHEITA","902","Transporte de cana — reserva do efetivo", extraCam, at.map(b=>b?extraCam:0), fixo(0), "TR1/TR2"); }
-  if(extraTot-extraCam>0){ const n=extraTot-extraCam, at=ativos(["TR3","TR4"]);
-    add("COLHEITA","918","Transbordo — reserva do efetivo", n, at.map(b=>b?n:0), fixo(0), "TR3/TR4"); }
+  if(extraCam>0){ const at=ativos(["CO02","PL02"]);   // CO02/PL02 = Transporte de cana colheita/muda (antigos TR1/TR2)
+    add("COLHEITA","902","Transporte de cana — reserva do efetivo", extraCam, at.map(b=>b?extraCam:0), fixo(0), "CO02/PL02"); }
+  if(extraTot-extraCam>0){ const n=extraTot-extraCam, at=ativos(["CO03","PL03"]);   // CO03/PL03 = Transbordo colheita/muda (antigos TR3/TR4)
+    add("COLHEITA","918","Transbordo — reserva do efetivo", n, at.map(b=>b?n:0), fixo(0), "CO03/PL03"); }
   /* equipamentos de apoio: o efetivo e o custo nos meses do periodo de cada
      equipamento (ano todo, safra, entressafra ou meses marcados) -- a mesma
      serie mensal que o motor usa (calculo/apoio.js, mdoMes), para o recorte

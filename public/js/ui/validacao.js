@@ -7,7 +7,6 @@ import { SEP_MOD, crmDe, crmEspDe } from '../calculo/crm.js';
 import { composicao, etapaTrat, familiaEfetiva, produtosForaDoCadastro, tratCodigos, tratEtapas } from '../calculo/insumos.js';
 import { TRAT_ETAPAS } from '../dados/insumos.js';
 import { DIM, INSUMO, P, insLista } from '../nucleo/estado.js';
-import { codExibir } from '../nucleo/codigo-atividade.js';
 import { MESES, NM, diasNoMesEntre, mesesEntre } from '../nucleo/calendario.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
 import { th } from './componentes.js';
@@ -61,7 +60,7 @@ function validar(R){
   // texto de exibicao das listas acima: so troca o codigo interno (primeiro
   // "token" de cada string, o que codDe() le de volta) pelo de exibicao — o
   // ir()/codDe() abaixo continuam lendo o array ORIGINAL, com o codigo interno
-  const paraTexto = arr => arr.map(s => s.replace(codDe(s), codExibir(codDe(s))));
+  const paraTexto = arr => arr.map(s => s.replace(codDe(s), (codDe(s))));
   add(jIgnorada.length===0,"Janela de datas utilizável no Plano Operacional",
       jIgnorada.length ? "ignorada, vale o mês com volume: "+paraTexto(jIgnorada).slice(0,4).join(" · ")+(jIgnorada.length>4?"…":"") : "",
       ir("plano", ...planoCod(codDe(jIgnorada[0])), "#t_plano"));
@@ -98,17 +97,17 @@ function validar(R){
   // so atividade com volume: a zerada nao roda, e o transporte sem tonelada
   // nao tem rendimento calculado -- nao e rendimento faltando
   const semRend = R.L.find(r=>r.total>0 && r.rend<=0);
-  add(!semRend,"Rendimento operacional zerado", semRend ? codExibir(semRend.a.cod)+" · "+semRend.a.nome : "",
+  add(!semRend,"Rendimento operacional zerado", semRend ? (semRend.a.cod)+" · "+semRend.a.nome : "",
       ir("dimens", semRend ? `#t_dim [data-r="${semRend.a.cod}"]` : null, "#t_dim"));
   const utilRuim = R.L.find(r=>r.util<=0||r.util>1);
-  add(!utilRuim,"Taxa de utilização fora de 0–100%", utilRuim ? codExibir(utilRuim.a.cod)+" · "+utilRuim.a.nome : "",
+  add(!utilRuim,"Taxa de utilização fora de 0–100%", utilRuim ? (utilRuim.a.cod)+" · "+utilRuim.a.nome : "",
       ir("dimens", utilRuim ? `#t_dim [data-u="${utilRuim.a.cod}"]` : null, "#t_dim"));
   const semTrat = R.L.filter(r=>r.ehHa&&r.total>0&&!r.trat);
   add(semTrat.length===0,"Atividade em ha sem tratamento vinculado",
-      semTrat.length ? semTrat.length+": "+semTrat.slice(0,5).map(r=>codExibir(r.a.cod)).join(", ")+(semTrat.length>5?"…":"") : "0",
+      semTrat.length ? semTrat.length+": "+semTrat.slice(0,5).map(r=>(r.a.cod)).join(", ")+(semTrat.length>5?"…":"") : "0",
       ir("plano", semTrat.length ? `#t_plano [data-t="${semTrat[0].a.cod}"]` : null, "#t_plano"));
   const tratTon = R.L.find(r=>!r.ehHa&&r.trat);
-  add(!tratTon,"Tratamento vinculado a atividade em tonelada", tratTon ? codExibir(tratTon.a.cod) : "",
+  add(!tratTon,"Tratamento vinculado a atividade em tonelada", tratTon ? (tratTon.a.cod) : "",
       ir("plano", tratTon ? `#t_plano [data-t="${tratTon.a.cod}"]` : null, "#t_plano"));
   add(P.dens>0&&P.tch>0,"Densidade de muda e TCH preenchidos",fmt(R.viveiro)+" ha de viveiro",
       ir("premissas", !(P.dens>0) ? "#p_dens" : "#p_tch"));
@@ -195,7 +194,7 @@ function validar(R){
     const marcadas = tratEtapas(c);
     if(!marcadas.length) return;
     R.L.forEach(r=>{ if(r.trat===c && r.total>0 && !marcadas.includes(etapaTrat(r.a)))
-      etapaFora.push(codExibir(r.a.cod)+" usa "+c+" em "+TRAT_ETAPAS[etapaTrat(r.a)].nome); });
+      etapaFora.push((r.a.cod)+" usa "+c+" em "+TRAT_ETAPAS[etapaTrat(r.a)].nome); });
   });
   add(etapaFora.length===0,"Tratamento aplicado na etapa em que foi marcado",
       etapaFora.slice(0,3).join(" · ")+(etapaFora.length>3?"…":""), ir("insumos","#t_trat"));
@@ -260,7 +259,7 @@ function validar(R){
   add(CI.confere, "Auditoria: insumos por produto = insumos por atividade",
       CI.confere ? brl(CI.insumoT) : "diferença de "+brl(CI.dif)+" — veja a conferência na aba Demandas", ir("demandas","#t_dem_conf"));
   add(!CI.inativos.length, "Nenhum tratamento inativo vinculado ao plano",
-      CI.inativos.length ? CI.inativos.length+" vínculo(s): "+CI.inativos.slice(0,3).map(x=>codExibir(x.cod)+" ("+x.trat+")").join(", ")+" — o custo entra, mas o tratamento some das buscas" : "",
+      CI.inativos.length ? CI.inativos.length+" vínculo(s): "+CI.inativos.slice(0,3).map(x=>(x.cod)+" ("+x.trat+")").join(", ")+" — o custo entra, mas o tratamento some das buscas" : "",
       ir("demandas","#dem_conf_nota"));
   const TC_ = totaisContas(contasValores(R));
   add(Math.abs(TC_.total-R.total)<1,"Plano de Contas confere com o total",
@@ -296,7 +295,7 @@ function validar(R){
   }
   const frotaAlta = R.L.filter(r=>r.frotaR>12);
   add(frotaAlta.length===0,"Atividade exigindo mais de 12 equipamentos",
-      frotaAlta.length ? frotaAlta.length+": "+frotaAlta.slice(0,5).map(r=>codExibir(r.a.cod)+" ("+r.frotaR+")").join(", ")+(frotaAlta.length>5?"…":"") : "0",
+      frotaAlta.length ? frotaAlta.length+": "+frotaAlta.slice(0,5).map(r=>(r.a.cod)+" ("+r.frotaR+")").join(", ")+(frotaAlta.length>5?"…":"") : "0",
       // o alvo e o botao "mes" da atividade: e la que a frota se ajusta desde que
       // o campo de frota fixa saiu do modal (data-fr nao existe mais)
       ir("dimens", frotaAlta.length ? `#t_dim [data-rendmes="${frotaAlta[0].a.cod}"]` : null, "#t_dim"));
@@ -304,7 +303,7 @@ function validar(R){
       fmt(R.TP.lugares)+" lugares para "+fmt(R.efetivoTotal)+" colaboradores", ir("tpess","#t_tp"));
   const mixRuim = R.L.filter(r=>r.mixSoma>0 && Math.abs(r.mixSoma-100)>0.01);
   add(mixRuim.length===0,"Mix de modos de aplicação somando 100%",
-      mixRuim.length? mixRuim.map(r=>codExibir(r.a.cod)+" ("+fmt(r.mixSoma,0)+"%)").join(", ") : "",
+      mixRuim.length? mixRuim.map(r=>(r.a.cod)+" ("+fmt(r.mixSoma,0)+"%)").join(", ") : "",
       ir("plano", mixRuim.length ? `#t_plano [data-mx="${mixRuim[0].a.cod}"]` : null, ...planoCod(mixRuim.length?mixRuim[0].a.cod:""), "#t_plano"));
   // matéria-prima: contrato sem valor, estimativa muito distante do contratado, ATR ausente
   const F = R.FORN || {linhas:[], areaPlano:0, fracArr:0,

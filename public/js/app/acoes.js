@@ -9,7 +9,6 @@ import { salvar } from '../io/persistencia.js';
 import { MESES, PERIODOS, periodoMes } from '../nucleo/calendario.js';
 import { ESPOR, P, admLista, fornLista } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
-import { codExibir } from '../nucleo/codigo-atividade.js';
 import { comps } from '../ui/custos.js';
 import { pintarPremissas } from '../ui/premissas.js';
 import { render } from './ciclo.js';
@@ -33,7 +32,7 @@ $("#btn_export").onclick=async()=>{
   let c="PLANO OPERACIONAL\nCod;Etapa;Atividade;Un;"+MESES.join(";")+";Total;Tratamento;Funcao;Horas;Frota a ter (pico);Frota media (rateio);Equipe a ter (pico);Efetivo medio (folha);Custo direto\n";
   // as duas leituras, como nas telas e nos relatorios: o pico e o que tem de
   // existir no patio e na escala; a media e a que rateia o custo
-  R.L.forEach(r=>c+=[codExibir(r.a.cod),r.a.etapa,r.a.nome,r.a.un,...r.meses.map(num),r.total,r.trat||"",r.fcod,
+  R.L.forEach(r=>c+=[(r.a.cod),r.a.etapa,r.a.nome,r.a.un,...r.meses.map(num),r.total,r.trat||"",r.fcod,
     r.horas.toFixed(1),frotaDaAtividade(r).pico,r.frotaR,pessoasDaAtividade(r).pico,r.efetivo,r.direto.toFixed(2)].join(";")+"\n");
   c+="\nCOMPOSICAO DE CUSTOS\nNatureza;Total\n";
   comps(R).forEach(([n,v])=>c+=n+";"+v.toFixed(2)+"\n");
