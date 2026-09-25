@@ -154,14 +154,21 @@ function custosDaLinha(r, SEL){
   const areaTerc = r.partes.filter(p=>p.terc).reduce((s,p)=>s+p.area,0);
   return {insumo, servico, total: insumo + servico + mdo, mdo,
           insumoHa: r.total>0 ? r.cInsumo/r.total : 0,
-          servicoHa: areaTerc>0 ? r.cTerc/areaTerc : 0};
+          servicoHa: areaTerc>0 ? r.cTerc/areaTerc : 0,
+          // com tratamento extra, o R$/ha da linha é a MÉDIA dos tratamentos
+          // pela área de cada um; o de cada tratamento está na sub-linha
+          media: Array.isArray(r.tratsDetalhe) && r.tratsDetalhe.filter(d=>d.trat && d.area>0).length>1};
 }
+// dica da média: o custo/ha e a área de cada tratamento, como no cadastro
+const dicaMedia = r => (r.tratsDetalhe||[]).filter(d=>d.trat && d.area>0)
+  .map(d=>`${d.trat}${d.principal?" (principal)":""}: ${brl(d.custo/d.area,2)}/ha em ${fmt(d.area)} ha`).join(" · ");
 function celulasCusto(r, SEL){
   const c = custosDaLinha(r, SEL);
   const un = r.ehHa ? "" : ` <span class="calc">/${esc(r.a.un.split("/")[0])}</span>`;
   const v = (x, casas) => x>0 ? brl(x, casas) : "—";
   return `<td class="num calc">${v(c.insumo)}</td>
-       <td class="num calc">${c.insumoHa>0 ? brl(c.insumoHa,2)+un : "—"}</td>
+       <td class="num calc"${c.media ? ` title="Média ponderada dos tratamentos desta atividade — ${esc(dicaMedia(r))}. Abra a linha (▸) para ver cada um."` : ""}>${
+         c.insumoHa>0 ? brl(c.insumoHa,2)+un+(c.media ? `<div class="calc" style="font-size:10px">média de ${r.tratsDetalhe.filter(d=>d.trat && d.area>0).length} tratamentos ▸</div>` : "") : "—"}</td>
        <td class="num calc">${v(c.servico)}</td>
        <td class="num calc">${c.servicoHa>0 ? brl(c.servicoHa,2)+un : "—"}</td>
        <td class="num tot" title="Insumo ${brl(c.insumo)} + serviço ${brl(c.servico)} + mão de obra própria ${brl(c.mdo)}">${v(c.total)}</td>`;
