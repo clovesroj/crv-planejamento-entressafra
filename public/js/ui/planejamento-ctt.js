@@ -470,20 +470,17 @@ function paginaBaseColaboradores() {
    Upload semanal (.xlsx, aba "BASE") com os desligamentos do período --
    substitui a lista inteira (CTT_DESLIG), sem mesclagem por item: é a
    mesma pessoa que sobe a planilha toda toda semana, não várias mexendo em
-   registros diferentes ao mesmo tempo (diferente do Quadro CTT). Filtro em
-   cascata: clicar numa barra filtra as outras, sem se autofiltrar a zero. */
+   registros diferentes ao mesmo tempo (diferente do Quadro CTT).
+   Filtro por dropdown (mês/tipo/motivo/função), mesmo padrão do Quadro CTT
+   (um valor por vez, "Limpar filtros" zera todos) -- os gráficos viraram só
+   leitura. */
 let DL_FILTROS = { mes: new Set(), tipo: new Set(), motivo: new Set(), funcao: new Set() };
 let DL_ERRO = "";
 
 function dlContarPor(dim, chaveDe) { return dlContarPorBruto(dlFiltrarExceto(CTT_DESLIG || [], DL_FILTROS, dim), chaveDe); }
-function barrasDesligamento(itens, dim, unidade) {
-  const selecionados = DL_FILTROS[dim];
-  let mx = 1; itens.forEach(x => { if (x.v > mx) mx = x.v; });
-  return `<div class="pctt-hbs">${itens.map(x => {
-    const on = selecionados.has(x.key), dim2 = selecionados.size && !on;
-    return `<button type="button" class="pctt-hb${on ? " on" : ""}${dim2 ? " dim" : ""}" data-pctt-dl-filtro="${dim}|${esc(x.key)}" title="${esc(x.label)}: ${fmt(x.v)} ${unidade}">` +
-      `<span class="l">${esc(x.label)}</span><span class="t"><i style="width:${x.v / mx * 100}%;background:var(--leaf)"></i></span><b>${fmt(x.v)}</b></button>`;
-  }).join("")}</div>`;
+function dlOpcoesFiltro(itens, rotuloTodos, selecionado) {
+  return `<option value="">${esc(rotuloTodos)}</option>` +
+    itens.map(l => `<option value="${esc(l)}"${selecionado === l ? " selected" : ""}>${esc(l)}</option>`).join("");
 }
 async function processarUploadDesligamentos(file) {
   DL_ERRO = "";
@@ -524,9 +521,6 @@ function paginaDesligamentos() {
 
   const filtrados = dlAplicarFiltros(registros, DL_FILTROS);
   const algumFiltro = DL_FILTROS.mes.size || DL_FILTROS.tipo.size || DL_FILTROS.motivo.size || DL_FILTROS.funcao.size;
-  // KPIs (predominante) leem o filtro completo; os gráficos por dimensão excluem
-  // a própria dimensão do filtro (dlContarPor), pra permitir multi-seleção
-  // dentro do mesmo gráfico sem a barra clicada sumir da própria lista.
   const topMotivo = predominante(dlContarPorBruto(filtrados, r => categorizarMotivo(r.motivo)));
   const topTipo = predominante(dlContarPorBruto(filtrados, r => r.tipoRescisao || "Não informado"));
   const topMes = predominante(dlContarPorBruto(filtrados, r => r.mes || "Não informado"));
@@ -535,18 +529,27 @@ function paginaDesligamentos() {
     kpi("Tipo predominante", "t", topTipo.chave, filtrados.length ? `${fmt(topTipo.n)} de ${fmt(filtrados.length)} casos (${(topTipo.n / filtrados.length * 100).toFixed(1)}%)` : "—") +
     kpi("Mês predominante", "", topMes.chave, filtrados.length ? `${fmt(topMes.n)} desligamento${topMes.n === 1 ? "" : "s"}` : "—");
 
-  const chips = [];
-  Object.keys(DL_FILTROS).forEach(dim => DL_FILTROS[dim].forEach(v => chips.push(`<span class="chip">${esc({ mes: "Mês", tipo: "Tipo", motivo: "Motivo", funcao: "Função" }[dim])}: ${esc(v)}<button type="button" data-pctt-dl-filtro="${dim}|${esc(v)}">×</button></span>`)));
-  const barraChips = `<div class="pctt-dlg-chips">${chips.length ? chips.join("") : '<span class="pctt-nota" style="margin:0">Clique em qualquer barra para filtrar em cascata.</span>'}${chips.length ? '<button type="button" class="btn" id="pctt-dl-limpar">Limpar filtros</button>' : ""}</div>`;
+  // Dropdown por campo, mesmo padrao do Quadro CTT: um valor por vez, lista
+  // de opcoes vem de TODOS os registros (nao so o que sobrou do filtro),
+  // senao a opcao escolhida podia sumir da propria lista.
+  const mesesTodos = [...new Set(registros.map(r => r.mes || "Não informado"))].sort((a, b) => DL_MESES_ORDEM.indexOf(a) - DL_MESES_ORDEM.indexOf(b));
+  const tiposTodos = [...new Set(registros.map(r => r.tipoRescisao || "Não informado"))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  const motivosTodos = [...new Set(registros.map(r => categorizarMotivo(r.motivo)))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  const funcoesTodas = [...new Set(registros.map(r => (r.funcao || "Não informado").trim()))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  const valorDe = dim => [...DL_FILTROS[dim]][0] || "";
+  const barraFiltros = `<div class="row" style="margin-bottom:10px;align-items:flex-end">
+    <div style="min-width:150px"><label for="pctt-dl-f-mes">Mês</label><select id="pctt-dl-f-mes">${dlOpcoesFiltro(mesesTodos, "Todos", valorDe("mes"))}</select></div>
+    <div style="min-width:190px"><label for="pctt-dl-f-tipo">Tipo</label><select id="pctt-dl-f-tipo">${dlOpcoesFiltro(tiposTodos, "Todos", valorDe("tipo"))}</select></div>
+    <div style="min-width:210px"><label for="pctt-dl-f-motivo">Motivo</label><select id="pctt-dl-f-motivo">${dlOpcoesFiltro(motivosTodos, "Todos", valorDe("motivo"))}</select></div>
+    <div style="min-width:190px"><label for="pctt-dl-f-funcao">Função</label><select id="pctt-dl-f-funcao">${dlOpcoesFiltro(funcoesTodas, "Todas", valorDe("funcao"))}</select></div>
+    <button type="button" class="btn" id="pctt-dl-limpar">Limpar filtros</button>
+    <span class="pctt-nota" style="margin:0 0 8px auto">${fmt(filtrados.length)} de ${fmt(registros.length)} registros</span>
+  </div>`;
 
-  const mesCont = dlContarPor("mes", r => r.mes || "Não informado");
-  const tipoCont = dlContarPor("tipo", r => r.tipoRescisao || "Não informado");
-  const motivoCont = dlContarPor("motivo", r => categorizarMotivo(r.motivo));
-  const funcaoCont = dlContarPor("funcao", r => (r.funcao || "Não informado").trim());
-  const porMes = [...mesCont.entries()].sort((a, b) => DL_MESES_ORDEM.indexOf(a[0]) - DL_MESES_ORDEM.indexOf(b[0])).map(([l, v]) => ({ key: l, label: l, v }));
-  const porTipo = [...tipoCont.entries()].sort((a, b) => b[1] - a[1]).map(([l, v]) => ({ key: l, label: l, v }));
-  const porMotivo = [...motivoCont.entries()].sort((a, b) => b[1] - a[1]).map(([l, v]) => ({ key: l, label: l, v }));
-  const porFuncao = [...funcaoCont.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([l, v]) => ({ key: l, label: l, v }));
+  const porMes = [...dlContarPor("mes", r => r.mes || "Não informado").entries()].sort((a, b) => DL_MESES_ORDEM.indexOf(a[0]) - DL_MESES_ORDEM.indexOf(b[0])).map(([l, v]) => ({ key: l, label: l, v }));
+  const porTipo = [...dlContarPor("tipo", r => r.tipoRescisao || "Não informado").entries()].sort((a, b) => b[1] - a[1]).map(([l, v]) => ({ key: l, label: l, v }));
+  const porMotivo = [...dlContarPor("motivo", r => categorizarMotivo(r.motivo)).entries()].sort((a, b) => b[1] - a[1]).map(([l, v]) => ({ key: l, label: l, v }));
+  const porFuncao = [...dlContarPor("funcao", r => (r.funcao || "Não informado").trim()).entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([l, v]) => ({ key: l, label: l, v }));
 
   const linhasTabela = [...filtrados].sort((a, b) => (b.totalOcorrencia || 0) - (a.totalOcorrencia || 0)).slice(0, 300).map(r => `<tr>
     <td>${r.matricula ?? "—"}</td><td>${esc(r.funcionario || "—")}</td><td>${esc(r.funcao || "—")}</td><td>${esc(r.admissao || "—")}</td>
@@ -554,13 +557,13 @@ function paginaDesligamentos() {
 
   return `<div class="grid" style="grid-template-rows:auto auto 78px minmax(0,1fr)">
     ${cabecalho}
-    ${barraChips}
+    ${barraFiltros}
     <div class="grid g4">${kpis}</div>
     <div class="grid pctt-cols-9-11-2rows">
-      <section class="pctt-v"><div class="pctt-v-t">Por mês</div><div class="pctt-v-b">${barrasDesligamento(porMes, "mes", "casos")}</div></section>
-      <section class="pctt-v"><div class="pctt-v-t">Por tipo de rescisão</div><div class="pctt-v-b">${barrasDesligamento(porTipo, "tipo", "casos")}</div></section>
-      <section class="pctt-v"><div class="pctt-v-t">Por motivo</div><div class="pctt-v-b pctt-scroll">${barrasDesligamento(porMotivo, "motivo", "casos")}</div></section>
-      <section class="pctt-v"><div class="pctt-v-t">Por função<small>8 mais frequentes</small></div><div class="pctt-v-b">${barrasDesligamento(porFuncao, "funcao", "casos")}</div></section>
+      <section class="pctt-v"><div class="pctt-v-t">Por mês</div><div class="pctt-v-b">${barrasHorizontais(porMes, "", null, "casos")}</div></section>
+      <section class="pctt-v"><div class="pctt-v-t">Por tipo de rescisão</div><div class="pctt-v-b">${barrasHorizontais(porTipo, "", null, "casos")}</div></section>
+      <section class="pctt-v"><div class="pctt-v-t">Por motivo</div><div class="pctt-v-b pctt-scroll">${barrasHorizontais(porMotivo, "", null, "casos")}</div></section>
+      <section class="pctt-v"><div class="pctt-v-t">Por função<small>8 mais frequentes</small></div><div class="pctt-v-b">${barrasHorizontais(porFuncao, "", null, "casos")}</div></section>
     </div>
     <section class="pctt-v"><div class="pctt-v-t">Detalhamento<small>${fmt(filtrados.length)} registro${filtrados.length === 1 ? "" : "s"}${filtrados.length > 300 ? ", mostrando os 300 com mais ocorrências" : ""}</small></div>
       <div class="pctt-v-b pctt-scroll"><table class="dt"><thead><tr><th>Matrícula</th><th>Funcionário</th><th>Função</th><th>Admissão</th><th>Tipo</th><th>Motivo</th><th>Mês</th><th class="r">Ocorrências</th></tr></thead>
@@ -664,7 +667,7 @@ export function pintarPlanoCTT() {
    é um assunto à parte, não uma leitura do cronograma -- ganhou seção e
    botão de menu próprios (ver index.html e ciclo.js). O código de
    agregação/upload continua aqui em cima porque reaproveita o mesmo
-   vocabulário visual (kpi(), barrasDesligamento) já usado no arquivo. */
+   vocabulário visual (kpi(), barrasHorizontais) já usado no arquivo. */
 let LISTENERS_DESLIG_PRONTOS = false;
 function wireEventosDesligamentos() {
   if (LISTENERS_DESLIG_PRONTOS) return;
@@ -672,14 +675,15 @@ function wireEventosDesligamentos() {
   document.addEventListener("click", e => {
     if (!document.getElementById("desligamentos-ctt")) return;
     const t = e.target;
-    let el;
     if (t.closest("#pctt-dl-upload")) { document.getElementById("pctt-dl-arquivo").click(); return; }
-    if ((el = t.closest("[data-pctt-dl-filtro]"))) {
-      const [dim, valor] = el.dataset.pcttDlFiltro.split("|");
-      const set = DL_FILTROS[dim];
-      if (set.has(valor)) set.delete(valor); else set.add(valor);
-      pintarDesligamentosCTT(); return; }
     if (t.closest("#pctt-dl-limpar")) { DL_FILTROS = { mes: new Set(), tipo: new Set(), motivo: new Set(), funcao: new Set() }; pintarDesligamentosCTT(); return; }
+  });
+  document.addEventListener("change", e => {
+    if (!document.getElementById("desligamentos-ctt")) return;
+    const dim = { "pctt-dl-f-mes": "mes", "pctt-dl-f-tipo": "tipo", "pctt-dl-f-motivo": "motivo", "pctt-dl-f-funcao": "funcao" }[e.target.id];
+    if (!dim) return;
+    DL_FILTROS[dim] = e.target.value ? new Set([e.target.value]) : new Set();
+    pintarDesligamentosCTT();
   });
 }
 

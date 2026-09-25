@@ -156,6 +156,3 @@
 
 /* Desligamentos */
 #planejamento-ctt .pctt-dlg-topo, #desligamentos-ctt .pctt-dlg-topo{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;font-size:13px;color:var(--grey);margin-bottom:10px}
-#planejamento-ctt .pctt-dlg-chips, #desligamentos-ctt .pctt-dlg-chips{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:12px}
-#planejamento-ctt .pctt-dlg-chips .chip, #desligamentos-ctt .pctt-dlg-chips .chip{display:inline-flex;align-items:center;gap:6px;background:var(--leaf-soft);color:var(--leaf-strong);border-radius:999px;padding:3px 6px 3px 10px;font-size:12px}
-#planejamento-ctt .pctt-dlg-chips .chip button, #desligamentos-ctt .pctt-dlg-chips .chip button{border:0;background:transparent;color:inherit;cursor:pointer;font-size:14px;line-height:1;padding:0 4px}

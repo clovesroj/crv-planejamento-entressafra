@@ -144,8 +144,9 @@ function pintarGastoReal() {
 let _buscaAtiva = null; // AbortController em andamento
 
 /**
- * Inicia (ou aborta e reinicia) uma busca ao vivo no ERP/Banco.
- * Exibe loading animado no painel; ao terminar, carrega os dados e re-renderiza.
+ * Busca de novo o gasto real ja extraido, direto do Postgres -- rapido, sem
+ * scraping ao vivo (isso roda a parte, ver scripts/gasto-reforma-bi.mjs).
+ * Ao terminar, carrega os dados e re-renderiza.
  * @param {Function} renderFn - função render() do ciclo principal
  */
 async function buscarDoBI(renderFn) {
@@ -158,11 +159,6 @@ async function buscarDoBI(renderFn) {
     alert('Preencha os campos De e Até antes de buscar.');
     return;
   }
-
-  const overlay = $('#gr_loading');
-  const msgEl   = $('#gr_loading_msg');
-  if (overlay) overlay.hidden = false;
-  if (msgEl)   msgEl.textContent = 'Consultando banco de dados…';
 
   const params = new URLSearchParams({ inicio, fim });
   if (GR_EMPRESA) params.set('empresas', GR_EMPRESA);
@@ -178,13 +174,11 @@ async function buscarDoBI(renderFn) {
       throw new Error(err.msg || 'Falha na requisição');
     }
     const dados = await res.json();
-    if (overlay) overlay.hidden = true;
     setDadosBI(dados);
     if (renderFn) renderFn();
   } catch (e) {
     if (e.name === 'AbortError') return; // abortada intencionalmente
     console.error(e);
-    if (overlay) overlay.hidden = true;
     alert(`Falha ao buscar do ERP:\n${e.message || 'Erro desconhecido'}`);
   } finally {
     if (_buscaAtiva === ctrl) _buscaAtiva = null;

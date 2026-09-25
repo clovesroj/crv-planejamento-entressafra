@@ -41,6 +41,11 @@
  *                          isso, cada fatia traz TODAS as especialidades, que e o que
  *                          a tela precisa pra grade de conjuntos ficar completa.
  *                          (--especialidade=, no singular, segue aceito.)
+ *   --empresafrota=X       (opcional) filtra pelo slicer "Empresa Frota" do proprio
+ *                          relatorio ANTES de rolar -- mesmo redutor de volume que
+ *                          --especialidades, so que por empresa (um valor so). Use o
+ *                          nome exato do dropdown (ex.: PFCMO-MG). Sem isso, cada
+ *                          fatia traz TODAS as empresas frota.
  *   --empresas=A,B         (opcional) filtra por Emp Destino; sem isso, soma todas
  *   --frotas=62522,...     (opcional) filtra por codigo de Frota; sem isso, guarda todo
  *                          codigo de frota que aparecer com produto marcado *COMPARTIMENTO*
@@ -114,6 +119,12 @@ const FROTAS = (argValor('frotas', '') || '').split(',').map(s => s.trim()).filt
 // --especialidade= (uma) segue valendo; --especialidades= aceita varias
 const ESPECIALIDADES = (argValor('especialidades', '') || argValor('especialidade', '') || '')
   .split(',').map(t => t.trim()).filter(Boolean);
+// Diferente de --empresas (filtra DEPOIS de rolar, so descarta linha -- nao
+// reduz volume raspado nem risco de a aba travar): --empresafrota mexe no
+// slicer "Empresa Frota" do proprio relatorio ANTES de rolar, que e o mesmo
+// redutor de volume que --especialidades ja faz pro slicer "Especialidade".
+// Um valor so (a tela nao precisa de lista pra isso hoje).
+const EMPRESA_FROTA = (argValor('empresafrota', '') || '').trim();
 const PASSO = (argValor('passo', 'mes') || 'mes').toLowerCase();
 const VISIVEL = argFlag('visivel');
 const REFAZER = argFlag('refazer');
@@ -123,7 +134,7 @@ const ZERAR = argFlag('zerar') && !argFlag('merge');
 
 if (!INICIO || !FIM) {
   console.error('Uso: npm run gasto-reforma-bi -- --inicio=AAAA-MM-DD --fim=AAAA-MM-DD ' +
-    '[--passo=mes|trimestre|semana|tudo] [--especialidades=A,B] [--empresas=CRV-MG,...] [--frotas=62522,...] [--refazer] [--zerar] [--visivel]');
+    '[--passo=mes|trimestre|semana|tudo] [--especialidades=A,B] [--empresafrota=PFCMO-MG] [--empresas=CRV-MG,...] [--frotas=62522,...] [--refazer] [--zerar] [--visivel]');
   process.exit(1);
 }
 if (FIM < INICIO) { console.error('O --fim e anterior ao --inicio.'); process.exit(1); }
@@ -195,6 +206,11 @@ function paraDataBR(iso) {
 async function aplicarFiltroData(page, inicioISO, fimISO) {
   const inicioLoc = page.locator('input[aria-label^="Data de início"]').first();
   const fimLoc = page.locator('input[aria-label^="Data de término"]').first();
+  // espera de verdade o campo aparecer, em vez de confiar so no waitForTimeout
+  // fixo de quem chama -- numa recarga (nao na primeira carga da sessao) o
+  // relatorio as vezes demora mais pra montar o slicer, e isso sozinho ja
+  // bastou pra "sumir" o campo em fatias depois da primeira.
+  await inicioLoc.waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});
   if (!(await inicioLoc.count()) || !(await fimLoc.count())) return false;
   // .fill() dispara os eventos que o binding Angular do slicer espera --
   // setar .value direto via evaluate nao seria detectado pelo componente.
@@ -206,18 +222,19 @@ async function aplicarFiltroData(page, inicioISO, fimISO) {
 }
 
 /**
- * Marca um valor no slicer "Especialidade" (dropdown em árvore Agrupamento >
- * Especialidade, com busca). É o maior redutor de volume que existe no
- * relatório -- testado: 769mi -> 62mi de Valor Total só com "COLHEDORA - CANA".
+ * Marca um valor num slicer de dropdown com busca do próprio relatório (mesmo
+ * widget do Power BI usado por "Especialidade" e "Empresa Frota"). É o maior
+ * redutor de volume que existe -- testado: 769mi -> 62mi de Valor Total só
+ * com "COLHEDORA - CANA" em Especialidade.
  *
  * Só funciona com interação DE VERDADE (Playwright .click()/.fill(), que o
  * Chromium trata como confiável) -- esse dropdown ignora clique/evento
  * disparado via page.evaluate(): abre mas não filtra, ou nem abre.
  * Confirmado testando os dois lados a mão.
  */
-async function aplicarFiltroEspecialidade(page, texto) {
+async function aplicarFiltroDropdown(page, rotuloSlicer, texto) {
   const card = page.locator(
-    'xpath=//*[contains(@class,"slicer-header-text") and normalize-space(text())="Especialidade"]' +
+    `xpath=//*[contains(@class,"slicer-header-text") and normalize-space(text())="${rotuloSlicer}"]` +
     '/ancestor::div[contains(@class,"slicer-container")][1]');
   if (!(await card.count().catch(() => 0))) return false;
 
@@ -226,17 +243,31 @@ async function aplicarFiltroEspecialidade(page, texto) {
   await toggle.click();
   await page.waitForTimeout(700);
 
-  // O campo de busca renderiza fora do card (num portal), não dá pra
-  // escopar por ele -- pega o único searchInput visível na página, que é o
-  // do dropdown que acabou de abrir. .fill() seta o valor mas o slicer não
-  // reage (testado); precisa digitar tecla por tecla de verdade.
-  const campo = page.locator('input.searchInput:visible').first();
-  if (!(await campo.count().catch(() => 0))) return false;
-  await campo.click();
-  await campo.pressSequentially(texto, { delay: 60 });
-  await page.waitForTimeout(900);
-
-  const item = page.getByRole('treeitem', { name: texto, exact: true }).first();
+  // Dois formatos vistos no mesmo relatorio: "Especialidade" e uma arvore
+  // (role=treeitem) grande demais pra caber toda no DOM sem busca;
+  // "Empresa Frota" e uma lista curta e plana (role=option) que ja esta
+  // toda no DOM, sem precisar buscar nada. Tenta achar o item direto nos
+  // dois papeis antes de mexer na busca.
+  const acharItem = () => page.getByRole('option', { name: texto, exact: true }).first()
+    .or(page.getByRole('treeitem', { name: texto, exact: true }).first());
+  let item = acharItem();
+  if (!(await item.count().catch(() => 0))) {
+    // Lista virtualizada (nao esta toda no DOM ainda): precisa buscar pra
+    // trazer o item. O campo de busca renderiza fora do card (num portal),
+    // nao da pra escopar por ele -- as vezes tambem comeca recolhido, so
+    // com o icone, ate clicar nele pra expandir.
+    const iconeBusca = page.locator('.searchHeader .searchIcon:visible').first();
+    if (await iconeBusca.count().catch(() => 0)) await iconeBusca.click().catch(() => {});
+    const campo = page.locator('input.searchInput:visible').first();
+    if (await campo.count().catch(() => 0)) {
+      // .fill() seta o valor mas o slicer nao reage (testado); precisa
+      // digitar tecla por tecla de verdade.
+      await campo.click();
+      await campo.pressSequentially(texto, { delay: 60 });
+      await page.waitForTimeout(900);
+      item = acharItem();
+    }
+  }
   if (!(await item.count().catch(() => 0))) return false;
   await item.click();
   await page.waitForTimeout(1000);
@@ -245,6 +276,8 @@ async function aplicarFiltroEspecialidade(page, texto) {
   await page.waitForTimeout(500);
   return true;
 }
+async function aplicarFiltroEspecialidade(page, texto) { return aplicarFiltroDropdown(page, 'Especialidade', texto); }
+async function aplicarFiltroEmpresaFrota(page, texto) { return aplicarFiltroDropdown(page, 'Empresa Frota', texto); }
 
 /** Total de linhas que a grade relata via aria-rowcount, ou null se não achou a grade ainda. */
 async function checarTotalLinhas(page) {
@@ -359,7 +392,11 @@ function fatias(inicio, fim, passo) {
   }
   return out;
 }
-const chaveFatia = f => `${f.inicio}|${f.fim}|${f.especialidade || ''}`;
+// empresaFrota entra na chave pra uma extracao anterior com OUTRO filtro (ou
+// sem filtro nenhum) nao ser confundida com "ja feita" -- sem isso, rodar de
+// novo com --empresafrota diferente pularia fatias que na verdade tem escopo
+// de empresa diferente do pedido agora.
+const chaveFatia = f => `${f.inicio}|${f.fim}|${f.especialidade || ''}|${f.empresaFrota || ''}`;
 
 /** Prepara a pagina para uma fatia: recarrega, abre o Analitico e aplica os filtros do proprio relatorio. */
 async function prepararPagina(page, { inicio, fim, especialidade }) {
@@ -372,9 +409,50 @@ async function prepararPagina(page, { inicio, fim, especialidade }) {
   if (!abriu) throw new Error('Nao encontrei a aba "Analitico" na navegacao do relatorio. O layout deve ter mudado -- confira manualmente com --visivel.');
   await page.waitForTimeout(3000);
 
-  const dataOk = await aplicarFiltroData(page, inicio, fim).catch(() => false);
-  if (!dataOk) console.warn('  Nao encontrei os campos de data do relatorio -- vai ler o periodo todo disponivel (mais lento).');
+  let dataOk = await aplicarFiltroData(page, inicio, fim).catch(() => false);
+  if (!dataOk) {
+    // Visto na pratica: o slicer as vezes nao monta a tempo numa recarga
+    // (a primeira carga da sessao costuma ir bem, uma recarga seguinte nem
+    // sempre) -- uma segunda tentativa, com recarga nova e mais tempo de
+    // espera, resolve a maior parte dos casos sem precisar intervencao manual.
+    console.warn(`  Campos de data nao apareceram para a fatia ${inicio}..${fim} -- recarregando e tentando mais uma vez...`);
+    await page.goto(LINK_BI, { waitUntil: 'load', timeout: 60000 });
+    await page.getByText(/Analítico|Movimenta/i).first().waitFor({ state: 'attached', timeout: 45000 });
+    await abrirAba(page, 'Analítico');
+    await page.waitForTimeout(5000);
+    dataOk = await aplicarFiltroData(page, inicio, fim).catch(() => false);
+  }
+  if (!dataOk) {
+    // Antes so avisava e seguia lendo o periodo inteiro sem filtro -- silencioso
+    // e perigoso: cada fatia "falha" acumulava o relatorio todo, sem dar erro
+    // nenhum, so gravando o dado errado no banco. Falhar alto aqui: um seletor
+    // quebrado (ou uma segunda falha de carregamento) tem que parar a
+    // extracao, nao virar gasto real errado.
+    const labels = await page.locator('input[aria-label]').evaluateAll(els => els.map(e => e.getAttribute('aria-label'))).catch(() => []);
+    throw new Error(
+      `Nao encontrei os campos de data do relatorio para a fatia ${inicio}..${fim}, mesmo depois de recarregar de novo. ` +
+      `O layout do slicer deve ter mudado (esperava aria-label "Data de inicio"/"Data de termino"). ` +
+      `aria-label de <input> encontrados na pagina agora: ${JSON.stringify(labels)}. ` +
+      `Confira manualmente com --visivel antes de rodar de novo.`
+    );
+  }
   await page.waitForTimeout(1500);
+
+  if (EMPRESA_FROTA) {
+    // Falha alto aqui tambem: diferente de nao achar uma Especialidade (so
+    // reduz menos o volume, mas o restante do dado ainda esta certo), nao
+    // aplicar o filtro de Empresa Frota pedido faz a fatia trazer TODAS as
+    // empresas -- e dado de outra empresa misturado no banco, nao so mais
+    // lento.
+    const efOk = await aplicarFiltroDropdown(page, 'Empresa Frota', EMPRESA_FROTA).catch(() => false);
+    if (!efOk) {
+      throw new Error(
+        `Nao consegui aplicar o filtro "${EMPRESA_FROTA}" no slicer Empresa Frota (fatia ${inicio}..${fim}). ` +
+        `Confira a grafia exata (igual aparece no dropdown do relatorio) ou o layout do slicer com --visivel.`
+      );
+    }
+    await page.waitForTimeout(1500);
+  }
 
   if (especialidade) {
     const espOk = await aplicarFiltroEspecialidade(page, especialidade).catch(() => false);
@@ -531,7 +609,7 @@ export const GASTO_REFORMA_BI = ${JSON.stringify(saida, null, 2)};
 async function main() {
   const passo = ['mes', 'trimestre', 'semana', 'tudo'].includes(PASSO) ? PASSO : 'mes';
   const esps = ESPECIALIDADES.length ? ESPECIALIDADES : [null];
-  const pedidas = esps.flatMap(esp => fatias(INICIO, FIM, passo).map(f => ({ ...f, especialidade: esp })));
+  const pedidas = esps.flatMap(esp => fatias(INICIO, FIM, passo).map(f => ({ ...f, especialidade: esp, empresaFrota: EMPRESA_FROTA || null })));
 
   // arquivo anterior: por padrao o script SOMA ao que ja existe e pula fatia
   // ja extraida -- retomar uma extracao longa e so rodar o mesmo comando de
@@ -548,6 +626,7 @@ async function main() {
 
   console.log(`Periodo pedido: ${INICIO} a ${FIM} | passo: ${passo} | ${pedidas.length} fatia(s)` +
     (esps[0] ? ` | especialidades: ${esps.join(', ')}` : ' | todas as especialidades') +
+    (EMPRESA_FROTA ? ` | empresa frota: ${EMPRESA_FROTA}` : ' | todas as empresas frota') +
     (EMPRESAS.length ? ` | empresas: ${EMPRESAS.join(', ')}` : ' | todas as empresas') +
     (FROTAS.length ? ` | frotas: ${FROTAS.join(', ')}` : ''));
   if (aFazer.length < pedidas.length) {
@@ -580,7 +659,7 @@ async function main() {
       // a fatia PEDIDA entra inteira em periodos, mesmo tendo sido partida --
       // e ela que descreve a cobertura, e e por ela que o proximo run pula
       if (!chavesPeriodos.has(chaveFatia(fatia))) {
-        periodos.push({ inicio: fatia.inicio, fim: fatia.fim, especialidade: fatia.especialidade || null });
+        periodos.push({ inicio: fatia.inicio, fim: fatia.fim, especialidade: fatia.especialidade || null, empresaFrota: fatia.empresaFrota || null });
         chavesPeriodos.add(chaveFatia(fatia));
       }
       // grava a cada fatia: extracao longa interrompida no meio nao se perde,

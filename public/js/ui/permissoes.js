@@ -45,7 +45,7 @@ const VISUAIS = [
   '[data-pctt-pagina]', '[data-pctt-passo]', '[data-pctt-modo]', '[data-pctt-mes]', '[data-pctt-cat]', '[data-pctt-func]',
   '#pctt-limpar', '#pctt-f-cat', '#pctt-f-func', '#pctt-sn',
   '#pctt-cb-nome', '#pctt-cb-funcao', '#pctt-cb-sit', '#pctt-cb-obsf', '#pctt-cb-limpar',
-  '[data-pctt-dl-filtro]', '#pctt-dl-limpar',
+  '#pctt-dl-f-mes', '#pctt-dl-f-tipo', '#pctt-dl-f-motivo', '#pctt-dl-f-funcao', '#pctt-dl-limpar',
 ].join(',');
 
 const CONTROLES = 'input, select, textarea, button';
