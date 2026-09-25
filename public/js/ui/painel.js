@@ -43,8 +43,9 @@ function pintarPainel(R){
   $("#k_painel").innerHTML =
     kpi("Custo total","",brl(SEL.total), SEL.parcial?SEL.rotulo:"","total") +
     (()=>{ const H = custoHaPlantado(R);
-      return kpi("Custo total / ha plantado","t",brl(H.valor),
-        (H.ha ? "operacional "+brl(H.oper)+" + rateios "+brl(H.rateio)+" · " : "")+H.nota+(SEL.parcial?" · ano todo":""),"custoha"); })() +
+      // total da formacao no numero grande; o R$/ha (e a abertura dele) no rastro
+      return kpi("Custo de plantar a área","t",brl(H.total),
+        (H.ha ? fmt(H.ha)+" ha · "+brl(H.valor)+"/ha · " : "")+H.nota+(SEL.parcial?" · ano todo":""),"custoha"); })() +
     kpi("Custo de colheita","g",custoUnit(CC.total, CC.base),"só corte ("+(CC.cods.join(", ")||"—")+"), sem transporte · "+rotuloBase(CC.base),"corte") +
     kpi("Efetivo total","a",fmt(R.efetivoTotal)+" pessoas", noFat ? "+ "+fmt(noFat)+" no FAT, fora da operação" : "","pessoas:total") +
     kpi("Custo na safra","g",brl(R.PER.safra.total),"abr a nov · "+R.PER.safra.meses.length+" meses no orçamento","periodo:safra") +

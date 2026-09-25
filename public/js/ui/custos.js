@@ -151,8 +151,9 @@ function pintarCustos(R){
     kpi("Custo variável","t",brl(R.SEL.variavel), R.SEL.parcial?R.SEL.rotulo:"","variavel") +
     kpi("Custo fixo","a",brl(R.SEL.fixo), R.SEL.parcial?R.SEL.meses.length+" meses":"","fixo") +
     (()=>{ const H = custoHaPlantado(R);
-      return kpi("Custo total por ha plantado","g",brl(H.valor),
-        H.ha ? "operacional "+brl(H.oper)+"/ha + rateios "+brl(H.rateio)+"/ha · "+H.nota+(R.SEL.parcial?" · ano todo":"") : H.nota,"custoha"); })();
+      // total da formacao no numero grande; o R$/ha (e a abertura dele) no rastro
+      return kpi("Custo de plantar a área","g",brl(H.total),
+        H.ha ? fmt(H.ha)+" ha · "+brl(H.valor)+"/ha · "+H.nota+(R.SEL.parcial?" · ano todo":"") : H.nota,"custoha"); })();
 
   // safra (abril a novembro) × entressafra (dezembro a março)
   const PR = R.PER, perTot = PR.safra.total + PR.entressafra.total;
