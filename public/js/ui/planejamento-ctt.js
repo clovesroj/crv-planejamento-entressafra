@@ -29,7 +29,7 @@ import { PLANO_CTT_CATEGORIAS as CATS, PLANO_CTT_CATEGORIAS_ORDEM as CAT_ORDEM, 
   PLANO_CTT_ATIVOS as ATIVOS, PLANO_CTT_OPERADORES as OPERADORES, PLANO_CTT_MOTORISTAS as MOTORISTAS } from '../dados/planejamento-ctt.js';
 import { PREPARO, FRENTES_PLANTIO, mesesDoPlano, calcularMes, totalAtividade, atividadesVisiveis,
   indicePico, balancoEfetivo, diasEntre } from '../calculo/planejamento-ctt.js';
-import { BASE_COLAB_META, BASE_COLAB_FUNCOES, BASE_COLAB_SITUACOES, BASE_COLABORADORES } from '../dados/base-colaboradores.js';
+import { BASE_COLAB_META, BASE_COLAB_FUNCOES, BASE_COLAB_SITUACOES, BASE_COLAB_CIDADES, BASE_COLAB_GERENCIAS, BASE_COLABORADORES } from '../dados/base-colaboradores.js';
 import { MESES_ORDEM as DL_MESES_ORDEM, categorizarMotivo, extrairRegistrosBase, contarPor as dlContarPorBruto,
   predominante, filtrarExceto as dlFiltrarExceto, aplicarFiltros as dlAplicarFiltros } from '../calculo/desligamentos-ctt.js';
 
@@ -367,7 +367,7 @@ function paginaDetalhamento() {
    server/mesclaItens.js (upsert/remover por matrícula), sem mudar nada lá. */
 const OBS_OPCOES = ["Férias", "FAT", "Operação"];
 const CB_LIMITE = 400;
-let CB_FILTROS = { nome: "", funcao: "", situacao: "", obs: "" };
+let CB_FILTROS = { nome: "", funcao: "", situacao: "", obs: "", cidade: "", gerencia: "" };
 let CB_SUJO = false;
 const CB_OBS_SESSAO = new Map();
 const CB_OBS_REMOVER_SESSAO = new Set();
@@ -409,6 +409,8 @@ function colaboradoresFiltrados() {
     if (termoNome && !normalizaTexto(r.n).includes(termoNome)) return false;
     if (termoFunc && !normalizaTexto(BASE_COLAB_FUNCOES[r.f]).includes(termoFunc)) return false;
     if (CB_FILTROS.situacao !== "" && String(r.s) !== CB_FILTROS.situacao) return false;
+    if (CB_FILTROS.cidade !== "" && String(r.ci) !== CB_FILTROS.cidade) return false;
+    if (CB_FILTROS.gerencia !== "" && String(r.g) !== CB_FILTROS.gerencia) return false;
     if (CB_FILTROS.obs !== "") {
       const atual = obsDeColab(String(r.m)).obs || "";
       if (CB_FILTROS.obs === "__vazio" ? atual !== "" : atual !== CB_FILTROS.obs) return false;
@@ -421,6 +423,7 @@ function linhaColaborador(r) {
   const sit = BASE_COLAB_SITUACOES[r.s] || "—";
   const corSit = sit === "ATIVO" ? "var(--ok)" : sit === "AFASTADO" ? "var(--warn)" : sit === "FÉRIAS" ? "var(--sky)" : "var(--muted)";
   return `<tr><td>${esc(r.n)}</td><td>${esc(BASE_COLAB_FUNCOES[r.f] || "—")}</td>
+    <td>${esc(BASE_COLAB_CIDADES[r.ci] || "—")}</td><td>${esc(BASE_COLAB_GERENCIAS[r.g] || "—")}</td>
     <td><span class="badge" style="color:${corSit}">${esc(sit)}</span></td>
     <td>${fmtDataISO(r.a)}</td>
     <td><select data-pctt-cb-obs="${r.m}"><option value=""${o.obs ? "" : " selected"}>—</option>${OBS_OPCOES.map(v => `<option value="${esc(v)}"${o.obs === v ? " selected" : ""}>${esc(v)}</option>`).join("")}</select></td>
@@ -440,7 +443,7 @@ function refiltrarBaseColaboradores() {
   const tbody = document.getElementById("pctt-cb-tbody");
   if (!tbody) return;
   const filtrados = colaboradoresFiltrados();
-  tbody.innerHTML = filtrados.slice(0, CB_LIMITE).map(linhaColaborador).join("") || '<tr><td colspan="6" class="pctt-vazio">Nenhum colaborador para os filtros atuais.</td></tr>';
+  tbody.innerHTML = filtrados.slice(0, CB_LIMITE).map(linhaColaborador).join("") || '<tr><td colspan="8" class="pctt-vazio">Nenhum colaborador para os filtros atuais.</td></tr>';
   $("#pctt-cb-count").textContent = `${fmt(filtrados.length)} de ${fmt(BASE_COLABORADORES.length)} colaboradores`;
   $("#pctt-cb-nota").textContent = notaColaboradores(filtrados);
 }
@@ -461,14 +464,16 @@ function paginaBaseColaboradores() {
   const barraFiltros = `<div class="pctt-cb-bar">
     <input type="search" id="pctt-cb-nome" placeholder="Filtrar por nome" value="${esc(CB_FILTROS.nome)}">
     <input type="search" id="pctt-cb-funcao" placeholder="Filtrar por função" value="${esc(CB_FILTROS.funcao)}">
+    <select id="pctt-cb-cid"><option value="">Todas as cidades</option>${BASE_COLAB_CIDADES.map((c, i) => c ? `<option value="${i}"${String(i) === CB_FILTROS.cidade ? " selected" : ""}>${esc(c)}</option>` : "").join("")}</select>
+    <select id="pctt-cb-ger"><option value="">Todas as gestões</option>${BASE_COLAB_GERENCIAS.map((g, i) => g ? `<option value="${i}"${String(i) === CB_FILTROS.gerencia ? " selected" : ""}>${esc(g)}</option>` : "").join("")}</select>
     <select id="pctt-cb-sit"><option value="">Todas as situações</option>${BASE_COLAB_SITUACOES.map((s, i) => s ? `<option value="${i}"${String(i) === CB_FILTROS.situacao ? " selected" : ""}>${esc(s)}</option>` : "").join("")}</select>
     <select id="pctt-cb-obsf"><option value="">Toda observação</option><option value="__vazio"${CB_FILTROS.obs === "__vazio" ? " selected" : ""}>Sem observação</option>${OBS_OPCOES.map(v => `<option value="${esc(v)}"${CB_FILTROS.obs === v ? " selected" : ""}>${esc(v)}</option>`).join("")}</select>
     <button type="button" class="btn" id="pctt-cb-limpar">Limpar filtros</button>
     <button type="button" class="btn" id="pctt-cb-obs-limpar">Limpar observações</button>
     <span class="pctt-cb-count" id="pctt-cb-count">${fmt(filtrados.length)} de ${fmt(BASE_COLABORADORES.length)} colaboradores</span>
   </div>`;
-  const tabela = `<table class="dt"><thead><tr><th>Nome</th><th>Função</th><th>Situação</th><th>Admissão</th><th>Observação</th><th>Período</th></tr></thead>
-    <tbody id="pctt-cb-tbody">${filtrados.slice(0, CB_LIMITE).map(linhaColaborador).join("") || '<tr><td colspan="6" class="pctt-vazio">Nenhum colaborador para os filtros atuais.</td></tr>'}</tbody></table>`;
+  const tabela = `<table class="dt"><thead><tr><th>Nome</th><th>Função</th><th>Cidade</th><th>Gestão</th><th>Situação</th><th>Admissão</th><th>Observação</th><th>Período</th></tr></thead>
+    <tbody id="pctt-cb-tbody">${filtrados.slice(0, CB_LIMITE).map(linhaColaborador).join("") || '<tr><td colspan="8" class="pctt-vazio">Nenhum colaborador para os filtros atuais.</td></tr>'}</tbody></table>`;
   return `<div class="grid" style="grid-template-rows:auto auto minmax(0,1fr)">
     <div class="rasc-acoes" style="margin-bottom:4px"><span class="rasc-pend${CB_SUJO ? " tem" : ""}">${CB_SUJO ? "há alterações não salvas" : "tudo salvo"}</span><button class="btn p" id="pctt-cb-salvar" ${CB_SUJO ? "" : "disabled"}>Salvar alterações</button></div>
     <div class="grid g5">${kpis}</div>
@@ -643,7 +648,7 @@ function wireEventos() {
     // Base de colaboradores
     if (t.closest("#pctt-cb-salvar")) { if (salvarObsColab()) { salvar(); pintar(); } return; }
     if (t.closest("#pctt-cb-limpar")) {
-      CB_FILTROS = { nome: "", funcao: "", situacao: "", obs: "" };
+      CB_FILTROS = { nome: "", funcao: "", situacao: "", obs: "", cidade: "", gerencia: "" };
       pintar(); return; }
     if (t.closest("#pctt-cb-obs-limpar")) {
       if (!confirm("Limpar a observação (Férias/FAT/Operação) e o período de todo mundo? Isso não desfaz sozinho.")) return;
@@ -656,6 +661,8 @@ function wireEventos() {
     if (e.target.id === "pctt-sn") { ESTADO.sn = e.target.value; pintar(); return; }
     // Base de colaboradores: filtros (visão) e observação/período (dado)
     if (e.target.id === "pctt-cb-sit") { CB_FILTROS.situacao = e.target.value; pintar(); return; }
+    if (e.target.id === "pctt-cb-cid") { CB_FILTROS.cidade = e.target.value; pintar(); return; }
+    if (e.target.id === "pctt-cb-ger") { CB_FILTROS.gerencia = e.target.value; pintar(); return; }
     if (e.target.id === "pctt-cb-obsf") { CB_FILTROS.obs = e.target.value; pintar(); return; }
     if (e.target.dataset.pcttCbObs !== undefined) { marcarObsColab(e.target.dataset.pcttCbObs, { obs: e.target.value }); pintar(); return; }
     if (e.target.dataset.pcttCbObsini !== undefined) { marcarObsColab(e.target.dataset.pcttCbObsini, { ini: e.target.value }); pintar(); return; }

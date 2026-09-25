@@ -44,7 +44,7 @@ const VISUAIS = [
   // filtros ficariam travados para quem só visualiza.
   '[data-pctt-pagina]', '[data-pctt-passo]', '[data-pctt-modo]', '[data-pctt-mes]', '[data-pctt-cat]', '[data-pctt-func]',
   '#pctt-limpar', '#pctt-f-cat', '#pctt-f-func', '#pctt-sn',
-  '#pctt-cb-nome', '#pctt-cb-funcao', '#pctt-cb-sit', '#pctt-cb-obsf', '#pctt-cb-limpar',
+  '#pctt-cb-nome', '#pctt-cb-funcao', '#pctt-cb-cid', '#pctt-cb-ger', '#pctt-cb-sit', '#pctt-cb-obsf', '#pctt-cb-limpar',
   '#pctt-dl-f-mes', '#pctt-dl-f-tipo', '#pctt-dl-f-motivo', '#pctt-dl-f-funcao', '#pctt-dl-limpar',
 ].join(',');
 
