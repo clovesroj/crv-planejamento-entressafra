@@ -1,11 +1,10 @@
-import { categoriaInsumo } from '../calculo/modelo-pecege.js';
 import { custoPorOperacao } from '../calculo/custo-operacao.js';
 import { benVal } from '../calculo/mao-de-obra.js';
 import { PREMISSAS_BASE, premissaBase } from '../calculo/base-fisica.js';
 import { ETAPAS_ORD, arrRat } from '../calculo/arrendamento.js';
 import { CFG } from '../dados/cfg.js';
 import { SEP_MOD, crmDe, crmEspDe } from '../calculo/crm.js';
-import { composicao, etapaTrat, tratCodigos, tratEtapas } from '../calculo/insumos.js';
+import { composicao, etapaTrat, familiaEfetiva, tratCodigos, tratEtapas } from '../calculo/insumos.js';
 import { TRAT_ETAPAS } from '../dados/insumos.js';
 import { DIM, INSUMO, P, insLista } from '../nucleo/estado.js';
 import { codExibir } from '../nucleo/codigo-atividade.js';
@@ -156,14 +155,28 @@ function validar(R){
   const semPrecoFora = insSemPreco.length - semPrecoUsado.length;
   add(true,"Insumos do cadastro ainda sem preço",
       semPrecoFora ? semPrecoFora+" produto(s) sem uso em tratamento — preencher ao começar a usar" : "nenhum");
-  /* Produto usado no plano sem classe agronômica: nas tabelas do modelo PECEGE
-     (Painel) ele cai em "Outros insumos" e, no Plano de Contas, sem conta.
-     Classificar é escolher o Grupo do produto no cadastro de insumos. */
+  /* Produto usado no plano sem classe agronômica: sem fam/classe reconhecida,
+     o insumo cai no grupo "Outros e a Classificar" -- esse sim precisa de
+     alguém escolher o Grupo no cadastro. Não é o mesmo teste que
+     categoriaInsumo() (calculo/modelo-pecege.js): aquela função reduz para as
+     poucas colunas do modelo PECEGE, e Adjuvante não tem coluna própria ali
+     (cai em "outros" por desenho do modelo) mesmo já corretamente
+     classificado aqui. Usar categoriaInsumo() nesta checagem sinalizava
+     Air combat, Speed forth e Protac (todos com Grupo "Adjuvantes e
+     Veículos") para sempre, mesmo depois de escolhido o Grupo -- não tinha
+     como resolver a pendência (mesma raiz do aviso da Plano de Contas
+     corrigido em 9cfd277, que criou a conta INS-06 para adjuvante/regulador;
+     este aqui é o equivalente para a aba Validação). */
   const noPlano = new Set();
   R.L.filter(r=>r.total>0).forEach(r=>{
     const trats = Array.isArray(r.tratsDetalhe) && r.tratsDetalhe.length ? r.tratsDetalhe.map(t=>t.trat) : [r.trat];
     trats.filter(Boolean).forEach(c=>composicao(c).forEach(l=>noPlano.add(l.prod))); });
-  const semClasse = [...noPlano].filter(prod=>categoriaInsumo(prod)==="outros");
+  const semClasse = [...noPlano].filter(prod=>{
+    if(/\bmuda/i.test(prod)) return false; // ex.: "Substrato mudas" — custo de muda, não agroquímico
+    const i = insLista().find(x=>x.prod===prod) || {prod};
+    if(/torta/i.test([i.prod, i.classe, i.pa, i.categ, i.obs].join(" "))) return false;
+    return familiaEfetiva(i)==="outros";
+  });
   add(semClasse.length===0,"Insumo usado no plano sem classe agronômica",
       semClasse.length ? semClasse.length+": "+semClasse.slice(0,5).join(", ")+(semClasse.length>5?"…":"")+
         " — escolha o Grupo no cadastro de insumos" : "",
