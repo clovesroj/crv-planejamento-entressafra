@@ -10,11 +10,11 @@ function pintarCapa(R){
   $("#k_capa").innerHTML =
     kpi("Custo total projetado","",brl(R.SEL.total), R.SEL.parcial?R.SEL.rotulo:"","total") +
     (()=>{ const H = custoHaPlantado(R);
-      /* O cartao responde "quanto custa plantar a area", nao "quanto custa um
-         hectare": o numero grande e o total da formacao do canavial, e o R$/ha
-         vira detalhe -- foi o que a operacao pediu ao olhar o rastro. */
-      return kpi("Custo de plantar a área","t",brl(H.total),
-        (H.ha ? fmt(H.ha)+" ha · "+brl(H.valor)+"/ha · " : "")+H.nota,"custoha"); })() +
+      /* R$/ha no numero grande e o total logo abaixo: e o indicador que se
+         compara com referencia de mercado, e o total responde "quanto custa
+         plantar a area toda" sem precisar abrir o rastro. */
+      return kpi("Custo por ha plantado","t",brl(H.valor)+"/ha",
+        (H.ha ? brl(H.total)+" para plantar "+fmt(H.ha)+" ha · " : "")+H.nota,"custoha"); })() +
     kpi("Hectares operados","g",fmt(R.haOp)+" ha","","hect:total") +
     kpi("Efetivo total","a",fmt(R.efetivoTotal||0)+" pessoas","","pessoas:total");
   $("#capa_status").innerHTML = `

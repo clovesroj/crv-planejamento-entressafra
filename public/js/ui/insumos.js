@@ -1,4 +1,4 @@
-import { composicao, doseBase, etapasNoPlano, familiaDe, freteEfetivo, insumosPorFamilia, precoInsumo, todasFamilias, tratCodigos, tratEtapas, tratListaTodos, usosTrat } from '../calculo/insumos.js';
+import { composicao, doseBase, etapasNoPlano, familiaDe, freteEfetivo, insumosPorFamilia, precoInsumo, todasFamilias, tratCodigos, tratEtapas, tratListaTodos, usoDoTratamento, usosTrat } from '../calculo/insumos.js';
 import { modoLiberado } from '../calculo/atividade.js';
 import { TRAT_ETAPAS } from '../dados/insumos.js';
 import { ATIV_TRAT_SEL, DIM, INSUMO, INS_EDIT, INS_FICHA, P, PLANO, TRATC, TRAT_ATIVO, TRAT_ETAPA, TRAT_NOME, TRAT_OBS, TRAT_SEL, atividadesLista, insLista } from '../nucleo/estado.js';
@@ -430,8 +430,9 @@ function pintarInsumos(R){
   $("#t_trat").innerHTML = th([["Cod_Trat"],["Nome"],["Observação"],["Etapas em que é usado"],["Produtos",1],
     ["Custo/ha",1],["Composição"],["Atividades que usam"],["Custo no plano",1],["Ativo",1],[""]])+"<tbody>"+
     TL.map(t=>{
-      const usos = R.L.filter(r=>r.trat===t.cod);
-      const areaT = usos.reduce((s,u)=>s+u.total,0);
+      // principal e extras, cada um com a SUA área (a mesma que o motor custeia)
+      const usos = usoDoTratamento(R.L, t.cod);
+      const areaT = usos.reduce((s,u)=>s+u.area,0);
       return `<tr${TRAT_ATIVO[t.cod]===false?' class="inativo"':''}><td><input data-trc="${esc(t.cod)}" value="${esc(t.cod)}" style="min-width:110px"
                  title="Alterar o código do tratamento"></td>
         <td><input data-trn="${esc(t.cod)}" value="${esc(TRAT_NOME[t.cod]||"")}"
@@ -442,7 +443,7 @@ function pintarInsumos(R){
         <td class="num calc">${composicao(t.cod).length}</td>
         <td class="num ${t.custo_ha>0?"tot":"calc"}">${t.custo_ha>0?brl(t.custo_ha,2):"—"}</td>
         <td>${TRATC[t.cod]?'<span class="badge b-warn">ajustado</span>':'<span class="badge b-ok">original</span>'}</td>
-        <td class="calc">${usos.length?usos.map(u=>(u.a.cod)).join(", "):"—"}</td>
+        <td class="calc">${usos.length?usos.map(u=>u.r.a.cod+(u.principal?"":" (extra)")).join(", "):"—"}</td>
         <td class="num ${areaT?"tot":"calc"}">${areaT?brl(areaT*t.custo_ha):"—"}</td>
         <td class="num"><input type="checkbox" data-tra="${esc(t.cod)}" ${TRAT_ATIVO[t.cod]===false?"":"checked"}
             title="Inativo some das buscas para vincular a uma atividade NOVA ou como tratamento extra, mas continua valendo onde já está lançado"></td>

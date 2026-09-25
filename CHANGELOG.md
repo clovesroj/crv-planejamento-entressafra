@@ -1,5 +1,42 @@
 # Histórico de mudanças
 
+## 2.50.3 — 2026-09-25 · Tratamento: Plano Operacional, cadastro e relatório com o mesmo valor
+
+**O que parecia errado:** na linha PL05 (Adubação de fundação) o Plano
+Operacional mostrava R$ 1.853,37/ha ao lado do tratamento "1 ADF T2", que no
+cadastro custa R$ 2.219,75/ha (600 kg/ha × R$ 3.699,58/t). O custo do
+tratamento estava certo nas duas telas: a atividade tem **dois tratamentos**,
+cada um com a sua área (a setinha ▸ da linha). A coluna R$/ha da linha
+principal é o insumo total ÷ a área total, uma **média** dos tratamentos, e
+aparecia ao lado do seletor que mostra só o principal. Nas sub-linhas, cada
+tratamento já mostrava o seu R$/ha, igual ao cadastro.
+
+- **Plano Operacional:** quando a atividade tem mais de um tratamento, o R$/ha
+  da linha vem marcado "média de N tratamentos ▸". A dica lista o custo/ha e
+  a área de cada um, com os mesmos valores do cadastro.
+
+**Erros do mesmo tipo, corrigidos:**
+
+- **Aba Insumos, tabela de tratamentos, coluna "Custo no plano":** contava só
+  o tratamento principal de cada atividade, com a área **inteira** da
+  atividade. O principal saía inflado (no caso acima, 2.400 ha em vez da área
+  dele) e o tratamento extra aparecia sem uso ("—"). Agora cada tratamento
+  entra com a área dele, como principal ou como extra; a coluna "Atividades
+  que usam" marca "(extra)".
+- **Relatório de tratamentos:** a mesma conta. O filtro por etapa (Plantio,
+  Tratos) também ignorava os extras. Agora a área do tratamento em cada
+  atividade (no período do relatório) × custo/ha soma o insumo do plano.
+- **"Etapas em que o plano usa"** passa a contar o tratamento usado como extra.
+
+Um lugar só para essa conta: `usoDoTratamento` (calculo/insumos.js), com a
+mesma área que o motor custeia. **Nova checagem na Validação:** "custo dos
+tratamentos no cadastro = insumo do Plano Operacional".
+
+Nenhum custo do plano muda. Conferido com uma atividade junto da plantadora
+com dois tratamentos: a soma da tabela e do relatório fecha com o insumo do
+plano, no ano e na entressafra. 54 invariantes sem falha; 33 abas, 505 rastros
+e 138 relatórios sem erro.
+
 ## 2.50.2 — 2026-09-24 · Custo operacional × custo total: os dois números explicados nas duas telas
 
 A página "Custo operacional" da aba Custos e os cartões de custo por hectare

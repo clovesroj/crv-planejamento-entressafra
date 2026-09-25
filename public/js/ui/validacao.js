@@ -4,7 +4,7 @@ import { PREMISSAS_BASE, premissaBase } from '../calculo/base-fisica.js';
 import { ETAPAS_ORD, arrRat } from '../calculo/arrendamento.js';
 import { CFG } from '../dados/cfg.js';
 import { SEP_MOD, crmDe, crmEspDe } from '../calculo/crm.js';
-import { composicao, etapaTrat, familiaEfetiva, produtosForaDoCadastro, tratCodigos, tratEtapas } from '../calculo/insumos.js';
+import { composicao, etapaTrat, familiaEfetiva, produtosForaDoCadastro, tratCodigos, tratCusto, tratEtapas, usoDoTratamento } from '../calculo/insumos.js';
 import { TRAT_ETAPAS } from '../dados/insumos.js';
 import { DIM, INSUMO, P, insLista } from '../nucleo/estado.js';
 import { MESES, NM, diasNoMesEntre, mesesEntre } from '../nucleo/calendario.js';
@@ -261,6 +261,12 @@ function validar(R){
   add(!CI.inativos.length, "Nenhum tratamento inativo vinculado ao plano",
       CI.inativos.length ? CI.inativos.length+" vínculo(s): "+CI.inativos.slice(0,3).map(x=>(x.cod)+" ("+x.trat+")").join(", ")+" — o custo entra, mas o tratamento some das buscas" : "",
       ir("demandas","#dem_conf_nota"));
+  /* Cadastro de tratamentos × Plano Operacional: a soma de área × custo/ha de
+     cada tratamento (principal e extras, como a tabela de tratamentos da aba
+     Insumos mostra) tem de ser o insumo do plano. */
+  const somaTrat = tratCodigos().reduce((s,cod)=>s+usoDoTratamento(R.L, cod).reduce((t,u)=>t+u.area*tratCusto(cod),0),0);
+  add(Math.abs(somaTrat-R.insumoT)<1, "Auditoria: custo dos tratamentos no cadastro = insumo do Plano Operacional",
+      Math.abs(somaTrat-R.insumoT)<1 ? brl(somaTrat) : "cadastro "+brl(somaTrat)+" × plano "+brl(R.insumoT), ir("insumos","#t_trat"));
   const TC_ = totaisContas(contasValores(R));
   add(Math.abs(TC_.total-R.total)<1,"Plano de Contas confere com o total",
       brl(TC_.total)+(R.total>0?" — "+fmt(TC_.total/R.total*100,1)+"% do custo total":""), ir("contas","#t_contas"));

@@ -140,21 +140,27 @@ function rastroCustoHa(R){
   const tot = F ? F.contabil : 0;
   const S = R.SEL;
   const blocos = [
+    /* A conta escrita como conta: numerador, divisor e resultado, com os sinais
+       na frente. As duas primeiras linhas eram "Formação do canavial" e "Custo
+       por hectare plantado" soltas, com o mesmo dinheiro em medidas
+       diferentes -- e a pergunta que voltou foi exatamente "qual a diferença
+       dos dois?". Aqui ela se responde sozinha. */
     {titulo:"A conta", linhas:[
       {rot:"Formação do canavial", val:brl(tot), ir:"op:formacao",
-       sub:"preparo de solo + plantio + tratos culturais de cana planta"},
-      {rot:"Área de plantio", val:fmt(ha)+" ha", sub:"premissa, aba Premissas"},
-      {rot:"Custo por hectare plantado", val:porHa(tot), sub:"formação do canavial ÷ área de plantio — o detalhe, não o indicador"},
+       sub:"preparo de solo + plantio + tratos culturais de cana planta — o custo de plantar a área toda"},
+      {rot:"÷ Área de plantio", val:fmt(ha)+" ha", sub:"premissa, aba Premissas"},
+      {rot:"= Custo por hectare plantado", val:porHa(tot),
+       sub:"o MESMO dinheiro dividido pela área — é o número grande deste rastro"},
     ]},
-    // as partes somam o numero grande: por isso o valor de cada uma e o total,
-    // e o R$/ha desce para o subtitulo, como no cartao
+    // as partes somam o numero grande do rastro (que e o R$/ha): por isso o
+    // valor de cada uma e em R$/ha, com o total dela no subtitulo
     {titulo:"As etapas que formam o canavial", linhas: partes.map(l=>({
-      rot:l.nome, val:brl(l.contabil), ir:"op:"+l.id,
-      sub:porHa(l.contabil)+" · "+fmt(tot>0?l.contabil/tot*100:0,1)+"% da formação"}))},
+      rot:l.nome, val:porHa(l.contabil), ir:"op:"+l.id,
+      sub:brl(l.contabil)+" · "+fmt(tot>0?l.contabil/tot*100:0,1)+"% da formação"}))},
     {titulo:"O que entra no custo de plantar", linhas: F ? [
-      {rot:"Operação — máquinas, mão de obra e insumos", val:brl(F.oper.total), sub:porHa(F.oper.total)},
+      {rot:"Operação — máquinas, mão de obra e insumos", val:porHa(F.oper.total), sub:brl(F.oper.total)},
       {rot:"Rateios — apoio, arrendamento, administrativo, depreciação e gerais",
-       val:brl(F.rateio.total), sub:porHa(F.rateio.total)},
+       val:porHa(F.rateio.total), sub:brl(F.rateio.total)},
     ] : []},
     /* O que a cana soca, a colheita e o apoio custam não forma canavial: fica
        fora deste indicador, e aparece aqui para a conta do plano fechar. A muda
@@ -168,13 +174,13 @@ function rastroCustoHa(R){
       .concat([{rot:"Custo total do plano"+(S.parcial?" — "+S.rotulo:""), val:brl(S.total), ir:"total",
         sub:ha>0 ? brl(S.total/ha)+"/ha de plantio, com o plano inteiro" : ""}])},
   ];
-  /* O numero grande e o TOTAL de formar o canavial -- "quanto custa plantar
-     esta area". O R$/ha continua logo abaixo, na conta, como detalhe: era o
-     contrario, e a pergunta que a operacao faz e a do total. */
+  /* O numero grande e o R$/ha -- o indicador que se compara com referencia de
+     mercado --, e o total de plantar a area vem logo abaixo, na conta e no
+     subtitulo do cartao. As duas leituras aparecem sem precisar escolher uma. */
   return {
-    titulo:"Custo de plantar a área",
-    subtitulo:"preparo de solo + plantio + tratos culturais de cana planta",
-    valor: brl(tot),
+    titulo:"Custo por hectare plantado",
+    subtitulo:"formação do canavial ÷ área de plantio",
+    valor: porHa(tot),
     blocos,
     premissas:[{rot:"Área de plantio", val:fmt(ha)+" ha"}].concat(premissasGerais()),
     voltar:"total",

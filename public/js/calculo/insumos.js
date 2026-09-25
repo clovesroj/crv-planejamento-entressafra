@@ -315,11 +315,11 @@ function etapaTrat(a){
   if(a.etapa==="COLHEITA")        return "colheita";
   return "apoio";
 }
-// etapas em que o plano de fato usa o tratamento
+// etapas em que o plano usa o tratamento -- como principal ou como extra
 function etapasNoPlano(cod){
   const s = new Set();
   atividadesLista().forEach(a=>{ const p=PLANO[a.cod];
-    if(p && p.trat===cod) s.add(etapaTrat(a)); });
+    if(p && (p.trat===cod || (Array.isArray(p.trats) && p.trats.some(e=>e && e.trat===cod)))) s.add(etapaTrat(a)); });
   return [...s];
 }
 function marcarEtapa(cod, etapa, ligada){
@@ -459,8 +459,8 @@ function tratamentosDaLinha(r){
   if(!r || !r.ehHa || !(r.total>0)) return [];
   if(Array.isArray(r.tratsDetalhe) && r.tratsDetalhe.length)
     return r.tratsDetalhe.filter(d=>d.trat && d.area>0)
-      .map(d=>({trat:d.trat, area:d.area, m:(d.m||[]).map(num)}));
-  return r.trat ? [{trat:r.trat, area:r.total, m:(r.meses||[]).map(num)}] : [];
+      .map(d=>({trat:d.trat, area:d.area, m:(d.m||[]).map(num), principal:!!d.principal}));
+  return r.trat ? [{trat:r.trat, area:r.total, m:(r.meses||[]).map(num), principal:true}] : [];
 }
 /* Volume de cada produto mês a mês, na unidade do cadastro (doseBase).
    soCompra: pula a linha de composição marcada "compra:false" (produto que só
@@ -476,6 +476,20 @@ function demandaMensal(L, soCompra){
   }));
   return v;
 }
+/* Onde um tratamento é usado no plano: cada atividade, com a área e os meses
+   DELE -- como principal ou como extra (tratamentosDaLinha). É a mesma área
+   que o motor multiplica pelo custo/ha do tratamento, então área × custo/ha
+   aqui fecha com o insumo do plano. A tabela de tratamentos da aba Insumos e
+   o relatório de tratamentos usavam só o principal, com a área inteira da
+   atividade: o principal saía inflado e o extra, zerado. */
+function usoDoTratamento(L, cod){
+  const usos = [];
+  L.forEach(r=>tratamentosDaLinha(r).forEach(t=>{
+    if(t.trat!==cod) return;
+    usos.push({r, area:t.area, m:t.m, principal:t.principal});
+  }));
+  return usos;
+}
 const somarMeses = v => Object.fromEntries(Object.entries(v).map(([k,a])=>[k, a.reduce((s,x)=>s+x,0)]));
 // volume de cada produto projetado pela alocação real dos tratamentos no plano operacional
 function volumeDemandado(L){ return somarMeses(demandaMensal(L, false)); }
@@ -490,4 +504,4 @@ function volumeCompra(L){ return somarMeses(demandaMensal(L, true)); }
 export { _tratCache, _tratKey, chaveProd, codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, doseBase, duplicarTrat, etapaTrat, etapasNoPlano, familiaDe, familiaEfetiva, freteEfetivo,
   familiaDoInsumo, insumoDoCadastro, insumosPorFamilia, invalidarIndiceInsumos, mesclarBaseInsumos, produtosForaDoCadastro, resolverProduto,
   marcarEtapa, precoInsumo, removerGrupoInsumo, removerTrat, renomearGrupoInsumo, renomearTrat, setClasseGrupo, todasFamilias, tratCodigos, tratCusto, tratEtapas,
-  tratLista, tratListaTodos, tratTabela, tratamentosDaLinha, demandaMensal, usosTrat, volumeDemandado, volumeCompra };
+  tratLista, tratListaTodos, tratTabela, tratamentosDaLinha, demandaMensal, usoDoTratamento, usosTrat, volumeDemandado, volumeCompra };

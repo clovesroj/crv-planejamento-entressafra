@@ -10,7 +10,7 @@ import { GERENCIAS, criterioPorMes, excecoes, execucao, metasDeFrota, metasPorAt
 import { CFG } from '../dados/cfg.js';
 import { CAT_LBL, MESES, NM, PERIODOS, periodoMes } from '../nucleo/calendario.js';
 import { estruturaApoio } from '../calculo/apoio.js';
-import { composicao, etapasNoPlano, tratEtapas, tratListaTodos, volumeCompra, volumeDemandado } from '../calculo/insumos.js';
+import { composicao, etapasNoPlano, tratEtapas, tratListaTodos, tratamentosDaLinha, usoDoTratamento, volumeCompra, volumeDemandado } from '../calculo/insumos.js';
 import { BROCA, CIGARRINHA, custoTotal, fmtVolume, linhasDe, resumoInsumos, valorHa, volumeInsumo } from '../ui/fitossanitario.js';
 import { TRAT_ETAPAS } from '../dados/insumos.js';
 import { INSUMO, P, TRAT_ATIVO, TRAT_NOME, insLista } from '../nucleo/estado.js';
@@ -473,20 +473,22 @@ const fitoTerc = R => {
    completa, mesmo padrão de insumosDe). Com etapa(s): só tratamento ATIVO que
    alguma atividade lançada naquelas etapas de fato usa. */
 const tratamentosDe = etapas => R => {
-  const usados = etapas ? new Set(R.L.filter(r=>etapas.includes(r.a.etapa) && r.trat).map(r=>r.trat)) : null;
+  // tratamentos das atividades daquelas etapas -- principal e extras
+  const usados = etapas ? new Set(R.L.filter(r=>etapas.includes(r.a.etapa)).flatMap(r=>tratamentosDaLinha(r).map(t=>t.trat))) : null;
   const lista = tratListaTodos().filter(t => TRAT_ATIVO[t.cod]!==false && (!usados || usados.has(t.cod)));
   return secP("Tratamentos","Tratamentos — composição, etapa e uso no plano",
   ["Cod_Trat","Nome","Etapas marcadas","Etapas em que o plano usa","Produtos","Composição",
    "Custo/ha","Atividades que usam","Área tratada","Custo no plano"],
   lista.map(t=>{
-    const usos = R.L.filter(r=>r.trat===t.cod).map(ativP).filter(r=>r.total>0);
-    const area = usos.reduce((s,u)=>s+u.total,0);
+    // a área DO tratamento em cada atividade (principal ou extra), nos meses do período
+    const usos = usoDoTratamento(R.L, t.cod).map(u=>({...u, area: REC.parcial ? noPer(u.m) : u.area})).filter(u=>u.area>0);
+    const area = usos.reduce((s,u)=>s+u.area,0);
     const marc = tratEtapas(t.cod).map(e=>TRAT_ETAPAS[e].nome).join(" · ");
     const plano = etapasNoPlano(t.cod).map(e=>TRAT_ETAPAS[e].nome).join(" · ");
     return [t.cod, TRAT_NOME[t.cod]||"—", marc||"sem marcação", plano||"—",
       composicao(t.cod).length,
       composicao(t.cod).map(l=>l.prod+" "+fmt(num(l.dose),2)+" "+(l.un||"")).join(" · ")||"—",
-      t.custo_ha>0?brl(t.custo_ha,2):"—", usos.map(u=>(u.a.cod)).join(", ")||"—",
+      t.custo_ha>0?brl(t.custo_ha,2):"—", usos.map(u=>u.r.a.cod+(u.principal?"":" (extra)")).join(", ")||"—",
       area>0?fmt(area)+" ha":"—", area>0?brl(area*t.custo_ha):"—"];}));
 };
 const tratamentos = tratamentosDe(null);
