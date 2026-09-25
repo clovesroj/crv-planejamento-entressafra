@@ -8,7 +8,7 @@ import { ETAPAS_ORD, arrRat, arrendCalc } from './arrendamento.js';
 import { diretoNoMes, linha, picoFrotaPorItem } from './atividade.js';
 import { CRM_COMP, crmFrota } from './crm.js';
 import { precoDiesel } from './diesel.js';
-import { volumeDemandado } from './insumos.js';
+import { invalidarIndiceInsumos, volumeDemandado } from './insumos.js';
 import { irrigacao } from './irrigacao.js';
 import { apoioOperCalc, fatCalc, mdoParams } from './mao-de-obra.js';
 import { quadroFixoCalc } from './quadro-fixo.js';
@@ -19,6 +19,7 @@ import { transporte } from './transporte.js';
 
 /* ================== CONSOLIDAÇÃO ================== */
 function calcular(){
+  invalidarIndiceInsumos();   // o cadastro pode ter mudado desde o último cálculo
   P.capTransb = P.volTransb*P.densCarga;   // capacidade por viagem = volume útil x densidade de carga
   const MP = mdoParams();
   const L = atividadesLista().map(a=>linha(a, MP));

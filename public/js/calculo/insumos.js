@@ -211,10 +211,72 @@ function mesclarBaseInsumos(){
   });
   return {novos, completados, total:lista.length};
 }
+/* ---------- o cadastro ativo como fonte única do produto ----------
+   Tratamento cita produto por nome, e o nome pode vir de outra fonte que não o
+   cadastro de hoje: a composição-base do sistema (TRAT_DET), uma composição
+   gravada antes de o produto ser renomeado, digitação em caixa diferente. Com
+   busca por nome exato, o produto "sumia": sem preço, sem grupo, e fora da
+   trava de exclusão ("Stone sc" no tratamento não impedia excluir "Stone SC").
+   Toda referência passa por aqui e cai no item do cadastro ativo: nome exato
+   primeiro (quem já batia continua igual), depois código, depois nome sem
+   acento/caixa/pontuação. Entre candidatos, o ativo ganha.
+
+   Índice refeito a cada cálculo (calcular() chama invalidarIndiceInsumos) e
+   quando a lista muda de tamanho ou é trocada -- dentro de um render o cadastro
+   não muda, e o índice troca centenas de find() por consulta direta. */
+let _idx = null;
+function invalidarIndiceInsumos(){ _idx = null; }
+function indiceInsumos(){
+  const lista = insLista();
+  if(_idx && _idx.lista===lista && _idx.n===lista.length) return _idx;
+  const nome = new Map(), cod = new Map(), chave = new Map();
+  const add = (m, k, i) => { if(!k) return; const a = m.get(k); a ? a.push(i) : m.set(k, [i]); };
+  lista.forEach(i=>{
+    if(!nome.has(i.prod)) nome.set(i.prod, i);   // mesmo resultado de find(): o primeiro
+    add(cod, String(i.cod||"").trim(), i);
+    add(chave, chaveProd(i.prod), i);
+  });
+  return (_idx = {lista, n:lista.length, nome, cod, chave});
+}
+const preferirAtivo = (cands, chave) => cands.length===1 ? cands[0]
+  : cands.find(i=>i.ativo!==false && (!chave || chaveProd(i.prod)===chave))
+    || cands.find(i=>i.ativo!==false) || cands[0];
+/** Item do cadastro com esse nome exato (o primeiro, como find()). */
+function insumoDoCadastro(prod){
+  const i = indiceInsumos().nome.get(prod);
+  return i && i.prod===prod ? i : insLista().find(x=>x.prod===prod);
+}
+/** Item do cadastro ativo a que uma referência (nome e, se houver, código) se
+    refere -- ou null quando não há nenhum. */
+function resolverProduto(prod, codigo){
+  const ix = indiceInsumos();
+  const exato = insumoDoCadastro(prod);
+  if(exato) return exato;
+  const k = chaveProd(prod), c = String(codigo||"").trim();
+  const porCod = c && ix.cod.get(c);
+  if(porCod && porCod.length) return preferirAtivo(porCod, k);
+  const porChave = k && ix.chave.get(k);
+  if(porChave && porChave.length) return preferirAtivo(porChave, null);
+  return null;
+}
+// linha de composição apontando para o nome do cadastro (cópia só quando muda)
+function linhaNoCadastro(l){
+  const r = resolverProduto(l.prod, l.cod);
+  return r && r.prod!==l.prod ? {...l, prod:r.prod} : l;
+}
+/** Referências de tratamento que não achariam produto nenhum no cadastro --
+    o que a aba Validação mostra para corrigir. */
+function produtosForaDoCadastro(){
+  const fora = [];
+  tratCodigos().forEach(c=>composicao(c).forEach(l=>{
+    if(l.prod && !insumoDoCadastro(l.prod)) fora.push({trat:c, prod:l.prod}); }));
+  return fora;
+}
+
 function precoInsumo(prod){
   const ov = INSUMO[prod];
   const base = ov && ov.preco!=null ? num(ov.preco)
-             : num((insLista().find(i=>i.prod===prod)||{preco:0}).preco);
+             : num((insumoDoCadastro(prod)||{preco:0}).preco);
   return base * (1 + P.ipreco/100);
 }
 function tratCodigos(){
@@ -223,11 +285,18 @@ function tratCodigos(){
   // tratamento removido some da lista, inclusive quando vinha do cadastro base
   return [...s].filter(c=>!TRAT_DEL[c]).sort();
 }
-// composição de um tratamento: a customizada, se existir; senão a base do cadastro
+/* Composição de um tratamento: a customizada, se existir; senão a base do
+   sistema -- com cada produto já apontando para o nome do cadastro ativo
+   (linhaNoCadastro). A ordem das linhas é a mesma de TRATC[cod]: a tela de
+   composição edita pelo índice via destravar(), então não pode reordenar.
+   Sem nada a corrigir devolve o próprio TRATC[cod], sem cópia. */
 function composicao(cod){
   if(TRAT_DEL[cod]) return [];
-  if(TRATC[cod]) return TRATC[cod];
-  return CFG.trat_det.filter(t=>t.trat===cod).map(t=>({prod:t.prod,dose:num(t.dose),un:t.un||""}));
+  const base = TRATC[cod]
+    || CFG.trat_det.filter(t=>t.trat===cod).map(t=>({prod:t.prod,dose:num(t.dose),un:t.un||""}));
+  let mudou = false;
+  const r = base.map(l=>{ const n = linhaNoCadastro(l); if(n!==l) mudou = true; return n; });
+  return mudou ? r : base;
 }
 
 /* ---------- etapas do tratamento ----------
@@ -340,12 +409,17 @@ function freteEfetivo(l){
     não converte — é o caso de toda linha de hoje, então nenhum custo já
     calculado muda com isto. */
 function doseBase(l){
-  const reg = insLista().find(i => i.prod === l.prod);
+  const reg = resolverProduto(l.prod, l.cod);
   return num(l.dose) * fatorParaBase(l.un, reg && reg.un);
 }
-// destrava a composição para edição (copia a base uma única vez)
+/* Destrava a composição para edição (copia a base uma única vez). Já grava o
+   nome do produto como está no cadastro ativo: quem edita um tratamento leva
+   junto a correção de nome das linhas dele, e o dado salvo converge para o
+   cadastro em vez de depender da resolução a cada leitura. */
 function destravar(cod){
   if(!TRATC[cod]) TRATC[cod] = composicao(cod).map(l=>({...l}));
+  else TRATC[cod].forEach(l=>{ const r = resolverProduto(l.prod, l.cod);
+    if(r && r.prod!==l.prod) l.prod = r.prod; });
   return TRATC[cod];
 }
 let _tratCache = null, _tratKey = "";
@@ -414,6 +488,6 @@ function volumeDemandado(L){ return somarMeses(demandaMensal(L, false)); }
 function volumeCompra(L){ return somarMeses(demandaMensal(L, true)); }
 
 export { _tratCache, _tratKey, chaveProd, codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, doseBase, duplicarTrat, etapaTrat, etapasNoPlano, familiaDe, familiaEfetiva, freteEfetivo,
-  familiaDoInsumo, insumosPorFamilia, mesclarBaseInsumos,
+  familiaDoInsumo, insumoDoCadastro, insumosPorFamilia, invalidarIndiceInsumos, mesclarBaseInsumos, produtosForaDoCadastro, resolverProduto,
   marcarEtapa, precoInsumo, removerGrupoInsumo, removerTrat, renomearGrupoInsumo, renomearTrat, setClasseGrupo, todasFamilias, tratCodigos, tratCusto, tratEtapas,
   tratLista, tratListaTodos, tratTabela, tratamentosDaLinha, demandaMensal, usosTrat, volumeDemandado, volumeCompra };

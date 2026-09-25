@@ -401,7 +401,10 @@ document.addEventListener("change",e=>{
   // cadastro e corrige nome/caixa automaticamente -- evita produto "orfao"
   // por nome digitado diferente do cadastro (maiuscula, espaco, etc)
   if(t.dataset.tcod!==undefined){ const c=destravar(TRAT_SEL), l=c[+t.dataset.tcod];
-    const reg = insLista().find(i=>i.cod===t.value.trim());
+    // código repetido no cadastro (ex.: "Actara 750" ativo e "Actara 750 sg"
+    // inativo, mesmo 1178738): fica com o ativo
+    const mesmos = insLista().filter(i=>i.cod===t.value.trim());
+    const reg = mesmos.find(i=>i.ativo!==false) || mesmos[0];
     l.cod = t.value.trim();
     if(reg) l.prod = reg.prod;
     salvar(); render(); return; }

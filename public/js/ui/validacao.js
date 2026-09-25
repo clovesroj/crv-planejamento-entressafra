@@ -4,7 +4,7 @@ import { PREMISSAS_BASE, premissaBase } from '../calculo/base-fisica.js';
 import { ETAPAS_ORD, arrRat } from '../calculo/arrendamento.js';
 import { CFG } from '../dados/cfg.js';
 import { SEP_MOD, crmDe, crmEspDe } from '../calculo/crm.js';
-import { composicao, etapaTrat, familiaEfetiva, tratCodigos, tratEtapas } from '../calculo/insumos.js';
+import { composicao, etapaTrat, familiaEfetiva, produtosForaDoCadastro, tratCodigos, tratEtapas } from '../calculo/insumos.js';
 import { TRAT_ETAPAS } from '../dados/insumos.js';
 import { DIM, INSUMO, P, insLista } from '../nucleo/estado.js';
 import { codExibir } from '../nucleo/codigo-atividade.js';
@@ -181,6 +181,14 @@ function validar(R){
       semClasse.length ? semClasse.length+": "+semClasse.slice(0,5).join(", ")+(semClasse.length>5?"…":"")+
         " — escolha o Grupo no cadastro de insumos" : "",
       ir("insbase", `#t_ins tr.stage[data-fam="outros"]`, "#t_ins"));
+  /* Tratamento citando produto que não existe no cadastro ativo (nem por nome,
+     nem por código, nem por nome sem caixa/acento): sem preço e sem grupo.
+     Corrige-se na composição do tratamento, pela caixa de código. */
+  const fora = produtosForaDoCadastro();
+  add(fora.length===0,"Produto dos tratamentos existe no cadastro de insumos",
+      fora.length ? fora.length+": "+fora.slice(0,5).map(f=>`${f.trat} → ${f.prod}`).join(" · ")+(fora.length>5?"…":"")+
+        " — na aba Insumos, abra o tratamento e confirme o código do produto" : "",
+      ir("insumos","#t_comp"));
   // etapa marcada no tratamento x etapa em que o plano o usa
   const etapaFora = [];
   tratCodigos().forEach(c=>{
