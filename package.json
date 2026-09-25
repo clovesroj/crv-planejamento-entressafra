@@ -12,7 +12,8 @@
     "gasto-reforma-bi": "node scripts/gasto-reforma-bi.mjs"
   },
   "dependencies": {
-    "pg": "^8.13.1"
+    "pg": "^8.13.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "playwright": "^1.63.0"
