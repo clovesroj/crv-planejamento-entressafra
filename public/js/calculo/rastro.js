@@ -141,11 +141,17 @@ function rastroCustoHa(R){
   const tot = F ? F.contabil : 0;
   const S = R.SEL;
   const blocos = [
+    /* A conta escrita como conta: numerador, divisor e resultado, com os sinais
+       na frente. As duas primeiras linhas eram "Formação do canavial" e "Custo
+       por hectare plantado" soltas, com o mesmo dinheiro em medidas
+       diferentes -- e a pergunta que voltou foi exatamente "qual a diferença
+       dos dois?". Aqui ela se responde sozinha. */
     {titulo:"A conta", linhas:[
       {rot:"Formação do canavial", val:brl(tot), ir:"op:formacao",
-       sub:"preparo de solo + plantio + tratos culturais de cana planta"},
-      {rot:"Área de plantio", val:fmt(ha)+" ha", sub:"premissa, aba Premissas"},
-      {rot:"Custo por hectare plantado", val:porHa(tot), sub:"formação do canavial ÷ área de plantio — o detalhe, não o indicador"},
+       sub:"preparo de solo + plantio + tratos culturais de cana planta — é o número grande deste rastro"},
+      {rot:"÷ Área de plantio", val:fmt(ha)+" ha", sub:"premissa, aba Premissas"},
+      {rot:"= Custo por hectare plantado", val:porHa(tot),
+       sub:"o MESMO dinheiro dividido pela área: quanto custa formar um hectare"},
     ]},
     // as partes somam o numero grande: por isso o valor de cada uma e o total,
     // e o R$/ha desce para o subtitulo, como no cartao
