@@ -36,6 +36,7 @@ function setDadosBI(dados) {
   _dadosBIOverride = dados;
   cache = null;
   porFrotaIdx = null;
+  porEspecialidadeIdx = null;
 }
 
 /** Dados ativos: override da API, ou o arquivo estático como fallback. */
@@ -166,6 +167,31 @@ function itensDoEquipamentoNaJanela(cod, j = janelaGastoReal()){
   return itensDoEquipamento(cod).filter(l => naJanela(l, j));
 }
 
+// Índice esp -> lançamentos de QUALQUER frota daquela especialidade, pra
+// sugerir "incluir outro lançamento" com o que já foi apontado em máquina
+// irmã (mesmo modelo de colhedora, por exemplo) -- o mesmo serviço/peça é
+// comum entre unidades da mesma especialidade, e antes só aparecia o que já
+// tinha sido lançado nessa unidade exata.
+let porEspecialidadeIdx = null;
+function itensDaEspecialidade(cod) {
+  const esp = infoDeCod(cod)?.esp;
+  if (!esp) return itensDoEquipamento(cod);
+  if (!porEspecialidadeIdx) {
+    porEspecialidadeIdx = new Map();
+    for (const l of lancamentos()) {
+      const k = l.esp || '';
+      const arr = porEspecialidadeIdx.get(k);
+      if (arr) arr.push(l); else porEspecialidadeIdx.set(k, [l]);
+    }
+  }
+  return porEspecialidadeIdx.get(esp) || [];
+}
+/** Os lançamentos da especialidade (qualquer frota) que a janela corrente deixa contar. */
+function itensDaEspecialidadeNaJanela(cod, j = janelaGastoReal()){
+  if(janelaVazia(j)) return itensDaEspecialidade(cod);
+  return itensDaEspecialidade(cod).filter(l => naJanela(l, j));
+}
+
 /* ================== PRODUTO E SISTEMA ==================
    A descricao do ERP vem com a tag no fim (*RODANTE*, *HIDRAULICA*) e com
    espaco nao-separavel no lugar do espaco. `produtoDe` devolve o nome do
@@ -287,7 +313,7 @@ function comandoExtracao(inicio, fim){
 }
 
 export { lancamentos, filtrarLancamentos, agruparPor, opcoesDe, infoDeCod, itensDoEquipamento,
-         itensDoEquipamentoNaJanela, janelaGastoReal, janelaVazia, naJanela, coberturaBI, faltaExtrair, comandoExtracao,
+         itensDoEquipamentoNaJanela, itensDaEspecialidadeNaJanela, janelaGastoReal, janelaVazia, naJanela, coberturaBI, faltaExtrair, comandoExtracao,
          normTag, produtoDe, produtoGenerico, produtosDoEquipamento, sistemaDoLancamento, sistemaDoProduto, desdeUltimoAno,
          setDadosBI };
 

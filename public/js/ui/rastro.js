@@ -1,6 +1,6 @@
 import { rastro } from '../calculo/rastro.js';
 import { chaveItemReforma } from '../calculo/reforma.js';
-import { itensDoEquipamentoNaJanela } from '../calculo/gasto-real.js';
+import { itensDaEspecialidadeNaJanela } from '../calculo/gasto-real.js';
 import { $, brl, esc } from '../nucleo/formato.js';
 
 /* ---------- MODAL DE RASTRO ----------
@@ -72,29 +72,33 @@ function pintarRastro(R){
 
   // caixa "incluir outro lançamento" -- so existe quando o rastro e de um
   // conjunto de reforma (ver buscaAdicionar em rastroReformaBiItem(),
-  // calculo/rastro.js). Busca entre os lancamentos do PROPRIO equipamento,
-  // de qualquer tag -- e como "insere item na celula do Power BI" fica
-  // possivel mesmo quando o mapeamento automatico nao bateu.
+  // calculo/rastro.js). Busca entre os lancamentos de QUALQUER FROTA da
+  // MESMA ESPECIALIDADE (colhedora, caminhao...), de qualquer tag -- o mesmo
+  // servico/peca costuma se repetir entre maquinas irmas, e antes so
+  // aparecia o que ja tinha sido lancado nesta unidade exata. Mostra de qual
+  // frota veio quando nao e a propria, pra nao confundir com lancamento
+  // desta unidade.
   const blocoBusca = r.buscaAdicionar ? (()=>{
     const {cod, conjunto} = r.buscaAdicionar;
     const jaContam = new Set((r.blocos||[]).flatMap(b=>b.linhas).map(l=>l.flag && l.flag.chave).filter(Boolean));
     const termo = buscaItem.trim().toLowerCase();
-    const candidatos = itensDoEquipamentoNaJanela(cod)
+    const candidatos = itensDaEspecialidadeNaJanela(cod)
       .filter(it => !jaContam.has(chaveItemReforma(cod, it.compartimento, it)))
       .filter(it => !termo || it.desc.toLowerCase().includes(termo))
       .sort((a,b)=>b.valor-a.valor).slice(0, 30);
     return `<div class="ra-bloco">
-      <div class="ra-bloco-tit">Incluir outro lançamento deste equipamento</div>
+      <div class="ra-bloco-tit">Incluir outro lançamento desta especialidade</div>
       <input type="text" class="ra-busca-item" data-flag-busca="1" placeholder="Buscar por descrição..." value="${esc(buscaItem)}">
       <div class="ra-busca-lista">${candidatos.length ? candidatos.map(it=>{
         const chave = chaveItemReforma(cod, it.compartimento, it);
         return `<div class="ra-busca-item-linha" tabindex="0" role="button"
           data-flag-add-cod="${esc(cod)}" data-flag-add-conjunto="${esc(conjunto)}" data-flag-add-chave="${esc(chave)}">
           <div class="ra-rot">${esc(it.compartimento)} — ${esc(it.desc)}<span class="ra-sub">${esc(fmtDataCurta(it.data))}${
+            String(it.frota) !== String(cod) ? ` · frota ${esc(it.frota)}` : ""}${
             it.empresa ? ` · ${esc(it.empresa)}` : ""}</span></div>
           <div class="ra-val">${esc(brl(it.valor))}</div>
         </div>`;
-      }).join("") : `<div class="hint" style="padding:6px 0">${termo ? "Nada encontrado com esse termo." : "Nenhum outro lançamento deste equipamento pra incluir."}</div>`}</div>
+      }).join("") : `<div class="hint" style="padding:6px 0">${termo ? "Nada encontrado com esse termo." : "Nenhum outro lançamento desta especialidade pra incluir."}</div>`}</div>
     </div>`;
   })() : "";
 
