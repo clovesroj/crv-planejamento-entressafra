@@ -1,6 +1,6 @@
 import { CFG } from '../dados/cfg.js';
 import { CLASSES_GRUPO, FAMILIAS_INSUMO, TRAT_ETAPAS } from '../dados/insumos.js';
-import { FAM_CLASSE, FAM_NOME, INSUMO, P, PLANO, TRATC, TRAT_ATIVO, TRAT_DEL, TRAT_ETAPA, TRAT_NOME, TRAT_OBS, insLista, gruposInsLista, atividadesLista } from '../nucleo/estado.js';
+import { FAM_CLASSE, FAM_NOME, INSUMO, INS_DEL, P, PLANO, TRATC, TRAT_ATIVO, TRAT_DEL, TRAT_ETAPA, TRAT_NOME, TRAT_OBS, insLista, gruposInsLista, atividadesLista } from '../nucleo/estado.js';
 import { NM } from '../nucleo/calendario.js';
 import { num } from '../nucleo/formato.js';
 import { fatorParaBase } from '../nucleo/unidades.js';
@@ -199,8 +199,12 @@ function mesclarBaseInsumos(){
   const jaTem = new Map(lista.map(i=>[chaveProd(i.prod), i]));
   let novos = 0, completados = 0;
   CFG.insumos.forEach(base=>{
-    const atual = jaTem.get(chaveProd(base.prod));
-    if(!atual){ lista.push({...base}); novos++; return; }
+    const chave = chaveProd(base.prod);
+    const atual = jaTem.get(chave);
+    // produto do cadastro base que a pessoa removeu de propósito (INS_DEL) não
+    // volta numa próxima versão da base -- mesmo mecanismo do TRAT_DEL para
+    // tratamento removido; sem isso a exclusão nunca era definitiva.
+    if(!atual){ if(INS_DEL[chave]) return; lista.push({...base}); novos++; return; }
     let mudou = false;
     CAMPOS_TEC.forEach(k=>{ if(base[k] && !atual[k]){ atual[k]=base[k]; mudou=true; } });
     if(mudou) completados++;
@@ -409,7 +413,7 @@ function volumeDemandado(L){ return somarMeses(demandaMensal(L, false)); }
    deveria virar pedido de compra. */
 function volumeCompra(L){ return somarMeses(demandaMensal(L, true)); }
 
-export { _tratCache, _tratKey, codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, doseBase, duplicarTrat, etapaTrat, etapasNoPlano, familiaDe, familiaEfetiva, freteEfetivo,
+export { _tratCache, _tratKey, chaveProd, codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, doseBase, duplicarTrat, etapaTrat, etapasNoPlano, familiaDe, familiaEfetiva, freteEfetivo,
   familiaDoInsumo, insumosPorFamilia, mesclarBaseInsumos,
   marcarEtapa, precoInsumo, removerGrupoInsumo, removerTrat, renomearGrupoInsumo, renomearTrat, setClasseGrupo, todasFamilias, tratCodigos, tratCusto, tratEtapas,
   tratLista, tratListaTodos, tratTabela, tratamentosDaLinha, demandaMensal, usosTrat, volumeDemandado, volumeCompra };

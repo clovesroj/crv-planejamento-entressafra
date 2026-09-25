@@ -67,7 +67,7 @@ const AREAS = [
   { id: 'desligamentos-ctt', nome: 'Desligamentos', grupo: 'CTT', chaves: ['CTT_DESLIG', 'CTT_DESLIG_META'] },
 
   { id: 'insumos', nome: 'Insumos', grupo: 'Agricultura',
-    chaves: ['INSUMO', 'INSX', 'INSX_V', 'TRATC', 'TRAT_NOME', 'TRAT_OBS', 'TRAT_ETAPA', 'TRAT_DEL', 'TRAT_ATIVO', 'MATX', 'GRUPOS_INS', 'FAM_NOME', 'FAM_CLASSE'] },
+    chaves: ['INSUMO', 'INS_DEL', 'INSX', 'INSX_V', 'TRATC', 'TRAT_NOME', 'TRAT_OBS', 'TRAT_ETAPA', 'TRAT_DEL', 'TRAT_ATIVO', 'MATX', 'GRUPOS_INS', 'FAM_NOME', 'FAM_CLASSE'] },
   { id: 'irrig', nome: 'Irrigação', grupo: 'Agricultura',
     chaves: ['PLANO'], campos: ['perdaCarga', 'desnivel', 'rendBomba', 'kwh', 'fonte'] },
   // estoque dos materiais de manutencao (MATX[i].est): informado na aba Demandas
