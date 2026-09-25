@@ -140,8 +140,9 @@ function removerGrupoInsumo(id){
   if(FAMILIAS_INSUMO.some(f=>f.id===id)){
     return {ok:false, erro:"este grupo é fixo do cadastro e não pode ser removido"};
   }
-  const emUso = insLista().some(i=>(i.fam||"")===id);
-  if(emUso) return {ok:false, erro:"grupo em uso — mude o grupo dos produtos antes de remover"};
+  const produtos = insLista().filter(i=>(i.fam||"")===id).map(i=>i.prod);
+  if(produtos.length) return {ok:false, erro:`grupo em uso por ${produtos.length} produto(s) — `+
+    `mude o grupo de ${produtos.slice(0,5).join(", ")}${produtos.length>5?"…":""} no Cadastro de Insumos antes de remover`};
   const lista = gruposInsLista();
   const ix = lista.findIndex(f=>f.id===id);
   if(ix<0) return {ok:false, erro:"grupo não encontrado"};

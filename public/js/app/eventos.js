@@ -818,12 +818,10 @@ document.addEventListener("click",e=>{
     setTRAT_SEL(novo.trim());
     marcarTratNovo(novo.trim()); render(); return; }
   if(t.dataset.trrm!==undefined){ const cod=t.dataset.trrm, usos=usosTrat(cod);
-    if(!confirm(usos.length
-      ? `Remover o tratamento "${cod}"? As atividades ${usos.join(", ")} ficam sem tratamento.`
-      : `Remover o tratamento "${cod}"?`)) return;
+    if(usos.length){ alert(`O tratamento "${cod}" não pode ser removido: está vinculado à(s) atividade(s) ${usos.join(", ")} no Plano Operacional. Desvincule-o lá (ou apague o lançamento) antes de excluir.`); return; }
+    if(!confirm(`Remover o tratamento "${cod}"?`)) return;
     removerTrat(cod);
     if(TRAT_SEL===cod) setTRAT_SEL(null);
-    if(usos.length) avisoPlano(usos, "removido");
     marcarTratRemovido(cod); render(); return; }
   if(t.dataset.aprm!==undefined){ apoioLista().splice(+t.dataset.aprm,1); salvar(); render(); return; }
   // aba Apoio: qual estrutura mostrar (so visao), copiar para o outro periodo, zerar o periodo
@@ -841,7 +839,7 @@ document.addEventListener("click",e=>{
   if(t.dataset.inrm!==undefined){
     const i=insLista()[+t.dataset.inrm];
     const usos=tratCodigos().filter(c=>composicao(c).some(l=>l.prod===i.prod));
-    if(usos.length && !confirm(`"${i.prod}" é usado em ${usos.length} tratamento(s). Remover assim mesmo?`)) return;
+    if(usos.length){ alert(`"${i.prod}" não pode ser removido: está na composição do(s) tratamento(s) ${usos.join(", ")}. Remova o produto da composição desses tratamentos (aba Insumos e Tratamentos) antes de excluir.`); return; }
     insLista().splice(+t.dataset.inrm,1); marcarInsRemovido(i); render(); return; }
   if(t.dataset.grprm!==undefined){
     const r = removerGrupoInsumo(t.dataset.grprm);
@@ -850,7 +848,7 @@ document.addEventListener("click",e=>{
   if(t.dataset.atrm!==undefined){
     const cod = t.dataset.atrm, p = PLANO[cod];
     const emUso = p && (p.trat || (p.m||[]).some(v=>num(v)>0));
-    if(emUso && !confirm(`"${cod}" tem área/tonelada ou tratamento lançado no Plano Operacional. Remover assim mesmo?`)) return;
+    if(emUso){ alert(`"${cod}" não pode ser removida: tem área/tonelada ou tratamento lançado no Plano Operacional. Zere o lançamento lá antes de excluir.`); return; }
     if(!removerAtividade(cod)){ alert("Essa atividade não pode ser removida aqui."); return; }
     marcarAtivRemovido(cod); render(); return; }
   if(t.dataset.grpren!==undefined){
