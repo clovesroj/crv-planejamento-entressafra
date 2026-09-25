@@ -136,11 +136,25 @@ function custoPorOperacao(R){
 /* Custo por hectare plantado: a formação do canavial — preparo de solo,
    plantio e tratos de cana planta — dividida pela área de plantio. Cana soca,
    colheita e apoio não formam canavial e ficam fora deste indicador. */
+/* Custo por hectare plantado: o custo TOTAL da formação do canavial (operação
+   + rateios) pela área de plantio. Leva junto as duas parcelas -- a
+   operacional (o que custa fazer) e a dos rateios (arrendamento, administração,
+   depreciação, apoio e gerais) --, para toda tela mostrar de onde vem o
+   número e não confundir com o custo operacional por hectare. */
 function custoHaPlantado(R){
   const F = custoPorOperacao(R).formacao;
   const ha = F && F.base && F.base.q>0 ? F.base.q : 0;
   return {valor: ha ? F.contabil/ha : 0, total: F ? F.contabil : 0, ha,
+          oper: ha ? F.oper.total/ha : 0, rateio: ha ? F.rateio.total/ha : 0,
           nota: "preparo + plantio + tratos de cana planta"};
+}
+/* Base de uma operação em hectare que veio da soma das atividades (nenhuma
+   premissa de área): dez passadas no mesmo talhão contam dez hectares, e o
+   R$/ha sai subestimado. Texto do aviso, ou "" quando a base é premissa. */
+function avisoBase(l){
+  const b = l && l.base;
+  if(!b || b.fonte!=="atividades" || b.un!=="ha" || !(b.q>0)) return "";
+  return "⚠ base = soma das passadas: informe a área em Premissas › Base física";
 }
 
 /* ---------- custo de colheita, so o corte ----------
@@ -208,4 +222,4 @@ function referenciaSetorial(R){
   return {grupos, total: grupos.reduce((s,x)=>s+x.v,0)};
 }
 
-export { OPERACOES, OUTRAS, comps, culturaIrr, custoCorte, custoHaPlantado, custoPorOperacao, referenciaSetorial };
+export { OPERACOES, OUTRAS, avisoBase, comps, culturaIrr, custoCorte, custoHaPlantado, custoPorOperacao, referenciaSetorial };
