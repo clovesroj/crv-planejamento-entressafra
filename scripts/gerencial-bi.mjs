@@ -64,6 +64,7 @@ const LINK_BI = 'https://app.powerbi.com/view?r=eyJrIjoiN2Y0OTkxOTItNzVjMy00N2Yw
 class SemDados extends Error {}
 
 const PAGINAS_PADRAO = ['R$ / Ton', 'R$ / Km'];
+const MAX_TENTATIVAS = 4;
 const ESPECIALIDADES_PADRAO = [
   'CAMINHAO - CANAVIEIRO', 'CAMINHAO - TRANSBORDO', 'CARREGADEIRA - CANA',
   'COLHEDORA - CANA', 'REBOQUE - CANAVIEIRO', 'TRATOR - CANA', 'TRATOR - TRANSBORDO',
@@ -185,10 +186,17 @@ async function marcarEspecialidadeRadio(page, especialidade) {
 /**
  * Especialidade como arvore ampla com busca (role=treeitem) -- widget da
  * pagina R$/Km (campo mais amplo, dezenas de categorias, nao so as 7 de
- * producao). Busca o rotulo exato; so clica se AINDA nao estiver marcado --
- * ao digitar na busca, o Power BI as vezes ja mostra o unico resultado como
- * "selecionado" (destaque de navegacao, nao selecao de verdade), e clicar
- * nesse estado DESMARCA em vez de marcar (confirmado testando).
+ * producao). Duas coisas confirmadas testando ao vivo direto no relatorio
+ * publicado (o bug que gerava "Colhedora" vazando pra Caminhao/Trator
+ * Transbordo/Reboque nos dados extraidos):
+ *   1. A busca so filtra a arvore depois do Enter -- so digitar (mesmo com
+ *      pressSequentially) nao muda a lista visivel, e sem a lista filtrada o
+ *      item alvo nem sempre esta na janela renderizada (a arvore e virtual).
+ *   2. O relatorio abre com "COLHEDORA - CANA" marcada por padrao, e essa
+ *      arvore e MULTI-selecao (checkbox, nao radio): clicar num item novo
+ *      ADICIONA a selecao, nao troca. A busca ainda mostra o que ja esta
+ *      marcado mesmo fora do texto buscado, entao depois de filtrar e preciso
+ *      desmarcar tudo que nao for o alvo antes de marcar o alvo.
  */
 async function aplicarFiltroEspecialidadeArvore(page, especialidade) {
   const card = page.locator(
@@ -201,7 +209,18 @@ async function aplicarFiltroEspecialidadeArvore(page, especialidade) {
   await campo.click();
   await campo.fill('');
   await campo.pressSequentially(especialidade, { delay: 60 });
+  await campo.press('Enter');
   await page.waitForTimeout(1200);
+
+  const itens = await card.locator('[role="treeitem"]').all();
+  for (const el of itens) {
+    const marcado = await el.evaluate(n => !!n.querySelector('.slicerCheckbox.selected')).catch(() => false);
+    if (!marcado) continue;
+    const nome = (await el.textContent().catch(() => '')).trim();
+    if (nome === especialidade) continue;
+    await el.click({ timeout: 10000 });
+    await page.waitForTimeout(600);
+  }
 
   const item = card.getByRole('treeitem', { name: especialidade, exact: true }).first();
   if (!(await item.count().catch(() => 0))) return false;
@@ -380,7 +399,7 @@ async function prepararPaginaTentativa(page, { inicio, fim, pagina, especialidad
   // pagina que nao e a default (R$/Ton) precisa de mais tempo pra assentar
   // depois da troca de verdade -- clicar nos slicers cedo demais fica com
   // referencia a um DOM que esta sendo trocado no meio do redesenho.
-  await page.waitForTimeout(pagina === 'R$ / Ton' ? 4000 : 7000);
+  await page.waitForTimeout(pagina === 'R$ / Ton' ? 6000 : 9000);
 
   const painelOk = await abrirPainelFiltros(page);
   if (!painelOk) throw new Error('Nao consegui abrir o painel "Filtros do Relatório" (link nao encontrado).');
@@ -405,7 +424,11 @@ async function prepararPaginaTentativa(page, { inicio, fim, pagina, especialidad
   if (especialidade) {
     const ok = await aplicarEspecialidade(page, pagina, especialidade).catch(() => false);
     if (!ok) throw new Error(`Nao consegui marcar "${especialidade}" no filtro Especialidade (fatia ${inicio}..${fim}, ${pagina}). Confira a grafia exata.`);
-    await page.waitForTimeout(5000);
+    // mesmo motivo da espera depois da Data (linha acima): trocar Especialidade
+    // tambem refaz a consulta da pagina inteira. Visto na pratica rodando as
+    // 154 fatias reais: 5s nao bastava, empresa saia com dado de outra
+    // especialidade/empresa (matriz ainda nao tinha assentado).
+    await page.waitForTimeout(8000);
   }
 
   if (EMPRESA_FROTA) {
@@ -430,7 +453,7 @@ async function prepararPaginaTentativa(page, { inicio, fim, pagina, especialidad
     // agregando tudo de novo) demora mais -- confirmado copiando tabela com
     // empresa errada mesmo com o rotulo ja certo. A checagem linha-a-linha
     // logo depois de copiar pega o que essa espera nao cobrir.
-    await page.waitForTimeout(6000);
+    await page.waitForTimeout(7000);
   }
 
   if (FROTA_PROPRIA) {
@@ -451,16 +474,18 @@ async function prepararPaginaTentativa(page, { inicio, fim, pagina, especialidad
   await page.waitForTimeout(1500);
 
   if (EMPRESA_FROTA) {
-    // confere de verdade, depois de fechar o painel (o rotulo "Empresa: X" no
-    // topo da pagina fica escondido enquanto o painel esta aberto) -- nao so
-    // confia no clique ter "funcionado" sem checar o efeito
-    // O rotulo "Empresa:" no topo e so estilo (nao entra no innerText) -- o
-    // que aparece de verdade e so o VALOR, como uma das primeiras linhas da
-    // pagina (logo apos as duas datas). Confirmado por inspecao direta.
+    // O rotulo "Empresa: X" no topo (so o VALOR aparece no innerText, o
+    // prefixo "Empresa:" e estilo) e so um INDICIO -- pra algumas
+    // especialidades (Caminhao-Canavieiro, Reboque-Canavieiro) ele ficava
+    // "Multiplas Selecoes" mesmo com o filtro de verdade aplicado, fazendo a
+    // fatia inteira ser descartada e retentada a toa (e as vezes nunca
+    // emplacar em 4 tentativas). A garantia de verdade e outra: o filtro
+    // linha-a-linha em extrairFatiaTentativa, que descarta so as linhas de
+    // outra empresa depois de copiar. Por isso aqui so avisa, nao aborta.
     const texto = await page.locator('body').innerText().catch(() => '');
     const primeirasLinhas = texto.split('\n').slice(0, 8);
     if (!primeirasLinhas.includes(EMPRESA_FROTA)) {
-      throw new Error(`Marquei "${EMPRESA_FROTA}" no slicer Empresa Frota mas nao apareceu no topo da pagina (visto: ${JSON.stringify(primeirasLinhas)}) (fatia ${inicio}..${fim}, ${pagina}).`);
+      console.warn(`  [aviso] "${EMPRESA_FROTA}" nao apareceu no topo da pagina (visto: ${JSON.stringify(primeirasLinhas)}) -- seguindo mesmo assim, o filtro por linha na copia garante o dado certo.`);
     }
   }
 }
@@ -477,7 +502,7 @@ async function extrairFatiaTentativa(page, fatia) {
 
   const tsv = await copiarTabelaAnalitico(page);
   if (!tsv) throw new Error('Nao consegui copiar a tabela (menu de contexto ou clipboard falhou).');
-  const { colunas, linhas } = parseTSV(tsv);
+  const { colunas, linhas: linhasCopiadas } = parseTSV(tsv);
 
   const assinatura = COLUNA_ASSINATURA[pagina];
   if (assinatura && !colunas.includes(assinatura)) {
@@ -485,15 +510,18 @@ async function extrairFatiaTentativa(page, fatia) {
       `provavelmente copiou a pagina errada. Colunas vistas: ${colunas.join(' | ')}`);
   }
   // O rotulo "Empresa: X" no topo atualiza mais rapido que a matriz pesada
-  // (varias colunas, muitos calculos) -- confirmar so pelo rotulo nao basta:
-  // ja saiu tabela com OUTRA empresa mesmo com o rotulo certo (visto na
-  // pratica, numeros identicos repetidos em meses diferentes = copiou dado
-  // requentado de antes do filtro assentar). Confere linha a linha de verdade.
+  // (varias colunas, muitos calculos): a matriz pode trazer linha de outra
+  // empresa (a antiga, ainda nao substituida) junto ou no lugar da pedida.
+  // Em vez de jogar a fatia inteira fora e retentar (isso travava em loop
+  // pra algumas combinacoes), descarta so as linhas de outra empresa e fica
+  // com as que baterem -- cada linha ja tem sua propria empresa marcada,
+  // entao filtrar nao arrisca gravar numero errado.
+  let linhas = linhasCopiadas;
   if (EMPRESA_FROTA) {
-    const erradas = linhas.filter(l => l['Empresa Frota'] && l['Empresa Frota'] !== EMPRESA_FROTA);
+    const erradas = linhasCopiadas.filter(l => l['Empresa Frota'] && l['Empresa Frota'] !== EMPRESA_FROTA);
     if (erradas.length) {
-      throw new Error(`A tabela copiada tem linha(s) de outra empresa (${[...new Set(erradas.map(l => l['Empresa Frota']))].join(', ')}), ` +
-        `nao so "${EMPRESA_FROTA}" -- a matriz nao tinha assentado no filtro novo ainda quando copiei.`);
+      linhas = linhasCopiadas.filter(l => l['Empresa Frota'] === EMPRESA_FROTA);
+      console.warn(`  Descartando ${erradas.length} linha(s) de outra empresa (${[...new Set(erradas.map(l => l['Empresa Frota']))].join(', ')}), ficando so com "${EMPRESA_FROTA}".`);
     }
   }
   console.log(`  ${linhas.length} linha(s), ${colunas.length} coluna(s): ${colunas.join(' | ')}`);
@@ -507,15 +535,29 @@ async function extrairFatiaTentativa(page, fatia) {
 // emplaca de primeira, no outro precisa de 2-3 tentativas). Por isso repete a
 // fatia inteira do zero (reload completo, contexto novo) em vez de tentar
 // consertar so o passo que falhou.
+// Se o Chromium por tras trava/cai no meio de uma operacao sem timeout
+// proprio (visto na pratica: page.evaluate() do clipboard nao tem timeout
+// embutido), o await fica pendurado pra sempre -- a fatia (e o script
+// inteiro) trava sem erro nenhum. Um teto por tentativa garante que sempre
+// desiste e segue, em vez de ficar parado ate alguem perceber e reiniciar
+// na mao. 90s e generoso (uma tentativa normal fica bem abaixo disso).
+const TETO_POR_TENTATIVA_MS = 90000;
+function comTeto(promessa, ms, mensagem) {
+  return Promise.race([
+    promessa,
+    new Promise((_, rej) => setTimeout(() => rej(new Error(mensagem)), ms)),
+  ]);
+}
+
 async function extrairFatia(novaPagina, fatia) {
   const { inicio, fim, pagina, especialidade } = fatia;
   console.log(`\n=== Fatia ${inicio}..${fim} [${pagina}]${especialidade ? ' ' + especialidade : ''} ===`);
-  const MAX_TENTATIVAS = 3;
   let ultimoErro;
   for (let t = 1; t <= MAX_TENTATIVAS; t++) {
     const { context, page } = await novaPagina();
     try {
-      return await extrairFatiaTentativa(page, fatia);
+      return await comTeto(extrairFatiaTentativa(page, fatia), TETO_POR_TENTATIVA_MS,
+        `Travou mais de ${TETO_POR_TENTATIVA_MS / 1000}s nesta tentativa -- Chromium deve ter travado/caido.`);
     } catch (err) {
       if (err instanceof SemDados) {
         console.log(`  ${err.message} (0 linhas, seguindo)`);
@@ -524,7 +566,9 @@ async function extrairFatia(novaPagina, fatia) {
       ultimoErro = err;
       console.warn(`  Falhou (tentativa ${t}/${MAX_TENTATIVAS}): ${err.message}`);
     } finally {
-      await context.close();
+      // fechar o contexto tambem pode travar se o browser ja morreu por
+      // baixo -- nao deixa isso pendurar o loop inteiro.
+      await comTeto(context.close(), 10000, 'context.close travou').catch(() => {});
     }
   }
   throw ultimoErro;
@@ -630,7 +674,7 @@ async function main() {
     }
     console.log(`\nPronto. ${path.relative(process.cwd(), SAIDA)} cobre ${periodos.length} fatia(s).`);
     if (falhas.length) {
-      console.warn(`\n${falhas.length} fatia(s) nao saiu mesmo depois de 3 tentativas cada: ${falhas.join(', ')}. ` +
+      console.warn(`\n${falhas.length} fatia(s) nao saiu mesmo depois de ${MAX_TENTATIVAS} tentativas cada: ${falhas.join(', ')}. ` +
         `Rode o MESMO comando de novo -- as que ja deram certo sao puladas, so essas sao refeitas.`);
       // sai com erro (mesmo tendo gravado o que deu certo) pra quem chama em
       // loop (ex.: rodar-gerencial-bi.ps1) saber que precisa rodar de novo

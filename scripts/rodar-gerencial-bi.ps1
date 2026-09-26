@@ -9,6 +9,7 @@
 # Padrao: as 7 especialidades de producao (caminhao, trator, colhedora...) x
 # R$/Ton x R$/Km x todo mes do periodo -- fatias suficientes pra demorar.
 # -Especialidades "COLHEDORA - CANA,TRATOR - CANA" restringe a so algumas.
+# -Paginas "R$ / Km" restringe a so uma pagina (util pra refazer so ela).
 
 param(
   [Parameter(Mandatory)] [string]$Inicio,
@@ -16,7 +17,8 @@ param(
   [string]$EmpresaFrota = "",
   [string]$Especialidades = "",
   [string]$FrotaPropria = "",
-  [string]$Reforma = ""
+  [string]$Reforma = "",
+  [string]$Paginas = ""
 )
 
 $scriptArgs = @("scripts/gerencial-bi.mjs", "--inicio=$Inicio", "--fim=$Fim")
@@ -24,6 +26,7 @@ if ($EmpresaFrota) { $scriptArgs += "--empresafrota=$EmpresaFrota" }
 if ($Especialidades) { $scriptArgs += "--especialidades=$Especialidades" }
 if ($FrotaPropria) { $scriptArgs += "--frotapropria=$FrotaPropria" }
 if ($Reforma) { $scriptArgs += "--reforma=$Reforma" }
+if ($Paginas) { $scriptArgs += "--paginas=$Paginas" }
 
 while ($true) {
   node @scriptArgs 2>&1 | ForEach-Object {
