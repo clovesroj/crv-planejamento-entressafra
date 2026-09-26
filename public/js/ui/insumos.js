@@ -525,7 +525,7 @@ function pintarTratPeriodo(R){
     ? `${(a.cod)} — ${a.nome} vai na mesma passada da ${(linha.junto)}: a área e as datas são as dela, e aqui só se escolhe o tratamento.`
     : p.trat===TRAT_SEL
     ? `Lançando para ${(a.cod)} — ${a.nome}. Início e fim distribuem a área pelos meses automaticamente; os meses continuam editáveis à mão.`
-    : `${(a.cod)} — ${a.nome} ainda usa outro tratamento (${p.trat || "nenhum"}). Escolher esta atividade acima substitui o vínculo.`;
+    : `${(a.cod)} — ${a.nome} já usa ${(p.trat || "nenhum tratamento")} como principal; este entrou como tratamento extra, com área própria — lance-a no bloco abaixo.`;
   pintarTratExtras(exibindo, p, linha);
 }
 

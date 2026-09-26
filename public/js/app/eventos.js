@@ -435,7 +435,17 @@ document.addEventListener("change",e=>{
   if(t.id==="sel_trat_ativ"){
     const c=t.value;
     setATIV_TRAT_SEL(c);
-    if(c){ PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""}; PLANO[c].trat=TRAT_SEL; salvar(); }
+    // atividade ja tem OUTRO tratamento como principal: nao troca o vinculo
+    // existente (isso limpava a area ja lancada) -- entra como extra, mesma
+    // regra do #btn_trat_extra_add, com a area por conta do usuario lancar
+    if(c){
+      PLANO[c] = PLANO[c] || {m:Array(NM).fill(0), trat:""};
+      PLANO[c].trats = Array.isArray(PLANO[c].trats) ? PLANO[c].trats : [];
+      const jaExtra = PLANO[c].trats.some(e=>e.trat===TRAT_SEL);
+      if(!PLANO[c].trat) PLANO[c].trat = TRAT_SEL;
+      else if(PLANO[c].trat!==TRAT_SEL && !jaExtra) PLANO[c].trats.push({trat:TRAT_SEL, m:Array(NM).fill(0)});
+      salvar();
+    }
     render(); return; }
   if(t.dataset.ex!==undefined){ ESPOR[+t.dataset.ex][t.dataset.f]=t.value; salvar(); render(); return; }
   if(t.id==="p_fonte"){ lerPremissas(); salvar(); render(); return; }
