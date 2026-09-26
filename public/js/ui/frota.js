@@ -2,8 +2,9 @@ import { AG_SEM_FROTA, CRM_COMP, CRM_LABEL, FROTA_ESP, SEP_MOD, agDeLinha, agsCR
          MAQ_CAMPOS, chaveDoModelo, contaOrigem, crmDe, crmEspDe, crmUnDe, destinoDe, opcoesDestino,
          maqDe, modDe, rotuloItem, unidadesDoModelo } from '../calculo/crm.js';
 import { CFG } from '../dados/cfg.js';
+import { GERENCIAL_BI } from '../dados/gerencial-bi.js';
 import { CAT_SEL, CRM, CRM_ESP, FROTA, FROTA_ABERTO, FROTA_DEST, FROTA_ORIG, FROTA_UN as FROTA_UN_REF, MAQ } from '../nucleo/estado.js';
-import { $, brl, fmt } from '../nucleo/formato.js';
+import { $, esc, brl, fmt } from '../nucleo/formato.js';
 import { kpi, th } from './componentes.js';
 import { setCAT_SEL } from '../nucleo/estado.js';
 
@@ -177,7 +178,89 @@ function pintarCRM(R){
       <td class="num calc">${fmt(v/etT*100,1)}%</td>
       <td><div class="bar"><i style="width:${v/etT*100}%"></i></div></td></tr>`).join("")+
     `<tr><td class="tot">TOTAL</td><td class="num tot">${brl(etT)}</td><td class="num tot">100,0%</td><td></td></tr></tbody>`;
+
+  pintarGastoRealFrota();
 }
 
+/* ---------- Gasto real (ERP, via Power BI) ----------
+   So leitura, gerado por scripts/gerencial-bi.mjs (public/js/dados/gerencial-bi.js)
+   -- nao entra em estado()/persistencia, e referencia ao lado do CRM projetado
+   acima (mesmo espirito do gasto real na aba Reforma de Frota, so que aqui e
+   R$/Ton e R$/Km em vez de gasto por compartimento). */
+const MES_ABREV = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+const mesLabel = iso => { const [a,m] = iso.split("-"); return `${MES_ABREV[+m-1]}/${a.slice(2)}`; };
+
+// colunas de cada pagina do relatorio, na ordem que aparecem no Power BI --
+// ver colunasPorPagina em dados/gerencial-bi.js (varia conforme a metrica)
+const GR_COLS = {
+  "R$ / Ton": ["Qtd Frota","Gasto Total","Tonelada","R$/t","Combust.","Lubrif.","Peça","Pneu","Recapag.","Serviço","Consumo"],
+  "R$ / Km": ["Qtd Frota","Gasto Total","Litros Comb.","Km","lt / Km","Km / lt","R$ / Km","Combust.","Lubrif.","Peça","Pneu","Recapag.","Serviço","Consumo"],
+};
+
+// Filtro (visão, não dado): mesmo padrão de dropdown único + "Limpar filtros"
+// da aba Desligamentos (ui/planejamento-ctt.js) -- as opções vêm sempre do
+// conjunto INTEIRO (não do já filtrado), senão um valor escolhido some do
+// próprio dropdown assim que filtra.
+let GR_FILTROS = { mes: "", modelo: "", empresa: "" };
+
+function grOpcoes(itens, rotuloTodos, selecionado){
+  return `<option value="">${esc(rotuloTodos)}</option>` +
+    itens.map(v=>`<option value="${esc(v)}"${selecionado===v?" selected":""}>${esc(v)}</option>`).join("");
+}
+function grPassaFiltro(r){
+  return (!GR_FILTROS.mes || r._inicio===GR_FILTROS.mes) &&
+    (!GR_FILTROS.modelo || r["Modelo"]===GR_FILTROS.modelo) &&
+    (!GR_FILTROS.empresa || r["Empresa Frota"]===GR_FILTROS.empresa);
+}
+
+function tabelaGastoReal(idTabela, pagina){
+  const el = $(idTabela);
+  if(!el) return;
+  const colunas = GR_COLS[pagina];
+  const linhas = (GERENCIAL_BI?.registros||[]).filter(r=>r._pagina===pagina).filter(grPassaFiltro)
+    .sort((a,b)=> a._inicio.localeCompare(b._inicio) || a["Empresa Frota"].localeCompare(b["Empresa Frota"]));
+  el.innerHTML = th([["Mês"],["Empresa"],["Modelo"], ...colunas.map(c=>[c,1])])+"<tbody>"+
+    (linhas.length ? linhas.map(r=>`<tr><td>${mesLabel(r._inicio)}</td><td>${esc(r["Empresa Frota"])}</td><td>${esc(r["Modelo"])}</td>`+
+      colunas.map(c=>`<td class="num">${esc(r[c]??"—")}</td>`).join("")+"</tr>").join("")
+      : `<tr><td colspan="${3+colunas.length}" class="calc">Nada para este filtro -- rode scripts/gerencial-bi.mjs se ainda não extraiu.</td></tr>`)+
+    "</tbody>";
+}
+
+let GR_LISTENERS_PRONTOS = false;
+function wireGastoRealFrota(){
+  if(GR_LISTENERS_PRONTOS) return;
+  GR_LISTENERS_PRONTOS = true;
+  document.addEventListener("change", e=>{
+    const dim = {"gr_f_mes":"mes","gr_f_modelo":"modelo","gr_f_empresa":"empresa"}[e.target.id];
+    if(!dim) return;
+    GR_FILTROS[dim] = e.target.value;
+    pintarGastoRealFrota();
+  });
+  document.addEventListener("click", e=>{
+    if(e.target.closest("#gr_limpar")){ GR_FILTROS = {mes:"",modelo:"",empresa:""}; pintarGastoRealFrota(); }
+  });
+}
+
+function pintarGastoRealFrota(){
+  const el = $("#gr_filtros");
+  if(!el) return;
+  wireGastoRealFrota();
+  const todos = GERENCIAL_BI?.registros || [];
+  const meses = [...new Set(todos.map(r=>r._inicio))].sort();
+  const modelos = [...new Set(todos.map(r=>r["Modelo"]))].sort((a,b)=>a.localeCompare(b,"pt-BR"));
+  const empresas = [...new Set(todos.map(r=>r["Empresa Frota"]))].sort((a,b)=>a.localeCompare(b,"pt-BR"));
+  // "Mês" mostra "nov/25" mas guarda o ISO como value -- grOpcoes() não serve
+  // aqui porque o rótulo difere do valor.
+  const opcoesMes = `<option value="">Todos</option>` +
+    meses.map(iso=>`<option value="${esc(iso)}"${GR_FILTROS.mes===iso?" selected":""}>${esc(mesLabel(iso))}</option>`).join("");
+  el.innerHTML = `
+    <div style="min-width:120px"><label for="gr_f_mes">Mês</label><select id="gr_f_mes">${opcoesMes}</select></div>
+    <div style="min-width:160px"><label for="gr_f_empresa">Empresa</label><select id="gr_f_empresa">${grOpcoes(empresas, "Todas", GR_FILTROS.empresa)}</select></div>
+    <div style="min-width:200px"><label for="gr_f_modelo">Modelo</label><select id="gr_f_modelo">${grOpcoes(modelos, "Todos", GR_FILTROS.modelo)}</select></div>
+    <button type="button" class="btn" id="gr_limpar">Limpar filtros</button>`;
+
+  tabelaGastoReal("#t_gr_ton", "R$ / Ton");
+  tabelaGastoReal("#t_gr_km", "R$ / Km");
+}
 
 export { pintarCRM };

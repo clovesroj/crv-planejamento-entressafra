@@ -434,7 +434,7 @@
   <h2>Manutenção de Frota — CRM</h2>
   <p class="lead">Custos de reparos e manutenção por modelo, estratificados em peças, serviços de terceiros,
   materiais de uso e consumo e lubrificantes. O valor por hora alimenta todas as atividades que usam o equipamento.
-  Duas páginas — use o menu ao lado para trocar.</p>
+  Três páginas — use o menu ao lado para trocar.</p>
   <div class="grid g4" id="k_crm" style="margin-bottom:16px"></div>
 
   <details class="bloco" id="bl_frota_param" open>
@@ -478,6 +478,20 @@
         <div class="hint" style="margin-top:9px">O CRM é calculado pela frota prevista (quantidade x horas por
         equipamento) e alocado às etapas pelas horas de cada conjunto no plano. Equipamentos previstos que não
         aparecem no plano operacional entram em "FROTA ADICIONAL".</div></div>
+    </div>
+  </details>
+
+  <details class="bloco" id="bl_frota_gastoreal">
+    <summary><span class="bl-tit">Gasto Real (ERP)</span></summary>
+    <div class="bloco-corpo">
+      <p class="hint" style="margin:-4px 0 12px">Extraído do relatório "GERENCIAL" do Power BI (colhedoras de cana),
+      mês a mês — referência real ao lado do CRM projetado acima. Só leitura: atualizado rodando
+      <code>scripts/gerencial-bi.mjs</code> manualmente, não ao vivo.</p>
+      <div class="row" id="gr_filtros" style="margin-bottom:12px;align-items:flex-end"></div>
+      <div class="panel"><h3>R$ / Tonelada</h3>
+        <div class="tblwrap"><table id="t_gr_ton"></table></div></div>
+      <div class="panel"><h3>R$ / Km</h3>
+        <div class="tblwrap"><table id="t_gr_km"></table></div></div>
     </div>
   </details>
 </section>
