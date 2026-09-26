@@ -19,13 +19,14 @@ function cicloTransporte(raio){
 
 function transporte(L, MP){
   // Apenas dimensionamento. O CUSTO do transporte é carregado pelas atividades
-  // TR1..TR4 no plano operacional — manter aqui também geraria dupla contagem.
+  // CO02/PL02/CO03/PL03 (antigas TR1..TR4) no plano operacional — manter
+  // aqui também geraria dupla contagem.
   const ciclo = cicloTransporte;
   function bloco(cod){
     const r = L.find(x=>x.a.cod===cod);
     if(!r) return {ton:0,ciclo:0,capDia:0,tonDia:0,frota:0,frotaR:0,viagens:0,horas:0,
                    diesel:0,manut:0,mdo:0,total:0};
-    const raio = r.a.src==="A02" ? P.raioMuda : P.raioSafra;
+    const raio = r.a.src==="PL01" ? P.raioMuda : P.raioSafra;   // PL01 = Colheita muda (antigo A02)
     const cap  = r.a.modo==="caminhao" ? P.capCam : P.capTransb;
     const c = ciclo(raio);
     const capDia = c>0 ? (P.hDiaTr/c)*cap*(P.dispTr/100) : 0;
@@ -36,8 +37,8 @@ function transporte(L, MP){
             horas:r.horas, diesel:r.cDiesel, manut:r.cManut, mdo:r.cMDO,
             total:r.direto, cap};
   }
-  const camSafra = bloco("TR1"), camMuda = bloco("TR2");
-  const trbSafra = bloco("TR3"), trbMuda = bloco("TR4");
+  const camSafra = bloco("CO02"), camMuda = bloco("PL02");
+  const trbSafra = bloco("CO03"), trbMuda = bloco("PL03");
   const blocos = [camSafra,camMuda,trbSafra,trbMuda];
   return {blocos, camSafra, camMuda, trbSafra, trbMuda,
           total: blocos.reduce((s,b)=>s+b.total,0),

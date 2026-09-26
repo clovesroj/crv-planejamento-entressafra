@@ -61,7 +61,7 @@ function fornCalc(R){
   });
 
   /* ---- cana do próprio plano, separada em área própria e arrendada ---- */
-  const colhida = R.L.find(r=>r.a.cod==="A01");
+  const colhida = R.L.find(r=>r.a.cod==="CO01");   // CO01 = Colheita safra 2026 (antigo A01)
   const tonPlano = colhida ? colhida.total : 0;
   const areaArr = R.AR.area, areaPropria = fornPar("areaPropria");
   const areaPlano = areaPropria + areaArr;

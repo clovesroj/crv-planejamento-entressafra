@@ -25,6 +25,7 @@
  */
 
 const janela = require('./janela');
+const atividadesCod = require('./atividades-cod');
 
 const TUDO = '*';   // em editaveis: edita todas as abas, inclusive as criadas no futuro
 
@@ -67,7 +68,7 @@ const AREAS = [
   { id: 'desligamentos-ctt', nome: 'Desligamentos', grupo: 'CTT', chaves: ['CTT_DESLIG', 'CTT_DESLIG_META'] },
 
   { id: 'insumos', nome: 'Insumos', grupo: 'Agricultura',
-    chaves: ['INSUMO', 'INSX', 'INSX_V', 'TRATC', 'TRAT_NOME', 'TRAT_OBS', 'TRAT_ETAPA', 'TRAT_DEL', 'TRAT_ATIVO', 'MATX', 'GRUPOS_INS', 'FAM_NOME', 'FAM_CLASSE'] },
+    chaves: ['INSUMO', 'INS_DEL', 'INSX', 'INSX_V', 'TRATC', 'TRAT_NOME', 'TRAT_OBS', 'TRAT_ETAPA', 'TRAT_DEL', 'TRAT_ATIVO', 'MATX', 'GRUPOS_INS', 'FAM_NOME', 'FAM_CLASSE'] },
   { id: 'irrig', nome: 'Irrigação', grupo: 'Agricultura',
     chaves: ['PLANO'], campos: ['perdaCarga', 'desnivel', 'rendBomba', 'kwh', 'fonte'] },
   // estoque dos materiais de manutencao (MATX[i].est): informado na aba Demandas
@@ -161,11 +162,18 @@ function filtrarGravacao(corpo, atual, perm, substituir) {
   // documento fica metade em cada formato (ver server/janela.js). Comparar com
   // o banco já migrado também evita acusar a migração como edição proibida.
   const migrando = janela.de9Meses(atual) && !janela.de9Meses(corpo);
-  const base = migrando ? janela.migrar(atual) : (atual || {});
+  let base = migrando ? janela.migrar(atual) : (atual || {});
+  // Mesma ideia para a troca do código interno da atividade (A01 -> CO01...,
+  // ver atividades-cod.js): mexe em ATVX, PLANO, DIM, TERC_TAR, TERC_SUB e
+  // REAL, cada uma com dono diferente em AREAS — sem forçar as sete juntas,
+  // um perfil que não edita todas grava o documento migrado pela metade.
+  const migrandoAtiv = atividadesCod.versaoAntiga(base) && !atividadesCod.versaoAntiga(corpo);
+  if (migrandoAtiv) base = atividadesCod.migrar(base);
   const baseP = base.P || {};
   const ignorados = [];
   const doc = substituir ? { ...base } : {};
   if (migrando) janela.CHAVES.forEach(k => { if (k in base) doc[k] = base[k]; });
+  if (migrandoAtiv) atividadesCod.CHAVES.forEach(k => { if (k in base) doc[k] = base[k]; });
 
   if (substituir) chaves.forEach(k => { if (!(k in corpo)) delete doc[k]; });
 

@@ -2,7 +2,6 @@ import { conferenciaInsumos, demandas } from '../calculo/demandas.js';
 import { MESES, NM } from '../nucleo/calendario.js';
 import { DEM_SO_FALTA } from '../nucleo/estado.js';
 import { $, brl, esc, fmt } from '../nucleo/formato.js';
-import { codExibir } from '../nucleo/codigo-atividade.js';
 import { barrasEmpilhadas, barrasLinhas, kpi, rosca, somaSel, tdMeses, th, thMeses } from './componentes.js';
 
 /* ---------- DEMANDAS DE INSUMOS E MATERIAIS ----------
@@ -75,7 +74,7 @@ function pintarDemandas(R){
     ? "Todo insumo lançado nos tratamentos do Plano Operacional — inclusive os tratamentos extras de uma mesma atividade e as atividades que vão junto da plantadora — está no custo do plano, na etapa da atividade que o aplica."
     : "<b>O custo por produto não fecha com o custo das atividades.</b> Algum tratamento está sendo contado num lado e não no outro.")+
     (C.inativos.length ? ` <b>Atenção:</b> ${C.inativos.length} vínculo${C.inativos.length>1?"s":""} com tratamento inativo — o custo entra no plano, mas o tratamento não aparece nas buscas: `+
-      C.inativos.slice(0,5).map(x=>`${esc(codExibir(x.cod))} (${esc(x.trat)})`).join(", ")+(C.inativos.length>5?"…":"")+"." : "");
+      C.inativos.slice(0,5).map(x=>`${esc((x.cod))} (${esc(x.trat)})`).join(", ")+(C.inativos.length>5?"…":"")+"." : "");
 
   /* ---- insumos: tabela por grupo, com subtotal ---- */
   const mostra = l => !DEM_SO_FALTA || l.comprar>1e-9;

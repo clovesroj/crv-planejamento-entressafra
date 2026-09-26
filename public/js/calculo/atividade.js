@@ -1,7 +1,7 @@
 import { maqDe } from './crm.js';
 import { litrosDe } from './consumo.js';
 import { CFG } from '../dados/cfg.js';
-import { CORRECOES_ATIVIDADE, REMOCOES_ATIVIDADE } from '../dados/atividades.js';
+import { CORRECOES_ATIVIDADE, REMOCOES_ATIVIDADE, RENOMEACOES_ATIVIDADE } from '../dados/atividades.js';
 import { fatorEscala } from '../dados/escalas.js';
 import { MESES, NM, diasCorridos, diasNoMesEntre, mesesEntre } from '../nucleo/calendario.js';
 import { DIM, P, PLANO, REAL, TERC_SUB, TERC_TAR, atividadesLista } from '../nucleo/estado.js';
@@ -464,7 +464,7 @@ function linha(a, MP){
        do caminhao como ja encolhia o da colhedora. */
     const capMes = num(P.dias) * pr.hDia * pr.disp * pr.efic * util;
     if(a.tipo==="transp"){
-      const raio = a.src==="A02" ? P.raioMuda : P.raioSafra;
+      const raio = a.src==="PL01" ? P.raioMuda : P.raioSafra;   // PL01 = Colheita muda (antigo A02)
       const ciclo = cicloTransporte(raio);
       const cap = a.modo==="caminhao" ? P.capCam : P.capTransb;
       const viagens = cap>0 ? area/cap : 0;
@@ -594,13 +594,40 @@ function diretoNoMes(r, i){
    Mesmo mecanismo do cadastro de insumos (mesclarBaseInsumos): atividade nova
    do codigo base entra sozinha na leitura do documento; nome, rendimento etc.
    que o usuario ja tiver ajustado numa atividade existente ficam como estao. */
+/* Troca o codigo interno de uma atividade que ja existe no documento (item 8
+   de ATIVIDADES_V, dados/atividades.js) — cascateia pelas mesmas chaves que
+   removerAtividadesRetiradas() usa (e mais os campos src/junto, que citam
+   outra atividade pelo codigo). Roda ANTES de "acrescentar atividade que
+   falta": essa etapa compara com CFG.atividades, que ja tem os codigos
+   novos, e so funciona se o documento tambem ja estiver com eles -- senao
+   toda atividade da base seria tratada como nova e duplicaria. Depois de
+   CORRECOES_ATIVIDADE/REMOCOES_ATIVIDADE, que precisam do codigo ainda
+   antigo pra achar a linha certa. */
+function renomearAtividades(lista){
+  let renomeadas = 0;
+  lista.forEach(a=>{
+    const novo = RENOMEACOES_ATIVIDADE[a.cod];
+    if(!novo || novo===a.cod) return;
+    const de = a.cod;
+    a.cod = novo;
+    if(de in PLANO){ PLANO[novo]=PLANO[de]; delete PLANO[de]; }
+    if(de in DIM){ DIM[novo]=DIM[de]; delete DIM[de]; }
+    if(de in TERC_TAR){ TERC_TAR[novo]=TERC_TAR[de]; delete TERC_TAR[de]; }
+    if(de in TERC_SUB){ TERC_SUB[novo]=TERC_SUB[de]; delete TERC_SUB[de]; }
+    if(de in REAL){ REAL[novo]=REAL[de]; delete REAL[de]; }
+    renomeadas++;
+  });
+  // segunda passada: src/junto podem citar uma atividade renomeada NESTA
+  // mesma leva (ex.: TR1.src="A01" -> precisa virar "CO01") -- só depois de
+  // todo mundo já ter o cod novo é que dá pra remapear essas referências.
+  lista.forEach(a=>{
+    if(a.src && RENOMEACOES_ATIVIDADE[a.src]) a.src = RENOMEACOES_ATIVIDADE[a.src];
+    if(a.junto && RENOMEACOES_ATIVIDADE[a.junto]) a.junto = RENOMEACOES_ATIVIDADE[a.junto];
+  });
+  return renomeadas;
+}
 function mesclarBaseAtividades(){
   const lista = atividadesLista();
-  const jaTem = new Set(lista.map(a=>a.cod));
-  let novas = 0;
-  CFG.atividades.forEach(base=>{
-    if(!jaTem.has(base.cod)){ lista.push({...base}); novas++; }
-  });
   /* Conserto de cadastro errado numa atividade que JA existe no documento.
      Acrescentar atividade nova nao basta: um plano gravado antes carrega a
      propria copia, e nunca receberia a correcao. So troca quando o valor ainda
@@ -611,7 +638,13 @@ function mesclarBaseAtividades(){
     if(a && a[c.campo] === c.de){ a[c.campo] = c.para; corrigidas++; }
   });
   const removidas = removerAtividadesRetiradas();
-  return {novas, corrigidas, removidas, total:lista.length};
+  const renomeadas = renomearAtividades(lista);
+  const jaTem = new Set(lista.map(a=>a.cod));
+  let novas = 0;
+  CFG.atividades.forEach(base=>{
+    if(!jaTem.has(base.cod)){ lista.push({...base}); novas++; }
+  });
+  return {novas, corrigidas, removidas, renomeadas, total:lista.length};
 }
 /* Atividade retirada do sistema (REMOCOES_ATIVIDADE) sai do documento com o que
    estiver lancado nela. Vale tambem para documento sem cadastro proprio (ATVX):

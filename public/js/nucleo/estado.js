@@ -86,6 +86,9 @@ let TRAT_NOME = {};      // cod do tratamento -> nome descritivo editável
 let TRAT_OBS = {};       // cod do tratamento -> observação livre (recomendação, instrução de uso)
 let TRAT_ETAPA = {};     // cod do tratamento -> etapas em que é usado (preparo, plantio, planta, soca...)
 let TRAT_DEL = {};       // cod do tratamento -> true quando foi removido do cadastro base
+let INS_DEL = {};        // chave normalizada do produto -> true quando removido do cadastro base
+                          // (mesmo mecanismo do TRAT_DEL: sem isso, mesclarBaseInsumos() devolvia
+                          // o produto na próxima vez que a base de insumos ganhasse versão nova)
 let TRAT_ATIVO = {};     // cod do tratamento -> false quando inativo (ausente = ativo); some das buscas de vínculo novo
 let DIESEL_MES = {};     // índice do mês -> preço projetado do diesel (R$/L); vazio = preço base
 let ARREND = null;       // [{faz, grupo, area, forma, qtd, pag, mes}] fazendas ou grupos arrendados
@@ -134,7 +137,7 @@ let AGROFIT_BUSCA = null;
 export {
   P, PLANO, DIM, INSUMO, ESPOR, TRATC, NIV, GRAT, APOIO, TERC_TAR, TERC_SUB, TERC_DET, CRM, MATX,
   INSX, INSX_V, ATVX, ATVX_V, CTT_NOVOS, CTT_SAIDAS, CTT_MUDANCAS, CTT_OBS, CTT_GERENCIAS_NOVAS, CTT_FUNCOES_NOVAS, CTT_CIDADES_NOVAS, CTT_CNH_NOVAS, CTT_DESLIG, CTT_DESLIG_META, FROTA, CRM_ESP, MAQ, FROTA_UN, FROTA_DEST, FROTA_ORIG, CRIT_GER, CRIT_CABE, REF_BUSCA, REF_AG, REF_FAM, REF_FROTA, REF_PROP, GR_INICIO, GR_FIM, GR_EMPRESA, GR_ESP, GR_AG, GR_COMP, GR_FROTA, GR_PROP, GR_REFORMA, PERIODO_SEL, MESES_SEL, REAL, ACOMP_MES, FROTA_ABERTO, FITO_ABERTO, PLANO_ABERTO, INS_FICHA, DIM_DET, APOIO_DET, APOIO_FIXO, TRAT_NOME, TRAT_OBS, TRAT_ETAPA, TRAT_DEL, TRAT_ATIVO, DIESEL_MES, ARREND, ARR_PAR, ARR_RAT, FORN, FORN_PAR,
-  TPESS, FAT, MO_APOIO, QF_MES, QF_GRUPO, PES_GRUPO, PES_DEPT, CONTAS_GRUPO, CONTAS_CLS, CONTAS_CD, DEM_SO_FALTA, APOIO_PER, QUADRO, ADM, ADM_RAT, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL, ATIV_TRAT_SEL, GRUPOS_INS, FAM_NOME, FAM_CLASSE, AGROFIT_BUSCA, INS_EDIT,
+  TPESS, FAT, MO_APOIO, QF_MES, QF_GRUPO, PES_GRUPO, PES_DEPT, CONTAS_GRUPO, CONTAS_CLS, CONTAS_CD, DEM_SO_FALTA, APOIO_PER, QUADRO, ADM, ADM_RAT, ENC, BEN, EDITADO, FUN_SEL, CAT_SEL, TRAT_SEL, ATIV_TRAT_SEL, GRUPOS_INS, FAM_NOME, FAM_CLASSE, AGROFIT_BUSCA, INS_EDIT, INS_DEL,
 };
 
 export const setP          = v => { P = v; };
@@ -201,6 +204,7 @@ export const setTRAT_NOME  = v => { TRAT_NOME = v; };
 export const setTRAT_OBS   = v => { TRAT_OBS = v; };
 export const setTRAT_ETAPA = v => { TRAT_ETAPA = v; };
 export const setTRAT_DEL   = v => { TRAT_DEL = v; };
+export const setINS_DEL    = v => { INS_DEL = v; };
 export const setTRAT_ATIVO = v => { TRAT_ATIVO = v; };
 export const setDIESEL_MES = v => { DIESEL_MES = v; };
 export const setARREND     = v => { ARREND = v; };

@@ -2,7 +2,7 @@ import { abrirDestino } from '../ui/navegacao.js';
 import { destinoValida } from '../ui/validacao.js';
 import { ETAPAS_ORD, PAG_LIVRE, mesesPag } from '../calculo/arrendamento.js';
 import { AG_SEM_FROTA, FROTA_AG, FROTA_ESP, SEP_MOD, crmDe, espDe } from '../calculo/crm.js';
-import { codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, duplicarTrat, marcarEtapa, mesclarBaseInsumos, removerGrupoInsumo, removerTrat,
+import { chaveProd, codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, duplicarTrat, marcarEtapa, mesclarBaseInsumos, removerGrupoInsumo, removerTrat,
   renomearGrupoInsumo, renomearTrat, setClasseGrupo, todasFamilias, tratCodigos, usosTrat } from '../calculo/insumos.js';
 import { codigoAtividadeValido, criarAtividade, removerAtividade } from '../calculo/atividade.js';
 import { CFG } from '../dados/cfg.js';
@@ -11,7 +11,7 @@ import { buscarAgrofit, bulaDoProduto } from '../io/agrofit.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
 import { migrarApoio } from '../calculo/apoio.js';
-import { FAT, MO_APOIO, REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INSX, P, PLANO, QUADRO, TERC_TAR, TERC_SUB, TERC_DET, setTERC_DET, TPESS, TRATC, TRAT_ATIVO, TRAT_NOME, TRAT_OBS, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, atividadesLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE, setREF_BUSCA, setREF_AG, setREF_FAM, setREF_FROTA, setREF_PROP,
+import { FAT, MO_APOIO, REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INS_DEL, INSX, P, PLANO, QUADRO, TERC_TAR, TERC_SUB, TERC_DET, setTERC_DET, TPESS, TRATC, TRAT_ATIVO, TRAT_NOME, TRAT_OBS, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, atividadesLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE, setREF_BUSCA, setREF_AG, setREF_FAM, setREF_FROTA, setREF_PROP,
   setGR_INICIO, setGR_FIM, setGR_EMPRESA, setGR_ESP, setGR_AG, setGR_COMP, setGR_FROTA, setGR_PROP, setGR_REFORMA } from '../nucleo/estado.js';
 import { AGROFIT_BUSCA, DIM_DET, FITO_ABERTO, PLANO_ABERTO, FROTA_ABERTO, FROTA_UN, INS_EDIT, INS_FICHA, MAQ, setAGROFIT_BUSCA, setAPOIO_DET, setDIM_DET, setFROTA_DEST, setFROTA_ORIG, setINS_EDIT, setINS_FICHA } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
@@ -28,7 +28,7 @@ import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarBuscaItem, fi
 import { abrirRendMensal, aberto as rendMensalAberto, descartarRascunho, editarRascunho,
   fecharRendMensal, pendencias, salvarRascunho } from '../ui/rendmensal.js';
 import { setQF_MES, setQF_GRUPO, setPES_GRUPO, setPES_DEPT, setCONTAS_GRUPO, setCONTAS_CLS, setCONTAS_CD, setDEM_SO_FALTA, setAPOIO_PER, APOIO_PER } from '../nucleo/estado.js';
-import { setAPOIO, setATIV_TRAT_SEL, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setINSX_V, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
+import { setAPOIO, setATIV_TRAT_SEL, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setINSX_V, setINS_DEL, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
 import { USUARIO, areasDePermissao, podeEditar } from '../nucleo/sessao.js';
 
 /* Renomear ou remover um tratamento mexe tambem nas atividades que o usam, e
@@ -401,7 +401,10 @@ document.addEventListener("change",e=>{
   // cadastro e corrige nome/caixa automaticamente -- evita produto "orfao"
   // por nome digitado diferente do cadastro (maiuscula, espaco, etc)
   if(t.dataset.tcod!==undefined){ const c=destravar(TRAT_SEL), l=c[+t.dataset.tcod];
-    const reg = insLista().find(i=>i.cod===t.value.trim());
+    // código repetido no cadastro (ex.: "Actara 750" ativo e "Actara 750 sg"
+    // inativo, mesmo 1178738): fica com o ativo
+    const mesmos = insLista().filter(i=>i.cod===t.value.trim());
+    const reg = mesmos.find(i=>i.ativo!==false) || mesmos[0];
     l.cod = t.value.trim();
     if(reg) l.prod = reg.prod;
     salvar(); render(); return; }
@@ -432,7 +435,17 @@ document.addEventListener("change",e=>{
   if(t.id==="sel_trat_ativ"){
     const c=t.value;
     setATIV_TRAT_SEL(c);
-    if(c){ PLANO[c]=PLANO[c]||{m:Array(NM).fill(0),trat:""}; PLANO[c].trat=TRAT_SEL; salvar(); }
+    // atividade ja tem OUTRO tratamento como principal: nao troca o vinculo
+    // existente (isso limpava a area ja lancada) -- entra como extra, mesma
+    // regra do #btn_trat_extra_add, com a area por conta do usuario lancar
+    if(c){
+      PLANO[c] = PLANO[c] || {m:Array(NM).fill(0), trat:""};
+      PLANO[c].trats = Array.isArray(PLANO[c].trats) ? PLANO[c].trats : [];
+      const jaExtra = PLANO[c].trats.some(e=>e.trat===TRAT_SEL);
+      if(!PLANO[c].trat) PLANO[c].trat = TRAT_SEL;
+      else if(PLANO[c].trat!==TRAT_SEL && !jaExtra) PLANO[c].trats.push({trat:TRAT_SEL, m:Array(NM).fill(0)});
+      salvar();
+    }
     render(); return; }
   if(t.dataset.ex!==undefined){ ESPOR[+t.dataset.ex][t.dataset.f]=t.value; salvar(); render(); return; }
   if(t.id==="p_fonte"){ lerPremissas(); salvar(); render(); return; }
@@ -818,12 +831,10 @@ document.addEventListener("click",e=>{
     setTRAT_SEL(novo.trim());
     marcarTratNovo(novo.trim()); render(); return; }
   if(t.dataset.trrm!==undefined){ const cod=t.dataset.trrm, usos=usosTrat(cod);
-    if(!confirm(usos.length
-      ? `Remover o tratamento "${cod}"? As atividades ${usos.join(", ")} ficam sem tratamento.`
-      : `Remover o tratamento "${cod}"?`)) return;
+    if(usos.length){ alert(`O tratamento "${cod}" não pode ser removido: está vinculado à(s) atividade(s) ${usos.join(", ")} no Plano Operacional. Desvincule-o lá (ou apague o lançamento) antes de excluir.`); return; }
+    if(!confirm(`Remover o tratamento "${cod}"?`)) return;
     removerTrat(cod);
     if(TRAT_SEL===cod) setTRAT_SEL(null);
-    if(usos.length) avisoPlano(usos, "removido");
     marcarTratRemovido(cod); render(); return; }
   if(t.dataset.aprm!==undefined){ apoioLista().splice(+t.dataset.aprm,1); salvar(); render(); return; }
   // aba Apoio: qual estrutura mostrar (so visao), copiar para o outro periodo, zerar o periodo
@@ -841,7 +852,10 @@ document.addEventListener("click",e=>{
   if(t.dataset.inrm!==undefined){
     const i=insLista()[+t.dataset.inrm];
     const usos=tratCodigos().filter(c=>composicao(c).some(l=>l.prod===i.prod));
-    if(usos.length && !confirm(`"${i.prod}" é usado em ${usos.length} tratamento(s). Remover assim mesmo?`)) return;
+    if(usos.length){ alert(`"${i.prod}" não pode ser removido: está na composição do(s) tratamento(s) ${usos.join(", ")}. Remova o produto da composição desses tratamentos (aba Insumos e Tratamentos) antes de excluir.`); return; }
+    // produto que vem do cadastro base precisa de marca para não voltar sozinho
+    // na próxima vez que a base de insumos ganhar versão nova (mesclarBaseInsumos)
+    if(CFG.insumos.some(b=>chaveProd(b.prod)===chaveProd(i.prod))) INS_DEL[chaveProd(i.prod)] = true;
     insLista().splice(+t.dataset.inrm,1); marcarInsRemovido(i); render(); return; }
   if(t.dataset.grprm!==undefined){
     const r = removerGrupoInsumo(t.dataset.grprm);
@@ -850,7 +864,7 @@ document.addEventListener("click",e=>{
   if(t.dataset.atrm!==undefined){
     const cod = t.dataset.atrm, p = PLANO[cod];
     const emUso = p && (p.trat || (p.m||[]).some(v=>num(v)>0));
-    if(emUso && !confirm(`"${cod}" tem área/tonelada ou tratamento lançado no Plano Operacional. Remover assim mesmo?`)) return;
+    if(emUso){ alert(`"${cod}" não pode ser removida: tem área/tonelada ou tratamento lançado no Plano Operacional. Zere o lançamento lá antes de excluir.`); return; }
     if(!removerAtividade(cod)){ alert("Essa atividade não pode ser removida aqui."); return; }
     marcarAtivRemovido(cod); render(); return; }
   if(t.dataset.grpren!==undefined){
@@ -986,6 +1000,7 @@ $("#btn_ins_reset").onclick=()=>{
   const antigos = insLista().map(i=>i.prod);
   const nova = CFG.insumos.map(i=>({...i}));
   setINSX(nova);
+  setINS_DEL({}); // "original" traz de volta até o que tinha sido excluído de propósito
   const aindaExiste = new Set(nova.map(i=>i.prod));
   antigos.filter(p=>!aindaExiste.has(p)).forEach(p=>marcarInsRemovido({prod:p}));
   nova.forEach(i=>marcarInsSujo(i));

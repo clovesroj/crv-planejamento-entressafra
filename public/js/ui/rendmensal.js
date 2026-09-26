@@ -2,7 +2,6 @@ import { criterioMensal, frotaDaAtividade, premissasDe } from '../calculo/ativid
 import { MESES, NM } from '../nucleo/calendario.js';
 import { DIM, P } from '../nucleo/estado.js';
 import { $, esc, fmt, num, pct } from '../nucleo/formato.js';
-import { codExibir } from '../nucleo/codigo-atividade.js';
 
 /* ---------- MODAL DE CRITÉRIO MENSAL ----------
    O Dimensionamento resolve a atividade com um critério só, médio na janela.
@@ -119,7 +118,7 @@ function pintarRendMensal(R){
         <div></div>
         <button class="ghost-btn" id="rm_fechar" title="Fechar" aria-label="Fechar">✕</button>
       </div>
-      <div class="ra-tit">${esc(codExibir(r.a.cod))} · ${esc(r.a.nome)}</div>
+      <div class="ra-tit">${esc((r.a.cod))} · ${esc(r.a.nome)}</div>
       <div class="rm-acoes">
         <span class="rm-pend ${pend?"tem":""}">${pend
           ? `<b>${pend}</b> campo${pend>1?"s":""} não salvo${pend>1?"s":""}`

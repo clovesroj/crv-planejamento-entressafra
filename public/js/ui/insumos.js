@@ -1,6 +1,5 @@
-import { composicao, doseBase, etapasNoPlano, familiaDe, freteEfetivo, insumosPorFamilia, precoInsumo, todasFamilias, tratCodigos, tratEtapas, tratListaTodos, usosTrat } from '../calculo/insumos.js';
+import { composicao, doseBase, etapasNoPlano, familiaDe, freteEfetivo, insumosPorFamilia, precoInsumo, todasFamilias, tratCodigos, tratEtapas, tratListaTodos, usoDoTratamento, usosTrat } from '../calculo/insumos.js';
 import { modoLiberado } from '../calculo/atividade.js';
-import { codExibir } from '../nucleo/codigo-atividade.js';
 import { TRAT_ETAPAS } from '../dados/insumos.js';
 import { ATIV_TRAT_SEL, DIM, INSUMO, INS_EDIT, INS_FICHA, P, PLANO, TRATC, TRAT_ATIVO, TRAT_ETAPA, TRAT_NOME, TRAT_OBS, TRAT_SEL, atividadesLista, insLista } from '../nucleo/estado.js';
 import { $, brl, esc, fmt, num, urlWeb } from '../nucleo/formato.js';
@@ -201,7 +200,7 @@ const buscaTrat = ligarBuscaSelect("#busca_trat", "#lista_trat", "#sel_trat", tr
 // que já existe e ficou inativo depois
 const buscaTratAtiv = ligarBuscaSelect("#busca_trat_ativ", "#lista_trat_ativ", "#sel_trat_ativ",
   () => atividadesLista().filter(a => a.ativo!==false || usosTrat(TRAT_SEL).includes(a.cod)),
-  a => `${codExibir(a.cod)} — ${a.nome}${usosTrat(TRAT_SEL).includes(a.cod) ? " (vinculada)" : ""}`, a => a.cod);
+  a => `${(a.cod)} — ${a.nome}${usosTrat(TRAT_SEL).includes(a.cod) ? " (vinculada)" : ""}`, a => a.cod);
 // mesmo criterio de pintarTratExtras() -- recalcula a atividade exibida e os
 // tratamentos ja usados por ela a cada tecla, em vez de guardar lista parada
 function tratExtraDisponiveis(){
@@ -431,8 +430,9 @@ function pintarInsumos(R){
   $("#t_trat").innerHTML = th([["Cod_Trat"],["Nome"],["Observação"],["Etapas em que é usado"],["Produtos",1],
     ["Custo/ha",1],["Composição"],["Atividades que usam"],["Custo no plano",1],["Ativo",1],[""]])+"<tbody>"+
     TL.map(t=>{
-      const usos = R.L.filter(r=>r.trat===t.cod);
-      const areaT = usos.reduce((s,u)=>s+u.total,0);
+      // principal e extras, cada um com a SUA área (a mesma que o motor custeia)
+      const usos = usoDoTratamento(R.L, t.cod);
+      const areaT = usos.reduce((s,u)=>s+u.area,0);
       return `<tr${TRAT_ATIVO[t.cod]===false?' class="inativo"':''}><td><input data-trc="${esc(t.cod)}" value="${esc(t.cod)}" style="min-width:110px"
                  title="Alterar o código do tratamento"></td>
         <td><input data-trn="${esc(t.cod)}" value="${esc(TRAT_NOME[t.cod]||"")}"
@@ -443,7 +443,7 @@ function pintarInsumos(R){
         <td class="num calc">${composicao(t.cod).length}</td>
         <td class="num ${t.custo_ha>0?"tot":"calc"}">${t.custo_ha>0?brl(t.custo_ha,2):"—"}</td>
         <td>${TRATC[t.cod]?'<span class="badge b-warn">ajustado</span>':'<span class="badge b-ok">original</span>'}</td>
-        <td class="calc">${usos.length?usos.map(u=>codExibir(u.a.cod)).join(", "):"—"}</td>
+        <td class="calc">${usos.length?usos.map(u=>u.r.a.cod+(u.principal?"":" (extra)")).join(", "):"—"}</td>
         <td class="num ${areaT?"tot":"calc"}">${areaT?brl(areaT*t.custo_ha):"—"}</td>
         <td class="num"><input type="checkbox" data-tra="${esc(t.cod)}" ${TRAT_ATIVO[t.cod]===false?"":"checked"}
             title="Inativo some das buscas para vincular a uma atividade NOVA ou como tratamento extra, mas continua valendo onde já está lançado"></td>
@@ -511,21 +511,21 @@ function pintarTratPeriodo(R){
   $("#t_trat_periodo").innerHTML = th([["Início"],["Fim"],["Un."],...MESES.map((m,j)=>[m,1,clsMes(j)]),
       ["Total planejado",1],["Modo de execução"]])+
     `<tbody><tr>
-      ${junto ? `<td class="calc" colspan="2">na janela da ${esc(codExibir(linha.junto))}</td>` : `
+      ${junto ? `<td class="calc" colspan="2">na janela da ${esc((linha.junto))}</td>` : `
       <td><input type="date" data-dt="${esc(exibindo)}" data-f="ini" value="${d.ini||""}" max="${d.fim||""}" title="Início da execução"></td>
       <td><input type="date" data-dt="${esc(exibindo)}" data-f="fim" value="${d.fim||""}" min="${d.ini||""}" title="Fim da execução"></td>`}
       <td class="calc">${esc(a.un||"")}</td>` +
     meses.map((q,j)=> (temExtras || junto)
-      ? `<td class="num calc ${clsMes(j)}" title="${junto ? "Área da "+esc(codExibir(linha.junto))+", que executa esta na mesma passada" : "Soma dos tratamentos — edite no bloco abaixo"}">${q?fmt(num(q)):""}</td>`
+      ? `<td class="num calc ${clsMes(j)}" title="${junto ? "Área da "+esc((linha.junto))+", que executa esta na mesma passada" : "Soma dos tratamentos — edite no bloco abaixo"}">${q?fmt(num(q)):""}</td>`
       : `<td class="num ${clsMes(j)}"><input data-c="${esc(exibindo)}" data-m="${j}" value="${q||""}" inputmode="decimal"></td>`).join("") +
     `<td class="num ${temExtras?"calc":""} tot">${fmt(totalArea)}</td>
      <td>${modoLiberado(a) && linha ? mixEditor(linha) : '<span class="calc">—</span>'}</td>` +
     `</tr></tbody>`;
   $("#trat_periodo_hint").textContent = junto
-    ? `${codExibir(a.cod)} — ${a.nome} vai na mesma passada da ${codExibir(linha.junto)}: a área e as datas são as dela, e aqui só se escolhe o tratamento.`
+    ? `${(a.cod)} — ${a.nome} vai na mesma passada da ${(linha.junto)}: a área e as datas são as dela, e aqui só se escolhe o tratamento.`
     : p.trat===TRAT_SEL
-    ? `Lançando para ${codExibir(a.cod)} — ${a.nome}. Início e fim distribuem a área pelos meses automaticamente; os meses continuam editáveis à mão.`
-    : `${codExibir(a.cod)} — ${a.nome} ainda usa outro tratamento (${p.trat || "nenhum"}). Escolher esta atividade acima substitui o vínculo.`;
+    ? `Lançando para ${(a.cod)} — ${a.nome}. Início e fim distribuem a área pelos meses automaticamente; os meses continuam editáveis à mão.`
+    : `${(a.cod)} — ${a.nome} já usa ${(p.trat || "nenhum tratamento")} como principal; este entrou como tratamento extra, com área própria — lance-a no bloco abaixo.`;
   pintarTratExtras(exibindo, p, linha);
 }
 

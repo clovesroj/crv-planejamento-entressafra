@@ -1,6 +1,6 @@
 import { CFG } from '../dados/cfg.js';
 import { CLASSES_GRUPO, FAMILIAS_INSUMO, TRAT_ETAPAS } from '../dados/insumos.js';
-import { FAM_CLASSE, FAM_NOME, INSUMO, P, PLANO, TRATC, TRAT_ATIVO, TRAT_DEL, TRAT_ETAPA, TRAT_NOME, TRAT_OBS, insLista, gruposInsLista, atividadesLista } from '../nucleo/estado.js';
+import { FAM_CLASSE, FAM_NOME, INSUMO, INS_DEL, P, PLANO, TRATC, TRAT_ATIVO, TRAT_DEL, TRAT_ETAPA, TRAT_NOME, TRAT_OBS, insLista, gruposInsLista, atividadesLista } from '../nucleo/estado.js';
 import { NM } from '../nucleo/calendario.js';
 import { num } from '../nucleo/formato.js';
 import { fatorParaBase } from '../nucleo/unidades.js';
@@ -140,8 +140,9 @@ function removerGrupoInsumo(id){
   if(FAMILIAS_INSUMO.some(f=>f.id===id)){
     return {ok:false, erro:"este grupo é fixo do cadastro e não pode ser removido"};
   }
-  const emUso = insLista().some(i=>(i.fam||"")===id);
-  if(emUso) return {ok:false, erro:"grupo em uso — mude o grupo dos produtos antes de remover"};
+  const produtos = insLista().filter(i=>(i.fam||"")===id).map(i=>i.prod);
+  if(produtos.length) return {ok:false, erro:`grupo em uso por ${produtos.length} produto(s) — `+
+    `mude o grupo de ${produtos.slice(0,5).join(", ")}${produtos.length>5?"…":""} no Cadastro de Insumos antes de remover`};
   const lista = gruposInsLista();
   const ix = lista.findIndex(f=>f.id===id);
   if(ix<0) return {ok:false, erro:"grupo não encontrado"};
@@ -198,18 +199,84 @@ function mesclarBaseInsumos(){
   const jaTem = new Map(lista.map(i=>[chaveProd(i.prod), i]));
   let novos = 0, completados = 0;
   CFG.insumos.forEach(base=>{
-    const atual = jaTem.get(chaveProd(base.prod));
-    if(!atual){ lista.push({...base}); novos++; return; }
+    const chave = chaveProd(base.prod);
+    const atual = jaTem.get(chave);
+    // produto do cadastro base que a pessoa removeu de propósito (INS_DEL) não
+    // volta numa próxima versão da base -- mesmo mecanismo do TRAT_DEL para
+    // tratamento removido; sem isso a exclusão nunca era definitiva.
+    if(!atual){ if(INS_DEL[chave]) return; lista.push({...base}); novos++; return; }
     let mudou = false;
     CAMPOS_TEC.forEach(k=>{ if(base[k] && !atual[k]){ atual[k]=base[k]; mudou=true; } });
     if(mudou) completados++;
   });
   return {novos, completados, total:lista.length};
 }
+/* ---------- o cadastro ativo como fonte única do produto ----------
+   Tratamento cita produto por nome, e o nome pode vir de outra fonte que não o
+   cadastro de hoje: a composição-base do sistema (TRAT_DET), uma composição
+   gravada antes de o produto ser renomeado, digitação em caixa diferente. Com
+   busca por nome exato, o produto "sumia": sem preço, sem grupo, e fora da
+   trava de exclusão ("Stone sc" no tratamento não impedia excluir "Stone SC").
+   Toda referência passa por aqui e cai no item do cadastro ativo: nome exato
+   primeiro (quem já batia continua igual), depois código, depois nome sem
+   acento/caixa/pontuação. Entre candidatos, o ativo ganha.
+
+   Índice refeito a cada cálculo (calcular() chama invalidarIndiceInsumos) e
+   quando a lista muda de tamanho ou é trocada -- dentro de um render o cadastro
+   não muda, e o índice troca centenas de find() por consulta direta. */
+let _idx = null;
+function invalidarIndiceInsumos(){ _idx = null; }
+function indiceInsumos(){
+  const lista = insLista();
+  if(_idx && _idx.lista===lista && _idx.n===lista.length) return _idx;
+  const nome = new Map(), cod = new Map(), chave = new Map();
+  const add = (m, k, i) => { if(!k) return; const a = m.get(k); a ? a.push(i) : m.set(k, [i]); };
+  lista.forEach(i=>{
+    if(!nome.has(i.prod)) nome.set(i.prod, i);   // mesmo resultado de find(): o primeiro
+    add(cod, String(i.cod||"").trim(), i);
+    add(chave, chaveProd(i.prod), i);
+  });
+  return (_idx = {lista, n:lista.length, nome, cod, chave});
+}
+const preferirAtivo = (cands, chave) => cands.length===1 ? cands[0]
+  : cands.find(i=>i.ativo!==false && (!chave || chaveProd(i.prod)===chave))
+    || cands.find(i=>i.ativo!==false) || cands[0];
+/** Item do cadastro com esse nome exato (o primeiro, como find()). */
+function insumoDoCadastro(prod){
+  const i = indiceInsumos().nome.get(prod);
+  return i && i.prod===prod ? i : insLista().find(x=>x.prod===prod);
+}
+/** Item do cadastro ativo a que uma referência (nome e, se houver, código) se
+    refere -- ou null quando não há nenhum. */
+function resolverProduto(prod, codigo){
+  const ix = indiceInsumos();
+  const exato = insumoDoCadastro(prod);
+  if(exato) return exato;
+  const k = chaveProd(prod), c = String(codigo||"").trim();
+  const porCod = c && ix.cod.get(c);
+  if(porCod && porCod.length) return preferirAtivo(porCod, k);
+  const porChave = k && ix.chave.get(k);
+  if(porChave && porChave.length) return preferirAtivo(porChave, null);
+  return null;
+}
+// linha de composição apontando para o nome do cadastro (cópia só quando muda)
+function linhaNoCadastro(l){
+  const r = resolverProduto(l.prod, l.cod);
+  return r && r.prod!==l.prod ? {...l, prod:r.prod} : l;
+}
+/** Referências de tratamento que não achariam produto nenhum no cadastro --
+    o que a aba Validação mostra para corrigir. */
+function produtosForaDoCadastro(){
+  const fora = [];
+  tratCodigos().forEach(c=>composicao(c).forEach(l=>{
+    if(l.prod && !insumoDoCadastro(l.prod)) fora.push({trat:c, prod:l.prod}); }));
+  return fora;
+}
+
 function precoInsumo(prod){
   const ov = INSUMO[prod];
   const base = ov && ov.preco!=null ? num(ov.preco)
-             : num((insLista().find(i=>i.prod===prod)||{preco:0}).preco);
+             : num((insumoDoCadastro(prod)||{preco:0}).preco);
   return base * (1 + P.ipreco/100);
 }
 function tratCodigos(){
@@ -218,11 +285,18 @@ function tratCodigos(){
   // tratamento removido some da lista, inclusive quando vinha do cadastro base
   return [...s].filter(c=>!TRAT_DEL[c]).sort();
 }
-// composição de um tratamento: a customizada, se existir; senão a base do cadastro
+/* Composição de um tratamento: a customizada, se existir; senão a base do
+   sistema -- com cada produto já apontando para o nome do cadastro ativo
+   (linhaNoCadastro). A ordem das linhas é a mesma de TRATC[cod]: a tela de
+   composição edita pelo índice via destravar(), então não pode reordenar.
+   Sem nada a corrigir devolve o próprio TRATC[cod], sem cópia. */
 function composicao(cod){
   if(TRAT_DEL[cod]) return [];
-  if(TRATC[cod]) return TRATC[cod];
-  return CFG.trat_det.filter(t=>t.trat===cod).map(t=>({prod:t.prod,dose:num(t.dose),un:t.un||""}));
+  const base = TRATC[cod]
+    || CFG.trat_det.filter(t=>t.trat===cod).map(t=>({prod:t.prod,dose:num(t.dose),un:t.un||""}));
+  let mudou = false;
+  const r = base.map(l=>{ const n = linhaNoCadastro(l); if(n!==l) mudou = true; return n; });
+  return mudou ? r : base;
 }
 
 /* ---------- etapas do tratamento ----------
@@ -241,11 +315,11 @@ function etapaTrat(a){
   if(a.etapa==="COLHEITA")        return "colheita";
   return "apoio";
 }
-// etapas em que o plano de fato usa o tratamento
+// etapas em que o plano usa o tratamento -- como principal ou como extra
 function etapasNoPlano(cod){
   const s = new Set();
   atividadesLista().forEach(a=>{ const p=PLANO[a.cod];
-    if(p && p.trat===cod) s.add(etapaTrat(a)); });
+    if(p && (p.trat===cod || (Array.isArray(p.trats) && p.trats.some(e=>e && e.trat===cod)))) s.add(etapaTrat(a)); });
   return [...s];
 }
 function marcarEtapa(cod, etapa, ligada){
@@ -335,12 +409,17 @@ function freteEfetivo(l){
     não converte — é o caso de toda linha de hoje, então nenhum custo já
     calculado muda com isto. */
 function doseBase(l){
-  const reg = insLista().find(i => i.prod === l.prod);
+  const reg = resolverProduto(l.prod, l.cod);
   return num(l.dose) * fatorParaBase(l.un, reg && reg.un);
 }
-// destrava a composição para edição (copia a base uma única vez)
+/* Destrava a composição para edição (copia a base uma única vez). Já grava o
+   nome do produto como está no cadastro ativo: quem edita um tratamento leva
+   junto a correção de nome das linhas dele, e o dado salvo converge para o
+   cadastro em vez de depender da resolução a cada leitura. */
 function destravar(cod){
   if(!TRATC[cod]) TRATC[cod] = composicao(cod).map(l=>({...l}));
+  else TRATC[cod].forEach(l=>{ const r = resolverProduto(l.prod, l.cod);
+    if(r && r.prod!==l.prod) l.prod = r.prod; });
   return TRATC[cod];
 }
 let _tratCache = null, _tratKey = "";
@@ -380,8 +459,8 @@ function tratamentosDaLinha(r){
   if(!r || !r.ehHa || !(r.total>0)) return [];
   if(Array.isArray(r.tratsDetalhe) && r.tratsDetalhe.length)
     return r.tratsDetalhe.filter(d=>d.trat && d.area>0)
-      .map(d=>({trat:d.trat, area:d.area, m:(d.m||[]).map(num)}));
-  return r.trat ? [{trat:r.trat, area:r.total, m:(r.meses||[]).map(num)}] : [];
+      .map(d=>({trat:d.trat, area:d.area, m:(d.m||[]).map(num), principal:!!d.principal}));
+  return r.trat ? [{trat:r.trat, area:r.total, m:(r.meses||[]).map(num), principal:true}] : [];
 }
 /* Volume de cada produto mês a mês, na unidade do cadastro (doseBase).
    soCompra: pula a linha de composição marcada "compra:false" (produto que só
@@ -397,6 +476,20 @@ function demandaMensal(L, soCompra){
   }));
   return v;
 }
+/* Onde um tratamento é usado no plano: cada atividade, com a área e os meses
+   DELE -- como principal ou como extra (tratamentosDaLinha). É a mesma área
+   que o motor multiplica pelo custo/ha do tratamento, então área × custo/ha
+   aqui fecha com o insumo do plano. A tabela de tratamentos da aba Insumos e
+   o relatório de tratamentos usavam só o principal, com a área inteira da
+   atividade: o principal saía inflado e o extra, zerado. */
+function usoDoTratamento(L, cod){
+  const usos = [];
+  L.forEach(r=>tratamentosDaLinha(r).forEach(t=>{
+    if(t.trat!==cod) return;
+    usos.push({r, area:t.area, m:t.m, principal:t.principal});
+  }));
+  return usos;
+}
 const somarMeses = v => Object.fromEntries(Object.entries(v).map(([k,a])=>[k, a.reduce((s,x)=>s+x,0)]));
 // volume de cada produto projetado pela alocação real dos tratamentos no plano operacional
 function volumeDemandado(L){ return somarMeses(demandaMensal(L, false)); }
@@ -408,7 +501,7 @@ function volumeDemandado(L){ return somarMeses(demandaMensal(L, false)); }
    deveria virar pedido de compra. */
 function volumeCompra(L){ return somarMeses(demandaMensal(L, true)); }
 
-export { _tratCache, _tratKey, codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, doseBase, duplicarTrat, etapaTrat, etapasNoPlano, familiaDe, familiaEfetiva, freteEfetivo,
-  familiaDoInsumo, insumosPorFamilia, mesclarBaseInsumos,
+export { _tratCache, _tratKey, chaveProd, codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, doseBase, duplicarTrat, etapaTrat, etapasNoPlano, familiaDe, familiaEfetiva, freteEfetivo,
+  familiaDoInsumo, insumoDoCadastro, insumosPorFamilia, invalidarIndiceInsumos, mesclarBaseInsumos, produtosForaDoCadastro, resolverProduto,
   marcarEtapa, precoInsumo, removerGrupoInsumo, removerTrat, renomearGrupoInsumo, renomearTrat, setClasseGrupo, todasFamilias, tratCodigos, tratCusto, tratEtapas,
-  tratLista, tratListaTodos, tratTabela, tratamentosDaLinha, demandaMensal, usosTrat, volumeDemandado, volumeCompra };
+  tratLista, tratListaTodos, tratTabela, tratamentosDaLinha, demandaMensal, usoDoTratamento, usosTrat, volumeDemandado, volumeCompra };
