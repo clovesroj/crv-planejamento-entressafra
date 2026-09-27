@@ -183,10 +183,20 @@ async function marcarEspecialidadeRadio(page, especialidade) {
   return true;
 }
 
+/** Assinatura barata pra saber se o cross-filter de verdade mudou: a lista de
+ * codigos de Frota (numericos, unicos por equipamento) visiveis na tela --
+ * muda sempre que a especialidade selecionada muda de verdade, mesmo quando
+ * o rotulo/checkbox mostram a troca antes da matriz pesada acompanhar. */
+async function assinaturaFrota(page) {
+  return page.locator('[role="checkbox"]')
+    .evaluateAll(els => els.filter(e => e.offsetParent !== null).map(e => e.title).filter(t => /^\d+$/.test(t)).sort().join(','))
+    .catch(() => '');
+}
+
 /**
  * Especialidade como arvore ampla com busca (role=treeitem) -- widget da
  * pagina R$/Km (campo mais amplo, dezenas de categorias, nao so as 7 de
- * producao). Duas coisas confirmadas testando ao vivo direto no relatorio
+ * producao). Tres coisas confirmadas testando ao vivo direto no relatorio
  * publicado (o bug que gerava "Colhedora" vazando pra Caminhao/Trator
  * Transbordo/Reboque nos dados extraidos):
  *   1. A busca so filtra a arvore depois do Enter -- so digitar (mesmo com
@@ -194,15 +204,31 @@ async function marcarEspecialidadeRadio(page, especialidade) {
  *      item alvo nem sempre esta na janela renderizada (a arvore e virtual).
  *   2. O relatorio abre com "COLHEDORA - CANA" marcada por padrao, e essa
  *      arvore e MULTI-selecao (checkbox, nao radio): clicar num item novo
- *      ADICIONA a selecao, nao troca. A busca ainda mostra o que ja esta
- *      marcado mesmo fora do texto buscado, entao depois de filtrar e preciso
- *      desmarcar tudo que nao for o alvo antes de marcar o alvo.
+ *      ADICIONA a selecao, nao troca. Desmarcar item por item (encontrados
+ *      pela busca) ficou com o estado visual certo mas nem sempre convencia o
+ *      Power BI a reprocessar o filtro de verdade -- o botao nativo "Limpar"
+ *      do cabecalho do slicer (aparece sempre que ha algo selecionado) e bem
+ *      mais confiavel.
+ *   3. Mesmo depois do clique no item certo, o proprio Power BI as vezes
+ *      marca o item (classe "selected" certinha) sem reprocessar a consulta
+ *      -- saiu com o total EXATO da Colhedora pra especialidades sem nada a
+ *      ver com ela. Comparar a lista de Frota antes/depois pega isso; se nao
+ *      mudou, retorna false pra fatia inteira ser tentada de novo (contexto
+ *      novo), que na pratica corrigiu todos os casos vistos testando.
  */
 async function aplicarFiltroEspecialidadeArvore(page, especialidade) {
   const card = page.locator(
     `xpath=//*[contains(@class,"slicer-header-text") and normalize-space(text())="Especialidade"]` +
     '/ancestor::div[contains(@class,"slicer-container")][1]');
   if (!(await card.count().catch(() => 0))) return false;
+
+  const antes = await assinaturaFrota(page);
+
+  const limpar = card.locator('.slicer-header-clear');
+  if (await limpar.count().catch(() => 0)) {
+    await limpar.click({ timeout: 10000 }).catch(() => {});
+    await page.waitForTimeout(8000);
+  }
 
   const campo = card.locator('input.searchInput, input[placeholder="Pesquisar"]').first();
   if (!(await campo.count().catch(() => 0))) return false;
@@ -212,23 +238,16 @@ async function aplicarFiltroEspecialidadeArvore(page, especialidade) {
   await campo.press('Enter');
   await page.waitForTimeout(1200);
 
-  const itens = await card.locator('[role="treeitem"]').all();
-  for (const el of itens) {
-    const marcado = await el.evaluate(n => !!n.querySelector('.slicerCheckbox.selected')).catch(() => false);
-    if (!marcado) continue;
-    const nome = (await el.textContent().catch(() => '')).trim();
-    if (nome === especialidade) continue;
-    await el.click({ timeout: 10000 });
-    await page.waitForTimeout(600);
-  }
-
   const item = card.getByRole('treeitem', { name: especialidade, exact: true }).first();
   if (!(await item.count().catch(() => 0))) return false;
-  const jaSelecionado = await item.evaluate(el => !!el.querySelector('.slicerCheckbox.selected')).catch(() => false);
-  if (!jaSelecionado) {
-    await item.click({ timeout: 10000 });
-    await page.waitForTimeout(1000);
+  await item.click({ timeout: 10000 });
+  await page.waitForTimeout(10000);
+
+  if (especialidade !== 'COLHEDORA - CANA') {
+    const depois = await assinaturaFrota(page);
+    if (depois && depois === antes) return false;
   }
+
   await campo.fill('');
   await page.waitForTimeout(500);
   return true;
@@ -496,8 +515,17 @@ async function prepararPaginaTentativa(page, { inicio, fim, pagina, especialidad
 // pagina nao troca de verdade -- ja aconteceu, R$/Km saiu com dado de R$/Ton).
 const COLUNA_ASSINATURA = { 'R$ / Ton': 'Tonelada', 'R$ / Km': 'Km' };
 
+// Modelos que so a Colhedora-Cana usa (confirmado no R$/Ton, que usa o radio
+// de selecao unica e nunca mistura especialidade). O relatorio abre com
+// Colhedora marcada por padrao -- se uma fatia de OUTRA especialidade sai so
+// com esses modelos, o clique na arvore do R$/Km nao pegou de verdade
+// (as vezes nem clicando na mao, ao vivo, sai do lugar -- ver comentario de
+// aplicarFiltroEspecialidadeArvore). Joga fora e deixa cair no "falhou depois
+// de todas as tentativas" em vez de gravar dado da especialidade errada.
+const MODELOS_SO_COLHEDORA = new Set(['JOHN DEERE CH570', 'CASE AUSTOFT 9900', 'CASE AUSTOFT 9000', 'JOHN DEERE 3520']);
+
 async function extrairFatiaTentativa(page, fatia) {
-  const { inicio, fim, pagina } = fatia;
+  const { inicio, fim, pagina, especialidade } = fatia;
   await prepararPagina(page, fatia);
 
   const tsv = await copiarTabelaAnalitico(page);
@@ -508,6 +536,11 @@ async function extrairFatiaTentativa(page, fatia) {
   if (assinatura && !colunas.includes(assinatura)) {
     throw new Error(`Copiei uma tabela sem a coluna "${assinatura}" esperada pra "${pagina}" -- ` +
       `provavelmente copiou a pagina errada. Colunas vistas: ${colunas.join(' | ')}`);
+  }
+  if (pagina === 'R$ / Km' && especialidade && especialidade !== 'COLHEDORA - CANA' &&
+      linhasCopiadas.length && linhasCopiadas.every(l => MODELOS_SO_COLHEDORA.has(l['Modelo']))) {
+    throw new Error(`Saiu so com modelo(s) exclusivo(s) da Colhedora (${[...new Set(linhasCopiadas.map(l => l['Modelo']))].join(', ')}) ` +
+      `pra especialidade "${especialidade}" -- o filtro nao pegou de verdade.`);
   }
   // O rotulo "Empresa: X" no topo atualiza mais rapido que a matriz pesada
   // (varias colunas, muitos calculos): a matriz pode trazer linha de outra
