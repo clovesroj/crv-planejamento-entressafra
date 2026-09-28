@@ -19,8 +19,8 @@
    Insumos agronômicos, que não caíam em conta nenhuma, entram pela família
    do produto: herbicidas INS-01; inseticidas, fungicidas e biológicos INS-02;
    fertilizantes e corretivos INS-03; foliares, micronutrientes e
-   bioestimulantes INS-04; adjuvantes, reguladores e qualquer grupo criado na
-   aba Grupos de Insumos, INS-06. Só fica fora de conta o produto que NÃO TEM
+   bioestimulantes INS-04; adjuvantes, reguladores, muda e qualquer grupo
+   criado na aba Grupos de Insumos, INS-06. Só fica fora de conta o produto que NÃO TEM
    grupo (o bloco "Outros e a Classificar" do cadastro) -- esse é o único caso
    que a pessoa resolve escolhendo o grupo na aba Insumos, e é o que o aviso do
    Plano de Contas passou a dizer. Antes, adjuvante e regulador caíam no mesmo
@@ -43,7 +43,7 @@ const SEM_CONTA = {
 };
 const INSUMO_CONTA = {herbicida:"INS-01", inseticida:"INS-02", fungicida:"INS-02", biologico:"INS-02",
   fertilizante:"INS-03", corretivo:"INS-03", foliar:"INS-04", micro:"INS-04", bioestim:"INS-04",
-  regulador:"INS-06", adjuvante:"INS-06"};
+  regulador:"INS-06", adjuvante:"INS-06", muda:"INS-06"};
 /* Grupo criado na aba Grupos de Insumos nao esta no mapa acima -- e um grupo de
    verdade, escolhido a mao, entao vai para INS-06 e nao para a linha sem conta.
    Sem grupo mesmo ("outros") continua fora: e o que o aviso manda corrigir. */

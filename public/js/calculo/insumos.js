@@ -51,10 +51,12 @@ function familiaDe(classe){
    diferente em cada tela. */
 const FERT_NOME = /\b\d{1,2}[-.]\d{2}[-.]\d{2}\b|ur[eé]ia|\bkcl\b|cloreto de pot|\bmap\b|sulfato de am|nitrato|\bn ?32\b|fosfat|pot[aá]ss|\bboro\b|zinco|mangan|cobre|micronut|multimicros|mag 8|kymon|ms cana|almax|potamol/i;
 const CORR_NOME = /calc[aá]rio|gesso|corretiv/i;
+const MUDA_NOME = /\bmudas?\b|cana[- ]semente|pr[eé][- ]brotad/i;
 function familiaEfetiva(i){
   const fam = (i && i.fam) || familiaDe(i && i.classe).id;
   if(fam!=="outros") return fam;
   const t = String((i && i.prod)||"");
+  if(MUDA_NOME.test(t)) return "muda";
   if(CORR_NOME.test(t)) return "corretivo";
   if(FERT_NOME.test(t)) return "fertilizante";
   return "outros";
@@ -67,7 +69,9 @@ function familiaEfetiva(i){
 function todasFamilias(){
   const base = FAMILIAS_INSUMO.slice(0, -1).map(comNomeFixo);
   const outros = comNomeFixo(FAMILIAS_INSUMO[FAMILIAS_INSUMO.length - 1]);
-  return [...base, ...gruposInsLista(), outros];
+  // grupo criado à mão que depois virou fixo (ex.: "Muda") aparece uma vez só
+  const criados = gruposInsLista().filter(g => !FAMILIAS_INSUMO.some(f => f.id === g.id));
+  return [...base, ...criados, outros];
 }
 
 // identificador do grupo a partir do nome digitado: minúsculo, sem acento nem espaço

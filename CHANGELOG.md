@@ -1,5 +1,26 @@
 # Histórico de mudanças
 
+## 2.50.5 — 2026-09-28 · Grupo de insumos "Muda"
+
+- **Novo grupo fixo "Muda"** no Cadastro de Insumos, para cana-semente,
+  toletes e muda pré-brotada. Aparece na coluna Grupo de cada produto, como
+  bloco próprio no cadastro e na aba Grupos de Insumos (pode ser renomeado e
+  ter a classe ajustada; a classe inicial é "Outros").
+- **Classificação automática:** produto com classe agronômica "Muda" (ou
+  "cana-semente", "pré-brotada") cai no grupo sozinho. Produto sem grupo cujo
+  nome diz "muda" também. Quem já tem grupo escolhido à mão continua onde
+  está: para levar a "Cana-de-açúcar" para Muda, escolha "Muda" na coluna
+  Grupo.
+- **Custos:** no Plano de Contas, o insumo do grupo Muda entra em INS-06
+  (Adjuvantes, Reguladores e Outros Insumos), que é a conta de outros
+  insumos. No modelo de custo por hectare, entra na categoria "mudas".
+- Um grupo "Muda" criado à mão antes desta versão não aparece duplicado: vale
+  o grupo fixo, e os produtos que apontavam para ele continuam no mesmo
+  bloco.
+
+**Validação:** 54 conferências sem falha; 33 abas, 504 rastros e 138
+relatórios sem erro. Totais do cenário de teste sem mudança.
+
 ## 2.50.4 — 2026-09-28 · Custo efetivo do tratamento no Plano e Transporte de Pessoal recuperado
 
 **Custo por ha do tratamento no Plano Operacional:** a coluna R$/ha da linha
