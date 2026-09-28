@@ -698,7 +698,7 @@ function rastroAtividade(R, cod){
          brl((R.MP.custoFuncao[r.fcod]||{}).mensal||0)}/mês (salário, encargos e benefícios)`},
       {rot:"Manutenção (CRM)", val:brl(r.cManut), sub:"taxa por hora da frota prevista, da aba Manutenção de Frota"},
       {rot:"Insumos", val:brl(r.cInsumo),
-       sub:r.trat ? `tratamento ${r.trat} a ${brl(trat,2)}/ha × ${fmt(r.total)} ${un}` : "sem tratamento vinculado"},
+       sub:subInsumoAtiv(r, trat, un)},
       {rot:"Terceirização", val:brl(r.cTerc)},
       {rot:"CUSTO DIRETO DA ATIVIDADE", val:brl(r.direto)},
     ]},
@@ -719,7 +719,7 @@ function rastroAtividade(R, cod){
       ]},
       {titulo:"Custo desta linha", linhas:[
         {rot:"Insumos", val:brl(r.cInsumo),
-         sub:r.trat ? `tratamento ${r.trat} a ${brl(trat,2)}/ha × ${fmt(r.total)} ${un}` : "sem tratamento vinculado"},
+         sub:subInsumoAtiv(r, trat, un)},
         {rot:"CUSTO DIRETO DA ATIVIDADE", val:brl(r.direto)},
       ]});
     return {largo:true, destaques:apres.destaques, tabelas:[],
@@ -1386,6 +1386,13 @@ function rastroDemandas(R){
         sub:"comprar "+fmt(l.comprar, l.comprar<10?2:0)+" "+l.un+(l.acaba!=null ? " · estoque acaba em "+MESES[l.acaba] : ""), ir:"demanda:"+l.prod}))
         : [{rot:"O estoque cobre todos os insumos do plano", val:"—"}]}],
     premissas:premissasGerais()};
+}
+/* Insumo de uma atividade, escrito como conta: com tratamento extra, cada
+   tratamento na SUA área (principal × área inteira não fechava com o valor). */
+function subInsumoAtiv(r, trat, un){
+  const ds = (r.tratsDetalhe||[]).filter(d=>d.trat && d.area>0);
+  if(ds.length) return ds.map(d=>`${d.trat}${d.principal?"":" (extra)"} a ${brl(d.custo/d.area,2)}/ha × ${fmt(d.area)} ${un}`).join(" + ");
+  return r.trat ? `tratamento ${r.trat} a ${brl(trat,2)}/ha × ${fmt(r.total)} ${un}` : "sem tratamento vinculado";
 }
 /* ---------- aderência à referência setorial (Painel) ---------- */
 function rastroBench(R, id){

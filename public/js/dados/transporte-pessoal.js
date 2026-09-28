@@ -39,3 +39,14 @@ export const TPESS_ROTAS = [
   {"rota":"Rota 8 - Colheita Muda","veic":"Veículo","cap":16,"qtd":0,"kmDia":80,"diasMes":26,"rsKm":0,"diaria":400,"kmExtra":0,"rsKmExtra":4,
    "ent":{"qtd":2,"kmDia":150,"diasMes":30,"kmExtra":400}}
 ];
+
+/* As rotas genéricas que eram o padrão até a 2.50.4. Servem só para
+   reconhecer um plano cujas rotas foram sobrescritas pelo padrão antigo (ver
+   restaurarRotasPerdidas em main.js) e trocá-las pelas rotas da usina acima --
+   a tabela exportada da aba (t_tp.xls) antes da perda, total R$ 815.200. */
+export const TPESS_ROTAS_V1 = [
+  {"rota":"Rota 1 — Capinópolis / Fazendas Norte","veic":"Ônibus rodoviário 44 lugares","cap":44,"qtd":2,"kmDia":120,"diasMes":26,"rsKm":4.2,"diaria":95,"kmExtra":400,"rsKmExtra":5.1},
+  {"rota":"Rota 2 — Capinópolis / Fazendas Sul","veic":"Ônibus rodoviário 44 lugares","cap":44,"qtd":2,"kmDia":140,"diasMes":26,"rsKm":4.2,"diaria":95,"kmExtra":400,"rsKmExtra":5.1},
+  {"rota":"Rota 3 — Turno noturno / colheita","veic":"Micro-ônibus 28 lugares","cap":28,"qtd":2,"kmDia":90,"diasMes":30,"rsKm":3.4,"diaria":110,"kmExtra":300,"rsKmExtra":4.3},
+  {"rota":"Apoio — deslocamento de equipes","veic":"Van 15 lugares","cap":15,"qtd":3,"kmDia":70,"diasMes":26,"rsKm":2.6,"diaria":80,"kmExtra":250,"rsKmExtra":3.3}
+];

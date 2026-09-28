@@ -968,9 +968,7 @@ $("#btn_tp_add").onclick=()=>{
 $("#btn_tp_reset").onclick=()=>{
   /* Apaga o que estiver lancado e grava por cima: e o caminho mais curto para
      perder as rotas da operacao, entao o aviso diz o que vai embora. */
-  if(!confirm("Restaurar as rotas padrão de transporte de pessoal?
-
-"+
+  if(!confirm("Restaurar as rotas padrão de transporte de pessoal?\n\n"+
     "As rotas lançadas hoje (nomes, veículos, km, dias e valores, na safra e na entressafra) "+
     "são apagadas e substituídas pelas do cadastro. Não dá para desfazer.")) return;
   setTPESS(CFG.tpess.map(copiaRota)); salvar(); render();

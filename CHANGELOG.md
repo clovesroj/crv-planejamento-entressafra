@@ -1,5 +1,55 @@
 # Histórico de mudanças
 
+## 2.50.4 — 2026-09-28 · Custo efetivo do tratamento no Plano e Transporte de Pessoal recuperado
+
+**Custo por ha do tratamento no Plano Operacional:** a coluna R$/ha da linha
+passa a mostrar o **custo efetivo do tratamento principal**, o mesmo do
+cadastro de tratamentos (dose × preço + frete). Antes, na atividade com
+tratamento extra, aparecia a média dos tratamentos ao lado do seletor do
+principal (ex.: PL05 com R$ 1.337,45/ha ao lado do "1 CP", que custa
+R$ 418,01/ha).
+
+- O insumo em R$ da linha continua somando todos os tratamentos. A linha
+  mostra "+N extra ▸", e a dica traz a média da atividade e o custo/ha e a
+  área de cada tratamento. Sem tratamento principal, a linha mostra a média,
+  marcada "média ▸".
+- O seletor de tratamento mostra o custo/ha com centavos, igual ao cadastro.
+- **Rastro da atividade:** a conta do insumo lista cada tratamento na sua
+  área (ex.: "1 CP a R$ 418,01/ha × 1.435 ha + 1 FT (extra) a R$ 5.990,40/ha
+  × 283 ha"). Antes aparecia só o principal vezes a área inteira, um valor
+  que não fechava com o insumo mostrado.
+
+**Transporte de Pessoal: por que as rotas sumiram.** O documento do
+servidor leva alguns segundos para chegar quando a página abre. Até lá, o
+que existe em memória são os **padrões do código**. Se a janela perdia o foco
+nesse intervalo (trocar de janela ou de aba), o salvamento automático mandava
+esses padrões ao servidor, que gravava por cima do que foi digitado. As rotas
+voltaram às quatro rotas genéricas, e o total da aba foi de R$ 815.200 para
+R$ 1.419.060.
+
+- **Correção:** nada é gravado (servidor, rascunho local ou pendência) antes
+  de o documento do servidor chegar. Uma pendência antiga gravada nessa
+  janela, sem base, é descartada em vez de reaplicada. O documento do
+  servidor sempre prevalece no carregamento.
+- **Rotas da usina de volta:** as 8 rotas da planilha preenchida
+  (t_tp.xls), com os valores de safra e de entressafra, passam a ser o padrão
+  da aba (commit 2d1c881, que chegou em paralelo com os mesmos números). O
+  botão "Restaurar rotas padrão" volta a elas. Total: R$ 815.200 na
+  entressafra, R$ 0 na safra.
+- **Restauração automática:** o plano gravado no servidor ainda tem as quatro
+  rotas genéricas, e só o novo padrão não o mudaria. Quando a lista gravada é
+  **exatamente** a das quatro rotas antigas, a primeira pessoa com permissão
+  de editar o Transporte de Pessoal que abrir o sistema restaura as 8 rotas e
+  grava o plano (aparece o aviso "Rotas do Transporte de Pessoal
+  restauradas"). Uma lista que alguém editou não é tocada.
+- **Erro de sintaxe corrigido** no aviso do botão "Restaurar rotas padrão"
+  (2d1c881): o texto tinha uma quebra de linha dentro das aspas, o que
+  impedia o sistema inteiro de abrir.
+
+**Validação:** 54 conferências sem falha. 33 abas, 504 rastros e 138
+relatórios sem erro. No cenário de teste, a única diferença no custo total é
+a do Transporte de Pessoal (−R$ 603.860).
+
 ## 2.50.3 — 2026-09-25 · Tratamento: Plano Operacional, cadastro e relatório com o mesmo valor
 
 **O que parecia errado:** na linha PL05 (Adubação de fundação) o Plano

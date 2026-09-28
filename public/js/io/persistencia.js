@@ -108,7 +108,13 @@ function definirPatchItens(chavePatch, patch){ patchesPendentes[chavePatch] = pa
    inteiro: não há com o que comparar, e é a mesma situação de sempre no
    primeiro carregamento. */
 function alteracoes(){
-  if(!BASE_GRAVACAO) return estado();
+  /* Sem base ainda = a página está carregando: o que existe em memória são os
+     PADRÕES do código (rotas, apoio, materiais, premissas...), não o plano.
+     Mandar isso fazia o servidor gravar o padrão por cima do que as pessoas
+     digitaram -- bastava a janela perder o foco (blur) no segundo em que o
+     documento ainda estava chegando: foi assim que as rotas do Transporte de
+     Pessoal voltaram ao padrão. Antes da base, não há o que mandar. */
+  if(!BASE_GRAVACAO) return {v: estadoCru().v};
   const cru = estadoCru(), doc = {v: cru.v};
   Object.keys(cru).forEach(k=>{
     if(k==="v" || CHAVES_SEM_DIFF.has(k)) return;
@@ -224,9 +230,12 @@ async function carregar(){
       REMOTO = await abrir();
       if(!REMOTO) continue;
       const d = await REMOTO.ler();
-      // se o usuário já começou a editar enquanto isto ainda carregava, não pisar na edição dele
-      if(d && !EDITADO) aplicar(d);
-      if(!EDITADO) await recuperarPendente(d);
+      /* O documento do servidor manda sempre. Antes, quem começava a editar no
+         segundo do carregamento ficava com a tela dos padrões e marcava ESSES
+         valores como base; agora nada sai antes do documento chegar (ver
+         alteracoes()), então a tela passa a mostrar o plano de verdade. */
+      if(d) aplicar(d);
+      await recuperarPendente(d);
       statusRemoto(d ? "Salvo no servidor" : "Pronto — salva no servidor");
       return;
     }catch(e){ REMOTO = null; }
@@ -234,8 +243,8 @@ async function carregar(){
   try{
     const raw = localStorage.getItem("crv_plano_v10");
     const local = raw ? JSON.parse(raw) : null;
-    if(!EDITADO && local) aplicar(local);
-    if(!EDITADO) await recuperarPendente(local);
+    if(local) aplicar(local);
+    await recuperarPendente(local);
     setStatus("Salvo neste navegador","warn");
   }catch(e){ setStatus("Sem salvamento","off"); }
 }
@@ -435,8 +444,12 @@ function lerPendente(){
 async function recuperarPendente(doServidor){
   const p = lerPendente();
   if(!p) return;
+  /* Pendência sem base foi gravada antes de a página terminar de carregar: é
+     o estado INTEIRO com os padrões do código, não uma edição. Reaplicar
+     isso devolvia o padrão por cima do plano. */
+  if(!p.base){ limparPendente(); return; }
   const doc = doServidor || {};
-  const B = p.base || null;   // pendencia antiga, sem base: reaplica como antes
+  const B = p.base;
   /* Reaplica o que nao chegou: o servidor nao tem o valor pendente, e ainda tem
      o valor de antes da edicao. Com outro valor no servidor, alguem mudou
      depois -- fica o mais novo. P vai campo a campo (a pendencia pode trazer so
@@ -468,6 +481,9 @@ async function recuperarPendente(doServidor){
 }
 
 async function gravar(){
+  // ainda carregando: nada a gravar (nem o rascunho local, que ainda é o padrão),
+  // e a pendência da sessão anterior fica para o recuperarPendente()
+  if(!BASE_GRAVACAO) return;
   // rascunho local: sempre o estado inteiro (é o que sobra se o banco perder
   // alguma coisa), sobrevive a fechar a aba no meio da gravação
   try{ localStorage.setItem("crv_plano_v10",JSON.stringify(estado())); }catch(err){}
@@ -535,6 +551,8 @@ function marcarRascunhoPendente(){ setEDITADO(true); salvePendente = true; }
    compara com a base e so avanca quando o servidor confirma. */
 function flushSalvar(){
   clearTimeout(saveTimer);
+  // carregando (sem base): o que há em memória é o padrão do código -- ver alteracoes()
+  if(!BASE_GRAVACAO) return;
   try{ localStorage.setItem("crv_plano_v10",JSON.stringify(estado())); }catch(err){}
   const doc = alteracoes(), temMudanca = Object.keys(doc).some(k=>k!=="v");
   if(!temMudanca) return;
@@ -556,5 +574,5 @@ window.addEventListener("pagehide",flushSalvar);
 window.addEventListener("blur",flushSalvar);
 
 
-export { abrirArtifact, abrirServidor, aplicar, carregar, definirPatchItens, estado, flushSalvar, gravar,
+export { abrirArtifact, abrirServidor, aplicar, carregar, definirPatchItens, estado, flushSalvar, gravar, mostrarToast,
   marcarBaseGravacao, marcarRascunhoPendente, pedirAPI, salvar, salvePendente, setStatus, statusRemoto };
