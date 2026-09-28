@@ -49,6 +49,8 @@ export const CONTAS = [
      acusava "insumo sem grupo agronomico" -- para produtos que TEM grupo. Esta
      conta e o destino deles dentro de 5. Insumos. */
   {"conta":"INS-06","desc":"Adjuvantes, Reguladores e Outros Insumos","grupo":"5. Insumos","nat":"Insumos","cls":"Variável","cd":"Custo","dir":"Área x dose"},
+  // produtos do grupo Muda do Cadastro de Insumos (cana-semente, toletes, muda pré-brotada)
+  {"conta":"INS-07","desc":"Mudas","grupo":"5. Insumos","nat":"Insumos","cls":"Variável","cd":"Custo","dir":"Área plantada x dose"},
   {"conta":"DEP-01","desc":"Depreciação de Máquinas e Implementos","grupo":"6. Capital","nat":"Depreciação","cls":"Fixo","cd":"Custo","dir":"Valor do imobilizado"},
   {"conta":"ARR-01","desc":"Arrendamento de Terras","grupo":"6. Capital","nat":"Arrendamento","cls":"Fixo","cd":"Custo","dir":"Área arrendada x forma de pagamento"},
   {"conta":"EST-01","desc":"Estrutura / Administração Agrícola","grupo":"6. Capital","nat":"Estrutura","cls":"Fixo","cd":"Despesa","dir":"Estrutura fixa mensal"}

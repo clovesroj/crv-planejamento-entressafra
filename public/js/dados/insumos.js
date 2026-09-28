@@ -121,7 +121,7 @@ export const FAMILIAS_INSUMO = [
   {id:"adjuvante",   nome:"Adjuvantes e Veículos",          classeGrupo:"",         termos:["adjuvante","espalhante","antideriva","diluente","veículo","óleo mineral","óleo vegetal"]},
   /* Muda de cana (cana-semente, tolete, muda pré-brotada): material de
      plantio, não defensivo nem adubo. Classe "Outros" é palpite -- ajusta-se na
-     aba Grupos de Insumos. No Plano de Contas cai em INS-06 (outros insumos). */
+     aba Grupos de Insumos. No Plano de Contas cai na conta INS-07 (Mudas). */
   {id:"muda",        nome:"Muda",                           classeGrupo:"Outros",   termos:["muda","cana-semente","cana semente","pré-brotad","pre-brotad"]},
   {id:"outros",      nome:"Outros e a Classificar",         classeGrupo:"",         termos:[]},
 ];

@@ -1,5 +1,21 @@
 # Histórico de mudanças
 
+## 2.50.6 — 2026-09-28 · Conta INS-07 Mudas no Plano de Contas
+
+- **Nova conta INS-07 "Mudas"** no grupo 5. Insumos (variável, custo,
+  direcionador "Área plantada x dose").
+- O custo dos produtos do grupo **Muda** do Cadastro de Insumos passa a cair
+  na INS-07. Na 2.50.5 caía na INS-06 (Adjuvantes, Reguladores e Outros
+  Insumos). Produto sem grupo cujo nome diz "muda" também vai para a INS-07.
+- Conferido com um produto de muda num tratamento do plano: o insumo total
+  subiu R$ 1.869.600, e a INS-07 recebeu o mesmo valor, detalhado por produto
+  no rastro da conta.
+- O aviso de insumo sem grupo, na página do Plano de Contas, passa a citar as
+  contas INS-01 a INS-07.
+
+**Validação:** 54 conferências sem falha; 33 abas, 505 rastros e 138
+relatórios sem erro. Totais do cenário de teste sem mudança.
+
 ## 2.50.5 — 2026-09-28 · Grupo de insumos "Muda"
 
 - **Novo grupo fixo "Muda"** no Cadastro de Insumos, para cana-semente,

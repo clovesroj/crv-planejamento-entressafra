@@ -128,7 +128,7 @@ function pintarPainelContas(R, CV, REC){
   const vSemGrupo = semGrupo.reduce((s,o)=>s+o.v,0);
   $("#cc_alerta").innerHTML = vSemGrupo>0.5
     ? `<span data-rastro="conta:__insumos"><b>${semGrupo.length} insumo${semGrupo.length>1?"s":""} sem grupo somam ${brl(vSemGrupo)}</b>
-       (${pctDe(vSemGrupo, totPlano)} do custo) e ficam fora das contas INS-01 a INS-06 — ${semGrupo.slice(0,4).map(o=>esc(o.rot)).join(", ")}${semGrupo.length>4?", …":""}.
+       (${pctDe(vSemGrupo, totPlano)} do custo) e ficam fora das contas INS-01 a INS-07 — ${semGrupo.slice(0,4).map(o=>esc(o.rot)).join(", ")}${semGrupo.length>4?", …":""}.
        São os produtos do bloco <b>Outros e a Classificar</b> do Cadastro de Insumos: escolha o grupo de cada um
        (coluna <b>Grupo</b>) para ele cair na conta certa. Adjuvante, regulador e grupo criado por você já têm
        conta — a INS-06.</span>` : "";
