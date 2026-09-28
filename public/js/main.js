@@ -27,7 +27,7 @@ import './app/acoes.js';         // botoes de acao (restaurar, exportar, tema)
 /* 2. o que o arranque chama diretamente */
 import { pintarPremissas } from './ui/premissas.js';
 import { render } from './app/ciclo.js';
-import { carregar, marcarBaseGravacao, mostrarToast, salvar } from './io/persistencia.js';
+import { carregar, marcarBaseGravacao, mostrarToast, oferecerResgate, salvar } from './io/persistencia.js';
 import { CFG } from './dados/cfg.js';
 import { TPESS_ROTAS_V1 } from './dados/transporte-pessoal.js';
 import { copiaRota, setTPESS, tpessLista } from './nucleo/estado.js';
@@ -60,7 +60,9 @@ function arrancar(){
   pintarPremissas(); render();
   // marcarBaseGravacao() depois do render: listas criadas ou normalizadas na
   // primeira pintura entram na base, e não viram aviso falso de "sem permissão"
-  carregar().then(()=>{ pintarPremissas(); render(); marcarBaseGravacao(); restaurarRotasPerdidas(); });
+  carregar().then(()=>{ pintarPremissas(); render(); marcarBaseGravacao(); restaurarRotasPerdidas();
+    // dados que o servidor perdeu e este navegador ainda tem (ver guardarResgate)
+    if(oferecerResgate()){ pintarPremissas(); render(); } });
 }
 quemSou().then(usuario=>{
   if(usuario){ setUSUARIO(usuario); aplicarChromeUsuario(usuario); arrancar(); }

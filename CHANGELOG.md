@@ -1,5 +1,42 @@
 # Histórico de mudanças
 
+## 2.50.7 — 2026-09-28 · FAT apagado: causa e resgate pelo navegador
+
+**O que houve com o FAT.** É a mesma causa das rotas do Transporte de
+Pessoal, corrigida na 2.50.4. Uma sessão que perdia o foco (troca de janela
+ou de aba) enquanto a página ainda carregava mandava ao servidor os valores
+padrão do código. O padrão do FAT é a lista vazia, então as funções
+lançadas foram apagadas. Nenhuma mudança de cálculo ou de tela apagou o FAT: a
+tabela, o formato gravado e as permissões são os mesmos desde a criação da
+aba (2026-09-23), e o servidor não tem regra que mexa nessa chave.
+
+O servidor guarda uma única versão do plano, sem histórico, e o banco está
+no plano gratuito do Render, que não tem backup. Por isso não há como ler de
+volta do servidor o FAT apagado.
+
+**Resgate pelo navegador.** Cada navegador guarda uma cópia do plano da
+última sessão (o rascunho local). Agora, ao abrir o sistema, antes de gravar
+qualquer coisa, o sistema compara essa cópia com o que veio do servidor:
+
+- Uma lista que está vazia no servidor (ou só com o padrão) e preenchida na
+  cópia deste navegador é guardada à parte, e o salvamento seguinte não a
+  apaga. Vale para FAT, apoio operacional, Transporte de Pessoal,
+  esporádicos, custos administrativos, arrendamentos, fornecedores,
+  atividades de apoio, quadro ativo, encargos, benefícios e gratificação.
+- Em seguida, o sistema pergunta a quem pode editar aquela aba se quer
+  restaurar, mostrando quantos itens há e de quando é a cópia. Nada volta
+  sem confirmação, porque uma lista esvaziada de propósito também apareceria.
+  Quem recusa não recebe a pergunta de novo, e a cópia continua guardada.
+- Ao confirmar, só a lista resgatada é gravada no servidor.
+- O rascunho local passa a guardar a data da cópia.
+
+O resgate só funciona num navegador que ainda tem o FAT na cópia local, em
+geral o de quem preencheu a aba e não abriu o sistema depois da perda.
+
+**Validação:** resgate testado com perfil com e sem permissão na aba Mão de
+Obra, recusa e aceite; após o aceite, a gravação manda só a chave FAT. 54
+conferências sem falha; 33 abas, 505 rastros e 138 relatórios sem erro.
+
 ## 2.50.6 — 2026-09-28 · Conta INS-07 Mudas no Plano de Contas
 
 - **Nova conta INS-07 "Mudas"** no grupo 5. Insumos (variável, custo,
