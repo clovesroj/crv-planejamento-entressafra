@@ -198,18 +198,26 @@ function mesclarBaseInsumos(){
   const lista = insLista();
   const jaTem = new Map(lista.map(i=>[chaveProd(i.prod), i]));
   let novos = 0, completados = 0;
+  // só os itens que esta mesclagem de fato tocou -- quem chama (o botão de
+  // sincronizar e o carregamento por versão) precisa disso pra gravar SÓ o
+  // que mudou aqui. Gravar o cadastro inteiro reenviaria, de todo produto
+  // não tocado, o snapshot que esta aba tinha em memória — se outra pessoa
+  // mudou o grupo (fam) de um produto depois que esta aba carregou a
+  // página, o reenvio em massa apagava essa mudança, sobrescrevendo com o
+  // valor antigo. Era esse o "cadastro sempre volta pro grupo automático".
+  const novosItens = [], completadosItens = [];
   CFG.insumos.forEach(base=>{
     const chave = chaveProd(base.prod);
     const atual = jaTem.get(chave);
     // produto do cadastro base que a pessoa removeu de propósito (INS_DEL) não
     // volta numa próxima versão da base -- mesmo mecanismo do TRAT_DEL para
     // tratamento removido; sem isso a exclusão nunca era definitiva.
-    if(!atual){ if(INS_DEL[chave]) return; lista.push({...base}); novos++; return; }
+    if(!atual){ if(INS_DEL[chave]) return; const novo={...base}; lista.push(novo); novos++; novosItens.push(novo); return; }
     let mudou = false;
     CAMPOS_TEC.forEach(k=>{ if(base[k] && !atual[k]){ atual[k]=base[k]; mudou=true; } });
-    if(mudou) completados++;
+    if(mudou){ completados++; completadosItens.push(atual); }
   });
-  return {novos, completados, total:lista.length};
+  return {novos, completados, total:lista.length, novosItens, completadosItens};
 }
 /* ---------- o cadastro ativo como fonte única do produto ----------
    Tratamento cita produto por nome, e o nome pode vir de outra fonte que não o

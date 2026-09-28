@@ -978,14 +978,15 @@ $("#btn_ins_add").onclick=()=>{
 $("#btn_ins_sinc").onclick=()=>{
   const r = mesclarBaseInsumos();
   setINSX_V(CFG.insumos_v);
-  // mesclarBaseInsumos() pode mudar varios produtos de uma vez (completar
-  // classificacao tecnica, trazer produto novo da base) sem dizer quais --
-  // mais simples e seguro marcar o cadastro inteiro, mesmo que mande upsert
-  // de produto que na verdade nao mudou. E uma acao rara e deliberada, nao
-  // edicao corrente, entao o patch um pouco maior aqui nao pesa. Essa acao
-  // sempre gravou na hora (nao espera o botao "Salvar alteracoes"), entao
-  // monta o patch (salvarIns) e ja manda (salvar), em vez de so marcar sujo.
-  insLista().forEach(i=>marcarInsSujo(i));
+  // Marcar sujo SÓ quem mesclarBaseInsumos() de fato tocou (produto novo ou
+  // campo técnico completado) -- marcar o cadastro inteiro reenviava, de
+  // todo produto intocado, o snapshot que esta aba tinha em memória, e esse
+  // reenvio em massa apagava qualquer mudança feita por outra pessoa (ex.:
+  // o grupo/fam de um produto) depois que esta aba carregou a página. Essa
+  // acao sempre gravou na hora (nao espera o botao "Salvar alteracoes"),
+  // entao monta o patch (salvarIns) so com quem mudou e ja manda (salvar).
+  r.novosItens.forEach(marcarInsNovo);
+  r.completadosItens.forEach(marcarInsSujo);
   salvarIns(); salvar(); render();
   alert(r.novos || r.completados
     ? `Cadastro atualizado: ${r.novos} produto(s) novo(s) e ${r.completados} com a classificação técnica `+
