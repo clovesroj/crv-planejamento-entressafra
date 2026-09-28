@@ -254,9 +254,12 @@ export function apoioLista(){ if(!APOIO) APOIO = CFG.apoio_eq.map(a=>({...a})); 
 export function matLista(){ if(!MATX) MATX = CFG.materiais.map(m=>({...m})); return MATX; }
 
 export function tpessLista(){
-  if(!TPESS) TPESS = CFG.tpess.map(t=>({...t}));
+  // copia com o `ent` proprio: sem isso o objeto de entressafra fica
+  // compartilhado com o cadastro base, e editar a rota mexeria nele
+  if(!TPESS) TPESS = CFG.tpess.map(copiaRota);
   return TPESS;
 }
+export const copiaRota = t => t.ent ? {...t, ent:{...t.ent}} : {...t};
 
 export function arrLista(){
   // primeira abertura: herda a área e o valor que estavam nas Premissas, para o custo não mudar sozinho

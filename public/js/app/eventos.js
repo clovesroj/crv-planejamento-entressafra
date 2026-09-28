@@ -28,7 +28,7 @@ import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarBuscaItem, fi
 import { abrirRendMensal, aberto as rendMensalAberto, descartarRascunho, editarRascunho,
   fecharRendMensal, pendencias, salvarRascunho } from '../ui/rendmensal.js';
 import { setQF_MES, setQF_GRUPO, setPES_GRUPO, setPES_DEPT, setCONTAS_GRUPO, setCONTAS_CLS, setCONTAS_CD, setDEM_SO_FALTA, setAPOIO_PER, APOIO_PER } from '../nucleo/estado.js';
-import { setAPOIO, setATIV_TRAT_SEL, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setINSX_V, setINS_DEL, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
+import { copiaRota, setAPOIO, setATIV_TRAT_SEL, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setINSX_V, setINS_DEL, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
 import { USUARIO, areasDePermissao, podeEditar } from '../nucleo/sessao.js';
 
 /* Renomear ou remover um tratamento mexe tambem nas atividades que o usam, e
@@ -966,8 +966,14 @@ $("#btn_tp_add").onclick=()=>{
   salvar(); render();
 };
 $("#btn_tp_reset").onclick=()=>{
-  if(!confirm("Restaurar as rotas padrão de transporte de pessoal?")) return;
-  setTPESS(CFG.tpess.map(t=>({...t}))); salvar(); render();
+  /* Apaga o que estiver lancado e grava por cima: e o caminho mais curto para
+     perder as rotas da operacao, entao o aviso diz o que vai embora. */
+  if(!confirm("Restaurar as rotas padrão de transporte de pessoal?
+
+"+
+    "As rotas lançadas hoje (nomes, veículos, km, dias e valores, na safra e na entressafra) "+
+    "são apagadas e substituídas pelas do cadastro. Não dá para desfazer.")) return;
+  setTPESS(CFG.tpess.map(copiaRota)); salvar(); render();
 };
 
 $("#btn_ins_add").onclick=()=>{
