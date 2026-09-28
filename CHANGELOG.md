@@ -1,5 +1,25 @@
 # Histórico de mudanças
 
+## 2.50.8 — 2026-09-28 · Estoque de insumos zerado
+
+- **Botão "Zerar estoque"** no Cadastro de Insumos. Ele põe em zero o
+  estoque de todos os produtos que tinham saldo, pede confirmação e informa
+  quantos são. Como qualquer edição do cadastro, a gravação acontece em
+  **Salvar alterações**, e só os produtos que mudaram vão ao servidor. A data
+  do saldo ("Atualizado em") não muda.
+- **Base do sistema com estoque zero:** os 159 produtos da base que traziam
+  estoque passam a vir com zero. Isso vale para plano novo, produto que
+  entra pela classificação técnica e "Restaurar cadastro original".
+- Com o estoque zerado, a aba Demandas de Insumos e Materiais passa a pedir
+  a compra do volume inteiro do plano. O estoque dos materiais de manutenção
+  (informado na aba Demandas) não muda.
+- Conferido num cadastro com 204 produtos com estoque (no item e na
+  sobreposição de preço/estoque): todos foram a zero, e o patch de gravação
+  levou os 204.
+
+**Validação:** 54 conferências sem falha; 33 abas, 505 rastros e 138
+relatórios sem erro.
+
 ## 2.50.7 — 2026-09-28 · FAT apagado: causa e resgate pelo navegador
 
 **O que houve com o FAT.** É a mesma causa das rotas do Transporte de

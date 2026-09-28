@@ -1012,6 +1012,23 @@ $("#btn_ins_reset").onclick=()=>{
   render();
 };
 
+/* Zera o estoque do cadastro inteiro. O estoque efetivo é a sobreposição
+   INSUMO[prod].est e, sem ela, o do item (ver calculo/demandas.js): zera os
+   dois, e só nos produtos que tinham estoque -- o patch leva só quem mudou.
+   Grava no "Salvar alterações", como o resto do cadastro. */
+$("#btn_ins_zerar").onclick=()=>{
+  const comEstoque = insLista().filter(i=>num((INSUMO[i.prod]||{}).est)!==0 || num(i.est)!==0);
+  if(!comEstoque.length){ alert("Todos os produtos do cadastro já estão com estoque zero."); return; }
+  if(!confirm(`Zerar o estoque de ${comEstoque.length} produto(s) do cadastro de insumos?\n\n`+
+    `A demanda de compra passa a ser o volume inteiro do plano. Depois, clique em "Salvar alterações" para gravar.`)) return;
+  comEstoque.forEach(i=>{
+    i.est = 0;
+    INSUMO[i.prod] = {...(INSUMO[i.prod]||{}), est:0};
+    marcarInsSujo(i);
+  });
+  render();
+};
+
 $("#btn_mat_add").onclick=()=>{
   matLista().push({cat:"Outros",item:"Novo material",un:"un",preco:0,qtd:0,ap:""});
   salvar(); render();
