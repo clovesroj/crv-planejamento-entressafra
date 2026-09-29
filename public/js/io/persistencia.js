@@ -10,6 +10,7 @@ import { $, num } from '../nucleo/formato.js';
 import { MESES, NM } from '../nucleo/calendario.js';
 import { claudeUse } from './arquivo.js';
 import { PADRAO } from '../dados/padroes.js';
+import { areasDePermissao, podeEditar, USUARIO } from '../nucleo/sessao.js';
 
 
 /* Locais deste modulo: o destino remoto em uso e o timer do debounce de gravacao. */
@@ -108,7 +109,13 @@ function definirPatchItens(chavePatch, patch){ patchesPendentes[chavePatch] = pa
    inteiro: não há com o que comparar, e é a mesma situação de sempre no
    primeiro carregamento. */
 function alteracoes(){
-  if(!BASE_GRAVACAO) return estado();
+  /* Sem base ainda = a página está carregando: o que existe em memória são os
+     PADRÕES do código (rotas, apoio, materiais, premissas...), não o plano.
+     Mandar isso fazia o servidor gravar o padrão por cima do que as pessoas
+     digitaram -- bastava a janela perder o foco (blur) no segundo em que o
+     documento ainda estava chegando: foi assim que as rotas do Transporte de
+     Pessoal voltaram ao padrão. Antes da base, não há o que mandar. */
+  if(!BASE_GRAVACAO) return {v: estadoCru().v};
   const cru = estadoCru(), doc = {v: cru.v};
   Object.keys(cru).forEach(k=>{
     if(k==="v" || CHAVES_SEM_DIFF.has(k)) return;
@@ -224,9 +231,16 @@ async function carregar(){
       REMOTO = await abrir();
       if(!REMOTO) continue;
       const d = await REMOTO.ler();
-      // se o usuário já começou a editar enquanto isto ainda carregava, não pisar na edição dele
-      if(d && !EDITADO) aplicar(d);
-      if(!EDITADO) await recuperarPendente(d);
+      // antes de o servidor entrar na memória: o rascunho da sessão anterior
+      // deste navegador e os padrões do código (ver guardarResgate)
+      const rascunho = lerRascunho(), padrao = JSON.parse(JSON.stringify(estadoCru()));
+      /* O documento do servidor manda sempre. Antes, quem começava a editar no
+         segundo do carregamento ficava com a tela dos padrões e marcava ESSES
+         valores como base; agora nada sai antes do documento chegar (ver
+         alteracoes()), então a tela passa a mostrar o plano de verdade. */
+      if(d) aplicar(d);
+      await recuperarPendente(d);
+      guardarResgate(rascunho, padrao);
       statusRemoto(d ? "Salvo no servidor" : "Pronto — salva no servidor");
       return;
     }catch(e){ REMOTO = null; }
@@ -234,8 +248,8 @@ async function carregar(){
   try{
     const raw = localStorage.getItem("crv_plano_v10");
     const local = raw ? JSON.parse(raw) : null;
-    if(!EDITADO && local) aplicar(local);
-    if(!EDITADO) await recuperarPendente(local);
+    if(local) aplicar(local);
+    await recuperarPendente(local);
     setStatus("Salvo neste navegador","warn");
   }catch(e){ setStatus("Sem salvamento","off"); }
 }
@@ -435,8 +449,12 @@ function lerPendente(){
 async function recuperarPendente(doServidor){
   const p = lerPendente();
   if(!p) return;
+  /* Pendência sem base foi gravada antes de a página terminar de carregar: é
+     o estado INTEIRO com os padrões do código, não uma edição. Reaplicar
+     isso devolvia o padrão por cima do plano. */
+  if(!p.base){ limparPendente(); return; }
   const doc = doServidor || {};
-  const B = p.base || null;   // pendencia antiga, sem base: reaplica como antes
+  const B = p.base;
   /* Reaplica o que nao chegou: o servidor nao tem o valor pendente, e ainda tem
      o valor de antes da edicao. Com outro valor no servidor, alguem mudou
      depois -- fica o mais novo. P vai campo a campo (a pendencia pode trazer so
@@ -467,10 +485,110 @@ async function recuperarPendente(doServidor){
   }catch(err){ /* fica marcada para a proxima abertura */ }
 }
 
+/* ---------- resgate do rascunho deste navegador ----------
+   O servidor guarda uma versão só do plano, sem histórico. Quando uma lista
+   some de lá (o FAT e as rotas do Transporte de Pessoal, apagados pela
+   gravação durante o carregamento -- ver alteracoes()), a última cópia que
+   sobra é o rascunho que cada navegador guarda (crv_plano_v10).
+
+   Na abertura, ANTES de esta sessão gravar qualquer coisa, compara o
+   rascunho com o que veio do servidor: lista que o servidor tem vazia (ou
+   com o padrão do código) e que o rascunho tem preenchida vai para uma cópia
+   à parte (crv_resgate), que não é sobrescrita pelo salvamento. Depois da
+   abertura, oferecerResgate() pergunta a quem pode editar aquela aba se quer
+   devolver os dados ao plano. Nada volta sem confirmação: uma lista esvaziada
+   de propósito também aparece aqui. */
+const CHAVE_RASCUNHO = "crv_plano_v10", CHAVE_RASCUNHO_TS = "crv_plano_v10_ts", CHAVE_RESGATE = "crv_resgate";
+const RESGATAVEIS = {
+  FAT: "FAT — funções com contrato suspenso (Mão de Obra)",
+  MO_APOIO: "Mão de obra de apoio operacional (Dimensionamento)",
+  TPESS: "Rotas do Transporte de Pessoal",
+  ESPOR: "Custos esporádicos (Custos)",
+  ADM: "Custos administrativos", ADM_RAT: "Rateio dos custos administrativos",
+  ARREND: "Arrendamentos", ARR_PAR: "Parâmetros dos arrendamentos", ARR_RAT: "Rateio dos arrendamentos",
+  FORN: "Fornecedores de cana", FORN_PAR: "Parâmetros dos fornecedores",
+  APOIO: "Atividades de apoio", APOIO_FIXO: "Apoio fixo",
+  QUADRO: "Quadro ativo (Resumo de Pessoas)",
+  ENC: "Encargos (Mão de Obra)", BEN: "Benefícios (Mão de Obra)", GRAT: "Gratificação (Mão de Obra)",
+};
+const SET_RESGATE = {FAT:setFAT, MO_APOIO:setMO_APOIO, TPESS:setTPESS, ESPOR:setESPOR, ADM:setADM, ADM_RAT:setADM_RAT,
+  ARREND:setARREND, ARR_PAR:setARR_PAR, ARR_RAT:setARR_RAT, FORN:setFORN, FORN_PAR:setFORN_PAR, APOIO:setAPOIO,
+  APOIO_FIXO:setAPOIO_FIXO, QUADRO:setQUADRO, ENC:setENC, BEN:setBEN, GRAT:setGRAT};
+const semConteudo = v => v==null || (Array.isArray(v) ? v.length===0 : typeof v==="object" && Object.keys(v).length===0);
+const qtdItens = v => Array.isArray(v) ? v.length : (v && typeof v==="object" ? Object.keys(v).length : 0);
+function gravarRascunho(){
+  try{
+    localStorage.setItem(CHAVE_RASCUNHO, JSON.stringify(estado()));
+    localStorage.setItem(CHAVE_RASCUNHO_TS, String(Date.now()));
+  }catch(err){}
+}
+function lerRascunho(){
+  try{
+    const raw = localStorage.getItem(CHAVE_RASCUNHO);
+    const doc = raw ? JSON.parse(raw) : null;
+    return doc && typeof doc==="object" ? {doc, ts: +localStorage.getItem(CHAVE_RASCUNHO_TS) || 0} : null;
+  }catch(err){ return null; }
+}
+function lerResgate(){
+  try{ const r = JSON.parse(localStorage.getItem(CHAVE_RESGATE) || "null"); return r && r.chaves ? r : null; }
+  catch(err){ return null; }
+}
+function guardarResgate(rascunho, padrao){
+  if(!rascunho) return;
+  const atual = estadoCru(), achados = {};
+  Object.keys(RESGATAVEIS).forEach(k=>{
+    const local = rascunho.doc[k];
+    if(padrao[k]==null) return;   // lista que a tela ainda não montou: sem padrão para comparar
+    if(semConteudo(local) || canonJSON(local)===canonJSON(padrao[k])) return;   // rascunho só com o padrão
+    const srv = atual[k];
+    if(!(semConteudo(srv) || canonJSON(srv)===canonJSON(padrao[k]))) return;    // o servidor tem dado próprio
+    achados[k] = local;
+  });
+  if(!Object.keys(achados).length) return;
+  const ant = lerResgate() || {chaves:{}};
+  // cada chave guarda a cópia mais recente e o momento do rascunho de onde veio
+  Object.entries(achados).forEach(([k,v])=>{ ant.chaves[k] = {v, ts: rascunho.ts || Date.now()}; });
+  try{ localStorage.setItem(CHAVE_RESGATE, JSON.stringify(ant)); }catch(err){}
+}
+// a aba dona da chave (catálogo do servidor); chave fora do catálogo, só o administrador
+function podeResgatar(k){
+  if(USUARIO && USUARIO.papel==="admin") return true;
+  const areas = areasDePermissao();
+  if(!areas.length) return podeEditar("");
+  const a = areas.find(x=>(x.chaves||[]).includes(k));
+  return !!a && podeEditar(a.id);
+}
+function oferecerResgate(){
+  const r = lerResgate();
+  if(!r) return false;
+  const atual = estadoCru();
+  // o que o servidor já voltou a ter (alguém redigitou) sai do resgate
+  Object.keys(r.chaves).forEach(k=>{ if(!semConteudo(atual[k]) && canonJSON(atual[k])===canonJSON(r.chaves[k].v)) delete r.chaves[k]; });
+  const chaves = Object.keys(r.chaves).filter(k=>!r.chaves[k].recusado && podeResgatar(k));
+  const salvarR = () => { try{ Object.keys(r.chaves).length ? localStorage.setItem(CHAVE_RESGATE, JSON.stringify(r)) : localStorage.removeItem(CHAVE_RESGATE); }catch(err){} };
+  if(!chaves.length){ salvarR(); return false; }
+  const quando = ts => ts ? new Date(ts).toLocaleString("pt-BR", {dateStyle:"short", timeStyle:"short"}) : "data desconhecida";
+  const lista = chaves.map(k=>`• ${RESGATAVEIS[k]||k}: ${qtdItens(r.chaves[k].v)} item(ns), cópia de ${quando(r.chaves[k].ts)}`).join("\n");
+  const ok = confirm("Este navegador guardou dados que NÃO estão mais no servidor:\n\n"+lista+
+    "\n\nProvavelmente foram apagados por engano (gravação durante o carregamento da página). "+
+    "Restaurar agora? Confirme só se esses dados não foram apagados de propósito.");
+  if(!ok){ chaves.forEach(k=>{ r.chaves[k].recusado = true; }); salvarR(); return false; }
+  // chave a chave, pelo setter: aplicar() com documento parcial mexeria nas
+  // versões dos cadastros (INSX_V, ATVX_V), que ele trata como documento inteiro
+  chaves.forEach(k=>{ SET_RESGATE[k](JSON.parse(JSON.stringify(r.chaves[k].v))); delete r.chaves[k]; });
+  salvarR();
+  salvar();
+  mostrarToast("Restaurado deste navegador: "+chaves.map(k=>RESGATAVEIS[k]||k).join(", "));
+  return true;
+}
+
 async function gravar(){
+  // ainda carregando: nada a gravar (nem o rascunho local, que ainda é o padrão),
+  // e a pendência da sessão anterior fica para o recuperarPendente()
+  if(!BASE_GRAVACAO) return;
   // rascunho local: sempre o estado inteiro (é o que sobra se o banco perder
   // alguma coisa), sobrevive a fechar a aba no meio da gravação
-  try{ localStorage.setItem("crv_plano_v10",JSON.stringify(estado())); }catch(err){}
+  gravarRascunho();
   const doc = alteracoes();
   // nada mudou desde a última gravação (ex.: campo editado e desfeito antes do
   // debounce disparar) — não vale ir ao servidor só pra atualizar o relógio
@@ -535,7 +653,9 @@ function marcarRascunhoPendente(){ setEDITADO(true); salvePendente = true; }
    compara com a base e so avanca quando o servidor confirma. */
 function flushSalvar(){
   clearTimeout(saveTimer);
-  try{ localStorage.setItem("crv_plano_v10",JSON.stringify(estado())); }catch(err){}
+  // carregando (sem base): o que há em memória é o padrão do código -- ver alteracoes()
+  if(!BASE_GRAVACAO) return;
+  gravarRascunho();
   const doc = alteracoes(), temMudanca = Object.keys(doc).some(k=>k!=="v");
   if(!temMudanca) return;
   // marcada antes de tentar: beacon recusado (payload grande) ou fetch
@@ -556,5 +676,5 @@ window.addEventListener("pagehide",flushSalvar);
 window.addEventListener("blur",flushSalvar);
 
 
-export { abrirArtifact, abrirServidor, aplicar, carregar, definirPatchItens, estado, flushSalvar, gravar,
-  marcarBaseGravacao, marcarRascunhoPendente, pedirAPI, salvar, salvePendente, setStatus, statusRemoto };
+export { abrirArtifact, abrirServidor, aplicar, carregar, definirPatchItens, estado, flushSalvar, gravar, guardarResgate, lerRascunho, mostrarToast,
+  marcarBaseGravacao, marcarRascunhoPendente, oferecerResgate, pedirAPI, salvar, salvePendente, setStatus, statusRemoto };

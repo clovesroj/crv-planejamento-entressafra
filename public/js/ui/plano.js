@@ -90,7 +90,8 @@ registrarCombo("funcao", funcaoItens, funcaoRotulo, funcaoValor);
 const TRAT_VAZIO = {cod:"", vazio:true};
 registrarCombo("tratamento",
   sel => [TRAT_VAZIO, ...tratListaTodos().filter(t=>TRAT_ATIVO[t.cod]!==false || t.cod===sel)],
-  t => t.vazio ? "—" : `${t.cod}${TRAT_NOME[t.cod]?" — "+TRAT_NOME[t.cod]:""} · ${brl(t.custo_ha,0)}/ha`,
+  // custo/ha com centavos, igual ao cadastro de tratamentos e à coluna R$/ha
+  t => t.vazio ? "—" : `${t.cod}${TRAT_NOME[t.cod]?" — "+TRAT_NOME[t.cod]:""} · ${brl(t.custo_ha,2)}/ha`,
   t => t.cod);
 /* O recorte de meses desta aba é o da barra superior — a aba não tem filtro
    próprio. Ter dois seletores para a mesma pergunta era o que fazia o de cima
@@ -152,23 +153,29 @@ function custosDaLinha(r, SEL){
   const servico = SEL.parcial ? r.cTerc*fatia : r.cTerc;
   const mdo = SEL.parcial ? soSel(r.mdoMes) : r.cMDO;
   const areaTerc = r.partes.filter(p=>p.terc).reduce((s,p)=>s+p.area,0);
-  return {insumo, servico, total: insumo + servico + mdo, mdo,
-          insumoHa: r.total>0 ? r.cInsumo/r.total : 0,
+  /* R$/ha = custo EFETIVO do tratamento da linha (o do seletor ao lado, igual
+     ao cadastro de tratamentos). Com tratamento extra, o insumo em R$ da linha
+     soma todos; o R$/ha segue sendo o do principal, e a média da atividade vai
+     para a dica -- mostrar a média ao lado do seletor do principal parecia um
+     custo errado do tratamento. */
+  const ativos = (r.tratsDetalhe||[]).filter(d=>d.trat && d.area>0);
+  const principal = ativos.find(d=>d.principal);
+  const insumoHa = principal ? principal.custo/principal.area : (r.total>0 ? r.cInsumo/r.total : 0);
+  return {insumo, servico, total: insumo + servico + mdo, mdo, insumoHa,
+          mediaHa: r.total>0 ? r.cInsumo/r.total : 0,
           servicoHa: areaTerc>0 ? r.cTerc/areaTerc : 0,
-          // com tratamento extra, o R$/ha da linha é a MÉDIA dos tratamentos
-          // pela área de cada um; o de cada tratamento está na sub-linha
-          media: Array.isArray(r.tratsDetalhe) && r.tratsDetalhe.filter(d=>d.trat && d.area>0).length>1};
+          nExtras: ativos.filter(d=>!d.principal).length, semPrincipal: ativos.length>0 && !principal};
 }
-// dica da média: o custo/ha e a área de cada tratamento, como no cadastro
-const dicaMedia = r => (r.tratsDetalhe||[]).filter(d=>d.trat && d.area>0)
+// dica da linha com mais de um tratamento: o custo/ha e a área de cada um, como no cadastro
+const dicaTrats = r => (r.tratsDetalhe||[]).filter(d=>d.trat && d.area>0)
   .map(d=>`${d.trat}${d.principal?" (principal)":""}: ${brl(d.custo/d.area,2)}/ha em ${fmt(d.area)} ha`).join(" · ");
 function celulasCusto(r, SEL){
   const c = custosDaLinha(r, SEL);
   const un = r.ehHa ? "" : ` <span class="calc">/${esc(r.a.un.split("/")[0])}</span>`;
   const v = (x, casas) => x>0 ? brl(x, casas) : "—";
   return `<td class="num calc">${v(c.insumo)}</td>
-       <td class="num calc"${c.media ? ` title="Média ponderada dos tratamentos desta atividade — ${esc(dicaMedia(r))}. Abra a linha (▸) para ver cada um."` : ""}>${
-         c.insumoHa>0 ? brl(c.insumoHa,2)+un+(c.media ? `<div class="calc" style="font-size:10px">média de ${r.tratsDetalhe.filter(d=>d.trat && d.area>0).length} tratamentos ▸</div>` : "") : "—"}</td>
+       <td class="num calc"${c.nExtras || c.semPrincipal ? ` title="${esc((c.semPrincipal ? "Sem tratamento principal: média dos tratamentos da atividade. " : "Custo efetivo do tratamento principal (o do cadastro). O insumo da linha soma também "+c.nExtras+" tratamento(s) extra; média da atividade "+brl(c.mediaHa,2)+"/ha. ")+dicaTrats(r))} — abra a linha (▸) para ver cada um."` : ""}>${
+         c.insumoHa>0 ? brl(c.insumoHa,2)+un+(c.nExtras ? `<div class="calc" style="font-size:10px">+${c.nExtras} extra ▸</div>` : c.semPrincipal ? `<div class="calc" style="font-size:10px">média ▸</div>` : "") : "—"}</td>
        <td class="num calc">${v(c.servico)}</td>
        <td class="num calc">${c.servicoHa>0 ? brl(c.servicoHa,2)+un : "—"}</td>
        <td class="num tot" title="Insumo ${brl(c.insumo)} + serviço ${brl(c.servico)} + mão de obra própria ${brl(c.mdo)}">${v(c.total)}</td>`;

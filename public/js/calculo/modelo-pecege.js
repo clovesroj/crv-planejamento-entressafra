@@ -31,9 +31,9 @@ import { composicao, doseBase, familiaEfetiva, freteEfetivo, precoInsumo } from 
 function categoriaInsumo(prod){
   const i = insLista().find(x=>x.prod===prod) || {prod};
   const texto = [i.prod, i.classe, i.pa, i.categ, i.obs].join(" ");
-  if(/\bmuda/i.test(i.prod||"")) return "mudas";
-  if(/torta/i.test(texto)) return "torta";
   const fam = familiaEfetiva(i);
+  if(fam==="muda" || /\bmuda/i.test(i.prod||"")) return "mudas";
+  if(/torta/i.test(texto)) return "torta";
   if(fam==="corretivo") return "corretivo";
   if(["fertilizante","foliar","micro","bioestim"].includes(fam)) return "fertilizante";
   if(fam==="herbicida") return "herbicida";

@@ -1,5 +1,149 @@
 # Histórico de mudanças
 
+## 2.50.8 — 2026-09-28 · Estoque de insumos zerado
+
+- **Botão "Zerar estoque"** no Cadastro de Insumos. Ele põe em zero o
+  estoque de todos os produtos que tinham saldo, pede confirmação e informa
+  quantos são. Como qualquer edição do cadastro, a gravação acontece em
+  **Salvar alterações**, e só os produtos que mudaram vão ao servidor. A data
+  do saldo ("Atualizado em") não muda.
+- **Base do sistema com estoque zero:** os 159 produtos da base que traziam
+  estoque passam a vir com zero. Isso vale para plano novo, produto que
+  entra pela classificação técnica e "Restaurar cadastro original".
+- Com o estoque zerado, a aba Demandas de Insumos e Materiais passa a pedir
+  a compra do volume inteiro do plano. O estoque dos materiais de manutenção
+  (informado na aba Demandas) não muda.
+- Conferido num cadastro com 204 produtos com estoque (no item e na
+  sobreposição de preço/estoque): todos foram a zero, e o patch de gravação
+  levou os 204.
+
+**Validação:** 54 conferências sem falha; 33 abas, 505 rastros e 138
+relatórios sem erro.
+
+## 2.50.7 — 2026-09-28 · FAT apagado: causa e resgate pelo navegador
+
+**O que houve com o FAT.** É a mesma causa das rotas do Transporte de
+Pessoal, corrigida na 2.50.4. Uma sessão que perdia o foco (troca de janela
+ou de aba) enquanto a página ainda carregava mandava ao servidor os valores
+padrão do código. O padrão do FAT é a lista vazia, então as funções
+lançadas foram apagadas. Nenhuma mudança de cálculo ou de tela apagou o FAT: a
+tabela, o formato gravado e as permissões são os mesmos desde a criação da
+aba (2026-09-23), e o servidor não tem regra que mexa nessa chave.
+
+O servidor guarda uma única versão do plano, sem histórico, e o banco está
+no plano gratuito do Render, que não tem backup. Por isso não há como ler de
+volta do servidor o FAT apagado.
+
+**Resgate pelo navegador.** Cada navegador guarda uma cópia do plano da
+última sessão (o rascunho local). Agora, ao abrir o sistema, antes de gravar
+qualquer coisa, o sistema compara essa cópia com o que veio do servidor:
+
+- Uma lista que está vazia no servidor (ou só com o padrão) e preenchida na
+  cópia deste navegador é guardada à parte, e o salvamento seguinte não a
+  apaga. Vale para FAT, apoio operacional, Transporte de Pessoal,
+  esporádicos, custos administrativos, arrendamentos, fornecedores,
+  atividades de apoio, quadro ativo, encargos, benefícios e gratificação.
+- Em seguida, o sistema pergunta a quem pode editar aquela aba se quer
+  restaurar, mostrando quantos itens há e de quando é a cópia. Nada volta
+  sem confirmação, porque uma lista esvaziada de propósito também apareceria.
+  Quem recusa não recebe a pergunta de novo, e a cópia continua guardada.
+- Ao confirmar, só a lista resgatada é gravada no servidor.
+- O rascunho local passa a guardar a data da cópia.
+
+O resgate só funciona num navegador que ainda tem o FAT na cópia local, em
+geral o de quem preencheu a aba e não abriu o sistema depois da perda.
+
+**Validação:** resgate testado com perfil com e sem permissão na aba Mão de
+Obra, recusa e aceite; após o aceite, a gravação manda só a chave FAT. 54
+conferências sem falha; 33 abas, 505 rastros e 138 relatórios sem erro.
+
+## 2.50.6 — 2026-09-28 · Conta INS-07 Mudas no Plano de Contas
+
+- **Nova conta INS-07 "Mudas"** no grupo 5. Insumos (variável, custo,
+  direcionador "Área plantada x dose").
+- O custo dos produtos do grupo **Muda** do Cadastro de Insumos passa a cair
+  na INS-07. Na 2.50.5 caía na INS-06 (Adjuvantes, Reguladores e Outros
+  Insumos). Produto sem grupo cujo nome diz "muda" também vai para a INS-07.
+- Conferido com um produto de muda num tratamento do plano: o insumo total
+  subiu R$ 1.869.600, e a INS-07 recebeu o mesmo valor, detalhado por produto
+  no rastro da conta.
+- O aviso de insumo sem grupo, na página do Plano de Contas, passa a citar as
+  contas INS-01 a INS-07.
+
+**Validação:** 54 conferências sem falha; 33 abas, 505 rastros e 138
+relatórios sem erro. Totais do cenário de teste sem mudança.
+
+## 2.50.5 — 2026-09-28 · Grupo de insumos "Muda"
+
+- **Novo grupo fixo "Muda"** no Cadastro de Insumos, para cana-semente,
+  toletes e muda pré-brotada. Aparece na coluna Grupo de cada produto, como
+  bloco próprio no cadastro e na aba Grupos de Insumos (pode ser renomeado e
+  ter a classe ajustada; a classe inicial é "Outros").
+- **Classificação automática:** produto com classe agronômica "Muda" (ou
+  "cana-semente", "pré-brotada") cai no grupo sozinho. Produto sem grupo cujo
+  nome diz "muda" também. Quem já tem grupo escolhido à mão continua onde
+  está: para levar a "Cana-de-açúcar" para Muda, escolha "Muda" na coluna
+  Grupo.
+- **Custos:** no Plano de Contas, o insumo do grupo Muda entra em INS-06
+  (Adjuvantes, Reguladores e Outros Insumos), que é a conta de outros
+  insumos. No modelo de custo por hectare, entra na categoria "mudas".
+- Um grupo "Muda" criado à mão antes desta versão não aparece duplicado: vale
+  o grupo fixo, e os produtos que apontavam para ele continuam no mesmo
+  bloco.
+
+**Validação:** 54 conferências sem falha; 33 abas, 504 rastros e 138
+relatórios sem erro. Totais do cenário de teste sem mudança.
+
+## 2.50.4 — 2026-09-28 · Custo efetivo do tratamento no Plano e Transporte de Pessoal recuperado
+
+**Custo por ha do tratamento no Plano Operacional:** a coluna R$/ha da linha
+passa a mostrar o **custo efetivo do tratamento principal**, o mesmo do
+cadastro de tratamentos (dose × preço + frete). Antes, na atividade com
+tratamento extra, aparecia a média dos tratamentos ao lado do seletor do
+principal (ex.: PL05 com R$ 1.337,45/ha ao lado do "1 CP", que custa
+R$ 418,01/ha).
+
+- O insumo em R$ da linha continua somando todos os tratamentos. A linha
+  mostra "+N extra ▸", e a dica traz a média da atividade e o custo/ha e a
+  área de cada tratamento. Sem tratamento principal, a linha mostra a média,
+  marcada "média ▸".
+- O seletor de tratamento mostra o custo/ha com centavos, igual ao cadastro.
+- **Rastro da atividade:** a conta do insumo lista cada tratamento na sua
+  área (ex.: "1 CP a R$ 418,01/ha × 1.435 ha + 1 FT (extra) a R$ 5.990,40/ha
+  × 283 ha"). Antes aparecia só o principal vezes a área inteira, um valor
+  que não fechava com o insumo mostrado.
+
+**Transporte de Pessoal: por que as rotas sumiram.** O documento do
+servidor leva alguns segundos para chegar quando a página abre. Até lá, o
+que existe em memória são os **padrões do código**. Se a janela perdia o foco
+nesse intervalo (trocar de janela ou de aba), o salvamento automático mandava
+esses padrões ao servidor, que gravava por cima do que foi digitado. As rotas
+voltaram às quatro rotas genéricas, e o total da aba foi de R$ 815.200 para
+R$ 1.419.060.
+
+- **Correção:** nada é gravado (servidor, rascunho local ou pendência) antes
+  de o documento do servidor chegar. Uma pendência antiga gravada nessa
+  janela, sem base, é descartada em vez de reaplicada. O documento do
+  servidor sempre prevalece no carregamento.
+- **Rotas da usina de volta:** as 8 rotas da planilha preenchida
+  (t_tp.xls), com os valores de safra e de entressafra, passam a ser o padrão
+  da aba (commit 2d1c881, que chegou em paralelo com os mesmos números). O
+  botão "Restaurar rotas padrão" volta a elas. Total: R$ 815.200 na
+  entressafra, R$ 0 na safra.
+- **Restauração automática:** o plano gravado no servidor ainda tem as quatro
+  rotas genéricas, e só o novo padrão não o mudaria. Quando a lista gravada é
+  **exatamente** a das quatro rotas antigas, a primeira pessoa com permissão
+  de editar o Transporte de Pessoal que abrir o sistema restaura as 8 rotas e
+  grava o plano (aparece o aviso "Rotas do Transporte de Pessoal
+  restauradas"). Uma lista que alguém editou não é tocada.
+- **Erro de sintaxe corrigido** no aviso do botão "Restaurar rotas padrão"
+  (2d1c881): o texto tinha uma quebra de linha dentro das aspas, o que
+  impedia o sistema inteiro de abrir.
+
+**Validação:** 54 conferências sem falha. 33 abas, 504 rastros e 138
+relatórios sem erro. No cenário de teste, a única diferença no custo total é
+a do Transporte de Pessoal (−R$ 603.860).
+
 ## 2.50.3 — 2026-09-25 · Tratamento: Plano Operacional, cadastro e relatório com o mesmo valor
 
 **O que parecia errado:** na linha PL05 (Adubação de fundação) o Plano

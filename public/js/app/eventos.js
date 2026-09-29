@@ -29,7 +29,7 @@ import { abrirRastro, aberto as rastroAberto, fecharRastro, filtrarBuscaItem, fi
 import { abrirRendMensal, aberto as rendMensalAberto, descartarRascunho, editarRascunho,
   fecharRendMensal, pendencias, salvarRascunho } from '../ui/rendmensal.js';
 import { setQF_MES, setQF_GRUPO, setPES_GRUPO, setPES_DEPT, setCONTAS_GRUPO, setCONTAS_CLS, setCONTAS_CD, setDEM_SO_FALTA, setAPOIO_PER, APOIO_PER } from '../nucleo/estado.js';
-import { setAPOIO, setATIV_TRAT_SEL, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setINSX_V, setINS_DEL, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
+import { copiaRota, setAPOIO, setATIV_TRAT_SEL, setBEN, setCAT_SEL, setENC, setFUN_SEL, setINSX, setINSX_V, setINS_DEL, setTPESS, setTRAT_SEL } from '../nucleo/estado.js';
 import { USUARIO, areasDePermissao, podeEditar } from '../nucleo/sessao.js';
 
 /* Renomear ou remover um tratamento mexe tambem nas atividades que o usam, e
@@ -951,7 +951,7 @@ $("#ctt_add").onclick=()=>{
   marcarCttNovo({m:+m, n, f:campo("#ctt_add_func"), ci:campo("#ctt_add_cid"), g:campo("#ctt_add_ger"), c:campo("#ctt_add_cnh")});
   $("#ctt_add_m").value=""; $("#ctt_add_n").value=""; $("#ctt_add_func").value=""; $("#ctt_add_cid").value="";
   $("#ctt_add_ger").value=""; $("#ctt_add_cnh").value="";
-  salvar(); render();
+  render();
 };
 
 $("#btn_trat_add").onclick=()=>{
@@ -985,8 +985,12 @@ $("#btn_tp_add").onclick=()=>{
   salvar(); render();
 };
 $("#btn_tp_reset").onclick=()=>{
-  if(!confirm("Restaurar as rotas padrão de transporte de pessoal?")) return;
-  setTPESS(CFG.tpess.map(t=>({...t}))); salvar(); render();
+  /* Apaga o que estiver lancado e grava por cima: e o caminho mais curto para
+     perder as rotas da operacao, entao o aviso diz o que vai embora. */
+  if(!confirm("Restaurar as rotas padrão de transporte de pessoal?\n\n"+
+    "As rotas lançadas hoje (nomes, veículos, km, dias e valores, na safra e na entressafra) "+
+    "são apagadas e substituídas pelas do cadastro. Não dá para desfazer.")) return;
+  setTPESS(CFG.tpess.map(copiaRota)); salvar(); render();
 };
 
 $("#btn_ins_add").onclick=()=>{
@@ -1024,6 +1028,23 @@ $("#btn_ins_reset").onclick=()=>{
   const aindaExiste = new Set(nova.map(i=>i.prod));
   antigos.filter(p=>!aindaExiste.has(p)).forEach(p=>marcarInsRemovido({prod:p}));
   nova.forEach(i=>marcarInsSujo(i));
+  render();
+};
+
+/* Zera o estoque do cadastro inteiro. O estoque efetivo é a sobreposição
+   INSUMO[prod].est e, sem ela, o do item (ver calculo/demandas.js): zera os
+   dois, e só nos produtos que tinham estoque -- o patch leva só quem mudou.
+   Grava no "Salvar alterações", como o resto do cadastro. */
+$("#btn_ins_zerar").onclick=()=>{
+  const comEstoque = insLista().filter(i=>num((INSUMO[i.prod]||{}).est)!==0 || num(i.est)!==0);
+  if(!comEstoque.length){ alert("Todos os produtos do cadastro já estão com estoque zero."); return; }
+  if(!confirm(`Zerar o estoque de ${comEstoque.length} produto(s) do cadastro de insumos?\n\n`+
+    `A demanda de compra passa a ser o volume inteiro do plano. Depois, clique em "Salvar alterações" para gravar.`)) return;
+  comEstoque.forEach(i=>{
+    i.est = 0;
+    INSUMO[i.prod] = {...(INSUMO[i.prod]||{}), est:0};
+    marcarInsSujo(i);
+  });
   render();
 };
 
