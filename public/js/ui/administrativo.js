@@ -36,8 +36,10 @@ function pintarAdm(R){
   // sub-linha com os 12 meses, aberta só na linha que a pessoa clicou --
   // mesma marcação (per-pop-meses/per-pop-pe) do seletor de período do topo,
   // só que sem o popover: aqui já mora dentro da própria tabela
+  // dentro da tabela larga a caixa tem bem mais espaco que o popover estreito
+  // do topo -- mais colunas, senao cada mes vira uma barra esticada enorme
   const linhaMeses = (l,i) => `<tr class="sub"><td colspan="9">
-    <div class="per-pop-meses" style="margin:6px 0">${MESES.map((m,j)=>{
+    <div class="per-pop-meses per-pop-meses-linha" style="margin:6px 0">${MESES.map((m,j)=>{
       const on = l.meses.includes(j);
       return `<label class="${on?"on ":""}p-${periodoMes(j)}" data-admmes="${i}" data-m="${j}">
         <input type="checkbox" ${on?"checked":""} tabindex="-1" aria-hidden="true">${m}</label>`;}).join("")}</div>

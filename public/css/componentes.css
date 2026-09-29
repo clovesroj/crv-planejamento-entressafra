@@ -791,16 +791,23 @@ tbody tr:hover .dim-cel .btn.xs,.dim-cel .btn.xs:focus-visible{opacity:1}
 .per-pop[hidden]{display:none}
 .per-pop-cab{display:flex;flex-direction:column;gap:2px;margin-bottom:8px;font-size:11.5px}
 .per-pop-cab .calc{font-size:10.5px}
-.per-pop-meses{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
-.per-pop-meses label{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;
-  padding:5px 4px;border:1px solid var(--line);border-radius:6px;cursor:pointer;
+.per-pop-meses{display:grid;grid-template-columns:repeat(4,1fr);gap:3px}
+.per-pop-meses label{display:flex;align-items:center;gap:4px;font-size:10px;font-weight:600;
+  padding:3px 5px;border:1px solid var(--line);border-radius:5px;cursor:pointer;
   color:var(--grey);white-space:nowrap}
 .per-pop-meses label:hover{background:var(--leaf-soft);color:var(--ink)}
 .per-pop-meses label.on{background:var(--leaf);border-color:var(--leaf);color:#fff}
 /* a cor do periodo aparece na borda: e a mesma convencao das colunas do Plano */
 .per-pop-meses label.p-safra{border-left:3px solid var(--leaf)}
 .per-pop-meses label.p-entressafra{border-left:3px solid var(--straw)}
-.per-pop-meses input{margin:0;accent-color:var(--leaf)}
+/* sem largura/altura própria, o checkbox usava o tamanho nativo do navegador
+   (bem maior que os outros "flag" do sistema, ex.: .etq) -- por isso a caixa
+   toda parecia grande demais só pela marcação */
+.per-pop-meses input{margin:0;width:11px;height:11px;min-width:0;flex:0 0 auto;accent-color:var(--leaf)}
+/* dentro de uma tabela (linha de custo administrativo), não de um popover
+   estreito de 268px: mais colunas e um teto de largura, senão cada mês vira
+   uma barra esticada por toda a linha */
+.per-pop-meses-linha{grid-template-columns:repeat(6,minmax(0,88px));max-width:560px}
 .per-pop-pe{display:flex;gap:5px;margin-top:9px;flex-wrap:wrap}
 .per-pop-pe .btn{font-size:10.5px;padding:4px 9px}
 
@@ -842,7 +849,9 @@ section.so-leitura button:disabled{opacity:.55;cursor:not-allowed}
 
 /* matriz aba × perfil na aba Usuários */
 .matriz-perfis td.num,.matriz-perfis th.num{text-align:center}
-.matriz-perfis input[type=checkbox]{width:17px;height:17px;cursor:pointer}
+/* mesmo tamanho dos outros "flag" do sistema (.etq, td.pmes) -- 17px era
+   destoante, maior que qualquer outra marcação da tela */
+.matriz-perfis input[type=checkbox]{width:14px;height:14px;cursor:pointer}
 .matriz-perfis input[type=checkbox]:disabled{cursor:default}
 .matriz-perfis .pf-grupo td{background:var(--sunk);font-size:11px;font-weight:600;text-transform:uppercase;
   letter-spacing:.8px;color:var(--grey);padding-top:9px;padding-bottom:7px}
