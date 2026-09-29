@@ -1,5 +1,35 @@
 # Histórico de mudanças
 
+## 2.50.9 — 2026-09-29 · Transporte de pessoal: o custo mensal das rotas em cada mês
+
+**O erro:** nas grandes contas por mês, o transporte de pessoal da
+entressafra (R$ 815.200) era repartido entre os meses pela área operada:
+R$ 417.778 em dezembro, R$ 206.850 em janeiro, R$ 114.068 em fevereiro e
+R$ 76.504 em março. As rotas rodam igual em todo mês do período (os mesmos
+ônibus, os mesmos dias e as mesmas diárias), então o custo de cada mês é o
+mensal das rotas.
+
+- **Motor:** cada mês recebe o custo mensal das rotas do seu período. Na
+  entressafra, são R$ 203.800 em cada mês de dezembro a março; na safra, o
+  mensal da safra em cada mês de abril a novembro. O total do ano não muda
+  (R$ 815.200 = R$ 203.800/mês × 4 meses). Mudam o custo de cada mês, o
+  gráfico mensal, as grandes contas por mês e o recorte por meses.
+- **Como o total se forma, pela Rota 1:** 5 ônibus × 30 dias × R$ 400 de
+  diária = R$ 60.000/mês, e × 4 meses = R$ 240.000 na entressafra.
+- **Tela Transporte de Pessoal:** os cartões de Safra e Entressafra mostram
+  o mensal ("R$ 203.800/mês × 4 meses"), e o total do período de cada rota
+  traz o valor por mês logo abaixo. A coluna passa a se chamar "Total no
+  período" e o cartão, "Custo total no ano".
+- **Rastro** do transporte de pessoal: novo bloco por período, com o custo
+  mensal. A origem da grande conta passa a dizer "o custo mensal das rotas
+  em cada mês do período", não mais "pela área operada".
+- Nota da tabela "Grandes contas por mês" atualizada com o critério de cada
+  custo indireto.
+
+**Validação:** 54 conferências sem falha (mês a mês, as grandes contas
+continuam fechando com o custo do mês); 33 abas, 505 rastros e 138
+relatórios sem erro. Total do ano sem mudança.
+
 ## 2.50.8 — 2026-09-28 · Estoque de insumos zerado
 
 - **Botão "Zerar estoque"** no Cadastro de Insumos. Ele põe em zero o

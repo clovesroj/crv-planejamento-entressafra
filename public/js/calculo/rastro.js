@@ -1248,8 +1248,11 @@ function rastroForn(R){
 function rastroTPess(R){
   const TP = R.TP;
   const itens = [...TP.linhas].sort((a,b)=>b.total-a.total);
+  const per = p => ({rot:PERIODOS[p], val:brl(TP.porPeriodo[p]),
+    sub:`${brl(TP.porMes[p])}/mês × ${fmt(MESES.filter((_,i)=>periodoMes(i)===p).length)} meses · o mesmo valor em cada mês do período`});
   return {titulo:"Transporte de pessoal", subtitulo:"Rotas de ônibus/van dos colaboradores", valor:brl(TP.total),
-    blocos:[{titulo:"Por rota", linhas: itens.map(l=>({rot:l.rota, val:brl(l.total),
+    blocos:[{titulo:"Por período (custo mensal das rotas)", linhas:[per("safra"), per("entressafra")]},
+      {titulo:"Por rota", linhas: itens.map(l=>({rot:l.rota, val:brl(l.total),
       sub:`${fmt(num(l.qtd))} veíc. · ${fmt(l.lugares)} lugares · ${fmt(l.kmRota+l.kmEx)} km`}))}],
     premissas:premissasGerais()};
 }

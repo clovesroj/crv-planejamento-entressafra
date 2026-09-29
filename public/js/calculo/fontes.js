@@ -23,6 +23,7 @@ const CRIT = {
   lanc:    "no mês em que foi lançado",
   folha:   "pela folha prevista de cada mês, só de dez/26 a mar/27",
   apoio:   "nos meses do período de cada equipamento (aba Apoio)",
+  rotas:   "o custo mensal das rotas em cada mês do período (safra ou entressafra)",
 };
 
 function fontesDaConta(R, k){
@@ -72,7 +73,7 @@ function fontesDaConta(R, k){
     porEtapa("Aplicações terceirizadas", (r,i,f)=>num(r.cTerc)*f, CRIT.volume);
     add("Contratos de terceirização", pelaArea(R.tercT), CRIT.area);
   }
-  if(k==="tpess") add("Rotas de transporte de pessoal", pelaArea(R.tpessT), CRIT.area, "tpess");
+  if(k==="tpess") add("Rotas de transporte de pessoal", ((R.TP && R.TP.mes) || zeros()).slice(), CRIT.rotas, "tpess");
   if(k==="arrend") add("Contratos de arrendamento", (R.AR.mes||zeros()).slice(), CRIT.pag, "nat:arrend");
   if(k==="fixo"){
     add("Custos administrativos", MESES.map(()=>num(R.ADM.mensal)), CRIT.fixo, "nat:admin");

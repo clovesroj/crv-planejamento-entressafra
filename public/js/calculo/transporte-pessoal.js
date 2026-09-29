@@ -1,4 +1,4 @@
-import { NM_PER } from '../nucleo/calendario.js';
+import { MESES, NM_PER, periodoMes } from '../nucleo/calendario.js';
 import { tpessLista } from '../nucleo/estado.js';
 import { num } from '../nucleo/formato.js';
 
@@ -30,9 +30,10 @@ function bloco(t, per){
   const cKm = kmRota * num(t.rsKm);
   const cDiaria = qtd * num(t.diaria) * dias;
   const cExtra = kmEx * num(t.rsKmExtra);
+  const total = cKm + cDiaria + cExtra;
   return {per, meses, qtd, kmDia, diasMes: campo(t,"diasMes",per), kmExtra: campo(t,"kmExtra",per),
           dias, kmRota, kmEx, cKm, cDiaria, cExtra,
-          lugares: qtd * num(t.cap), total: cKm + cDiaria + cExtra};
+          lugares: qtd * num(t.cap), total, mensal: meses>0 ? total/meses : 0};
 }
 
 function transpPessoal(MP){
@@ -49,6 +50,19 @@ function transpPessoal(MP){
             lugares: Math.max(bSafra.lugares, bEnt.lugares),
             total: soma("total")};
   });
+  const porPeriodo = {
+    safra:       linhas.reduce((s,l)=>s+l.bSafra.total,0),
+    entressafra: linhas.reduce((s,l)=>s+l.bEnt.total,0),
+  };
+  /* Custo de cada MÊS: as rotas rodam igual em todo mês do período (o bloco é
+     o mensal × os meses do período), então cada mês da entressafra recebe o
+     mensal da entressafra, e cada mês da safra, o da safra. Antes o total do
+     ano ia para os meses pela área operada -- dezembro, com mais área, levava
+     metade do transporte da entressafra, e março quase nada. */
+  const porMes = {
+    safra:       NM_PER.safra>0 ? porPeriodo.safra/NM_PER.safra : 0,
+    entressafra: NM_PER.entressafra>0 ? porPeriodo.entressafra/NM_PER.entressafra : 0,
+  };
   return {linhas,
     total:   linhas.reduce((s,l)=>s+l.total,0),
     km:      linhas.reduce((s,l)=>s+l.kmRota+l.kmEx,0),
@@ -57,10 +71,8 @@ function transpPessoal(MP){
     cKm:     linhas.reduce((s,l)=>s+l.cKm,0),
     cDiaria: linhas.reduce((s,l)=>s+l.cDiaria,0),
     cExtra:  linhas.reduce((s,l)=>s+l.cExtra,0),
-    porPeriodo: {
-      safra:       linhas.reduce((s,l)=>s+l.bSafra.total,0),
-      entressafra: linhas.reduce((s,l)=>s+l.bEnt.total,0),
-    }};
+    porPeriodo, porMes,
+    mes: MESES.map((_,i)=>porMes[periodoMes(i)])};
 }
 
 export { CAMPOS_PERIODO, campo, transpPessoal };

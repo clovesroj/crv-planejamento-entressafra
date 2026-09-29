@@ -135,9 +135,10 @@ function calcular(){
   // materiais de manutenção: os que têm mês marcado caem no mês; o resto, pela área operada
   // o quadro ADM e oficina tem mês próprio (a folha prevista de cada mês): não vai pela área
   // equipamentos de apoio: diesel, operador e CRM nos meses em que cada um trabalha (período do equipamento)
-  const outros = IR.total + MT.distribuido + TC.total + TP.total + crmExtra;
+  // transporte de pessoal: o custo mensal das rotas em cada mês do seu período (TP.mes)
+  const outros = IR.total + MT.distribuido + TC.total + crmExtra;
   for(let i=0;i<NM;i++){ meses[i] += outros*pesoMes(i) + fixoMes + AE.dieselMes[i] + AE.mdoMes[i] + AE.manutMes[i] + AR.mes[i] + MT.mesFixo[i]
-                                   + FT.mes[i] + MOA.mes[i] + QF.mes[i]; }
+                                   + FT.mes[i] + MOA.mes[i] + QF.mes[i] + TP.mes[i]; }
   MT.mes = MESES.map((m,i)=>MT.mesFixo[i] + MT.distribuido*pesoMes(i));
   ESPOR.forEach(e=>{ const i = MESES.indexOf(e.mes); if(i>=0) meses[i]+=num(e.valor); });
 
@@ -156,7 +157,7 @@ function calcular(){
   for(let i=0;i<NM;i++){ const h=pesoMes(i);
     mesesCat.mdo[i]+=AE.mdoMes[i]; mesesCat.manut[i]+=indiretoManut*h + AE.manutMes[i];
     mesesCat.diesel[i]+=AE.dieselMes[i]; mesesCat.irrig[i]+=IR.total*h;
-    mesesCat.terc[i]+=TC.total*h; mesesCat.tpess[i]+=TP.total*h;
+    mesesCat.terc[i]+=TC.total*h; mesesCat.tpess[i]+=TP.mes[i];
     mesesCat.fixo[i]+=fixoMes; mesesCat.arrend[i]+=AR.mes[i]; mesesCat.manut[i]+=MT.mesFixo[i];
     mesesCat.mdo[i]+=FT.mes[i]+MOA.mes[i]+QF.mes[i];
   }
