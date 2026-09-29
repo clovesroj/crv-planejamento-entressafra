@@ -5,13 +5,14 @@ import { AG_SEM_FROTA, FROTA_AG, FROTA_ESP, SEP_MOD, crmDe, espDe } from '../cal
 import { chaveProd, codigoTratValido, composicao, criarGrupoInsumo, criarTrat, destravar, duplicarTrat, marcarEtapa, mesclarBaseInsumos, removerGrupoInsumo, removerTrat,
   renomearGrupoInsumo, renomearTrat, setClasseGrupo, todasFamilias, tratCodigos, usosTrat } from '../calculo/insumos.js';
 import { codigoAtividadeValido, criarAtividade, removerAtividade } from '../calculo/atividade.js';
+import { mesesDaLinha } from '../calculo/administrativo.js';
 import { CFG } from '../dados/cfg.js';
 import { ATIVIDADES_ERP } from '../dados/atividades-erp.js';
 import { buscarAgrofit, bulaDoProduto } from '../io/agrofit.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
 import { migrarApoio } from '../calculo/apoio.js';
-import { FAT, MO_APOIO, REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INS_DEL, INSX, P, PLANO, QUADRO, TERC_TAR, TERC_SUB, TERC_DET, setTERC_DET, TPESS, TRATC, TRAT_ATIVO, TRAT_NOME, TRAT_OBS, TRAT_SEL, FORN_PAR, ADM_RAT, admLista, apoioLista, arrLista, atividadesLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE, setREF_BUSCA, setREF_AG, setREF_FAM, setREF_FROTA, setREF_PROP,
+import { FAT, MO_APOIO, REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INS_DEL, INSX, P, PLANO, QUADRO, TERC_TAR, TERC_SUB, TERC_DET, setTERC_DET, TPESS, TRATC, TRAT_ATIVO, TRAT_NOME, TRAT_OBS, TRAT_SEL, FORN_PAR, ADM_RAT, ADM_MESES_ABERTO, admLista, apoioLista, arrLista, atividadesLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE, setREF_BUSCA, setREF_AG, setREF_FAM, setREF_FROTA, setREF_PROP,
   setGR_INICIO, setGR_FIM, setGR_EMPRESA, setGR_ESP, setGR_AG, setGR_COMP, setGR_FROTA, setGR_PROP, setGR_REFORMA } from '../nucleo/estado.js';
 import { AGROFIT_BUSCA, DIM_DET, FITO_ABERTO, PLANO_ABERTO, FROTA_ABERTO, FROTA_UN, INS_EDIT, INS_FICHA, MAQ, setAGROFIT_BUSCA, setAPOIO_DET, setDIM_DET, setFROTA_DEST, setFROTA_ORIG, setINS_EDIT, setINS_FICHA } from '../nucleo/estado.js';
 import { $, num } from '../nucleo/formato.js';
@@ -816,6 +817,24 @@ document.addEventListener("click",e=>{
   if(t.dataset.admrm!==undefined){ const l=admLista()[+t.dataset.admrm];
     if(!confirm(`Remover "${l.desc}" dos custos administrativos?`)) return;
     admLista().splice(+t.dataset.admrm,1); salvar(); render(); return; }
+  // abre/fecha o seletor de meses da linha (gasto esporádico) -- so visao,
+  // nao precisa salvar
+  { const btn = e.target.closest && e.target.closest("[data-admmeses]");
+    if(btn){ const i=btn.dataset.admmeses;
+      if(ADM_MESES_ABERTO[i]) delete ADM_MESES_ABERTO[i]; else ADM_MESES_ABERTO[i]=true;
+      render(); return; } }
+  // marca/desmarca um mes da linha (label envolve o checkbox -- clicar no
+  // quadradinho tem que valer tanto quanto clicar no texto do mes, por isso
+  // closest() em vez de dataset direto: ver o mesmo padrao no #pop_meses)
+  { const lbl = e.target.closest && e.target.closest("[data-admmes]");
+    if(lbl){ const l=admLista()[+lbl.dataset.admmes], m=+lbl.dataset.m;
+      const atual = mesesDaLinha(l);
+      l.meses = atual.includes(m) ? atual.filter(x=>x!==m) : [...atual, m].sort((a,b)=>a-b);
+      salvar(); render(); return; } }
+  { const atalho = e.target.closest && e.target.closest("[data-admmesatalho]");
+    if(atalho){ const l=admLista()[+atalho.dataset.i];
+      l.meses = atalho.dataset.admmesatalho==="todos" ? Array.from({length:NM},(_,i)=>i) : [];
+      salvar(); render(); return; } }
   if(t.dataset.arrm!==undefined){ const l=arrLista()[+t.dataset.arrm];
     if(!confirm(`Remover "${l.faz}" dos arrendamentos?`)) return;
     arrLista().splice(+t.dataset.arrm,1); salvar(); render(); return; }

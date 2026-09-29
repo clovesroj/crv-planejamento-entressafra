@@ -4,7 +4,8 @@ import { ADM_CC, ADM_CRITERIOS, ADM_GRUPOS } from '../dados/administrativo.js';
 import { ETAPAS_ORD } from '../calculo/arrendamento.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
 import { barrasH, kpi, th } from './componentes.js';
-import { P } from '../nucleo/estado.js';
+import { ADM_MESES_ABERTO, P } from '../nucleo/estado.js';
+import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
 
 /* ---------- CUSTOS ADMINISTRATIVOS ---------- */
 
@@ -26,8 +27,28 @@ function pintarAdm(R){
   const ccOpts = sel => `<option value="">—</option>` +
     ADM_CC.map(c=>`<option value="${c}" ${c===sel?"selected":""}>${c}</option>`).join("");
 
+  // resumo da coluna "Meses": "Todos" (padrão -- gasto recorrente, nada
+  // mudou pra quem já tinha a linha assim), "nenhum" (não ocorre neste
+  // período) ou a lista dos meses marcados, pro gasto esporádico
+  const resumoMeses = l => l.meses.length===NM ? "Todos"
+    : l.meses.length===0 ? "nenhum mês"
+    : l.meses.map(m=>MESES[m].slice(0,3)).join(", ");
+  // sub-linha com os 12 meses, aberta só na linha que a pessoa clicou --
+  // mesma marcação (per-pop-meses/per-pop-pe) do seletor de período do topo,
+  // só que sem o popover: aqui já mora dentro da própria tabela
+  const linhaMeses = (l,i) => `<tr class="sub"><td colspan="9">
+    <div class="per-pop-meses" style="margin:6px 0">${MESES.map((m,j)=>{
+      const on = l.meses.includes(j);
+      return `<label class="${on?"on ":""}p-${periodoMes(j)}" data-admmes="${i}" data-m="${j}">
+        <input type="checkbox" ${on?"checked":""} tabindex="-1" aria-hidden="true">${m}</label>`;}).join("")}</div>
+    <div class="per-pop-pe">
+      <button class="btn" data-admmesatalho="todos" data-i="${i}">Todos</button>
+      <button class="btn" data-admmesatalho="limpar" data-i="${i}">Nenhum</button>
+      <button class="btn" data-admmeses="${i}">Fechar</button>
+    </div></td></tr>`;
+
   $("#t_adm").innerHTML = th([["Grupo"],["Natureza do gasto"],["R$/mês",1],["Critério de rateio"],
-    ["Centro de custo"],["Total no período",1],["Rateio",1],[""]])+"<tbody>"+
+    ["Centro de custo"],["Meses"],["Total no período",1],["Rateio",1],[""]])+"<tbody>"+
     (A.linhas.length ? A.linhas.map((l,i)=>{
       const st = (AD.porLinha[i]||{});
       return `<tr>
@@ -36,14 +57,17 @@ function pintarAdm(R){
       <td class="num"><input data-adm="${i}" data-f="valor" value="${num(l.valor)||""}" inputmode="decimal"></td>
       <td><select data-adm="${i}" data-f="crit" title="${(ADM_CRITERIOS[l.crit]||{}).dica||""}">${critOpts(l.crit)}</select></td>
       <td><select data-adm="${i}" data-f="cc" ${l.crit==="cc"?"":"disabled"}>${ccOpts(l.cc)}</select></td>
+      <td><button type="button" class="btn" data-admmeses="${i}"
+        title="Gasto esporádico? Marque só os meses em que ele ocorre.">${esc(resumoMeses(l))}</button></td>
       <td class="num tot">${l.total>0?brl(l.total):"—"}</td>
       <td class="num calc">${l.total<=0 ? "—"
         : (st.rateado>0 ? '<span class="badge b-ok">rateado</span>'
                         : `<span class="badge b-warn">${st.motivo||"sem rateio"}</span>`)}</td>
-      <td><button class="btn d" data-admrm="${i}">Remover</button></td></tr>`;}).join("")
-    : `<tr><td colspan="8" class="calc">Nenhuma linha cadastrada.</td></tr>`)+
+      <td><button class="btn d" data-admrm="${i}">Remover</button></td></tr>`
+      +(ADM_MESES_ABERTO[i] ? linhaMeses(l,i) : "");}).join("")
+    : `<tr><td colspan="9" class="calc">Nenhuma linha cadastrada.</td></tr>`)+
     `<tr><td class="tot" colspan="2">TOTAL</td><td class="num tot">${brl(A.mensal)}</td>
-     <td colspan="2"></td><td class="num tot">${brl(A.total)}</td><td colspan="2"></td></tr></tbody>`;
+     <td colspan="3"></td><td class="num tot">${brl(A.total)}</td><td colspan="2"></td></tr></tbody>`;
 
   /* ---- percentuais do critério "percentual por etapa" ---- */
   const somaPct = ETAPAS_ORD.reduce((s,e)=>s+admRat(e),0);

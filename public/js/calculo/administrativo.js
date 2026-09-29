@@ -12,18 +12,31 @@ import { num } from '../nucleo/formato.js';
 
 function admRat(e){ return ADM_RAT[e]!=null ? num(ADM_RAT[e]) : (ADM_RAT_PADRAO[e]||0); }
 
+/* Em quais meses a linha ocorre. Sem `meses` (a maioria: gasto recorrente o
+   ano inteiro), são todos os NM meses -- documento gravado antes desta
+   melhoria não tem o campo e continua exatamente como estava. Com `meses`
+   (gasto esporádico: licença anual, compra pontual...), só esses entram no
+   total -- é a lista de índices marcada na tela, nunca a média nem o pico. */
+function mesesDaLinha(l){
+  return Array.isArray(l.meses) ? l.meses.filter(m=>m>=0 && m<NM) : Array.from({length:NM},(_,i)=>i);
+}
+
 function admCalc(){
   const linhas = admLista().map(l=>{
     const mensal = num(l.valor);
     const crit = ADM_CRITERIOS[l.crit] ? l.crit : "direto";
-    return {...l, mensal, crit, total: mensal*NM};
+    const meses = mesesDaLinha(l);
+    return {...l, mensal, crit, meses, total: mensal*meses.length};
   });
   const mensal = linhas.reduce((s,l)=>s+l.mensal,0);
+  // total NÃO é mensal*NM desde que uma linha possa ter menos meses que o ano
+  // inteiro -- soma o total já prorateado de cada linha.
+  const total = linhas.reduce((s,l)=>s+l.total,0);
   const porGrupo = {};
   linhas.forEach(l=>{ porGrupo[l.grupo] = (porGrupo[l.grupo]||0) + l.total; });
   const porCriterio = {};
   linhas.forEach(l=>{ porCriterio[l.crit] = (porCriterio[l.crit]||0) + l.total; });
-  return {linhas, mensal, total: mensal*NM, porGrupo, porCriterio};
+  return {linhas, mensal, total, porGrupo, porCriterio};
 }
 
 /* Rateio entre as etapas. `etapas` é o mapa já montado pela consolidação, com
@@ -69,4 +82,4 @@ function admRateio(ADM, etapas){
   return {porEtapa, porLinha, semRateio, rateado, bases, somaPct};
 }
 
-export { admCalc, admRat, admRateio };
+export { admCalc, admRat, admRateio, mesesDaLinha };
