@@ -169,7 +169,7 @@ const premissas = R => sec("Premissas","Premissas do plano",["Premissa","Valor",
   ["Horas por turno", fmt(P.hTurno)+" h","Escala"],
   ["Diesel orçado — preço médio ponderado", brl(dieselOrcado(R.CB).medio,2)+"/L","Custo de combustível (preço de cada mês da aba Combustível, pelos litros)"],
   ["Preço base do diesel", brl(P.diesel,2)+"/L","Vale no mês sem preço próprio na aba Combustível"],
-  ["Administração", brl(R.ADM.mensal)+"/mês","Conta EST-01, aba Custos Administrativos"],
+  ["Administração", R.ADM.variaNoAno ? brl(R.ADM.total)+" no ano (varia por mês)" : brl(R.ADM.mensal)+"/mês","Conta EST-01, aba Custos Administrativos"],
   ["Imobilizado da frota", brl(P.imob),"Depreciação"],
   ["Depreciação anual", fmt(P.dep,0)+"%","Custo fixo"],
   ["Atualização de preço de insumos", fmt(P.ipreco,0)+"%","Custo de insumos"],
@@ -531,14 +531,19 @@ const fornecedores = R => sec("Fornecedores","Fornecedores de cana — contratos
     brl(R.FORN.aquisicao.custo), R.FORN.aquisicao.ton>0?brl(R.FORN.aquisicao.rsT,2):"—"]]));
 
 /* ---------- 15. administração ---------- */
-const administracao = R => secP("Administração","Custos administrativos e rateio",
+/* O valor de cada linha no período é o dos meses do período em que ela ocorre
+   (linha só da entressafra não tem valor na safra); o rateio por etapa segue
+   a mesma fração do administrativo que cai no período. */
+const noRecorte = mes => REC.meses.reduce((s,i)=>s+num(mes[i]),0);
+const administracao = R => { const fAdm = R.ADM.total>0 ? noRecorte(R.ADM.mes)/R.ADM.total : REC.fracMeses;
+  return secP("Administração","Custos administrativos e rateio",
   ["Grupo","Natureza do gasto","R$/mês","Critério de rateio","Centro de custo","Total no período","Rateio"],
   R.ADM.linhas.map((l,i)=>{ const st=R.AD.porLinha[i]||{};
     return [ADM_GRUPOS[l.grupo]||l.grupo, l.desc, brl(l.mensal), (ADM_CRITERIOS[l.crit]||{}).nome||l.crit, l.cc||"—",
-            brl(l.total*REC.fracMeses), l.total<=0 ? "—" : (st.rateado>0?"rateado":(st.motivo||"sem rateio"))];})
-  .concat([["","TOTAL", brl(R.ADM.mensal), "", "", brl(R.ADM.total*REC.fracMeses), ""]])
-  .concat(Object.keys(R.etapas).map(e=>["↳ rateio", e, "", "", "", brl((R.etapas[e].admin||0)*REC.fracMeses), ""]))
-  .concat(R.AD.semRateio>0 ? [["↳ sem base","volta para o rateio indireto","","","", brl(R.AD.semRateio*REC.fracMeses),""]] : []));
+            brl(noRecorte(l.mes)), l.total<=0 ? "—" : (st.rateado>0?"rateado":(st.motivo||"sem rateio"))];})
+  .concat([["","TOTAL", brl(R.ADM.mensal), "", "", brl(noRecorte(R.ADM.mes)), ""]])
+  .concat(Object.keys(R.etapas).map(e=>["↳ rateio", e, "", "", "", brl((R.etapas[e].admin||0)*fAdm), ""]))
+  .concat(R.AD.semRateio>0 ? [["↳ sem base","volta para o rateio indireto","","","", brl(R.AD.semRateio*fAdm),""]] : [])); };
 
 /* ---------- 16. custos ---------- */
 const custoEtapa = R => { const E = etapasP(R);

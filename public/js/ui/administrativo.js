@@ -14,7 +14,9 @@ function pintarAdm(R){
 
   $("#k_adm").innerHTML =
     kpi("Custo administrativo","",brl(A.total), A.linhas.filter(l=>l.mensal>0).length+" linhas lançadas","nat:admin") +
-    kpi("Por mês","t",brl(A.mensal),"conta EST-01","nat:admin") +
+    (A.variaNoAno
+      ? kpi("Por mês (varia)","t",brl(Math.min(...A.mes))+" a "+brl(Math.max(...A.mes)),"só as linhas de cada mês · conta EST-01","nat:admin")
+      : kpi("Por mês","t",brl(A.mensal),"conta EST-01","nat:admin")) +
     kpi("Por hectare plantado","g",brl(A.total/ha,2)+"/ha", fmt(ha)+" ha de plantio","nat:admin") +
     kpi("Peso no custo total","a",R.total>0?fmt(A.total/R.total*100,1)+"%":"—",
         AD.semRateio>0 ? brl(AD.semRateio)+" sem rateio" : "tudo rateado nas etapas","nat:admin");
@@ -45,6 +47,8 @@ function pintarAdm(R){
         <input type="checkbox" ${on?"checked":""} tabindex="-1" aria-hidden="true">${m}</label>`;}).join("")}</div>
     <div class="per-pop-pe">
       <button class="btn" data-admmesatalho="todos" data-i="${i}">Todos</button>
+      <button class="btn" data-admmesatalho="safra" data-i="${i}">Safra</button>
+      <button class="btn" data-admmesatalho="entressafra" data-i="${i}">Entressafra</button>
       <button class="btn" data-admmesatalho="limpar" data-i="${i}">Nenhum</button>
       <button class="btn" data-admmeses="${i}">Fechar</button>
     </div></td></tr>`;

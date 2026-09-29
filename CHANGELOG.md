@@ -1,5 +1,40 @@
 # Histórico de mudanças
 
+## 2.50.10 — 2026-09-29 · Custos administrativos só nos meses de cada linha
+
+**O erro:** desde 0456075, cada linha de custo administrativo pode ter os
+seus meses (coluna "Meses"), e o total da aba já respeitava isso. O motor,
+porém, lançava em **todos os 12 meses** a soma do R$/mês de todas as linhas.
+Uma linha marcada só para a entressafra aparecia também em cada mês da safra,
+o custo mensal da safra ficava inflado, e o custo total do plano passava do
+total da aba (uma linha de R$ 420.000/mês marcada de dez a mar entrava como
+R$ 5.040.000 no plano, em vez de R$ 1.680.000).
+
+- **Motor:** o custo administrativo de cada mês é a soma só das linhas que
+  ocorrem naquele mês. O custo fixo do mês fica depreciação + essas linhas, e
+  o custo fixo do ano, depreciação + total das linhas + arrendamento. Linha
+  sem mês marcado continua valendo os 12 meses, então plano que não usa a
+  coluna "Meses" não muda.
+- **Atalhos Safra e Entressafra** no seletor de meses de cada linha (ao lado
+  de Todos e Nenhum), para apropriar a linha só aos meses do período.
+- **Tela:** quando alguma linha não ocorre o ano inteiro, o cartão "Por mês"
+  mostra a faixa do mês mais barato ao mais caro. As Premissas e o relatório
+  passam a mostrar o total do ano.
+- **Rastro** da Administração: cada linha diz em quais meses ocorre, e há um
+  bloco novo mês a mês. A origem da grande conta "Fixos" traz o critério
+  "nos meses marcados em cada linha".
+- **Relatório de Administração por período:** o total de cada linha é o
+  valor dos meses do período em que ela ocorre. Antes era o total do ano ×
+  a fração de meses do período, e uma linha só da entressafra aparecia no
+  relatório da safra.
+
+**Validação:** com linhas marcadas só na entressafra, a safra fica só com a
+depreciação e cada mês da entressafra soma as linhas. O total do plano é a
+soma dos 12 meses. A auditoria ganhou duas conferências (administrativo = soma
+mês a mês; fixo = depreciação + administrativo + arrendamento): 55 sem falha.
+33 abas, 505 rastros e 138 relatórios sem erro. Sem a coluna "Meses" em uso,
+totais sem mudança.
+
 ## 2.50.9 — 2026-09-29 · Transporte de pessoal: o custo mensal das rotas em cada mês
 
 **O erro:** nas grandes contas por mês, o transporte de pessoal da

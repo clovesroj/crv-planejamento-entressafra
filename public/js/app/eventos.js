@@ -833,7 +833,11 @@ document.addEventListener("click",e=>{
       salvar(); render(); return; } }
   { const atalho = e.target.closest && e.target.closest("[data-admmesatalho]");
     if(atalho){ const l=admLista()[+atalho.dataset.i];
-      l.meses = atalho.dataset.admmesatalho==="todos" ? Array.from({length:NM},(_,i)=>i) : [];
+      const qual = atalho.dataset.admmesatalho;
+      // Todos, Nenhum, ou só os meses de um período (safra: abr a nov; entressafra: dez a mar)
+      l.meses = qual==="todos" ? Array.from({length:NM},(_,i)=>i)
+        : qual==="safra" || qual==="entressafra" ? Array.from({length:NM},(_,i)=>i).filter(i=>periodoMes(i)===qual)
+        : [];
       salvar(); render(); return; } }
   if(t.dataset.arrm!==undefined){ const l=arrLista()[+t.dataset.arrm];
     if(!confirm(`Remover "${l.faz}" dos arrendamentos?`)) return;

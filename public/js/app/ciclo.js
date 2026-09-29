@@ -146,7 +146,7 @@ function render(){
   $("#c_muda").value=fmt(R.muda)+" t"; $("#c_viveiro").value=fmt(R.viveiro)+" ha";
   pintarBasesPremissas(R);
   $("#c_capTransb").value=fmt(P.capTransb,1)+" t/viagem";
-  $("#c_adm").value=brl(R.ADM.mensal)+"/mês";
+  $("#c_adm").value = R.ADM.variaNoAno ? brl(R.ADM.total)+" no ano" : brl(R.ADM.mensal)+"/mês";
   $("#c_arr_ha").value=fmt(R.AR.area)+" ha";
   $("#c_arr").value=R.AR.area>0?brl(R.AR.anual/R.AR.area,2):"—";
   document.querySelectorAll("#per_sel [data-periodo]").forEach(b=>

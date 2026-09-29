@@ -787,7 +787,9 @@ function rastroNatureza(R, nat){
       blocos:[
         {titulo:"Linhas lançadas", linhas:A.linhas.filter(l=>l.total>0).map(l=>({
           rot:l.desc, val:brl(l.total),
-          sub:`${brl(l.mensal)}/mês · rateio por ${(ADM_CRITERIOS[l.crit]||{}).nome||l.crit}`}))},
+          sub:`${brl(l.mensal)}/mês × ${l.meses.length===NM ? "12 meses" : l.meses.length+" "+(l.meses.length===1?"mês":"meses")+" ("+l.meses.map(m=>MESES[m]).join(", ")+")"} · rateio por ${(ADM_CRITERIOS[l.crit]||{}).nome||l.crit}`}))},
+        {titulo:"Mês a mês (só as linhas que ocorrem no mês)", linhas:MESES.map((m,i)=>({rot:m, val:brl(A.mes[i]),
+          ir:"mes:"+i})).filter((_,i)=>A.mes[i]>0)},
         {titulo:"Rateio entre as etapas", linhas:Object.keys(R.etapas).map(e=>({
           rot:e, val:brl(R.etapas[e].admin||0), ir:"etapa:"+e}))
           .concat(R.AD.semRateio>0?[{rot:"Sem base para rateio", val:brl(R.AD.semRateio),
