@@ -932,7 +932,7 @@ $("#ctt_add").onclick=()=>{
   marcarCttNovo({m:+m, n, f:campo("#ctt_add_func"), ci:campo("#ctt_add_cid"), g:campo("#ctt_add_ger"), c:campo("#ctt_add_cnh")});
   $("#ctt_add_m").value=""; $("#ctt_add_n").value=""; $("#ctt_add_func").value=""; $("#ctt_add_cid").value="";
   $("#ctt_add_ger").value=""; $("#ctt_add_cnh").value="";
-  salvar(); render();
+  render();
 };
 
 $("#btn_trat_add").onclick=()=>{
