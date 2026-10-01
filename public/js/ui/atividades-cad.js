@@ -76,10 +76,17 @@ function celConsumo(a, i){
   const lh = num(a.cons)>0 ? num(a.cons) : (daMaq.un==="h" ? daMaq.lh : 0);
   const un = String(a.un||"").split("/")[0];
   const porUn = lh>0 && num(a.rend)>0 ? `${fmt(lh/num(a.rend),1)} L/${esc(un)}` : "";
-  return `<input data-at="${i}" data-f="cons" value="${num(a.cons)>0 ? a.cons : ""}" inputmode="decimal" style="width:70px"
-      placeholder="${daMaq.un==="h" && daMaq.lh>0 ? fmt(daMaq.lh,1) : "—"}"
-      title="Consumo do conjunto em L/h. Em branco vale o da máquina (${daMaq.un==="h" ? fmt(daMaq.lh,1)+" L/h" : "consumo por km"}, aba Combustível).">
-    ${porUn ? `<div class="calc" style="font-size:10px" title="consumo ÷ rendimento">${porUn}${num(a.cons)>0 ? "" : " · da máquina"}</div>` : ""}`;
+  /* O campo já vem com o número em uso -- o da máquina enquanto a atividade
+     não tiver o seu -- em texto normal, como os outros campos da linha: como
+     sugestão (placeholder cinza) ele parecia calculado e travado. Digitar
+     grava o consumo da atividade; apagar volta ao da máquina. */
+  const proprio = num(a.cons)>0;
+  return `<input data-at="${i}" data-f="cons" value="${lh>0 ? +lh.toFixed(2) : ""}" inputmode="decimal" style="width:70px"
+      placeholder="L/h"
+      title="Consumo do conjunto (máquina + implemento) em L/h — digite para mudar. ${proprio
+        ? "Informado nesta atividade; apague para voltar ao da máquina ("+(daMaq.un==="h" ? fmt(daMaq.lh,1)+" L/h" : "consumo por km")+")."
+        : "Hoje vale o da máquina (aba Combustível)."}">
+    <div class="calc" style="font-size:10px" title="consumo ÷ rendimento">${porUn ? porUn+" · " : ""}${proprio ? "da atividade" : "da máquina"}</div>`;
 }
 function pintarAtividadesCad(){
   const acoes = $("#ativ_acoes");

@@ -1,5 +1,17 @@
 # Histórico de mudanças
 
+## 2.52.1 — 2026-10-01 · Consumo de diesel editável à vista no Cadastro de Atividades
+
+- O campo "Consumo diesel (L/h)" mostrava o consumo da máquina como sugestão
+  (texto cinza do placeholder) e parecia calculado e travado. Agora ele vem
+  com o número em uso, em texto normal como os outros campos da linha, e
+  basta digitar por cima.
+- Abaixo do campo, a origem: "da máquina" enquanto vale o da aba Combustível,
+  "da atividade" depois de alterado, junto com o L/ha (ou L/t), que se
+  atualiza enquanto se digita.
+- Apagar o campo volta ao consumo da máquina. A alteração grava em "Salvar
+  alterações", como o resto do cadastro.
+
 ## 2.52.0 — 2026-10-01 · Consumo de diesel por atividade e por mês de execução
 
 - **Cadastro de Atividades, coluna "Consumo diesel (L/h)":** é o consumo do
