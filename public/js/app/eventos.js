@@ -138,6 +138,10 @@ document.addEventListener("input",e=>{
     migrarApoio(l); const k = t.dataset.per==="e" ? "e" : "s";
     l[k][t.dataset.f==="hmes" ? "hmes" : "qtd"] = num(t.value); salvar(); leve(); return; }
   if(t.dataset.apf!==undefined){ APOIO_FIXO[t.dataset.apf]=num(t.value); salvar(); leve(); return; }
+  // km/L de uma composição do transporte (P.kmLTr); vazio volta ao consumo da máquina
+  if(t.dataset.kmltr!==undefined){ const m = {...(P.kmLTr||{})}, v = num(t.value);
+    if(v>0) m[t.dataset.kmltr] = v; else delete m[t.dataset.kmltr];
+    P.kmLTr = m; salvar(); leve(); return; }
   // consumo do equipamento de apoio, na unidade em uso (L/h ou km/L); vazio volta ao da maquina
   if(t.dataset.apc!==undefined){ const l=apoioLista()[+t.dataset.apc]; if(!l) return;
     const un = l.unC==="km" || l.unC==="h" ? l.unC : consumoDe(l.maq).un;

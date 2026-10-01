@@ -78,7 +78,9 @@ const AREAS = [
   // capTransb é derivado (volume × densidade) e recalculado a cada conta
   { id: 'transp', nome: 'Transporte', grupo: 'Frota e logística',
     campos: ['densCarga', 'volTransb', 'velC', 'velV', 'tCarga', 'tDesc', 'hDiaTr', 'dispTr',
-             'consTr', 'manutTr', 'raioSafra', 'raioMuda', 'capTransb'] },
+             'consTr', 'manutTr', 'raioSafra', 'raioMuda', 'capTransb',
+             // km/L de cada composição do transporte ({CO02: 1.8, CO03: ...}), ver calculo/transporte.js
+             'kmLTr'] },
   { id: 'combust', nome: 'Combustível', grupo: 'Frota e logística', chaves: ['DIESEL_MES', 'MAQ'] },
   { id: 'apoio', nome: 'Apoio', grupo: 'Frota e logística', chaves: ['APOIO'] },
   { id: 'tpess', nome: 'Transporte de Pessoal', grupo: 'Frota e logística', chaves: ['TPESS'] },

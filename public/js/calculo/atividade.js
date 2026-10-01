@@ -564,8 +564,11 @@ function linha(a, MP){
        iam aos meses pela fração do volume mesmo quando o rendimento do mês era
        outro. */
     const horasMes = horasMesCrit && rendAlvo==null ? horasMesCrit : fracMes.map(fr=>horas*fr);
-    const lhAtv   = a.tipo!=="transp" && f.doCadastro ? num(f.cons) : 0;
-    const cons    = litrosDe(f.maq, horas, kmViagens, lhAtv);
+    // transporte: km/L da composição (aba Transporte, P.kmLTr) sobre o da
+    // máquina, com os km das viagens; as demais, o L/h do Cadastro de Atividades
+    const kmLTr   = a.tipo==="transp" ? num((P.kmLTr||{})[a.cod]) : 0;
+    const ajuste  = kmLTr>0 ? {un:"km", lkm:1/kmLTr} : (a.tipo!=="transp" && f.doCadastro ? num(f.cons) : 0);
+    const cons    = litrosDe(f.maq, horas, kmViagens, ajuste);
     const litros  = cons.litros;
     const litrosMes = horasMes.map((h,i)=> horas>0 ? litros*h/horas : litros*fracMes[i]);
     const dieselMes = litrosMes.map((l,i)=>l*precoDiesel(i));

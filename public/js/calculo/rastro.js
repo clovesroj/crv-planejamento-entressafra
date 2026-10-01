@@ -689,7 +689,8 @@ function rastroAtividade(R, cod){
       : {rot:`${p.modo?p.modo+" · ":""}${p.maq}${p.imp&&p.imp!=="----"?" + "+p.imp:""}`,
          val:brl(p.cDiesel+p.cManut+p.cMDO),
          sub:`${fmt(p.horas)} h · ${p.consumoUn==="km"
-             ? fmt(p.km)+" km"+(p.fonteKm==="viagens"?" (viagens)":" (horas × velocidade)")+" × "+fmt(p.consumoLkm,3)+" L/km"
+             ? fmt(p.km)+" km"+(p.fonteKm==="viagens"?" (viagens)":" (horas × velocidade)")+" ÷ "+fmt(p.consumoLkm>0?1/p.consumoLkm:0,2)+" km/L"+
+               (p.consAtividade ? (r.a.tipo==="transp" ? " (da aba Transporte)" : " (informado)") : " (da máquina)")
              : fmt(p.consumoLh,1)+" L/h"+(p.consAtividade?" (do Cadastro de Atividades)":" (da máquina)")} = ${fmt(p.litros)} L · diesel ${brl(p.cDiesel)} · MDO ${brl(p.cMDO)} · CRM ${brl(p.cManut)}`})},
     {titulo:"Preços e custos aplicados", linhas:[
       {rot:"Diesel", val:brl(r.cDiesel),

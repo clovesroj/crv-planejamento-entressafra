@@ -388,12 +388,18 @@
     <div><label>Tempo de descarga (min)</label><input type="number" id="p_tDesc" step="1"></div>
     <div><label>Horas de operação/dia</label><input type="number" id="p_hDiaTr" step="1"></div>
     <div><label>Disponibilidade (%)</label><input type="number" id="p_dispTr" step="1"></div>
-    <div><label>Consumo do conjunto (L/h)</label><input type="number" id="p_consTr" step="1"></div>
     <div><label>Manutenção (R$/h)</label><input type="number" id="p_manutTr" step="1"></div>
     <div><label>Raio médio safra (km)</label><input type="number" id="p_raioSafra" step="1"></div>
     <div><label>Raio médio muda (km)</label><input type="number" id="p_raioMuda" step="1"></div>
   </div></div>
   <div class="tblwrap"><table id="t_transp"></table></div>
+  <div class="panel" style="margin-top:14px"><h3>Consumo de diesel por composição (km/L)</h3>
+    <div class="tblwrap"><table id="t_transp_cons"></table></div>
+    <div class="hint" style="margin-top:9px">Cada composição tem o seu consumo em <b>km/L</b>. Os km são os das
+    viagens: toneladas ÷ capacidade por viagem × ida carregado e volta vazio do raio médio. Os litros são km ÷ km/L.
+    Em branco, vale o consumo da máquina (aba Combustível), e o campo mostra o km/L que sai dele. Apagar volta ao
+    da máquina. O diesel entra mês a mês, pelo preço de cada mês, no volume da aba Combustível, na grande conta
+    Diesel, na conta 200-110 e no custo das etapas de Colheita e Plantio.</div></div>
 </section>
 
 <!-- ===== APOIO ===== -->

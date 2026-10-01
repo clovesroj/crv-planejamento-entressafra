@@ -46,7 +46,8 @@ function pintarCombustivel(R){
      (r.litrosMes, pelas horas do mês), o apoio e o total -- que é a linha
      "Volume de diesel necessário" acima. */
   const ativs = ordenarPorEtapa(R.L.filter(r=>r.litros>0.5), r=>r.a.etapa);
-  const consTxt = r => r.a.tipo==="transp" ? "por km"
+  const kmDe = r => r.partes.reduce((s,p)=>s+num(p.km),0);
+  const consTxt = r => r.a.tipo==="transp" ? (r.litros>0 && kmDe(r)>0 ? fmt(kmDe(r)/r.litros,2)+" km/L" : "por km")
     : r.consumoLh>0 ? fmt(r.consumoLh,1)+" L/h"+(r.partes.some(p=>p.consAtividade) ? "" : " ·máq.") : "—";
   const porUn = r => { const un = r.a.un.split("/")[0]; return r.total>0 ? fmt(r.litros/r.total,1)+" L/"+un : "—"; };
   $("#t_comb_ativ").innerHTML = th([["Cód"],["Atividade"],["Máquina"],["Consumo",1],["L por unidade",1],

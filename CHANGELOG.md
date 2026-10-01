@@ -1,5 +1,45 @@
 # Histórico de mudanças
 
+## 2.54.0 — 2026-10-01 · Transporte: consumo em km/L por composição
+
+- **O campo "Consumo do conjunto (L/h)" da aba Transporte não entrava em
+  conta nenhuma.** O diesel do transporte sempre saiu do consumo cadastrado
+  de cada máquina (caminhão e trator do transbordo, aba Combustível). O campo
+  sai da tela.
+- **Tabela nova "Consumo de diesel por composição (km/L)":** caminhão de
+  colheita, caminhão de muda, transbordo de colheita e transbordo de muda,
+  cada um com:
+  - a composição (máquina + implemento);
+  - os km rodados (viagens × ida carregado e volta vazio do raio médio);
+  - o consumo em **km/L**, editável;
+  - os litros, o L/t, o diesel em R$ e a participação no diesel total;
+  - um total do transporte.
+
+  O campo de km/L vem com o valor em uso ("informado" ou "da máquina", o
+  km/L que sai do consumo dela). Apagar volta ao da máquina.
+- **Conta:** litros = km ÷ km/L, distribuídos nos meses pela tonelagem
+  transportada e custeados pelo preço do diesel de cada mês. Entram no volume
+  e no custo da aba Combustível (na tabela por atividade, o transporte mostra
+  o km/L), na grande conta Diesel, na conta 200-110 e no custo das etapas de
+  Colheita e Plantio. No rastro da atividade aparece "km ÷ km/L (da aba
+  Transporte)".
+- **Servidor:** o km/L das composições (premissa `kmLTr`) é gravado por quem
+  edita a aba Transporte.
+- **Auditoria:**
+  - o cenário de teste ainda usava os códigos antigos de colheita e muda
+    (A01/A02), e a colheita, a muda e o transporte ficavam sem volume e fora
+    da conferência; corrigido;
+  - a conferência "diesel dos blocos = diesel das atividades de transporte"
+    procurava pelos códigos antigos TR1–TR4 e comparava zero com zero;
+    corrigida;
+  - nova: litros de cada composição = km ÷ km/L.
+
+**Validação:** caminhão de colheita a 1,6 km/L e transbordo de colheita a
+2,5 km/L: litros, diesel mês a mês, grande conta Diesel e conta 200-110
+batem com km ÷ km/L. Sem km/L informado, os totais ficam idênticos aos da
+2.53.0. 63 conferências sem falha; 33 abas, 506 rastros e 138 relatórios sem
+erro.
+
 ## 2.53.0 — 2026-10-01 · Consumo de diesel editável em cada equipamento de apoio
 
 - **Aba Apoio, coluna "Consumo":** cada equipamento tem o seu consumo, em
