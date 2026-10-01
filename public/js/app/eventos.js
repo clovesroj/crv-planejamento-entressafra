@@ -138,6 +138,10 @@ document.addEventListener("input",e=>{
     migrarApoio(l); const k = t.dataset.per==="e" ? "e" : "s";
     l[k][t.dataset.f==="hmes" ? "hmes" : "qtd"] = num(t.value); salvar(); leve(); return; }
   if(t.dataset.apf!==undefined){ APOIO_FIXO[t.dataset.apf]=num(t.value); salvar(); leve(); return; }
+  // parâmetro do transbordo (P.trb); vazio volta a seguir o do caminhão
+  if(t.dataset.trb!==undefined){ const m = {...(P.trb||{})}, k = t.dataset.trb;
+    if(String(t.value).trim()==="") delete m[k]; else m[k] = num(t.value);
+    P.trb = m; salvar(); leve(); return; }
   // km/L de uma composição do transporte (P.kmLTr); vazio volta ao consumo da máquina
   if(t.dataset.kmltr!==undefined){ const m = {...(P.kmLTr||{})}, v = num(t.value);
     if(v>0) m[t.dataset.kmltr] = v; else delete m[t.dataset.kmltr];

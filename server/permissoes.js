@@ -80,7 +80,10 @@ const AREAS = [
     campos: ['densCarga', 'volTransb', 'velC', 'velV', 'tCarga', 'tDesc', 'hDiaTr', 'dispTr',
              'consTr', 'manutTr', 'raioSafra', 'raioMuda', 'capTransb',
              // km/L de cada composição do transporte ({CO02: 1.8, CO03: ...}), ver calculo/transporte.js
-             'kmLTr'] },
+             'kmLTr',
+             // capacidade do caminhão canavieiro e parâmetros próprios do transbordo
+             // ({velC, velV, tCarga, tDesc, hDia, disp, raioSafra, raioMuda}), ver parTransp()
+             'capCam', 'trb'] },
   { id: 'combust', nome: 'Combustível', grupo: 'Frota e logística', chaves: ['DIESEL_MES', 'MAQ'] },
   { id: 'apoio', nome: 'Apoio', grupo: 'Frota e logística', chaves: ['APOIO'] },
   { id: 'tpess', nome: 'Transporte de Pessoal', grupo: 'Frota e logística', chaves: ['TPESS'] },

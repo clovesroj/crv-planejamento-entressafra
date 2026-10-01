@@ -1,5 +1,47 @@
 # Histórico de mudanças
 
+## 2.55.0 — 2026-10-01 · Transporte: parâmetros separados de caminhões e transbordos
+
+A aba Transporte tinha um só bloco de parâmetros para o caminhão canavieiro e
+para o transbordo: a mesma velocidade, o mesmo tempo de carga e descarga, a
+mesma jornada, a mesma disponibilidade e o **mesmo raio médio (18 km)**. O
+transbordo anda dentro da lavoura, da colhedora até o caminhão, por bem menos
+km e mais devagar. Com o raio do caminhão, a frota, as horas e o diesel do
+transbordo saíam muito maiores.
+
+- **Caminhões canavieiros (transporte)** (CO02, PL02), painel próprio:
+  capacidade por viagem (t), velocidade carregado e vazio, tempo de carga e de
+  descarga, horas de operação/dia, disponibilidade e raio médio de safra e de
+  muda. A **capacidade do caminhão** (60 t) era usada na conta mas não
+  aparecia na tela; agora é editável.
+- **Transbordos (tratores)** (CO03, PL03), painel próprio: densidade de carga e
+  volume útil (capacidade = volume × densidade), velocidade carregado e vazio,
+  tempo de carga e de descarga, horas de operação/dia, disponibilidade e
+  distância média de safra e de muda.
+- O campo do transbordo que ainda não foi preenchido **segue o valor do
+  caminhão** ("igual ao caminhão"). Plano gravado antes desta versão não muda
+  número nenhum até alguém preencher. Apagar o campo volta a seguir o
+  caminhão.
+- Cada composição roda com os seus parâmetros em todo o motor: ciclo, viagens,
+  km, horas, frota, jornada e disponibilidade do Dimensionamento e do critério
+  por mês, diesel e custo.
+- A tabela do Transporte ganhou a coluna "Distância (km)" e o tipo de cada
+  linha (caminhão canavieiro ou transbordo).
+- Sai da tela o campo **"Manutenção (R$/h)"**, que não entrava em conta
+  nenhuma: a manutenção do transporte vem da aba Manutenção de Frota.
+- Rastro e relatório mostram os parâmetros dos dois. **Correção:** o rastro
+  dos transbordos dizia "ciclo de 1,9 min" para um ciclo de 1,9 hora; agora
+  mostra em minutos, com a distância.
+- Validação: "Velocidades do transbordo preenchidas".
+- **Servidor:** a capacidade do caminhão (`capCam`) e os parâmetros do
+  transbordo (`trb`) são gravados por quem edita a aba Transporte.
+
+**Validação:** sem parâmetro próprio do transbordo, os totais ficam idênticos
+aos da 2.54.0. Com o transbordo a 3 km e 12 km/h carregado, só o transbordo
+muda (no cenário de teste, a frota de transbordos da colheita foi de 119 para
+61) e o caminhão fica igual. 63 conferências sem falha; 33 abas, 506 rastros e
+138 relatórios sem erro.
+
 ## 2.54.0 — 2026-10-01 · Transporte: consumo em km/L por composição
 
 - **O campo "Consumo do conjunto (L/h)" da aba Transporte não entrava em

@@ -1,17 +1,35 @@
 import { $, brl, esc, fmt } from '../nucleo/formato.js';
 import { th } from './componentes.js';
+import { CAMPOS_TRB, parTransp } from '../calculo/transporte.js';
+
+/* Parâmetros do transbordo: o campo mostra o número em uso -- o do transbordo
+   ou, sem ele, o do caminhão ("igual ao caminhão"). Só o campo digitado é
+   gravado (P.trb); apagar volta a seguir o caminhão. */
+const ROT_TRB = {velC:["Velocidade carregado (km/h)",1], velV:["Velocidade vazio (km/h)",1],
+  tCarga:["Tempo de carga (min)",1], tDesc:["Tempo de descarga (min)",1], hDia:["Horas de operação/dia",1],
+  disp:["Disponibilidade (%)",1], raioSafra:["Distância média safra (km)",0.1], raioMuda:["Distância média muda (km)",0.1]};
+function pintarParTrb(){
+  const el = $("#trb_par"); if(!el) return;
+  const p = parTransp({modo:"transbordo"});
+  el.innerHTML = CAMPOS_TRB.map(k=>`<div><label>${ROT_TRB[k][0]}</label>
+    <input type="number" data-trb="${k}" step="${ROT_TRB[k][1]}" value="${+num0(p[k]).toFixed(2)}">
+    <div class="hint">${p.herdado(k) ? "igual ao caminhão" : "do transbordo"}</div></div>`).join("");
+}
+const num0 = v => isFinite(+v) ? +v : 0;
 
 /* ---------- TRANSPORTE ---------- */
 function pintarTransp(R){
-  $("#t_transp").innerHTML = th([["Modalidade"],["Toneladas",1],["Capac./viagem",1],["Ciclo (h)",1],
+  pintarParTrb();
+  $("#t_transp").innerHTML = th([["Modalidade"],["Toneladas",1],["Capac./viagem",1],["Distância (km)",1],["Ciclo (h)",1],
     ["Cap./dia",1],["t/dia pico",1],["Viagens",1],["Frota",1],["Horas",1],["Custo",1]])+"<tbody>"+
-    R.TR.blocos.map(b=>`<tr><td>${b.nome||"—"}</td>
+    R.TR.blocos.map(b=>`<tr><td>${b.nome||"—"}${b.tipo ? `<div class="calc" style="font-size:10px">${b.tipo==="transbordo"?"transbordo (trator)":"caminhão canavieiro"}</div>` : ""}</td>
       <td class="num calc">${fmt(b.ton)}</td><td class="num calc">${fmt(b.cap||0)} t</td>
+      <td class="num calc">${fmt(b.raio||0,1)}</td>
       <td class="num calc">${b.ciclo.toFixed(2)}</td><td class="num calc">${fmt(b.capDia,1)}</td>
       <td class="num calc">${fmt(b.tonDia,1)}</td><td class="num calc">${fmt(b.viagens)}</td>
       <td class="num tot">${b.frotaR}</td><td class="num calc">${fmt(b.horas)}</td>
       <td class="num tot">${brl(b.total)}</td></tr>`).join("")+
-    `<tr><td class="tot">TOTAL</td><td colspan="6"></td><td class="num tot">${R.TR.frota}</td>
+    `<tr><td class="tot">TOTAL</td><td colspan="7"></td><td class="num tot">${R.TR.frota}</td>
      <td class="num tot">${fmt(R.TR.horas)}</td><td class="num tot">${brl(R.TR.total)}</td></tr></tbody>`;
 
   /* Consumo por composição, em km/L, editável. O campo vem com o km/L em uso

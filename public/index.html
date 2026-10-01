@@ -377,21 +377,29 @@
 <!-- ===== TRANSPORTE ===== -->
 <section id="transp">
   <h2>Transporte e Transbordo</h2>
-  <p class="lead">Dimensiona a frota de transbordos pelo raio médio, tempo de ciclo e capacidade de carga.</p>
-  <div class="panel"><h3>Parâmetros</h3><div class="grid g4">
-    <div><label>Densidade de carga (t/m³)</label><input type="number" id="p_densCarga" step="0.01"></div>
-    <div><label>Volume útil (m³)</label><input type="number" id="p_volTransb" step="1"></div>
-    <div><label>Capacidade por viagem (t)</label><input id="c_capTransb" disabled><div class="hint">= Volume útil × Densidade de carga</div></div>
+  <p class="lead">Dimensiona a frota de caminhões canavieiros e de transbordos pela distância média, tempo de ciclo
+  e capacidade de carga de cada um.</p>
+  <div class="panel"><h3>Caminhões canavieiros (transporte)</h3><div class="grid g4">
+    <div><label>Capacidade por viagem (t)</label><input type="number" id="p_capCam" step="1"></div>
     <div><label>Velocidade carregado (km/h)</label><input type="number" id="p_velC" step="1"></div>
     <div><label>Velocidade vazio (km/h)</label><input type="number" id="p_velV" step="1"></div>
     <div><label>Tempo de carga (min)</label><input type="number" id="p_tCarga" step="1"></div>
     <div><label>Tempo de descarga (min)</label><input type="number" id="p_tDesc" step="1"></div>
     <div><label>Horas de operação/dia</label><input type="number" id="p_hDiaTr" step="1"></div>
     <div><label>Disponibilidade (%)</label><input type="number" id="p_dispTr" step="1"></div>
-    <div><label>Manutenção (R$/h)</label><input type="number" id="p_manutTr" step="1"></div>
     <div><label>Raio médio safra (km)</label><input type="number" id="p_raioSafra" step="1"></div>
     <div><label>Raio médio muda (km)</label><input type="number" id="p_raioMuda" step="1"></div>
-  </div></div>
+  </div><div class="hint" style="margin-top:9px">Valem para o transporte de cana da colheita e da muda (CO02, PL02):
+  da frente até a usina, ida carregado e volta vazio.</div></div>
+  <div class="panel"><h3>Transbordos (tratores)</h3><div class="grid g4">
+    <div><label>Densidade de carga (t/m³)</label><input type="number" id="p_densCarga" step="0.01"></div>
+    <div><label>Volume útil (m³)</label><input type="number" id="p_volTransb" step="1"></div>
+    <div><label>Capacidade por viagem (t)</label><input id="c_capTransb" disabled><div class="hint">= Volume útil × Densidade de carga</div></div>
+    <div id="trb_par" style="display:contents"></div>
+  </div><div class="hint" style="margin-top:9px">Valem para o transbordo da colheita e da muda (CO03, PL03): da
+  colhedora até o caminhão, dentro da lavoura. Campo que ainda não foi preenchido segue o valor do caminhão
+  ("igual ao caminhão"); digite para o transbordo ter o seu. A manutenção do transporte e do transbordo vem da
+  aba Manutenção de Frota; o consumo de diesel, da tabela por composição abaixo.</div></div>
   <div class="tblwrap"><table id="t_transp"></table></div>
   <div class="panel" style="margin-top:14px"><h3>Consumo de diesel por composição (km/L)</h3>
     <div class="tblwrap"><table id="t_transp_cons"></table></div>

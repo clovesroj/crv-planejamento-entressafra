@@ -1,4 +1,5 @@
 import { frotaDaAtividade, pessoasDaAtividade, tarifaTercDe } from '../calculo/atividade.js';
+import { parTransp } from '../calculo/transporte.js';
 import { agDeLinha, contaOrigem, rotuloItem } from '../calculo/crm.js';
 import { ADM_CRITERIOS, ADM_GRUPOS } from '../dados/administrativo.js';
 import { ARR_FORMAS, ETAPAS_ORD, arrRat } from '../calculo/arrendamento.js';
@@ -173,10 +174,13 @@ const premissas = R => sec("Premissas","Premissas do plano",["Premissa","Valor",
   ["Imobilizado da frota", brl(P.imob),"Depreciação"],
   ["Depreciação anual", fmt(P.dep,0)+"%","Custo fixo"],
   ["Atualização de preço de insumos", fmt(P.ipreco,0)+"%","Custo de insumos"],
+  ["Caminhão canavieiro — capacidade por viagem", fmt(P.capCam)+" t","Viagens do transporte"],
+  ["Caminhão — raio médio safra / muda", fmt(P.raioSafra)+" / "+fmt(P.raioMuda)+" km","Ciclo do transporte"],
+  ["Caminhão — velocidade carregado / vazio", fmt(P.velC)+" / "+fmt(P.velV)+" km/h","Ciclo do transporte"],
   ["Densidade de carga", fmt(P.densCarga,2)+" t/m³","Capacidade de transbordo"],
   ["Volume útil do transbordo", fmt(P.volTransb)+" m³","Capacidade por viagem"],
-  ["Raio médio — safra", fmt(P.raioSafra)+" km","Ciclo do transporte"],
-  ["Raio médio — muda", fmt(P.raioMuda)+" km","Ciclo do transporte"],
+  ["Transbordo — distância média safra / muda", (p=>fmt(p.raioSafra)+" / "+fmt(p.raioMuda)+" km")(parTransp({modo:"transbordo"})),"Ciclo do transbordo"],
+  ["Transbordo — velocidade carregado / vazio", (p=>fmt(p.velC)+" / "+fmt(p.velV)+" km/h")(parTransp({modo:"transbordo"})),"Ciclo do transbordo"],
   ["Encargos sobre a folha", fmt((R.MP.encTot||0)*100,1)+"%","Custo de mão de obra"],
   ["Benefícios por colaborador", brl(R.MP.benTot,2)+"/mês","Custo de mão de obra"],
   ["Valor padrão de terceirização", brl(CFG.terc_tar_pad,2)+"/ha","Frentes terceirizadas"],

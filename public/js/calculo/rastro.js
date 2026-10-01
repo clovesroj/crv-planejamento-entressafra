@@ -1,4 +1,5 @@
 import { ADM_CRITERIOS } from '../dados/administrativo.js';
+import { parTransp } from './transporte.js';
 import { CFG } from '../dados/cfg.js';
 import { ESCALAS } from '../dados/escalas.js';
 import { CAT_LBL, MESES, NM, PERIODOS, periodoMes } from '../nucleo/calendario.js';
@@ -1105,11 +1106,13 @@ function rastroTransbordo(R){
   const TR = R.TR;
   const blocos = ["camSafra","camMuda","trbSafra","trbMuda"].map(k=>TR[k])
     .filter(b=>b.frotaR>0).map(b=>({rot:b.nome, val:fmt(b.frotaR)+" un",
-      sub:`${fmt(b.ton)} t · ciclo de ${fmt(b.ciclo,1)} min · ${fmt(b.viagens,0)} viagens`}));
+      // o ciclo vem em horas (cicloTransporte); a etiqueta dizia "min"
+      sub:`${fmt(b.ton)} t · ${fmt(b.raio||0)} km · ciclo de ${fmt((b.ciclo||0)*60,0)} min · ${fmt(b.viagens,0)} viagens`}));
   return {titulo:"Transbordos", subtitulo:"Frota de transporte e transbordo de cana", valor:fmt(TR.frota)+" un",
     blocos:[{titulo:"Por bloco (colheita/muda × caminhão/transbordo)", linhas: blocos.length?blocos:[{rot:"Nada dimensionado", val:"—"}]}],
     premissas: premissasGerais().concat([
-      {rot:"Raio médio — safra", val:fmt(P.raioSafra)+" km"}, {rot:"Raio médio — muda", val:fmt(P.raioMuda)+" km"},
+      {rot:"Caminhão — raio médio safra / muda", val:fmt(parTransp(null).raioSafra)+" / "+fmt(parTransp(null).raioMuda)+" km"},
+      {rot:"Transbordo — distância média safra / muda", val:fmt(parTransp({modo:"transbordo"}).raioSafra)+" / "+fmt(parTransp({modo:"transbordo"}).raioMuda)+" km"},
     ])};
 }
 function rastroApoio(R){

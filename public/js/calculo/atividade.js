@@ -8,7 +8,7 @@ import { DIM, P, PLANO, REAL, TERC_SUB, TERC_TAR, atividadesLista } from '../nuc
 import { num, pct } from '../nucleo/formato.js';
 import { precoDiesel } from './diesel.js';
 import { tratCusto } from './insumos.js';
-import { cicloTransporte } from './transporte.js';
+import { cicloTransporte, parTransp } from './transporte.js';
 import { custoDaFuncao } from './mao-de-obra.js';
 
 
@@ -187,9 +187,11 @@ function eficPadrao(){
    geral: chuva e espera atrasam caminhao como atrasam colhedora. */
 function premissasDe(a){
   const transp = !!(a && a.tipo === "transp");
+  // caminhão e transbordo com jornada e disponibilidade próprias (parTransp)
+  const par = transp ? parTransp(a) : null;
   return {transp,
-          hDia: num(transp ? P.hDiaTr : P.hdia),
-          disp: num(transp ? P.dispTr : P.disp)/100,
+          hDia: num(transp ? par.hDia : P.hdia),
+          disp: num(transp ? par.disp : P.disp)/100,
           efic: eficPadrao()};
 }
 
@@ -506,13 +508,15 @@ function linha(a, MP){
        do caminhao como ja encolhia o da colhedora. */
     const capMes = num(P.dias) * pr.hDia * pr.disp * pr.efic * util;
     if(a.tipo==="transp"){
-      const raio = a.src==="PL01" ? P.raioMuda : P.raioSafra;   // PL01 = Colheita muda (antigo A02)
-      const ciclo = cicloTransporte(raio);
-      const cap = a.modo==="caminhao" ? P.capCam : P.capTransb;
+      // caminhão canavieiro ou transbordo, cada um com os seus parâmetros
+      const par = parTransp(a);
+      const raio = par.raioDe(a.src);
+      const ciclo = cicloTransporte(raio, par);
+      const cap = par.cap;
       const viagens = cap>0 ? area/cap : 0;
       // cada viagem vai carregada e volta vazia: duas vezes o raio
       kmViagens = viagens*2*num(raio);
-      horas = P.dispTr>0 ? viagens*ciclo/(P.dispTr/100) : 0;
+      horas = par.disp>0 ? viagens*ciclo/(par.disp/100) : 0;
     }else if(f.rendM || mensal){
       // criterio varia por mes: soma as horas mes a mes em vez de dividir o total
       // por um rendimento so — mes sem valor proprio usa o padrao (f.rend)

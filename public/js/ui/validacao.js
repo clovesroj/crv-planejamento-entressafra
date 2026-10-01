@@ -10,6 +10,7 @@ import { DIM, INSUMO, P, atividadesLista, insLista } from '../nucleo/estado.js';
 import { MESES, NM, diasNoMesEntre, mesesEntre } from '../nucleo/calendario.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
 import { th } from './componentes.js';
+import { parTransp } from '../calculo/transporte.js';
 import { contasValores, totaisContas } from '../calculo/contas.js';
 import { conferenciaInsumos } from '../calculo/demandas.js';
 import { estado } from '../io/persistencia.js';
@@ -117,6 +118,9 @@ function validar(R){
   add(P.dias>0&&P.dias<=31,"Dias efetivos/mês plausíveis",fmt(P.dias), ir("premissas","#p_dias"));
   // velocidade zerada tira o tempo de viagem do ciclo (o motor conta o trecho como 0
   // em vez de dividir por zero) e subdimensiona transporte e transbordo sem aviso
+  { const T = parTransp({modo:"transbordo"});
+    add(T.velC>0&&T.velV>0,"Velocidades do transbordo preenchidas",
+      "carregado "+fmt(T.velC)+" km/h · vazio "+fmt(T.velV)+" km/h", ir("transp", "#trb_par")); }
   add(P.velC>0&&P.velV>0,"Velocidades do transporte preenchidas",
       "carregado "+fmt(P.velC)+" km/h · vazio "+fmt(P.velV)+" km/h", ir("transp", !(P.velC>0) ? "#p_velC" : "#p_velV"));
   add(P.diasTrab>0&&P.diasTrab<=7,"Dias trabalhados por colaborador em 1–7",fmt(P.diasTrab), ir("mdo","#p_diasTrab"));
