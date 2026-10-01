@@ -1,4 +1,4 @@
-import { MODOS_ORD, frotaDaAtividade, modoLiberado, modosDe, temDetalheTerc } from '../calculo/atividade.js';
+import { MODOS_ORD, frotaDaAtividade, modoLiberado, modosDe, paramsDoModo, temDetalheTerc } from '../calculo/atividade.js';
 import { tratListaTodos } from '../calculo/insumos.js';
 import { CFG } from '../dados/cfg.js';
 import { erpDe } from '../dados/atividades-erp.js';
@@ -26,8 +26,13 @@ function mixEditor(r){
   const cor = soma===0 ? "var(--grey)" : (Math.abs(soma-100)<0.01 ? "var(--green)" : "var(--red)");
   const sigla = {Manual:"M",Trator:"T",Uniport:"U",Drone:"D",Quadriciclo:"Q",Terceiro:"3º"};
   const temSub = temDetalheTerc(r.a.cod);
+  const un = r.a.un.split("/")[0];
+  // a dica diz com que máquina e rendimento o modo roda nesta atividade
+  const dica = m => { const p = paramsDoModo(r.a, m, soma>0 ? {mx, soma} : null);
+    return p.terc ? m+" — prestador de serviço"
+      : `${m} — ${p.maq||"—"}, ${fmt(p.rend,2)} ${un}/h${p.doCadastro ? " (do Cadastro de Atividades)" : " (padrão do modo)"}`; };
   return `<div class="mix">` +
-    modos.map(m=>`<label title="${m}" class="${m==="Terceiro"?"terc":""}">${sigla[m]}<input data-mx="${r.a.cod}" data-mo="${m}"
+    modos.map(m=>`<label title="${esc(dica(m))}" class="${m==="Terceiro"?"terc":""}">${sigla[m]}<input data-mx="${r.a.cod}" data-mo="${m}"
       value="${mx[m]||""}" inputmode="decimal" placeholder="0"></label>`).join("") +
     (modos.includes("Terceiro") ? `<button type="button" class="terc-det${temSub?" on":""}" data-tercdet="${r.a.cod}"
       title="${temSub?"Detalhamento do terceiro por avião/drone/terrestre já preenchido — clique para ajustar":"Detalhar o terceiro por avião, drone ou terrestre, cada um com seu % e seu valor por hectare"}">›</button>` : "") +

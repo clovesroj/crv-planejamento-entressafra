@@ -6,7 +6,7 @@ import { CFG } from '../dados/cfg.js';
 import { SEP_MOD, crmDe, crmEspDe } from '../calculo/crm.js';
 import { composicao, etapaTrat, familiaEfetiva, produtosForaDoCadastro, tratCodigos, tratCusto, tratEtapas, usoDoTratamento } from '../calculo/insumos.js';
 import { TRAT_ETAPAS } from '../dados/insumos.js';
-import { DIM, INSUMO, P, insLista } from '../nucleo/estado.js';
+import { DIM, INSUMO, P, atividadesLista, insLista } from '../nucleo/estado.js';
 import { MESES, NM, diasNoMesEntre, mesesEntre } from '../nucleo/calendario.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
 import { th } from './componentes.js';
@@ -98,10 +98,10 @@ function validar(R){
   // nao tem rendimento calculado -- nao e rendimento faltando
   const semRend = R.L.find(r=>r.total>0 && r.rend<=0);
   add(!semRend,"Rendimento operacional zerado", semRend ? (semRend.a.cod)+" · "+semRend.a.nome : "",
-      ir("dimens", semRend ? `#t_dim [data-r="${semRend.a.cod}"]` : null, "#t_dim"));
+      ir("cadativ", semRend ? `#t_ativ [data-at="${atividadesLista().findIndex(a=>a.cod===semRend.a.cod)}"][data-f="rend"]` : null, "#t_ativ"));
   const utilRuim = R.L.find(r=>r.util<=0||r.util>1);
   add(!utilRuim,"Taxa de utilização fora de 0–100%", utilRuim ? (utilRuim.a.cod)+" · "+utilRuim.a.nome : "",
-      ir("dimens", utilRuim ? `#t_dim [data-u="${utilRuim.a.cod}"]` : null, "#t_dim"));
+      ir("cadativ", utilRuim ? `#t_ativ [data-atu="${atividadesLista().findIndex(a=>a.cod===utilRuim.a.cod)}"]` : null, "#t_ativ"));
   const semTrat = R.L.filter(r=>r.ehHa&&r.total>0&&!r.trat);
   add(semTrat.length===0,"Atividade em ha sem tratamento vinculado",
       semTrat.length ? semTrat.length+": "+semTrat.slice(0,5).map(r=>(r.a.cod)).join(", ")+(semTrat.length>5?"…":"") : "0",

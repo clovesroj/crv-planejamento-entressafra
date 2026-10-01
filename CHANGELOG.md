@@ -1,5 +1,56 @@
 # Histórico de mudanças
 
+## 2.51.0 — 2026-10-01 · O Cadastro de Atividades manda no dimensionamento
+
+**O erro:** no Dimensionamento, as gradagens e a subsolagem (PS02 a PS07)
+apareciam a **2,20 ha/h** com um **Trator 4x4 150 CV**. No Cadastro de
+Atividades, elas estão a 0,7 ha/h (0,5 na subsolagem) com o Trator 4x4 230 CV
+e a grade. A causa: quando a atividade tem divisão por modo de execução no
+Plano Operacional (o "mix": Manual, Trator, Uniport, Drone, Terceiro), cada
+frente pegava os parâmetros **genéricos do modo**, e o modo "Trator" é um
+trator 150 CV com tanque de pulverização a 2,2 ha/h. Com três vezes menos
+horas, a frota, o diesel, a mão de obra e o **custo por hectare** saíam
+menores do que a operação real. Além disso, o detalhe do Dimensionamento
+tinha um "rendimento padrão" e uma "utilização" próprios, que se sobrepunham
+ao cadastro sem mostrar que o cadastro estava sendo ignorado.
+
+- **A frente que é a máquina do cadastro roda com os parâmetros do
+  cadastro:** rendimento, máquina, implemento, operadores e turnos, e a
+  função da atividade. O modo do cadastro sai pelo nome da máquina (Uniport,
+  Drone, Quadriciclo, Trator, equipe manual). Com uma máquina que não é de
+  nenhum modo (escavadeira, colhedora...), vale o único modo próprio do mix.
+  Os outros modos são outro jeito de fazer a operação (o drone numa atividade
+  de Uniport, o terceiro) e seguem com os parâmetros do modo.
+- **Sem mix:** o rendimento e a utilização são sempre os do cadastro. O
+  "rendimento padrão" e a "utilização" do detalhe do Dimensionamento deixam
+  de valer e viram leitura ("Rendimento do cadastro", "Utilização do
+  cadastro"), com o aviso de que se editam no Cadastro de Atividades. Os
+  valores que tinham sido digitados ali ficam guardados, mas não entram mais
+  na conta.
+- **Continuam valendo, como exceção à vista:** o critério por mês (botão
+  "mês", o mês que foge do rendimento do cadastro) e a frota fixada. Quando o
+  rendimento da atividade difere do cadastro, a tabela do Dimensionamento
+  mostra o do cadastro ao lado ("cad. 1,65") e a dica explica o motivo.
+- **Rendimento mostrado no Dimensionamento = o da frota própria** (área das
+  frentes próprias ÷ horas delas). Antes, com terceiro no mix, a área do
+  terceiro entrava sem as horas e o rendimento saía maior que o de qualquer
+  máquina (Dessecação a 3,28 ha/h com Uniport a 3,5 e drone a 1,5).
+- **Plano Operacional:** a dica de cada modo do mix diz com que máquina e
+  rendimento ele roda naquela atividade, e se vem do cadastro ou do padrão
+  do modo.
+- **Validação:** "rendimento zerado" e "utilização fora de 0–100%" levam ao
+  Cadastro de Atividades, que é onde se corrigem.
+
+**Efeito, no cenário de teste com o mix do print:** PS02 de 2,20 para
+0,70 ha/h (663 h para 2.084 h; custo por ha de R$ 886 para R$ 1.195); PS07
+de 2,20 para 0,50 ha/h (custo por ha de R$ 565 para R$ 1.009). PS01
+(Uniport 60% + Drone 20% + Terceiro 20%): Uniport com o 1,65 ha/h do
+cadastro, e não mais o 3,5 do modo. Plano sem mix e sem ajuste no
+Dimensionamento: nenhum número muda.
+
+**Validação:** 55 conferências sem falha, no cenário padrão e no do mix; 33
+abas, rastros e 138 relatórios sem erro.
+
 ## 2.50.10 — 2026-09-29 · Custos administrativos só nos meses de cada linha
 
 **O erro:** desde 0456075, cada linha de custo administrativo pode ter os

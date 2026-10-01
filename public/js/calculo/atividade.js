@@ -46,6 +46,42 @@ function tarifaTercDe(cod){
 const modoLiberado = a => a.tipo !== "transp" && !a.junto;
 function modosDe(a){ return MODOS_ORD; }
 
+/* O CADASTRO DE ATIVIDADES MANDA no rendimento, na máquina, no implemento,
+   nos operadores e nos turnos da frente própria.
+
+   Com o mix de modos (Plano Operacional), cada frente pegava os parâmetros
+   GENÉRICOS do modo (dados/modos.js): o "Trator" é um trator 150 CV com tanque
+   de pulverização a 2,2 ha/h. A gradagem com mix "Trator" passava a ser
+   dimensionada com esse trator e esse rendimento, e não com a grade do
+   cadastro (Trator 230 CV, 0,7 ha/h): três vezes menos horas, frota e custo
+   por hectare menores do que a operação real.
+
+   O modo que É a máquina do cadastro sai pelo nome da máquina (Uniport, Drone,
+   Quadriciclo, Trator, equipe manual). Máquina que não é de nenhum modo
+   (grade sem trator no nome, escavadeira, colhedora...) com um modo próprio
+   só no mix: é ela que executa. Os outros modos são outro jeito de fazer a
+   operação (o drone numa atividade de Uniport, o terceiro) e seguem com os
+   parâmetros do modo. */
+const MODO_POR_MAQUINA = [["Uniport",/uniport/i], ["Drone",/drone/i], ["Quadriciclo",/quadriciclo/i],
+                          ["Trator",/trator/i], ["Manual",/manual|costal|equipe/i]];
+function modoDoCadastro(a, M){
+  const porNome = MODO_POR_MAQUINA.find(([,re])=>re.test(a.maq||""));
+  if(porNome) return porNome[0];
+  const proprios = M ? modosDe(a).filter(m=>num(M.mx[m])>0 && !(CFG.modos[m]||{}).terc) : [];
+  return proprios.length===1 ? proprios[0] : null;
+}
+/** Parâmetros de uma frente do mix: os do cadastro da atividade, se o modo é a
+    máquina dela; senão, os do modo (com o ajuste da atividade, modoCfg). */
+function paramsDoModo(a, m, M){
+  const MO = {...CFG.modos[m], ...((a.modoCfg||{})[m]||{})};
+  if(MO.terc || m!==modoDoCadastro(a, M)) return {...MO, doCadastro:false};
+  return {...MO, maq:a.maq, imp:a.imp,
+          rend: num(a.rend)>0 ? num(a.rend) : num(MO.rend),
+          ops: num(a.ops)>0 ? num(a.ops) : MO.ops, turnos: num(a.turnos)>0 ? num(a.turnos) : MO.turnos,
+          // a função da atividade, como sem mix; o ajuste da atividade (modoCfg) manda
+          fcod: ((a.modoCfg||{})[m]||{}).fcod || CFG.func_at[a.nome] || MO.fcod, doCadastro:true};
+}
+
 // divisão da área entre modos de aplicação. Sem mix definido, roda 100% no padrão.
 function mixDe(a, p){
   if(!modoLiberado(a)) return null;
@@ -403,7 +439,9 @@ function linha(a, MP){
      so. Sem ajuste, vale o do cadastro -- e o plano de quem nunca mexeu aqui
      nao muda em nada. */
   const opsOv = num((DIM[a.cod]||{}).ops);
-  const util = d.util!=null ? num(d.util) : a.util;
+  // utilização do cadastro da atividade (a do Dimensionamento, DIM.util, deixou
+  // de valer: eram dois lugares para o mesmo número, e o do cadastro era ignorado)
+  const util = a.util!=null && a.util!=="" ? num(a.util) : 0.8;
   const ehHa = a.un.indexOf("ha")===0;
   // ton por enquanto e a unica outra base fisica reconhecida nos totais do
   // plano (ha operados / toneladas); unidade nova que nao for nenhuma das
@@ -419,14 +457,17 @@ function linha(a, MP){
   let frentes;
   if(M){
     frentes = modosDe(a).filter(m=>num(M.mx[m])>0).map(m=>{
-      // modoCfg deixa a atividade ajustar maquina, implemento, rendimento ou funcao do modo
-      const MO = {...CFG.modos[m], ...((a.modoCfg||{})[m]||{})};
+      // o modo que é a máquina do cadastro roda com os parâmetros do cadastro
+      const MO = paramsDoModo(a, m, M);
       return {modo:m, pct:num(M.mx[m])/M.soma, maq:MO.maq, imp:MO.imp,
-              rend:MO.rend, ops:MO.ops, turnos:MO.turnos, fcodPad:MO.fcod, terc:!!MO.terc};
+              rend:num(MO.rend), ops:MO.ops, turnos:MO.turnos, fcodPad:MO.fcod, terc:!!MO.terc,
+              doCadastro:MO.doCadastro};
     });
   }else{
-    frentes = [{modo:"", pct:1, maq:a.maq, imp:a.imp,
-                rend: d.rend!=null?num(d.rend):a.rend,
+    // rendimento do cadastro (o "rendimento padrão" do Dimensionamento, DIM.rend,
+    // deixou de valer); o mês que foge dele continua no critério por mês
+    frentes = [{modo:"", pct:1, maq:a.maq, imp:a.imp, doCadastro:true,
+                rend: num(a.rend),
                 rendM: Array.isArray(d.rendM) && d.rendM.some(v=>num(v)>0) ? d.rendM : null,
                 ops:a.ops, turnos:a.turnos, fcodPad:null}];
   }
@@ -551,9 +592,17 @@ function linha(a, MP){
   }else{
     cInsumo = (t && ehHa) ? total*t : 0;
   }
-  const rendMed = soma("horas")>0 ? total/soma("horas") : (frentes[0].rend||0);
+  // sem hora própria (tudo com terceiro): o rendimento é o da frente própria ou o do cadastro
+  const propria = partes.find(x=>!x.terc);
+  const rendMed = soma("horas")>0 ? total/soma("horas") : ((propria && propria.rend) || num(a.rend) || 0);
 
-  return {a, meses, total, rend:rendMed, junto,
+  /* Rendimento da frota própria: a área que ela faz ÷ as horas dela. O `rend`
+     acima é a área TOTAL por hora própria (fecha com as horas mês a mês do
+     rastro), e com terceiro no mix ficava maior que o de qualquer máquina. É
+     este que se compara com o cadastro. */
+  const areaPropria = partes.filter(x=>!x.terc).reduce((s,x)=>s+x.area,0);
+  const rendProprio = soma("horas")>0 ? areaPropria/soma("horas") : rendMed;
+  return {a, meses, total, rend:rendMed, rendProprio, junto, rendCadastro: num(a.rend),
           frotaAlvo: frotaAlvo>0 && !M && !mensal && !junto ? frotaAlvo : 0,
           frotaAlvoSuspensa: frotaAlvo>0 && !M && mensal && !junto ? frotaAlvo : 0,
           rendPremissa: (M || a.tipo==="transp" || junto) ? 0 : frentes[0].rend,
@@ -684,6 +733,6 @@ function removerAtividade(cod){
   return true;
 }
 
-export { MODOS_ORD, criterioMensal, diasDoMes, diretoNoMes, fatorDe, frotaDaAtividade, modoLiberado, modosDe, linha, mixDe, pessoasDaAtividade, picoFrotaPorItem,
+export { MODOS_ORD, modoDoCadastro, paramsDoModo, criterioMensal, diasDoMes, diretoNoMes, fatorDe, frotaDaAtividade, modoLiberado, modosDe, linha, mixDe, pessoasDaAtividade, picoFrotaPorItem,
          premissasDe, tarifaTerc, tarifaTercDe, temDetalheTerc, metaDe,
   temCriterioMensal, mesclarBaseAtividades, codigoAtividadeValido, criarAtividade, removerAtividade, removerAtividadesRetiradas };

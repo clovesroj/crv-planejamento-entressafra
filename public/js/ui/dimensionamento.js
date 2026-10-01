@@ -41,6 +41,19 @@ const turOpts = sel => `<option value="">Padrão</option>` +
 const escOpts = sel => `<option value="">Padrão (premissas)</option>` +
   Object.keys(ESCALAS).map(k=>`<option value="${k}" ${k===sel?"selected":""}>${k}</option>`).join("");
 
+/* O rendimento médio da linha foge do cadastro só quando há um motivo à vista:
+   critério por mês (botão mês), frota fixada, ou frentes de outro modo no mix
+   (drone, terceiro...). A célula mostra o do cadastro ao lado e o motivo. */
+const difereDoCadastro = r => r.a.tipo!=="transp" && !r.junto && r.rendCadastro>0 && Math.abs(r.rendProprio-r.rendCadastro)>0.005;
+function porQueDifere(r){
+  const motivos = [];
+  if(r.criterioMensal) motivos.push("há critério próprio em algum mês (botão mês)");
+  if(r.frotaAlvo) motivos.push("a frota está fixada em "+fmt(r.frotaAlvo)+" e o rendimento é o que fecha a conta");
+  const outros = r.partes.filter(p=>!p.doCadastro && !p.terc).map(p=>p.modo).filter(Boolean);
+  if(outros.length) motivos.push("parte da área roda em outro modo ("+outros.join(", ")+"), com o rendimento dele");
+  return "Rendimento médio da frota própria "+fmt(r.rendProprio,2)+"; o do Cadastro de Atividades é "+fmt(r.rendCadastro,2)+
+    (motivos.length ? " — "+motivos.join("; ")+"." : ".");
+}
 function pintarDim(R){
   /* A tabela ficou com o essencial, e o detalhe foi para o modal.
      As tres leituras continuam na mesma tela, mas 19 colunas nao se leem: modo,
@@ -74,8 +87,9 @@ function pintarDim(R){
           <span class="dim-un">${un}</span></div></td>
         <td>
           <div class="dim-cel">
-            <span class="dim-val">${fmt(r.rend,2)}</span>
-            <span class="dim-un">${un}/h</span>
+            <span class="dim-val" title="Rendimento da frota própria: a área que ela faz ÷ as horas dela">${fmt(r.rendProprio,2)}</span>
+            <span class="dim-un">${un}/h</span>${difereDoCadastro(r)
+              ? `<span class="calc" style="font-size:10px" title="${esc(porQueDifere(r))}">cad. ${fmt(r.rendCadastro,2)}</span>` : ""}
             ${btnMes(r.a.cod)}
             <button class="btn xs" data-dimmes="${r.a.cod}"
               title="Ver mês a mês, só os meses com lançamento"
@@ -207,7 +221,7 @@ function linhaDaFrente(r){
         ? `<div class="dim-cel"><span class="dim-val calc">${fmt(r.total)}</span><span class="dim-un">${un}</span></div>`
         : '<span class="calc">—</span>'}</td>
       <td><div class="dim-cel">${nucleo
-        ? `<span class="dim-val">${fmt(r.rend,2)}</span><span class="dim-un">${un}/h</span>
+        ? `<span class="dim-val">${fmt(r.rendProprio,2)}</span><span class="dim-un">${un}/h</span>
            ${btnMes(r.a.cod)}
            <button class="btn xs" data-dimdet="${r.a.cod}" data-aba="oper">detalhe ›</button>`
         : `<button class="btn xs" data-apmes="${esc(r.a.cod)}" data-erp="${esc(e.cod)}"
@@ -318,21 +332,19 @@ function pintarDimDetalhe(R){
       <div class="dd-tit">Operação</div>
       <div class="dd-grade">
         ${linha("Área ou volume", fmt(r.total)+" "+un)}
-        ${multi ? linha("Rendimento", fmt(r.rend,2)+" "+un+"/h") : ""}
+        ${multi ? linha("Rendimento da frota própria", fmt(r.rendProprio,2)+" "+un+"/h", "área das frentes próprias ÷ horas delas; o terceiro não tem hora própria") : ""}
         ${linha("Horas de máquina", fmt(r.horas)+" h", un+" ÷ rendimento")}
         ${linha("Janela", r.janela.fonte==="datas" ? r.janela.ini+" a "+r.janela.fim
                                                    : fmt(r.janela.meses,1)+" meses")}
-        ${multi ? "" : `<div class="dd-campo"><label for="dd_rend">Rendimento padrão (${un}/h)</label>
-          <input id="dd_rend" data-r="${r.a.cod}" value="${r.rend}" inputmode="decimal">
-          <span class="calc">Vale para todo mês que não tiver rendimento próprio. O mês que foge dele
-          se lança no botão <b>mês</b>.</span></div>`}
-        <div class="dd-campo"><label for="dd_util">Utilização (%)</label>
-          <input id="dd_util" data-u="${r.a.cod}" value="${Math.round(r.util*100)}" inputmode="decimal">
-          <span class="calc">quanto do tempo disponível vai para esta atividade</span></div>
+        ${r.a.tipo==="transp" ? "" : linha("Rendimento do cadastro", fmt(r.rendCadastro,2)+" "+un+"/h",
+            "Vale para todo mês que não tiver rendimento próprio (botão mês). Edite no Cadastro de Atividades.")}
+        ${linha("Utilização do cadastro", fmt(r.util*100,0)+"%", "Quanto do tempo disponível vai para esta atividade. Edite no Cadastro de Atividades.")}
+        ${difereDoCadastro(r) ? `<div class="dd-campo"><span class="calc">${esc(porQueDifere(r))}</span></div>` : ""}
         ${linha("Modo de execução", multi ? r.partes.length+" frentes" : (modoLiberado(r.a)?"padrão":"—"))}
       </div>
       ${multi ? `<div class="tblwrap ra-tbl"><table>${th([["Frente"],["%",1],["Área",1],["Rend.",1],["Horas",1]])}
-        <tbody>${r.partes.map(p=>`<tr><td>${p.modo}${p.terc?' <span class="badge b-warn">terceiro</span>':""}</td>
+        <tbody>${r.partes.map(p=>`<tr><td>${p.modo}${p.terc?' <span class="badge b-warn">terceiro</span>'
+            : p.doCadastro ? ' <span class="badge b-ok" title="Máquina e rendimento do Cadastro de Atividades">cadastro</span>' : ""}</td>
           <td class="num calc">${fmt(p.pct*100,0)}%</td><td class="num calc">${fmt(p.area)} ${un}</td>
           <td class="num calc">${fmt(p.rend,2)}</td>
           <td class="num calc">${p.terc?"—":fmt(p.horas)}</td></tr>`).join("")}</tbody></table></div>` : ""}
