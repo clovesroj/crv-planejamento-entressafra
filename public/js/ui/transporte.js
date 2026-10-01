@@ -32,20 +32,26 @@ function pintarTransp(R){
     `<tr><td class="tot">TOTAL</td><td colspan="7"></td><td class="num tot">${R.TR.frota}</td>
      <td class="num tot">${fmt(R.TR.horas)}</td><td class="num tot">${brl(R.TR.total)}</td></tr></tbody>`;
 
-  /* Consumo por composição, em km/L, editável. O campo vem com o km/L em uso
-     (o informado ou o equivalente da máquina); apagar volta ao da máquina. */
+  /* Consumo por composição, editável: caminhão canavieiro em km/L, transbordo
+     (trator) em L/h. O campo vem com o valor em uso (o informado ou o da
+     máquina); apagar volta ao da máquina. */
   const dieselT = R.dieselT || 0, T = R.TR;
-  $("#t_transp_cons").innerHTML = th([["Composição"],["Km rodados",1],["Consumo (km/L)",1],["Litros",1],
+  const celCons = b => b.unCons==="h"
+    ? `<input data-lhtrb="${esc(b.cod)}" value="${b.lh>0 ? +b.lh.toFixed(2) : (b.lhInf||"")}" placeholder="L/h"
+          inputmode="decimal" style="width:70px" title="Consumo do trator com o transbordo em L/h — digite para mudar; apagar volta ao da máquina"> L/h
+        <div class="calc" style="font-size:10px">${b.lhInf>0 ? "informado" : "da máquina"}</div>`
+    : `<input data-kmltr="${esc(b.cod)}" value="${b.kmL>0 ? +b.kmL.toFixed(2) : (b.kmLInf||"")}" placeholder="km/L"
+          inputmode="decimal" style="width:70px" title="Consumo do caminhão em km/L — digite para mudar; apagar volta ao da máquina"> km/L
+        <div class="calc" style="font-size:10px">${b.kmLInf>0 ? "informado" : "da máquina"}</div>`;
+  $("#t_transp_cons").innerHTML = th([["Composição"],["Km rodados",1],["Horas",1],["Consumo",1],["Litros",1],
       ["L/t",1],["Diesel",1],["% do diesel total",1]])+"<tbody>"+
     T.blocos.filter(b=>b.cod).map(b=>`<tr><td>${esc(b.nome||b.cod)}<div class="calc" style="font-size:10px">${esc(b.maq||"")}${b.imp?" + "+esc(b.imp):""}</div></td>
-      <td class="num calc">${fmt(b.km)}</td>
-      <td class="num"><input data-kmltr="${esc(b.cod)}" value="${b.kmL>0 ? +b.kmL.toFixed(2) : (b.kmLInf||"")}" placeholder="km/L"
-          inputmode="decimal" style="width:70px" title="Consumo da composição em km/L — digite para mudar; apagar volta ao da máquina">
-        <div class="calc" style="font-size:10px">${b.kmLInf>0 ? "informado" : "da máquina"}</div></td>
+      <td class="num calc">${fmt(b.km)}</td><td class="num calc">${fmt(b.horas)}</td>
+      <td class="num">${celCons(b)}</td>
       <td class="num tot">${fmt(b.litros)}</td><td class="num calc">${b.ton>0 ? fmt(b.lPorT,2) : "—"}</td>
       <td class="num">${brl(b.diesel)}</td><td class="num calc">${dieselT>0 ? fmt(b.diesel/dieselT*100,1)+"%" : "—"}</td></tr>`).join("")+
-    `<tr><td class="tot">TOTAL DO TRANSPORTE</td><td class="num tot">${fmt(T.km)}</td>
-      <td class="num calc">${T.litros>0 ? fmt(T.km/T.litros,2)+" média" : "—"}</td><td class="num tot">${fmt(T.litros)}</td><td></td>
+    `<tr><td class="tot">TOTAL DO TRANSPORTE</td><td class="num tot">${fmt(T.km)}</td><td class="num tot">${fmt(T.horas)}</td>
+      <td></td><td class="num tot">${fmt(T.litros)}</td><td></td>
       <td class="num tot">${brl(T.diesel)}</td><td class="num tot">${dieselT>0 ? fmt(T.diesel/dieselT*100,1)+"%" : "—"}</td></tr></tbody>`;
 }
 

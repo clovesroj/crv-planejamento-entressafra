@@ -568,10 +568,17 @@ function linha(a, MP){
        iam aos meses pela fração do volume mesmo quando o rendimento do mês era
        outro. */
     const horasMes = horasMesCrit && rendAlvo==null ? horasMesCrit : fracMes.map(fr=>horas*fr);
-    // transporte: km/L da composição (aba Transporte, P.kmLTr) sobre o da
-    // máquina, com os km das viagens; as demais, o L/h do Cadastro de Atividades
-    const kmLTr   = a.tipo==="transp" ? num((P.kmLTr||{})[a.cod]) : 0;
-    const ajuste  = kmLTr>0 ? {un:"km", lkm:1/kmLTr} : (a.tipo!=="transp" && f.doCadastro ? num(f.cons) : 0);
+    /* Consumo da frente:
+         caminhão canavieiro -- km/L da aba Transporte (P.kmLTr) sobre o da
+           máquina, com os km das viagens;
+         transbordo (trator) -- SEMPRE por hora: o L/h da aba Transporte
+           (P.lhTrb) ou, vazio, o L/h da máquina, × as horas do ciclo;
+         demais atividades -- o L/h do Cadastro de Atividades. */
+    const ehTrb   = a.tipo==="transp" && a.modo==="transbordo";
+    const kmLTr   = a.tipo==="transp" && !ehTrb ? num((P.kmLTr||{})[a.cod]) : 0;
+    const ajuste  = ehTrb ? {un:"h", lh: num((P.lhTrb||{})[a.cod])}
+                  : kmLTr>0 ? {un:"km", lkm:1/kmLTr}
+                  : (a.tipo!=="transp" && f.doCadastro ? num(f.cons) : 0);
     const cons    = litrosDe(f.maq, horas, kmViagens, ajuste);
     const litros  = cons.litros;
     const litrosMes = horasMes.map((h,i)=> horas>0 ? litros*h/horas : litros*fracMes[i]);

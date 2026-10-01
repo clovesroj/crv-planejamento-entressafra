@@ -142,6 +142,10 @@ document.addEventListener("input",e=>{
   if(t.dataset.trb!==undefined){ const m = {...(P.trb||{})}, k = t.dataset.trb;
     if(String(t.value).trim()==="") delete m[k]; else m[k] = num(t.value);
     P.trb = m; salvar(); leve(); return; }
+  // L/h do trator de um transbordo (P.lhTrb); vazio volta ao consumo da máquina
+  if(t.dataset.lhtrb!==undefined){ const m = {...(P.lhTrb||{})}, v = num(t.value);
+    if(v>0) m[t.dataset.lhtrb] = v; else delete m[t.dataset.lhtrb];
+    P.lhTrb = m; salvar(); leve(); return; }
   // km/L de uma composição do transporte (P.kmLTr); vazio volta ao consumo da máquina
   if(t.dataset.kmltr!==undefined){ const m = {...(P.kmLTr||{})}, v = num(t.value);
     if(v>0) m[t.dataset.kmltr] = v; else delete m[t.dataset.kmltr];

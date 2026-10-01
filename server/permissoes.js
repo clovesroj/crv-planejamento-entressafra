@@ -83,7 +83,9 @@ const AREAS = [
              'kmLTr',
              // capacidade do caminhão canavieiro e parâmetros próprios do transbordo
              // ({velC, velV, tCarga, tDesc, hDia, disp, raioSafra, raioMuda}), ver parTransp()
-             'capCam', 'trb'] },
+             'capCam', 'trb',
+             // L/h do trator de cada transbordo ({CO03: 22, PL03: 20})
+             'lhTrb'] },
   { id: 'combust', nome: 'Combustível', grupo: 'Frota e logística', chaves: ['DIESEL_MES', 'MAQ'] },
   { id: 'apoio', nome: 'Apoio', grupo: 'Frota e logística', chaves: ['APOIO'] },
   { id: 'tpess', nome: 'Transporte de Pessoal', grupo: 'Frota e logística', chaves: ['TPESS'] },

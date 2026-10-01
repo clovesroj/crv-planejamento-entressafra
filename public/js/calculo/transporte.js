@@ -54,7 +54,7 @@ function transporte(L, MP){
   function bloco(cod){
     const r = L.find(x=>x.a.cod===cod);
     if(!r) return {cod, ton:0,ciclo:0,capDia:0,tonDia:0,frota:0,frotaR:0,viagens:0,horas:0,
-                   diesel:0,manut:0,mdo:0,total:0,km:0,litros:0,kmL:0,kmLInf:0,lPorT:0};
+                   diesel:0,manut:0,mdo:0,total:0,km:0,litros:0,kmL:0,kmLInf:0,lPorT:0,unCons:"km",lh:0,lhInf:0};
     const par  = parTransp(r.a);
     const raio = par.raioDe(r.a.src);
     const cap  = par.cap;
@@ -62,16 +62,19 @@ function transporte(L, MP){
     const capDia = c>0 ? (par.hDia/c)*cap*(par.disp/100) : 0;
     const picoMes = Math.max(...r.meses.map(num), 0);
     const tonDia = P.dias>0 ? picoMes/P.dias : 0;
-    // combustível da composição: km das viagens (ida carregado e volta vazio),
-    // litros do motor e o km/L que sai deles -- o informado na aba ou, sem ele,
-    // o equivalente do consumo da máquina
+    // combustível da composição: caminhão em km/L (km das viagens ÷ km/L),
+    // transbordo (trator) em L/h (horas × L/h) -- o informado na aba ou, sem
+    // ele, o da máquina
     const km = r.partes.reduce((s,p)=>s+num(p.km),0), litros = num(r.litros);
-    const kmLInf = num((P.kmLTr||{})[cod]);
+    const kmLInf = par.tipo==="transbordo" ? 0 : num((P.kmLTr||{})[cod]);
+    const lhInf  = par.tipo==="transbordo" ? num((P.lhTrb||{})[cod]) : 0;
+    const p0 = r.partes.find(p=>!p.terc) || {};
     return {cod, nome:r.a.nome, tipo:par.tipo, raio, ton:r.total, ciclo:c, capDia, tonDia,
             frota:r.frota, frotaR:r.frotaR, viagens: cap>0?r.total/cap:0,
             horas:r.horas, diesel:r.cDiesel, manut:r.cManut, mdo:r.cMDO,
             total:r.direto, cap, maq:r.a.maq, imp:r.a.imp, km, litros,
-            kmL: litros>0 ? km/litros : 0, kmLInf, lPorT: r.total>0 ? litros/r.total : 0};
+            kmL: litros>0 ? km/litros : 0, kmLInf, lPorT: r.total>0 ? litros/r.total : 0,
+            unCons: par.tipo==="transbordo" ? "h" : "km", lh: num(p0.consumoLh), lhInf};
   }
   const camSafra = bloco("CO02"), camMuda = bloco("PL02");
   const trbSafra = bloco("CO03"), trbMuda = bloco("PL03");

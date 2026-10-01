@@ -1,5 +1,34 @@
 # Histórico de mudanças
 
+## 2.56.0 — 2026-10-01 · Transbordo: consumo do trator em L/h
+
+- Na tabela "Consumo de diesel por composição" da aba Transporte, o
+  **transbordo (trator) passa a ter o consumo em L/h**. O caminhão canavieiro
+  continua em km/L. Litros do transbordo = horas do ciclo (viagens × ciclo ÷
+  disponibilidade) × L/h, com o L/h informado na aba ou, em branco, o L/h da
+  máquina (Trator 4x4 230 CV: 22 L/h na base). O campo vem com o valor em uso
+  ("informado" ou "da máquina"), e apagar volta ao da máquina. O km/L que
+  tenha sido gravado para um transbordo na 2.54.0 deixa de valer.
+- A tabela ganhou a coluna **Horas** (a base do consumo do trator) e mostra a
+  unidade de cada composição (km/L ou L/h).
+- **Integração:** os litros do transbordo entram mês a mês pelo preço do
+  diesel de cada mês, em todos estes lugares:
+  - o volume e o custo da aba Combustível (na tabela por atividade, o
+    transbordo mostra o L/h);
+  - a grande conta Diesel e a conta 200-110;
+  - o custo das etapas de Colheita (CO03) e Plantio (PL03);
+  - o rastro da atividade ("h × L/h (da aba Transporte)").
+- **Servidor:** o L/h dos transbordos (premissa `lhTrb`) é gravado por quem
+  edita a aba Transporte.
+- **Auditoria:** a conferência do transporte passa a ser "litros = km ÷ km/L
+  (caminhão) ou horas × L/h (transbordo)".
+
+**Validação:** sem L/h informado, os totais ficam idênticos aos da 2.55.0 (o
+trator já consumia pelo L/h da máquina). Com o transbordo de colheita a
+18 L/h, os litros saem horas × 18, e o diesel total, a grande conta, a conta
+200-110 e o diesel da etapa Colheita fecham. 63 conferências sem falha; 33
+abas, 506 rastros e 138 relatórios sem erro.
+
 ## 2.55.0 — 2026-10-01 · Transporte: parâmetros separados de caminhões e transbordos
 
 A aba Transporte tinha um só bloco de parâmetros para o caminhão canavieiro e
