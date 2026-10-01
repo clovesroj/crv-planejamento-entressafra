@@ -1232,6 +1232,14 @@
   <details class="bloco" id="bl_comb_consumo">
     <summary><span class="bl-tit">Consumo</span></summary>
     <div class="bloco-corpo">
+      <div class="panel"><h3>Diesel por atividade e mês de execução</h3>
+        <input type="search" class="tbl-busca" data-alvo="#t_comb_ativ" placeholder="Buscar atividade...">
+        <div class="tblwrap"><table id="t_comb_ativ"></table></div>
+        <div class="hint" style="margin-top:9px">Litros de cada atividade nos meses em que ela é executada: horas do
+        mês (volume ÷ rendimento, ou o critério por mês do Dimensionamento) × consumo do conjunto. O consumo é o da
+        coluna <b>Consumo diesel</b> do Cadastro de Atividades e, em branco, o da máquina (tabela de equipamentos,
+        abaixo). No transporte, km das viagens × L/km do veículo. O custo de cada mês usa o preço do diesel daquele
+        mês. A soma fecha com o volume mensal acima, com a grande conta Diesel e com a conta 200-110.</div></div>
       <div class="panel"><h3>Consumo por etapa</h3>
         <div class="tblwrap"><table id="t_comb_etapa"></table></div>
         <div class="hint" style="margin-top:9px">O diesel dos equipamentos de apoio é rateado entre as etapas

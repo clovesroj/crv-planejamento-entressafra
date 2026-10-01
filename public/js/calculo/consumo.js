@@ -43,9 +43,17 @@ function consumoDe(item){
 }
 
 /* Litros de um trabalho de `horas`. `kmViagens` é a distância quando o
-   trabalho a conhece (transporte); sem ela, km = horas × velocidade média. */
-function litrosDe(item, horas, kmViagens){
+   trabalho a conhece (transporte); sem ela, km = horas × velocidade média.
+   `lhAtividade`: o consumo do conjunto informado no Cadastro de Atividades
+   (o mesmo trator puxa uma grade pesada e um distribuidor com consumos bem
+   diferentes) -- vale sobre o da máquina, sempre por hora. */
+function litrosDe(item, horas, kmViagens, lhAtividade){
   const c = consumoDe(item);
+  if(num(lhAtividade)>0){
+    const lh = num(lhAtividade);
+    return {...c, un:"h", lh, litros: horas*lh, daAtividade:true,
+            km: kmViagens!=null ? kmViagens : null, fonteKm: kmViagens!=null ? "viagens" : null};
+  }
   if(c.un==="km"){
     const km = kmViagens!=null ? kmViagens : horas*c.vel;
     return {...c, litros: km*c.lkm, km, fonteKm: kmViagens!=null ? "viagens" : "velocidade"};

@@ -2,7 +2,8 @@ import { CFG } from '../dados/cfg.js';
 import { erpDe } from '../dados/atividades-erp.js';
 import { atividadesLista } from '../nucleo/estado.js';
 import { COD_FITOSSANITARIO, etapaExibir } from '../nucleo/codigo-atividade.js';
-import { $, esc } from '../nucleo/formato.js';
+import { $, esc, fmt, num } from '../nucleo/formato.js';
+import { consumoDe } from '../calculo/consumo.js';
 import { definirPatchItens, marcarRascunhoPendente } from '../io/persistencia.js';
 import { ordenarPorEtapa, th } from './componentes.js';
 
@@ -59,9 +60,27 @@ const unRend = un => String(un||"").split("/")[0] + "/h";
 /* ---------- CADASTRO DE ATIVIDADES ----------
    Espelha o Cadastro de Insumos: lista as atividades do cadastro do sistema
    (fixas, só leitura no código/etapa/unidade) mais as que o usuário criou
-   aqui (tudo editável, inclusive remover). O Dimensionamento ajusta
-   rendimento/utilização por safra sem tocar este valor base — os dois não
-   se sobrepõem, um é o padrão, o outro o ajuste do período. */
+   aqui (tudo editável, inclusive remover). Rendimento, máquina,
+   implemento, consumo, operadores, turnos e utilização daqui são os que o
+   Dimensionamento usa (ver calculo/atividade.js); o mês que foge do
+   rendimento se lança no critério por mês do Dimensionamento. */
+/* Consumo de diesel do conjunto (máquina + implemento) em L/h. Em branco,
+   vale o da máquina (aba Combustível / Manutenção de Frota), que aparece como
+   sugestão; abaixo, o mesmo consumo por unidade de volume (L/ha, L/t). No
+   transporte o diesel sai das viagens (km × L/km do veículo); junto de outra
+   atividade, a máquina e o diesel são os dela. */
+function celConsumo(a, i){
+  if(a.tipo==="transp") return '<span class="calc" title="Diesel pelas viagens: km rodados × L/km do veículo (aba Combustível)">pelas viagens</span>';
+  if(a.junto) return `<span class="calc" title="Mesma passada da ${esc(a.junto)}: o diesel é o dela">na ${esc(a.junto)}</span>`;
+  const daMaq = consumoDe(a.maq||"");
+  const lh = num(a.cons)>0 ? num(a.cons) : (daMaq.un==="h" ? daMaq.lh : 0);
+  const un = String(a.un||"").split("/")[0];
+  const porUn = lh>0 && num(a.rend)>0 ? `${fmt(lh/num(a.rend),1)} L/${esc(un)}` : "";
+  return `<input data-at="${i}" data-f="cons" value="${num(a.cons)>0 ? a.cons : ""}" inputmode="decimal" style="width:70px"
+      placeholder="${daMaq.un==="h" && daMaq.lh>0 ? fmt(daMaq.lh,1) : "—"}"
+      title="Consumo do conjunto em L/h. Em branco vale o da máquina (${daMaq.un==="h" ? fmt(daMaq.lh,1)+" L/h" : "consumo por km"}, aba Combustível).">
+    ${porUn ? `<div class="calc" style="font-size:10px" title="consumo ÷ rendimento">${porUn}${num(a.cons)>0 ? "" : " · da máquina"}</div>` : ""}`;
+}
 function pintarAtividadesCad(){
   const acoes = $("#ativ_acoes");
   if(acoes) acoes.innerHTML = `<div class="rasc-acoes">
@@ -91,6 +110,7 @@ function pintarAtividadesCad(){
           title="Rendimento em ${esc(unRend(a.un))}${a.tipo==="transp"?" — no transporte, calculado pelas viagens":""}"></td>
       <td><input data-at="${i}" data-f="maq" value="${esc(a.maq||"")}" style="text-align:left;min-width:150px"></td>
       <td><input data-at="${i}" data-f="imp" value="${esc(a.imp||"")}" style="text-align:left;min-width:150px"></td>
+      <td class="num">${celConsumo(a, i)}</td>
       <td class="num"><input data-at="${i}" data-f="ops" value="${a.ops??1}" inputmode="decimal" style="width:55px"></td>
       <td class="num"><input data-at="${i}" data-f="turnos" value="${a.turnos??1}" inputmode="decimal" style="width:55px"></td>
       <td class="num"><input data-atu="${i}" value="${Math.round((a.util??0.8)*100)}" inputmode="decimal" style="width:55px" title="Utilização em %"></td>
@@ -107,7 +127,7 @@ function pintarAtividadesCad(){
   }).join("");
 
   $("#t_ativ").innerHTML = th([["Código"],["Etapa"],["Nome"],["Unidade"],["Rendimento (por hora)",1],
-    ["Máquina"],["Implemento"],["Operadores",1],["Turnos",1],["Utilização %",1],["Ativo",1],
+    ["Máquina"],["Implemento"],["Consumo diesel (L/h)",1],["Operadores",1],["Turnos",1],["Utilização %",1],["Ativo",1],
     ["Atividade no ERP"],["Origem"],[""]]) +
     "<tbody>" + linhas + "</tbody>";
 }

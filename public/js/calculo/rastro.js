@@ -489,7 +489,8 @@ function apresentacao(r, un){
     const q = num(r.meses[i]);
     if(!(q > 0)) return;
     const fr = total > 0 ? q/total : 0;
-    const h  = r.rend > 0 ? q/r.rend : 0;
+    // horas do mês do motor (critério por mês incluído); sem elas, volume ÷ rendimento
+    const h  = r.horasMes ? num(r.horasMes[i]) : (r.rend > 0 ? q/r.rend : 0);
     const c  = naoDiesel*fr + (r.dieselMes[i] || 0);
     const l  = r.litrosMes[i] || 0;
     acum.q += q; acum.h += h; acum.c += c; acum.l += l;
@@ -689,10 +690,10 @@ function rastroAtividade(R, cod){
          val:brl(p.cDiesel+p.cManut+p.cMDO),
          sub:`${fmt(p.horas)} h · ${p.consumoUn==="km"
              ? fmt(p.km)+" km"+(p.fonteKm==="viagens"?" (viagens)":" (horas × velocidade)")+" × "+fmt(p.consumoLkm,3)+" L/km"
-             : fmt(p.consumoLh,1)+" L/h"} = ${fmt(p.litros)} L · diesel ${brl(p.cDiesel)} · MDO ${brl(p.cMDO)} · CRM ${brl(p.cManut)}`})},
+             : fmt(p.consumoLh,1)+" L/h"+(p.consAtividade?" (do Cadastro de Atividades)":" (da máquina)")} = ${fmt(p.litros)} L · diesel ${brl(p.cDiesel)} · MDO ${brl(p.cMDO)} · CRM ${brl(p.cManut)}`})},
     {titulo:"Preços e custos aplicados", linhas:[
       {rot:"Diesel", val:brl(r.cDiesel),
-       sub:`${fmt(r.litros)} L · preço médio ${r.litros>0?brl(r.cDiesel/r.litros,2):brl(P.diesel,2)}/L, ponderado pelos meses`},
+       sub:`${fmt(r.litros)} L · cada mês pelo preço do diesel do mês (médio ${r.litros>0?brl(r.cDiesel/r.litros,2):brl(P.diesel,2)}/L)`},
       {rot:"Mão de obra", val:brl(r.cMDO),
        sub:`${r.fcod} · ${r.fnome} · ${fmt(r.efetivo)} pessoas × ${fmt((r.mdoMes||[]).filter(x=>x>0).length)} meses com volume × ${
          brl((R.MP.custoFuncao[r.fcod]||{}).mensal||0)}/mês (salário, encargos e benefícios)`},

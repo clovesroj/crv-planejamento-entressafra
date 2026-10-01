@@ -1,5 +1,53 @@
 # Histórico de mudanças
 
+## 2.52.0 — 2026-10-01 · Consumo de diesel por atividade e por mês de execução
+
+- **Cadastro de Atividades, coluna "Consumo diesel (L/h)":** é o consumo do
+  conjunto (máquina + implemento). O mesmo trator puxando uma grade pesada ou
+  um distribuidor consome valores bem diferentes. Em branco, vale o consumo da
+  máquina (aba Combustível / Manutenção de Frota), que aparece como sugestão.
+  Abaixo do campo aparece o consumo por unidade (L/ha, L/t = consumo ÷
+  rendimento). No transporte o diesel continua saindo das viagens (km × L/km
+  do veículo). Na atividade "junto" de outra, o diesel é o da outra.
+- **Diesel calculado por atividade e por mês de execução:**
+  - horas de cada mês = volume do mês ÷ rendimento, ou o critério por mês do
+    Dimensionamento;
+  - litros de cada mês = horas do mês × consumo;
+  - custo de cada mês = litros do mês × preço do diesel daquele mês.
+  - Antes, os litros iam aos meses pela fração do volume, mesmo quando o
+    rendimento do mês era outro, e o custo era litros × um preço médio. Com
+    preço e rendimento iguais em todos os meses, os números não mudam.
+- **Correção:** com mix de modos e critério por mês ao mesmo tempo, cada
+  frente própria contava as horas do volume inteiro do mês, e não só a sua
+  parte. As horas e o diesel saíam multiplicados.
+- **Aba Combustível, nova tabela "Diesel por atividade e mês de execução":**
+  - cada atividade com máquina, consumo (do cadastro ou da máquina), litros
+    por unidade e litros de cada mês, mais o total e o custo do período;
+  - a linha dos equipamentos de apoio;
+  - o total, que é o "Volume de diesel necessário".
+  - A tabela de equipamentos marca a máquina usada por alguma atividade com
+    consumo próprio.
+- **Relatórios:** a mesma tabela como seção "Diesel por atividade e mês de
+  execução", recortada pelo período, nos orçamentos de Colheita, Logística e
+  Frota e no anual detalhado.
+- **Rastro da atividade:** o consumo diz se vem do Cadastro de Atividades ou da
+  máquina. As horas do mês, no detalhamento mês a mês, são as do motor
+  (critério por mês incluído).
+- **Integração conferida:** o diesel das atividades e do apoio fecha com a
+  grande conta Diesel mês a mês, com a conta 200-110, com o custo das etapas e
+  com o custo operacional. A auditoria ganhou cinco conferências:
+  - grande conta Diesel = diesel;
+  - conta 200-110 = diesel;
+  - custo do mês = litros do mês × preço do mês;
+  - soma das horas do mês = horas;
+  - litros = horas × L/h.
+
+**Validação:** 60 conferências sem falha, no cenário padrão e no do mix.
+Também conferido com o preço variando por mês e o rendimento de janeiro pela
+metade: horas, litros e custo de cada mês batem com a conta à mão. 33 abas,
+505 rastros e 138 relatórios sem erro. Plano sem consumo próprio, sem
+critério por mês e com preço único: nenhum número muda.
+
 ## 2.51.0 — 2026-10-01 · O Cadastro de Atividades manda no dimensionamento
 
 **O erro:** no Dimensionamento, as gradagens e a subsolagem (PS02 a PS07)

@@ -790,6 +790,23 @@ const combustivel = R => {
   .concat([["TOTAL","","","", fmt(lit), lit>0?brl(cus/lit,2):"—", brl(cus)]]));
 };
 
+/* Diesel por atividade e mês de execução: os litros de cada mês do período
+   (horas do mês × consumo do conjunto), o total e o custo pelo preço de cada
+   mês -- a mesma tabela da aba Combustível. */
+const combustivelAtividade = R => {
+  const ativs = R.L.filter(r=>noPer(r.litrosMes)>0.5);
+  const cons = r => r.a.tipo==="transp" ? "por km" : r.consumoLh>0 ? fmt(r.consumoLh,1)+" L/h" : "—";
+  const apoioL = noPer(R.CB.litrosApoioMes);
+  return secP("Combustível","Diesel por atividade e mês de execução",
+  ["Cód","Atividade","Máquina","Consumo",...REC.meses.map(i=>MESES[i]),"Litros","Custo diesel"],
+  ativs.map(r=>[r.a.cod, r.a.nome, r.maqEfetiva||r.a.maq||"—", cons(r),
+    ...REC.meses.map(i=>r.litrosMes[i]>0.5?fmt(r.litrosMes[i]):"—"), fmt(noPer(r.litrosMes)), brl(noPer(r.dieselMes))])
+  .concat(apoioL>0.5 ? [["","Equipamentos de apoio","aba Apoio","",
+    ...REC.meses.map(i=>R.CB.litrosApoioMes[i]>0.5?fmt(R.CB.litrosApoioMes[i]):"—"), fmt(apoioL), brl(noPer(R.CB.custoApoioMes))]] : [])
+  .concat([["TOTAL","","","", ...REC.meses.map(i=>fmt(R.CB.litrosOperMes[i]+R.CB.litrosApoioMes[i])),
+    fmt(noPer(R.CB.litrosOperMes)+apoioL), brl(noPer(R.CB.custoOperMes)+noPer(R.CB.custoApoioMes))]]));
+};
+
 // estrutura de um período do apoio: "6 × 180 h/mês" ou "—" quando não trabalha
 const estrApoio = x => x.qtd>0 ? fmt(x.qtd)+" × "+fmt(x.hmes)+" h/mês" : "—";
 const apoio = R => sec("Apoio","Equipamentos de apoio",
@@ -859,7 +876,7 @@ const SECOES = {
   tratamentos, tratamentosPlantio, tratamentosTratos,
   arrendamentos, fornecedores, administracao, custoEtapa, natureza, mensal, periodos,
   contas, fluxo, cenarios, validacao, porFazenda, porCentroCusto, porAtividade,
-  indicadores, logistica, planoOperacional, dimensionamento, combustivel, apoio, irrigacao,
+  indicadores, logistica, planoOperacional, dimensionamento, combustivel, combustivelAtividade, apoio, irrigacao,
   fitoBroca, fitoCigarrinha, fitoResumo, fitoTerc,
 };
 
@@ -982,9 +999,9 @@ const RELATORIOS = [
   {id:"plantio", nome:"Orçamento de Plantio",         secoes:["plantio","preparo","insumosPlantio","tratamentosPlantio","dimensionamento"]},
   {id:"tratos",  nome:"Orçamento de Tratos",          secoes:["tratos","insumosTratos","tratamentosTratos","irrigacao","dimensionamento"]},
   {id:"fito",    nome:"Manejo Fitossanitário",        secoes:["fitoBroca","fitoCigarrinha","fitoResumo","fitoTerc"]},
-  {id:"colheita",nome:"Orçamento de Colheita",        secoes:["colheita","transporte","combustivel","dimensionamento"]},
-  {id:"log",     nome:"Orçamento de Logística",       secoes:["logistica","transporte","combustivel"]},
-  {id:"frota",   nome:"Orçamento de Frota",           secoes:["frota","frotaBase","manutencao","apoio","combustivel"]},
+  {id:"colheita",nome:"Orçamento de Colheita",        secoes:["colheita","transporte","combustivel","combustivelAtividade","dimensionamento"]},
+  {id:"log",     nome:"Orçamento de Logística",       secoes:["logistica","transporte","combustivel","combustivelAtividade"]},
+  {id:"frota",   nome:"Orçamento de Frota",           secoes:["frota","frotaBase","manutencao","apoio","combustivel","combustivelAtividade"]},
   {id:"mdo",     nome:"Orçamento de Mão de Obra",     secoes:["maoDeObra","pessoasDept","quadroAdmOficinaMes","quadroAdmOficina","pessoasAtividade","fluxoMdo"]},
   {id:"pessoas", nome:"Necessidade de Pessoas",        secoes:["pessoasAtividade","pessoasDept","maoDeObra","fluxoMdo","dimensionamento"]},
   {id:"arrend",  nome:"Orçamento de Arrendamentos",   secoes:["arrendamentos","porFazenda"]},
@@ -1000,7 +1017,7 @@ const RELATORIOS = [
 
 /* Seções extras que só saem no nível detalhado do relatório anual. */
 const DETALHE = ["custoOperacional","custoContabil","planoOperacional","dimensionamento","porAtividade","porCentroCusto","porFazenda",
-  "mensal","periodos","natureza","combustivel","apoio","irrigacao","pessoasDept","pessoasAtividade","fluxoMdo",
+  "mensal","periodos","natureza","combustivel","combustivelAtividade","apoio","irrigacao","pessoasDept","pessoasAtividade","fluxoMdo",
   "logistica","indicadores","frotaBase","modelos","preparo","apoioEtapa","tratamentos"];
 
 function montarSecoes(R, relId, nivel, periodo){
