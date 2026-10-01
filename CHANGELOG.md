@@ -1,5 +1,38 @@
 # Histórico de mudanças
 
+## 2.53.0 — 2026-10-01 · Consumo de diesel editável em cada equipamento de apoio
+
+- **Aba Apoio, coluna "Consumo":** cada equipamento tem o seu consumo, em
+  **L/h** (máquina: pá carregadeira, motoniveladora, escavadeira) ou em
+  **km/L** (veículo: caminhão, veículo leve). A unidade se escolhe na própria
+  célula. O campo vem com o número em uso, e abaixo dele aparece a origem:
+  "da máquina" (o consumo da máquina base) ou "do equipamento" (o digitado
+  ali). Apagar volta ao da máquina. O consumo vale nos dois períodos (safra e
+  entressafra).
+- **Conta em km/L:** km = horas × velocidade média (a da máquina ou a média do
+  transporte, mostrada na célula) e litros = km ÷ km/L. Ao trocar de L/h
+  para km/L, o campo começa no equivalente do consumo da máquina, e os litros
+  só mudam quando se digita o km/L real.
+- **Integração:** os litros de cada equipamento entram mês a mês, nos meses
+  em que ele trabalha, com o custo pelo preço do diesel de cada mês, em todos
+  estes lugares:
+  - o volume e o custo de diesel da aba Combustível (linha "equipamentos de
+    apoio" e total);
+  - a grande conta Diesel e a conta 200-110;
+  - o custo do apoio;
+  - o rateio do diesel do apoio entre as etapas (pelos litros das atividades).
+- O relatório do Apoio traz a coluna Consumo. Na tabela de equipamentos da
+  aba Combustível, a máquina usada com consumo próprio fica marcada.
+- **Auditoria:** duas conferências novas:
+  - litros do apoio = horas × L/h ou km × L/km;
+  - custo do mês = litros do mês × preço do mês.
+  São 62 conferências.
+
+**Validação:** caminhão bombeiro a 22 L/h (era o da máquina, 18) e veículo
+leve a 9 km/L: litros, diesel total, grande conta e conta 200-110 batem com a
+conta à mão. 62 conferências sem falha; 33 abas, 505 rastros e 138 relatórios
+sem erro. Equipamento sem consumo próprio: nenhum número muda.
+
 ## 2.52.1 — 2026-10-01 · Consumo de diesel editável à vista no Cadastro de Atividades
 
 - O campo "Consumo diesel (L/h)" mostrava o consumo da máquina como sugestão

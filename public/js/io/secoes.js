@@ -810,11 +810,12 @@ const combustivelAtividade = R => {
 // estrutura de um período do apoio: "6 × 180 h/mês" ou "—" quando não trabalha
 const estrApoio = x => x.qtd>0 ? fmt(x.qtd)+" × "+fmt(x.hmes)+" h/mês" : "—";
 const apoio = R => sec("Apoio","Equipamentos de apoio",
-  ["Equipamento","Máquina","Safra (qtd × h/mês)","Entressafra (qtd × h/mês)","Meses","Horas totais","Litros","Diesel","MDO","Total"],
+  ["Equipamento","Máquina","Safra (qtd × h/mês)","Entressafra (qtd × h/mês)","Meses","Consumo","Horas totais","Litros","Diesel","MDO","Total"],
   R.AE.linhas.map(l=>{ const E = estruturaApoio(l);
-    return [l.nome, l.maq, estrApoio(E.s), estrApoio(E.e), l.nMeses, fmt(l.horas), fmt(l.litros),
+    const cons = l.consumoUn==="km" ? fmt(l.consumoKmL,2)+" km/L" : fmt(l.consumoLh,1)+" L/h";
+    return [l.nome, l.maq, estrApoio(E.s), estrApoio(E.e), l.nMeses, cons+(l.consProprio?"":" (máquina)"), fmt(l.horas), fmt(l.litros),
       brl(l.diesel), brl(l.mdo), brl(l.total)]; })
-  .concat([["TOTAL","","","","", fmt(R.AE.horas), fmt(R.AE.litros), brl(R.AE.diesel), brl(R.AE.mdo),
+  .concat([["TOTAL","","","","","", fmt(R.AE.horas), fmt(R.AE.litros), brl(R.AE.diesel), brl(R.AE.mdo),
     brl(R.AE.total)]]));
 
 const irrigacao = R => sec("Irrigação","Irrigação e fertirrigação",

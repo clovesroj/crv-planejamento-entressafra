@@ -97,7 +97,7 @@ function pintarCombustivel(R){
   R.L.forEach(r=>r.partes.forEach(p=>{ if(!p.terc && (p.litros>0 || p.horas>0))
     addM(p.maq, p.maq, p.horas, p.frotaR, p.litros, p.cDiesel, p.km, p.fonteKm, p.consAtividade); }));
   R.AE.linhas.forEach(l=>{ if(l.litros>0 || l.horas>0)
-    addM(l.maq+" (apoio)", l.maq, l.horas, num(l.qtd), l.litros, l.diesel, l.km, l.fonteKm); });
+    addM(l.maq+" (apoio)", l.maq, l.horas, num(l.qtd), l.litros, l.diesel, l.km, l.fonteKm, l.consProprio); });
   const lm = Object.entries(mq).sort((a,b)=>b[1].litros-a[1].litros);
   const nKm = lm.filter(([,o])=>consumoDe(o.maq).un==="km").length;
   $("#t_comb_maq").innerHTML = th([["Equipamento"],["Unidade"],["Consumo",1],["Velocidade média",1],
@@ -111,7 +111,7 @@ function pintarCombustivel(R){
         : `<input data-cmaq="${m}" data-ck="vel" value="${+c.vel.toFixed(1)}" inputmode="decimal" style="width:70px"
              title="${c.velPadrao?"Padrão: média das velocidades carregado e vazio da aba Transporte":"Informada"}"
              class="${c.velPadrao?"padrao":""}"> km/h`;
-      return `<tr><td>${n}${o.daAtiv ? ` <span class="badge b-warn" title="${o.daAtiv} atividade(s) com consumo próprio no Cadastro de Atividades: os litros dela(s) usam aquele L/h, não este">consumo da atividade</span>` : ""}</td>
+      return `<tr><td>${n}${o.daAtiv ? ` <span class="badge b-warn" title="${o.daAtiv} uso(s) com consumo próprio (Cadastro de Atividades ou aba Apoio): os litros desse(s) uso(s) seguem o consumo informado lá, não o desta linha">consumo próprio</span>` : ""}</td>
       <td><select data-cmaq="${m}" data-ck="unC" style="min-width:74px">
         <option value="h" ${emKm?"":"selected"}>L/h</option><option value="km" ${emKm?"selected":""}>L/km</option></select></td>
       <td class="num">${emKm
