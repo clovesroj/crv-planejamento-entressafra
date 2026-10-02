@@ -20,6 +20,7 @@ import './io/persistencia.js';   // listeners de visibilitychange / pagehide / b
 import './ui/navegacao.js';      // menu lateral, abas, botao de tema
 import './ui/interacao.js';      // glow interativo dos cards (kpi/hero)
 import './ui/usuarios.js';       // aba Usuarios (so-admin) e seu proprio listener
+import './ui/materiais-cad.js';  // aba Cadastro de Materiais (busca no servidor, fora do render())
 import './ui/permissoes.js';     // trava de edicao por perfil (barreira em fase de captura)
 import './app/eventos.js';       // delegacao de input / change / click
 import './app/acoes.js';         // botoes de acao (restaurar, exportar, tema)

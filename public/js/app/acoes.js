@@ -23,7 +23,9 @@ $("#btn_theme").onclick=()=>{ const c=document.documentElement.getAttribute("dat
 $("#btn_esp").onclick=()=>{ ESPOR.push({mes:MESES[0],desc:"",cc:CFG.cc_list[0],valor:0,status:"Provisão"});
   salvar(); render(); };
 $("#btn_adm_add").onclick=()=>{
-  admLista().push({grupo:Object.keys(ADM_GRUPOS)[0], desc:"Nova linha", valor:0, crit:"direto", cc:""});
+  // descricao em branco: o campo e tambem a busca de material (por nome), e um
+  // texto pre-preenchido teria de ser apagado antes de buscar
+  admLista().push({grupo:Object.keys(ADM_GRUPOS)[0], desc:"", valor:0, crit:"direto", cc:""});
   salvar(); render();
 };
 $("#btn_forn_add").onclick=()=>{ fornLista().push({...FORN_LINHA}); salvar(); render(); };

@@ -95,6 +95,12 @@ const AREAS = [
   { id: 'adm', nome: 'Custos Administrativos', grupo: 'Custos', chaves: ['ADM', 'ADM_RAT'] },
   { id: 'custos', nome: 'Custos', grupo: 'Custos', chaves: ['ESPOR'] },
   { id: 'contas', nome: 'Plano de Contas', grupo: 'Custos', chaves: ['TERC_TAR', 'TERC_SUB'] },
+
+  // Cadastro de Materiais (catálogo do ERP, Configurações): não grava nada no
+  // plano — o catálogo tem tabela própria (server/materiais.js, rotas
+  // /api/materiais), então não há chave aqui. A área existe para o perfil poder
+  // liberar ou não a IMPORTAÇÃO; consultar é livre para quem está logado.
+  { id: 'cadmat', nome: 'Cadastro de Materiais', grupo: 'Configurações', chaves: [] },
 ];
 
 const IDS_AREA = new Set(AREAS.map(a => a.id));

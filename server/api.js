@@ -11,6 +11,10 @@
  *   GET|POST|PATCH|DELETE /api/usuarios   (admin)
  *   GET|POST|PATCH|DELETE /api/perfis     (admin) — o que cada perfil pode editar
  *   GET    /api/agrofit/produtos-formulados   candidatos na Embrapa para linkar a bula de um insumo
+ *   GET    /api/materiais?q=&limite=   busca no Cadastro de Materiais (código ou descrição)
+ *   GET    /api/materiais/resumo       quantos materiais e quando entrou o último lote
+ *   GET    /api/materiais/codigos      códigos já cadastrados (importador; exige a área cadmat)
+ *   POST   /api/materiais/importar     { itens } entram só os códigos novos (exige a área cadmat)
  *
  * Tudo que toca o plano exige sessao (server/auth.js). Gravar exige, alem
  * disso, permissao de edicao na aba de cada dado (server/permissoes.js).
@@ -23,6 +27,7 @@ const perms = require('./permissoes');
 const itens = require('./mesclaItens');
 const atividadesCod = require('./atividades-cod');
 const agrofit = require('./agrofit');
+const materiais = require('./materiais');
 
 const usuarioPublico = u => u && { id: u.id, login: u.login, nome: u.nome, papel: u.papel,
   ativo: u.ativo, criado_em: u.criado_em, ultimo_acesso: u.ultimo_acesso };
@@ -248,6 +253,46 @@ async function api(req, res, rota) {
     // Busca do banco de dados (rápido e não usa memória do servidor)
     const dados = await store.lerGastoReformaBi({ inicio, fim, empresas, frotas });
     return json(res, 200, dados);
+  }
+
+  // Cadastro de Materiais — catálogo do ERP, 120 mil+ itens, em tabela própria
+  // (server/materiais.js). Consultar é livre para quem está logado; importar
+  // exige a área "Cadastro de Materiais" no perfil.
+  if (rota.startsWith('/api/materiais')) {
+    const sessao = await auth.exigirSessao(req, store);
+    const url = new URL(req.url, 'http://x');
+    const exigirEdicao = async () => {
+      const perm = await perms.permissoesDe(sessao, store);
+      if (!perm.tudo && !perm.editaveis.includes('cadmat')) throw erroHTTP(403, 'seu perfil não edita o Cadastro de Materiais');
+    };
+
+    if (rota === '/api/materiais' && req.method === 'GET') {
+      const r = await store.materiaisBuscar({
+        termos: materiais.termosDeBusca(url.searchParams.get('q')),
+        limite: materiais.limiteDeBusca(url.searchParams.get('limite')),
+      });
+      return json(res, 200, r);
+    }
+    if (rota === '/api/materiais/resumo' && req.method === 'GET') {
+      return json(res, 200, await store.materiaisResumo());
+    }
+    // os códigos que já existem: o importador manda só o que falta
+    if (rota === '/api/materiais/codigos' && req.method === 'GET') {
+      await exigirEdicao();
+      return json(res, 200, { codigos: await store.materiaisCodigos() });
+    }
+    if (rota === '/api/materiais/importar' && req.method === 'POST') {
+      await exigirEdicao();
+      const corpo = await lerCorpo(req);
+      if (!Array.isArray(corpo.itens)) throw erroHTTP(400, 'esperado { itens: [...] }');
+      if (corpo.itens.length > materiais.LIMITE_LOTE) {
+        throw erroHTTP(400, `no máximo ${materiais.LIMITE_LOTE} materiais por envio`);
+      }
+      const lote = materiais.normalizarLote(corpo.itens);
+      const novos = lote.length ? await store.materiaisInserirNovos(lote) : 0;
+      return json(res, 200, { recebidos: corpo.itens.length, validos: lote.length, novos, existentes: lote.length - novos });
+    }
+    throw erroHTTP(404, 'rota de materiais inexistente');
   }
 
   if (rota !== '/api/plano') throw erroHTTP(404, 'rota inexistente');

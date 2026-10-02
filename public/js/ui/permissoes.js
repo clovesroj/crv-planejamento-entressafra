@@ -30,6 +30,8 @@ const VISUAIS = [
   '[data-abrefrota]', '[data-fitoabre]', '[data-planoabre]', '[data-infx]', '[data-rendmes]', '#rm_fechar', '[data-tercdet]', '#td_fechar',
   '#sel_fun', '#busca_fun', '#sel_cat', '#sel_orig', '#sel_dest', '#sel_trat', '#busca_trat', '#sel_acomp_mes',
   '#sel_crit_ger', '#sel_crit_cabe', '.tbl-busca',
+  // Cadastro de Materiais: buscar é livre; importar (arquivo e botão) segue travado para quem não edita a aba
+  '#cm_busca',
   '#ref_busca', '#sel_ref_ag', '#sel_ref_fam', '#ref_frota', '#sel_ref_prop',
   '#gr_inicio', '#gr_fim', '#sel_gr_empresa', '#sel_gr_esp', '#sel_gr_ag', '#sel_gr_comp', '#gr_frota', '#sel_gr_prop', '#sel_gr_reforma',
   '#gr_f_mes', '#gr_f_empresa', '#gr_f_modelo', '#gr_limpar',

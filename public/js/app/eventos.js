@@ -6,6 +6,7 @@ import { chaveProd, codigoTratValido, composicao, criarGrupoInsumo, criarTrat, d
   renomearGrupoInsumo, renomearTrat, setClasseGrupo, todasFamilias, tratCodigos, usosTrat } from '../calculo/insumos.js';
 import { codigoAtividadeValido, criarAtividade, removerAtividade } from '../calculo/atividade.js';
 import { mesesDaLinha } from '../calculo/administrativo.js';
+import { ligarBuscaMaterial } from '../ui/material-busca.js';
 import { CFG } from '../dados/cfg.js';
 import { ATIVIDADES_ERP } from '../dados/atividades-erp.js';
 import { buscarAgrofit, bulaDoProduto } from '../io/agrofit.js';
@@ -37,6 +38,16 @@ import { USUARIO, areasDePermissao, podeEditar } from '../nucleo/sessao.js';
    descartada na gravacao (server/permissoes.js) — melhor avisar na hora.
    O vinculo mora em PLANO, que tem duas abas donas (Plano Operacional e
    Irrigacao): quem edita qualquer uma delas grava o vinculo, e nao e avisado. */
+// Custos Administrativos: material escolhido na busca (ui/material-busca.js) vira
+// codigo, descricao, grupo e unidade da linha -- um retrato do catalogo, para o
+// plano nao depender dele depois
+ligarBuscaMaterial((linha, m)=>{
+  const l = admLista()[linha];
+  if(!l) return;
+  l.cod = m.codigo; l.desc = m.descricao; l.matGrupo = m.grupo || ""; l.matUn = m.un || "";
+  salvar(); render();
+});
+
 function avisoPlano(usos, acao){
   if(!USUARIO || podeEditar("plano")) return;
   if(areasDePermissao().some(a=>(a.chaves||[]).includes("PLANO") && podeEditar(a.id))) return;
@@ -815,8 +826,14 @@ document.addEventListener("click",e=>{
     if(chip){ setCONTAS_GRUPO(chip.dataset.ccgrupo); render(); return; } }
   if(t.dataset.moarm!==undefined){ MO_APOIO.splice(+t.dataset.moarm,1); salvar(); render(); return; }
   if(t.dataset.admrm!==undefined){ const l=admLista()[+t.dataset.admrm];
-    if(!confirm(`Remover "${l.desc}" dos custos administrativos?`)) return;
+    if(!confirm(`Remover "${l.desc||l.cod||"esta linha"}" dos custos administrativos?`)) return;
     admLista().splice(+t.dataset.admrm,1); salvar(); render(); return; }
+  // desvincula o material da linha de custo administrativo: o codigo some e a
+  // descricao (que veio do material) fica como texto livre, editavel
+  { const lim = e.target.closest && e.target.closest("[data-matlimpar]");
+    if(lim){ const l=admLista()[+lim.dataset.matlimpar];
+      if(l){ delete l.cod; delete l.matGrupo; delete l.matUn; salvar(); render(); }
+      return; } }
   // abre/fecha o seletor de meses da linha (gasto esporádico) -- so visao,
   // nao precisa salvar
   { const btn = e.target.closest && e.target.closest("[data-admmeses]");

@@ -14,6 +14,25 @@ const { DOC_ID } = require('../config');
 
 const DDL = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
 
+// Cadastro de Materiais (catálogo do ERP, 120 mil+ itens). Fica FORA do
+// schema.sql de propósito: o schema roda inteiro a cada partida do serviço, e um
+// erro nele derrubaria o plano todo. Este DDL só roda quando alguém usa o
+// cadastro, e uma falha aqui fica restrita às rotas /api/materiais.
+const DDL_MATERIAIS = `
+CREATE TABLE IF NOT EXISTS materiais (
+  codigo        text PRIMARY KEY,
+  descricao     text NOT NULL DEFAULT '',
+  compl1        text NOT NULL DEFAULT '',
+  compl2        text NOT NULL DEFAULT '',
+  grupo         text NOT NULL DEFAULT '',
+  un            text NOT NULL DEFAULT '',
+  saldo         numeric NOT NULL DEFAULT 0,
+  tipo          text NOT NULL DEFAULT '',
+  utiliza_custo text NOT NULL DEFAULT '',
+  nbm           text NOT NULL DEFAULT '',
+  importado_em  timestamptz NOT NULL DEFAULT now()
+)`;
+
 function storePostgres(url) {
   const { Pool } = require('pg');
   const host = new URL(url).hostname;
@@ -47,6 +66,13 @@ function storePostgres(url) {
     return pronto;
   }
 
+  let materiaisPronto = null;
+  function garantirMateriais() {
+    if (!materiaisPronto) {
+      materiaisPronto = pool.query(DDL_MATERIAIS).catch(err => { materiaisPronto = null; throw err; });
+    }
+    return materiaisPronto;
+  }
   const linha = r => (r.rowCount ? { data: r.rows[0].data, updated_at: r.rows[0].updated_at } : null);
 
   return {
@@ -301,6 +327,70 @@ function storePostgres(url) {
         ? [{ inicio: datas[0], fim: datas.at(-1), especialidade: null }] : [];
       return { porFrota, periodos, geradoEm: new Date().toISOString(),
                empresas: empresas.length ? empresas : 'todas', truncado: false };
+    },
+
+    // ---------- Cadastro de Materiais (catálogo do ERP) ----------
+    async materiaisResumo() {
+      await garantirMateriais();
+      const r = await pool.query('SELECT count(*)::int AS total, max(importado_em) AS ultima FROM materiais');
+      return { total: r.rows[0].total, ultima: r.rows[0].ultima ? new Date(r.rows[0].ultima).toISOString() : null };
+    },
+    async materiaisCodigos() {
+      await garantirMateriais();
+      return (await pool.query('SELECT codigo FROM materiais')).rows.map(x => x.codigo);
+    },
+    // Busca por código ou descrição: cada palavra (já em minúsculas, ver
+    // termosDeBusca) tem de aparecer em algum deles. strpos() e não LIKE: o
+    // termo é texto puro — "50%" ou "a_b" não viram curinga, e não há o que escapar.
+    // Quem tem o código igual ao primeiro termo vem antes, depois o que começa por ele.
+    async materiaisBuscar({ termos = [], limite = 30 } = {}) {
+      await garantirMateriais();
+      const params = [];
+      const conds = termos.map(t => {
+        params.push(t);
+        const n = params.length;
+        return `(strpos(lower(codigo), $${n}) > 0 OR strpos(lower(descricao), $${n}) > 0 OR strpos(lower(compl1), $${n}) > 0)`;
+      });
+      const where = conds.length ? 'WHERE ' + conds.join(' AND ') : '';
+      const total = (await pool.query(`SELECT count(*)::int AS n FROM materiais ${where}`, params)).rows[0].n;
+      const pOrd = params.slice();
+      let ordem = 'descricao, codigo';
+      if (termos.length) {
+        pOrd.push(termos[0]); const iT = pOrd.length;
+        ordem = `CASE WHEN lower(codigo) = $${iT} THEN 0 WHEN strpos(lower(codigo), $${iT}) = 1 THEN 1 ELSE 2 END, descricao, codigo`;
+      }
+      pOrd.push(limite);
+      const r = await pool.query(
+        `SELECT codigo, descricao, compl1, compl2, grupo, un, saldo::float AS saldo, tipo, utiliza_custo, nbm
+           FROM materiais ${where} ORDER BY ${ordem} LIMIT $${pOrd.length}`, pOrd);
+      return { total, itens: r.rows };
+    },
+    // Só entra o código que ainda não existe: o cadastrado fica como está.
+    // Primeiro pergunta quais códigos do lote já existem e insere o resto — assim a
+    // contagem de novos é exata sem depender do que o driver devolve para o
+    // ON CONFLICT. O ON CONFLICT DO NOTHING continua como rede de proteção para
+    // duas importações simultâneas (o código nunca duplica; só a contagem pode
+    // sobrar por um instante).
+    async materiaisInserirNovos(lista) {
+      await garantirMateriais();
+      if (!lista.length) return 0;
+      const existentes = new Set();
+      for (let i = 0; i < lista.length; i += 5000) {   // 5 mil parâmetros por consulta
+        const cods = lista.slice(i, i + 5000).map(m => m.codigo);
+        const r = await pool.query(`SELECT codigo FROM materiais WHERE codigo IN (${cods.map((_, j) => '$' + (j + 1)).join(',')})`, cods);
+        r.rows.forEach(x => existentes.add(x.codigo));
+      }
+      const novos = lista.filter(m => !existentes.has(m.codigo));
+      const COLS = 10, LOTE = 1000;   // 10 mil parâmetros por comando, longe do teto de 65 mil do pg
+      for (let i = 0; i < novos.length; i += LOTE) {
+        const lote = novos.slice(i, i + LOTE);
+        const vals = lote.map((_, j) => '(' + Array.from({ length: COLS }, (__, k) => '$' + (j * COLS + k + 1)).join(',') + ')').join(',');
+        await pool.query(
+          `INSERT INTO materiais (codigo, descricao, compl1, compl2, grupo, un, saldo, tipo, utiliza_custo, nbm)
+           VALUES ${vals} ON CONFLICT (codigo) DO NOTHING`,
+          lote.flatMap(m => [m.codigo, m.descricao, m.compl1, m.compl2, m.grupo, m.un, m.saldo, m.tipo, m.utiliza_custo, m.nbm]));
+      }
+      return novos.length;
     },
   };
 }

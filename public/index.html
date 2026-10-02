@@ -91,6 +91,7 @@
       <div class="gl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2.1 2.1 0 1 1-2.97 2.97l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V20a2.1 2.1 0 0 1-4.2 0v-.09a1.7 1.7 0 0 0-1.11-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2.1 2.1 0 1 1-2.97-2.97l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H4a2.1 2.1 0 0 1 0-4.2h.09a1.7 1.7 0 0 0 1.55-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2.1 2.1 0 1 1 2.97-2.97l.06.06a1.7 1.7 0 0 0 1.87.34H10a1.7 1.7 0 0 0 1-1.55V4a2.1 2.1 0 0 1 4.2 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2.1 2.1 0 1 1 2.97 2.97l-.06.06a1.7 1.7 0 0 0-.34 1.87V10a1.7 1.7 0 0 0 1.55 1H20a2.1 2.1 0 0 1 0 4.2h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg>Configurações</div>
       <button data-s="insbase">Cadastro de Insumos</button>
       <button data-s="config">Grupos de Insumos</button>
+      <button data-s="cadmat">Cadastro de Materiais</button>
     </div>
     <div class="navgroup" data-g="Administração" data-admin hidden>
       <div class="gl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3.2v5c0 4.5-3 7.8-7 9.8-4-2-7-5.3-7-9.8v-5z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>Administração</div>
@@ -781,6 +782,37 @@
     tonelada ou tratamento lançado no Plano Operacional, e desfaz esse lançamento junto.</div></div>
 </section>
 
+<!-- ===== CADASTRO DE MATERIAIS (catálogo do ERP) ===== -->
+<section id="cadmat">
+  <h2>Cadastro de Materiais</h2>
+  <p class="lead">Catálogo de materiais do ERP (exportação TCO13T). É daqui que os Custos Administrativos buscam o
+  material de cada planejamento de compra — pelo código ou pelo nome. O catálogo é grande (mais de 100 mil itens) e
+  fica no servidor: a busca mostra os primeiros resultados.</p>
+  <div class="grid g4" id="k_cadmat" style="margin-bottom:16px"></div>
+
+  <div class="panel"><h3>Importar planilha do ERP</h3>
+    <div class="row" style="margin-bottom:10px;align-items:flex-end">
+      <div style="min-width:320px"><label for="cm_arquivo">Planilha de materiais (.xlsx)</label>
+        <input type="file" id="cm_arquivo" accept=".xlsx,.xls"></div>
+      <button class="btn p" id="cm_importar" disabled>Importar materiais novos</button>
+    </div>
+    <div class="hint" id="cm_status" role="status" aria-live="polite"></div>
+    <div class="hint" style="margin-top:9px">Escolha o arquivo exportado do ERP: a tela lê a planilha e mostra quantos
+    materiais são novos <b>antes</b> de gravar nada. Só entram os códigos que ainda não estão cadastrados — o que já
+    está no cadastro fica como está, então dá para importar a planilha completa sempre que quiser atualizar. A coluna
+    <b>Código da Empresa de Compras</b> não é usada. As colunas são reconhecidas pelo nome: Código, Descrição,
+    Descrição Complementar 1 e 2, Saldo Atual, Grupo de Produto, Unidade Medida Consumo, Utiliza no Custo, Código NBM
+    e Tipo de Produto. Planilhas grandes levam de 15 a 30 segundos para ler.</div></div>
+
+  <div class="panel"><h3>Materiais cadastrados</h3>
+    <div class="row" style="margin-bottom:10px;align-items:flex-end">
+      <div style="min-width:320px;max-width:560px;flex:1"><label for="cm_busca">Buscar por código ou nome do material</label>
+        <input type="search" id="cm_busca" placeholder="Ex.: 1308543, ou parte do nome — filtro ar..." autocomplete="off"></div>
+    </div>
+    <div class="tblwrap"><table id="cm_tabela"></table></div>
+    <div class="hint" id="cm_info" style="margin-top:9px"></div></div>
+</section>
+
 <section id="config">
   <h2>Grupos de Insumos</h2>
   <p class="lead">Os grupos organizam o cadastro de insumos em blocos (Herbicidas, Inseticidas...). Os fixos
@@ -934,8 +966,12 @@
         <input type="search" class="tbl-busca" data-alvo="#t_adm" placeholder="Buscar linha de custo...">
         <div class="tblwrap"><table id="t_adm"></table></div>
         <div class="row" style="margin-top:10px"><button class="btn p" id="btn_adm_add">Adicionar linha</button></div>
-        <div class="hint" style="margin-top:9px">Valores em R$ por mês; o total do período multiplica pelos meses do
-        orçamento. Critérios: <b>hectare</b>, <b>tonelada</b>, <b>horas-máquina</b> e <b>custo direto</b> rateiam
+        <div class="hint" style="margin-top:9px"><b>Planejamento de compra:</b> em <b>Código material</b> ou
+        <b>Descrição material</b>, digite o código ou parte do nome para buscar no Cadastro de Materiais
+        (Configurações) e escolha o material — o código, a descrição, o grupo e a unidade entram na linha. O ×
+        desvincula o material e deixa a descrição livre; linha sem material (gasto que não é compra) continua com
+        descrição livre. Valores em R$ por mês; o total do período multiplica pelos meses marcados na coluna
+        <b>Meses</b> (todos, por padrão). Critérios: <b>hectare</b>, <b>tonelada</b>, <b>horas-máquina</b> e <b>custo direto</b> rateiam
         proporcionalmente à etapa; <b>percentual por etapa</b> usa os percentuais do painel ao lado;
         <b>centro de custo</b> joga a linha inteira na etapa escolhida. Linha cujo critério não tem base no plano
         fica sem rateio e volta para o rateio indireto geral — a coluna Rateio avisa.</div></div>

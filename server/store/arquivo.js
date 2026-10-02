@@ -44,6 +44,21 @@ function storeArquivo() {
   const enfileirar = criarFila();
   const enfileirarUsu = criarFila();
 
+  // Cadastro de Materiais: arquivo e fila próprios, para uma importação grande
+  // não segurar a gravação do plano.
+  const arqMat = path.join(dir, 'materiais.json');
+  const enfileirarMat = criarFila();
+  const chaveBusca = m => `${m.codigo} ${m.descricao} ${m.compl1}`.toLowerCase();
+  let cacheMat = null;   // {itens, chaves (texto de busca de cada item), codigos, ultima}
+  async function materiaisDoDisco() {
+    if (!cacheMat) {
+      const doc = (await leituraDisco(arqMat)) || { itens: [], ultima: null };
+      cacheMat = { itens: doc.itens, ultima: doc.ultima, chaves: doc.itens.map(chaveBusca),
+                   codigos: new Set(doc.itens.map(m => m.codigo)) };
+    }
+    return cacheMat;
+  }
+
   // {lista:[usuario...], sessoes:[{token,usuario_id,expira_em}], perfis:[{id,nome,editaveis}]}
   async function usuariosDoDisco() {
     const doc = (await leituraDisco(arqUsu)) || { lista: [], sessoes: [] };
@@ -213,6 +228,40 @@ function storeArquivo() {
       const u = doc.lista.find(x => x.id === id);
       if (u) u.papel = papel;
       await escritaAtomica(arqUsu, dir, doc);
+    }),
+
+    // ---------- Cadastro de Materiais (catálogo do ERP) ----------
+    // Mesma interface do Postgres. O arquivo todo (120 mil itens) fica em
+    // memória depois da primeira leitura: é só para rodar na máquina local.
+    async materiaisResumo() {
+      const c = await materiaisDoDisco();
+      return { total: c.itens.length, ultima: c.ultima };
+    },
+    async materiaisCodigos() {
+      return [...(await materiaisDoDisco()).codigos];
+    },
+    async materiaisBuscar({ termos = [], limite = 30 } = {}) {
+      const c = await materiaisDoDisco();
+      const achados = [];
+      for (let i = 0; i < c.itens.length; i++) {
+        if (termos.every(t => c.chaves[i].includes(t))) achados.push(c.itens[i]);
+      }
+      // código igual ao primeiro termo vem antes, depois o que começa por ele
+      const peso = m => {
+        const cod = m.codigo.toLowerCase();
+        return !termos.length ? 2 : cod === termos[0] ? 0 : cod.startsWith(termos[0]) ? 1 : 2;
+      };
+      achados.sort((a, b) => peso(a) - peso(b) || a.descricao.localeCompare(b.descricao) || a.codigo.localeCompare(b.codigo));
+      return { total: achados.length, itens: achados.slice(0, limite) };
+    },
+    materiaisInserirNovos: lista => enfileirarMat(async () => {
+      const c = await materiaisDoDisco();
+      const novos = lista.filter(m => !c.codigos.has(m.codigo));
+      if (!novos.length) return 0;
+      novos.forEach(m => { c.itens.push(m); c.codigos.add(m.codigo); c.chaves.push(chaveBusca(m)); });
+      c.ultima = new Date().toISOString();
+      await escritaAtomica(arqMat, dir, { itens: c.itens, ultima: c.ultima });
+      return novos.length;
     }),
 
     // ---------- gasto real do ERP (Reforma de Frota) ----------

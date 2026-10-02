@@ -6,6 +6,7 @@ import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
 import { barrasH, kpi, th } from './componentes.js';
 import { ADM_MESES_ABERTO, P } from '../nucleo/estado.js';
 import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
+import { campoBuscaMaterial } from './material-busca.js';
 
 /* ---------- CUSTOS ADMINISTRATIVOS ---------- */
 
@@ -38,7 +39,7 @@ function pintarAdm(R){
   // só que sem o popover: aqui já mora dentro da própria tabela
   // dentro da tabela larga a caixa tem bem mais espaco que o popover estreito
   // do topo -- mais colunas, senao cada mes vira uma barra esticada enorme
-  const linhaMeses = (l,i) => `<tr class="sub"><td colspan="9">
+  const linhaMeses = (l,i) => `<tr class="sub"><td colspan="10">
     <div class="per-pop-meses per-pop-meses-linha" style="margin:6px 0">${MESES.map((m,j)=>{
       const on = l.meses.includes(j);
       return `<label class="${on?"on ":""}p-${periodoMes(j)}" data-admmes="${i}" data-m="${j}">
@@ -49,13 +50,32 @@ function pintarAdm(R){
       <button class="btn" data-admmeses="${i}">Fechar</button>
     </div></td></tr>`;
 
-  $("#t_adm").innerHTML = th([["Grupo"],["Natureza do gasto"],["R$/mês",1],["Critério de rateio"],
+  /* Código e descrição do material (Cadastro de Materiais, em Configurações).
+     Linha SEM material (as do cadastro inicial, ou gasto que não é compra de
+     material): o código fica em branco e a descrição é texto livre, como sempre
+     foi. Os dois campos buscam no catálogo — por código ou por nome — e escolher
+     um resultado grava código, descrição, grupo e unidade DO MATERIAL na linha
+     (um retrato: o plano continua válido mesmo que o catálogo mude ou esvazie).
+     Linha COM material mostra os dois como texto; o × desvincula e a descrição
+     volta a ser livre. */
+  const celCodigo = (l,i) => l.cod
+    ? `<b>${esc(l.cod)}</b> <button type="button" class="btn xs" data-matlimpar="${i}"
+         title="Desvincular o material desta linha (a descrição passa a ser texto livre)">×</button>`
+    : campoBuscaMaterial({linha:i, campo:"cod", placeholder:"Código ou nome", estilo:"min-width:140px"});
+  const celDescricao = (l,i) => l.cod
+    ? `<div style="min-width:250px">${esc(l.desc)}</div>
+       <div class="calc" style="font-size:11px">${esc([l.matGrupo && "Grupo "+l.matGrupo, l.matUn && "Un. "+l.matUn].filter(Boolean).join(" · "))}</div>`
+    : campoBuscaMaterial({linha:i, campo:"desc", valor:l.desc, extra:`data-adm="${i}" data-f="desc"`,
+        placeholder:"Descreva o gasto ou busque o material", estilo:"text-align:left;min-width:250px"});
+
+  $("#t_adm").innerHTML = th([["Grupo"],["Código material"],["Descrição material"],["R$/mês",1],["Critério de rateio"],
     ["Centro de custo"],["Meses"],["Total no período",1],["Rateio",1],[""]])+"<tbody>"+
     (A.linhas.length ? A.linhas.map((l,i)=>{
       const st = (AD.porLinha[i]||{});
       return `<tr>
       <td><select data-adm="${i}" data-f="grupo">${grupoOpts(l.grupo)}</select></td>
-      <td><input data-adm="${i}" data-f="desc" value="${esc(l.desc)}" style="text-align:left;min-width:250px"></td>
+      <td>${celCodigo(l,i)}</td>
+      <td>${celDescricao(l,i)}</td>
       <td class="num"><input data-adm="${i}" data-f="valor" value="${num(l.valor)||""}" inputmode="decimal"></td>
       <td><select data-adm="${i}" data-f="crit" title="${(ADM_CRITERIOS[l.crit]||{}).dica||""}">${critOpts(l.crit)}</select></td>
       <td><select data-adm="${i}" data-f="cc" ${l.crit==="cc"?"":"disabled"}>${ccOpts(l.cc)}</select></td>
@@ -67,8 +87,8 @@ function pintarAdm(R){
                         : `<span class="badge b-warn">${st.motivo||"sem rateio"}</span>`)}</td>
       <td><button class="btn d" data-admrm="${i}">Remover</button></td></tr>`
       +(ADM_MESES_ABERTO[i] ? linhaMeses(l,i) : "");}).join("")
-    : `<tr><td colspan="9" class="calc">Nenhuma linha cadastrada.</td></tr>`)+
-    `<tr><td class="tot" colspan="2">TOTAL</td><td class="num tot">${brl(A.mensal)}</td>
+    : `<tr><td colspan="10" class="calc">Nenhuma linha cadastrada.</td></tr>`)+
+    `<tr><td class="tot" colspan="3">TOTAL</td><td class="num tot">${brl(A.mensal)}</td>
      <td colspan="3"></td><td class="num tot">${brl(A.total)}</td><td colspan="2"></td></tr></tbody>`;
 
   /* ---- percentuais do critério "percentual por etapa" ---- */

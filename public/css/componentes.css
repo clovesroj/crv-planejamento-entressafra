@@ -26,6 +26,13 @@ input.bad{border-color:var(--bad);background:var(--bad-bg)}
 /* mesmo combobox, por célula de tabela -- ver celulaBusca()/registrarCombo() em ui/componentes.js */
 .combo-cel{position:relative;display:block;min-width:110px}
 .combo-cel .combo-busca{width:100%;text-align:left}
+/* busca de material (Custos Administrativos): um popup só, preso ao <body> e fixo na janela
+   -- ver ui/material-busca.js. Reusa os itens .lista-select-item do combobox acima. */
+.mat-popup{position:fixed;z-index:300;max-height:300px;overflow:auto;background:var(--card);
+  border:1px solid var(--line-strong);border-radius:var(--r-sm);box-shadow:var(--pop-shadow)}
+.mat-popup[hidden]{display:none}
+.mat-popup .mat-sub{display:block;margin-top:1px;font-size:11px;color:var(--grey)}
+.mat-popup .lista-select-item{line-height:1.35}
 
 /* ---------- indicadores ---------- */
 /* inherits:true é obrigatório aqui — ::before/::after leem estas variáveis
