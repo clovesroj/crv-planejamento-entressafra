@@ -1,4 +1,5 @@
 import { frotaDaAtividade, pessoasDaAtividade, tarifaTercDe } from '../calculo/atividade.js';
+import { parTransp } from '../calculo/transporte.js';
 import { agDeLinha, contaOrigem, rotuloItem } from '../calculo/crm.js';
 import { ADM_CRITERIOS, ADM_GRUPOS } from '../dados/administrativo.js';
 import { ARR_FORMAS, ETAPAS_ORD, arrRat } from '../calculo/arrendamento.js';
@@ -169,14 +170,17 @@ const premissas = R => sec("Premissas","Premissas do plano",["Premissa","Valor",
   ["Horas por turno", fmt(P.hTurno)+" h","Escala"],
   ["Diesel orçado — preço médio ponderado", brl(dieselOrcado(R.CB).medio,2)+"/L","Custo de combustível (preço de cada mês da aba Combustível, pelos litros)"],
   ["Preço base do diesel", brl(P.diesel,2)+"/L","Vale no mês sem preço próprio na aba Combustível"],
-  ["Administração", brl(R.ADM.mensal)+"/mês","Conta EST-01, aba Custos Administrativos"],
+  ["Administração", R.ADM.variaNoAno ? brl(R.ADM.total)+" no ano (varia por mês)" : brl(R.ADM.mensal)+"/mês","Conta EST-01, aba Custos Administrativos"],
   ["Imobilizado da frota", brl(P.imob),"Depreciação"],
   ["Depreciação anual", fmt(P.dep,0)+"%","Custo fixo"],
   ["Atualização de preço de insumos", fmt(P.ipreco,0)+"%","Custo de insumos"],
+  ["Caminhão canavieiro — capacidade por viagem", fmt(P.capCam)+" t","Viagens do transporte"],
+  ["Caminhão — raio médio safra / muda", fmt(P.raioSafra)+" / "+fmt(P.raioMuda)+" km","Ciclo do transporte"],
+  ["Caminhão — velocidade carregado / vazio", fmt(P.velC)+" / "+fmt(P.velV)+" km/h","Ciclo do transporte"],
   ["Densidade de carga", fmt(P.densCarga,2)+" t/m³","Capacidade de transbordo"],
   ["Volume útil do transbordo", fmt(P.volTransb)+" m³","Capacidade por viagem"],
-  ["Raio médio — safra", fmt(P.raioSafra)+" km","Ciclo do transporte"],
-  ["Raio médio — muda", fmt(P.raioMuda)+" km","Ciclo do transporte"],
+  ["Transbordo — distância média safra / muda", (p=>fmt(p.raioSafra)+" / "+fmt(p.raioMuda)+" km")(parTransp({modo:"transbordo"})),"Ciclo do transbordo"],
+  ["Transbordo — velocidade carregado / vazio", (p=>fmt(p.velC)+" / "+fmt(p.velV)+" km/h")(parTransp({modo:"transbordo"})),"Ciclo do transbordo"],
   ["Encargos sobre a folha", fmt((R.MP.encTot||0)*100,1)+"%","Custo de mão de obra"],
   ["Benefícios por colaborador", brl(R.MP.benTot,2)+"/mês","Custo de mão de obra"],
   ["Valor padrão de terceirização", brl(CFG.terc_tar_pad,2)+"/ha","Frentes terceirizadas"],
@@ -531,14 +535,19 @@ const fornecedores = R => sec("Fornecedores","Fornecedores de cana — contratos
     brl(R.FORN.aquisicao.custo), R.FORN.aquisicao.ton>0?brl(R.FORN.aquisicao.rsT,2):"—"]]));
 
 /* ---------- 15. administração ---------- */
-const administracao = R => secP("Administração","Custos administrativos e rateio",
+/* O valor de cada linha no período é o dos meses do período em que ela ocorre
+   (linha só da entressafra não tem valor na safra); o rateio por etapa segue
+   a mesma fração do administrativo que cai no período. */
+const noRecorte = mes => REC.meses.reduce((s,i)=>s+num(mes[i]),0);
+const administracao = R => { const fAdm = R.ADM.total>0 ? noRecorte(R.ADM.mes)/R.ADM.total : REC.fracMeses;
+  return secP("Administração","Custos administrativos e rateio",
   ["Grupo","Natureza do gasto","R$/mês","Critério de rateio","Centro de custo","Total no período","Rateio"],
   R.ADM.linhas.map((l,i)=>{ const st=R.AD.porLinha[i]||{};
     return [ADM_GRUPOS[l.grupo]||l.grupo, l.desc, brl(l.mensal), (ADM_CRITERIOS[l.crit]||{}).nome||l.crit, l.cc||"—",
-            brl(l.total*REC.fracMeses), l.total<=0 ? "—" : (st.rateado>0?"rateado":(st.motivo||"sem rateio"))];})
-  .concat([["","TOTAL", brl(R.ADM.mensal), "", "", brl(R.ADM.total*REC.fracMeses), ""]])
-  .concat(Object.keys(R.etapas).map(e=>["↳ rateio", e, "", "", "", brl((R.etapas[e].admin||0)*REC.fracMeses), ""]))
-  .concat(R.AD.semRateio>0 ? [["↳ sem base","volta para o rateio indireto","","","", brl(R.AD.semRateio*REC.fracMeses),""]] : []));
+            brl(noRecorte(l.mes)), l.total<=0 ? "—" : (st.rateado>0?"rateado":(st.motivo||"sem rateio"))];})
+  .concat([["","TOTAL", brl(R.ADM.mensal), "", "", brl(noRecorte(R.ADM.mes)), ""]])
+  .concat(Object.keys(R.etapas).map(e=>["↳ rateio", e, "", "", "", brl((R.etapas[e].admin||0)*fAdm), ""]))
+  .concat(R.AD.semRateio>0 ? [["↳ sem base","volta para o rateio indireto","","","", brl(R.AD.semRateio*fAdm),""]] : [])); };
 
 /* ---------- 16. custos ---------- */
 const custoEtapa = R => { const E = etapasP(R);
@@ -785,14 +794,32 @@ const combustivel = R => {
   .concat([["TOTAL","","","", fmt(lit), lit>0?brl(cus/lit,2):"—", brl(cus)]]));
 };
 
+/* Diesel por atividade e mês de execução: os litros de cada mês do período
+   (horas do mês × consumo do conjunto), o total e o custo pelo preço de cada
+   mês -- a mesma tabela da aba Combustível. */
+const combustivelAtividade = R => {
+  const ativs = R.L.filter(r=>noPer(r.litrosMes)>0.5);
+  const cons = r => r.a.tipo==="transp" ? "por km" : r.consumoLh>0 ? fmt(r.consumoLh,1)+" L/h" : "—";
+  const apoioL = noPer(R.CB.litrosApoioMes);
+  return secP("Combustível","Diesel por atividade e mês de execução",
+  ["Cód","Atividade","Máquina","Consumo",...REC.meses.map(i=>MESES[i]),"Litros","Custo diesel"],
+  ativs.map(r=>[r.a.cod, r.a.nome, r.maqEfetiva||r.a.maq||"—", cons(r),
+    ...REC.meses.map(i=>r.litrosMes[i]>0.5?fmt(r.litrosMes[i]):"—"), fmt(noPer(r.litrosMes)), brl(noPer(r.dieselMes))])
+  .concat(apoioL>0.5 ? [["","Equipamentos de apoio","aba Apoio","",
+    ...REC.meses.map(i=>R.CB.litrosApoioMes[i]>0.5?fmt(R.CB.litrosApoioMes[i]):"—"), fmt(apoioL), brl(noPer(R.CB.custoApoioMes))]] : [])
+  .concat([["TOTAL","","","", ...REC.meses.map(i=>fmt(R.CB.litrosOperMes[i]+R.CB.litrosApoioMes[i])),
+    fmt(noPer(R.CB.litrosOperMes)+apoioL), brl(noPer(R.CB.custoOperMes)+noPer(R.CB.custoApoioMes))]]));
+};
+
 // estrutura de um período do apoio: "6 × 180 h/mês" ou "—" quando não trabalha
 const estrApoio = x => x.qtd>0 ? fmt(x.qtd)+" × "+fmt(x.hmes)+" h/mês" : "—";
 const apoio = R => sec("Apoio","Equipamentos de apoio",
-  ["Equipamento","Máquina","Safra (qtd × h/mês)","Entressafra (qtd × h/mês)","Meses","Horas totais","Litros","Diesel","MDO","Total"],
+  ["Equipamento","Máquina","Safra (qtd × h/mês)","Entressafra (qtd × h/mês)","Meses","Consumo","Horas totais","Litros","Diesel","MDO","Total"],
   R.AE.linhas.map(l=>{ const E = estruturaApoio(l);
-    return [l.nome, l.maq, estrApoio(E.s), estrApoio(E.e), l.nMeses, fmt(l.horas), fmt(l.litros),
+    const cons = l.consumoUn==="km" ? fmt(l.consumoKmL,2)+" km/L" : fmt(l.consumoLh,1)+" L/h";
+    return [l.nome, l.maq, estrApoio(E.s), estrApoio(E.e), l.nMeses, cons+(l.consProprio?"":" (máquina)"), fmt(l.horas), fmt(l.litros),
       brl(l.diesel), brl(l.mdo), brl(l.total)]; })
-  .concat([["TOTAL","","","","", fmt(R.AE.horas), fmt(R.AE.litros), brl(R.AE.diesel), brl(R.AE.mdo),
+  .concat([["TOTAL","","","","","", fmt(R.AE.horas), fmt(R.AE.litros), brl(R.AE.diesel), brl(R.AE.mdo),
     brl(R.AE.total)]]));
 
 const irrigacao = R => sec("Irrigação","Irrigação e fertirrigação",
@@ -854,7 +881,7 @@ const SECOES = {
   tratamentos, tratamentosPlantio, tratamentosTratos,
   arrendamentos, fornecedores, administracao, custoEtapa, natureza, mensal, periodos,
   contas, fluxo, cenarios, validacao, porFazenda, porCentroCusto, porAtividade,
-  indicadores, logistica, planoOperacional, dimensionamento, combustivel, apoio, irrigacao,
+  indicadores, logistica, planoOperacional, dimensionamento, combustivel, combustivelAtividade, apoio, irrigacao,
   fitoBroca, fitoCigarrinha, fitoResumo, fitoTerc,
 };
 
@@ -977,9 +1004,9 @@ const RELATORIOS = [
   {id:"plantio", nome:"Orçamento de Plantio",         secoes:["plantio","preparo","insumosPlantio","tratamentosPlantio","dimensionamento"]},
   {id:"tratos",  nome:"Orçamento de Tratos",          secoes:["tratos","insumosTratos","tratamentosTratos","irrigacao","dimensionamento"]},
   {id:"fito",    nome:"Manejo Fitossanitário",        secoes:["fitoBroca","fitoCigarrinha","fitoResumo","fitoTerc"]},
-  {id:"colheita",nome:"Orçamento de Colheita",        secoes:["colheita","transporte","combustivel","dimensionamento"]},
-  {id:"log",     nome:"Orçamento de Logística",       secoes:["logistica","transporte","combustivel"]},
-  {id:"frota",   nome:"Orçamento de Frota",           secoes:["frota","frotaBase","manutencao","apoio","combustivel"]},
+  {id:"colheita",nome:"Orçamento de Colheita",        secoes:["colheita","transporte","combustivel","combustivelAtividade","dimensionamento"]},
+  {id:"log",     nome:"Orçamento de Logística",       secoes:["logistica","transporte","combustivel","combustivelAtividade"]},
+  {id:"frota",   nome:"Orçamento de Frota",           secoes:["frota","frotaBase","manutencao","apoio","combustivel","combustivelAtividade"]},
   {id:"mdo",     nome:"Orçamento de Mão de Obra",     secoes:["maoDeObra","pessoasDept","quadroAdmOficinaMes","quadroAdmOficina","pessoasAtividade","fluxoMdo"]},
   {id:"pessoas", nome:"Necessidade de Pessoas",        secoes:["pessoasAtividade","pessoasDept","maoDeObra","fluxoMdo","dimensionamento"]},
   {id:"arrend",  nome:"Orçamento de Arrendamentos",   secoes:["arrendamentos","porFazenda"]},
@@ -995,7 +1022,7 @@ const RELATORIOS = [
 
 /* Seções extras que só saem no nível detalhado do relatório anual. */
 const DETALHE = ["custoOperacional","custoContabil","planoOperacional","dimensionamento","porAtividade","porCentroCusto","porFazenda",
-  "mensal","periodos","natureza","combustivel","apoio","irrigacao","pessoasDept","pessoasAtividade","fluxoMdo",
+  "mensal","periodos","natureza","combustivel","combustivelAtividade","apoio","irrigacao","pessoasDept","pessoasAtividade","fluxoMdo",
   "logistica","indicadores","frotaBase","modelos","preparo","apoioEtapa","tratamentos"];
 
 function montarSecoes(R, relId, nivel, periodo){

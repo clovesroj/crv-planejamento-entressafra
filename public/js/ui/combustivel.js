@@ -3,7 +3,7 @@ import { DIESEL_MES, P } from '../nucleo/estado.js';
 import { $, brl, esc, fmt, num } from '../nucleo/formato.js';
 import { consumoDe, velPadrao } from '../calculo/consumo.js';
 import { dieselOrcado } from '../calculo/diesel.js';
-import { barras, serieDoPeriodo, kpi, somaSel, tdMeses, th, thMeses } from './componentes.js';
+import { barras, ordenarPorEtapa, serieDoPeriodo, kpi, somaSel, tdMeses, th, thMeses } from './componentes.js';
 
 /* ---------- COMBUSTÍVEL ---------- */
 function pintarCombustivel(R){
@@ -42,6 +42,30 @@ function pintarCombustivel(R){
   $("#t_comb_mes").innerHTML = tm + "</tbody>";
   barras($("#ch_comb"), serieDoPeriodo(litrosMes, SEL), "#2A57A0", "L");
 
+  /* Diesel por atividade e mês de execução: os litros do mês de cada atividade
+     (r.litrosMes, pelas horas do mês), o apoio e o total -- que é a linha
+     "Volume de diesel necessário" acima. */
+  const ativs = ordenarPorEtapa(R.L.filter(r=>r.litros>0.5), r=>r.a.etapa);
+  const kmDe = r => r.partes.reduce((s,p)=>s+num(p.km),0);
+  const consTxt = r => r.a.tipo==="transp" && r.a.modo==="transbordo" ? (r.consumoLh>0 ? fmt(r.consumoLh,1)+" L/h" : "—")
+    : r.a.tipo==="transp" ? (r.litros>0 && kmDe(r)>0 ? fmt(kmDe(r)/r.litros,2)+" km/L" : "por km")
+    : r.consumoLh>0 ? fmt(r.consumoLh,1)+" L/h"+(r.partes.some(p=>p.consAtividade) ? "" : " ·máq.") : "—";
+  const porUn = r => { const un = r.a.un.split("/")[0]; return r.total>0 ? fmt(r.litros/r.total,1)+" L/"+un : "—"; };
+  $("#t_comb_ativ").innerHTML = th([["Cód"],["Atividade"],["Máquina"],["Consumo",1],["L por unidade",1],
+      ...thMeses(),[SEL.parcial?"Litros no período":"Litros",1],[SEL.parcial?"Custo no período":"Custo diesel",1]]) + "<tbody>" +
+    (ativs.length ? ativs.map(r=>`<tr><td>${esc(r.a.cod)}</td><td>${esc(r.a.nome)}</td>
+      <td class="calc">${esc(r.maqEfetiva||r.a.maq||"—")}</td>
+      <td class="num calc" title="${r.partes.some(p=>p.consAtividade) ? "Consumo do Cadastro de Atividades" : "Consumo da máquina (tabela de equipamentos)"}">${consTxt(r)}</td>
+      <td class="num calc">${porUn(r)}</td>` +
+      tdMeses(r.litrosMes, v=>v>0.5?fmt(v):"—", "num calc", (v,i)=>v>0.5?"ativ:"+r.a.cod:"") +
+      `<td class="num tot">${fmt(somaSel(r.litrosMes,SEL))}</td><td class="num">${brl(somaSel(r.dieselMes,SEL))}</td></tr>`).join("")
+      : `<tr><td colspan="${NM+7}" class="calc">Sem consumo projetado: lance quantidades no Plano Operacional.</td></tr>`) +
+    (soma(C.litrosApoioMes)>0.5 ? `<tr><td></td><td>Equipamentos de apoio</td><td class="calc">aba Apoio</td><td></td><td></td>` +
+      tdMeses(C.litrosApoioMes, v=>v>0.5?fmt(v):"—") +
+      `<td class="num tot">${fmt(somaSel(C.litrosApoioMes,SEL))}</td><td class="num">${brl(somaSel(C.custoApoioMes,SEL))}</td></tr>` : "") +
+    `<tr><td class="tot" colspan="5">TOTAL</td>` + tdMeses(litrosMes, v=>fmt(v), "num tot") +
+    `<td class="num tot">${fmt(somaSel(litrosMes,SEL))}</td><td class="num tot">${brl(somaSel(custoMes,SEL))}</td></tr></tbody>`;
+
   const et = Object.entries(R.etapas).filter(([,d])=>d.litros>0).sort((a,b)=>b[1].litros-a[1].litros);
   const lEt = et.reduce((s,[,d])=>s+d.litros,0), cEt = et.reduce((s,[,d])=>s+d.diesel,0);
   let te = th([["Etapa"],["Litros",1],["% do volume",1],["Custo diesel",1],["R$/L",1],["Consumo por unidade",1]]) + "<tbody>" +
@@ -66,15 +90,16 @@ function pintarCombustivel(R){
      Frota. Horas e km são projetados pelo plano: horas pelas premissas de cada
      atividade; km pelas viagens do transporte ou por horas × velocidade média. */
   const mq = {};
-  const addM = (nome, maq, horas, frota, litros, custo, km, fonteKm)=>{
-    const o = mq[nome] = mq[nome] || {maq, horas:0, frota:0, litros:0, custo:0, km:0, temKm:false, fontes:new Set()};
+  const addM = (nome, maq, horas, frota, litros, custo, km, fonteKm, daAtividade)=>{
+    const o = mq[nome] = mq[nome] || {maq, horas:0, frota:0, litros:0, custo:0, km:0, temKm:false, fontes:new Set(), daAtiv:0};
+    if(daAtividade) o.daAtiv++;
     o.horas+=horas; o.frota+=frota; o.litros+=litros; o.custo+=custo;
     if(km!=null){ o.km+=km; o.temKm=true; }
     if(fonteKm) o.fontes.add(fonteKm); };
   R.L.forEach(r=>r.partes.forEach(p=>{ if(!p.terc && (p.litros>0 || p.horas>0))
-    addM(p.maq, p.maq, p.horas, p.frotaR, p.litros, p.cDiesel, p.km, p.fonteKm); }));
+    addM(p.maq, p.maq, p.horas, p.frotaR, p.litros, p.cDiesel, p.km, p.fonteKm, p.consAtividade); }));
   R.AE.linhas.forEach(l=>{ if(l.litros>0 || l.horas>0)
-    addM(l.maq+" (apoio)", l.maq, l.horas, num(l.qtd), l.litros, l.diesel, l.km, l.fonteKm); });
+    addM(l.maq+" (apoio)", l.maq, l.horas, num(l.qtd), l.litros, l.diesel, l.km, l.fonteKm, l.consProprio); });
   const lm = Object.entries(mq).sort((a,b)=>b[1].litros-a[1].litros);
   const nKm = lm.filter(([,o])=>consumoDe(o.maq).un==="km").length;
   $("#t_comb_maq").innerHTML = th([["Equipamento"],["Unidade"],["Consumo",1],["Velocidade média",1],
@@ -88,7 +113,7 @@ function pintarCombustivel(R){
         : `<input data-cmaq="${m}" data-ck="vel" value="${+c.vel.toFixed(1)}" inputmode="decimal" style="width:70px"
              title="${c.velPadrao?"Padrão: média das velocidades carregado e vazio da aba Transporte":"Informada"}"
              class="${c.velPadrao?"padrao":""}"> km/h`;
-      return `<tr><td>${n}</td>
+      return `<tr><td>${n}${o.daAtiv ? ` <span class="badge b-warn" title="${o.daAtiv} uso(s) com consumo próprio (Cadastro de Atividades ou aba Apoio): os litros desse(s) uso(s) seguem o consumo informado lá, não o desta linha">consumo próprio</span>` : ""}</td>
       <td><select data-cmaq="${m}" data-ck="unC" style="min-width:74px">
         <option value="h" ${emKm?"":"selected"}>L/h</option><option value="km" ${emKm?"selected":""}>L/km</option></select></td>
       <td class="num">${emKm

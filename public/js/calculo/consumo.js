@@ -43,9 +43,27 @@ function consumoDe(item){
 }
 
 /* Litros de um trabalho de `horas`. `kmViagens` é a distância quando o
-   trabalho a conhece (transporte); sem ela, km = horas × velocidade média. */
-function litrosDe(item, horas, kmViagens){
+   trabalho a conhece (transporte); sem ela, km = horas × velocidade média.
+   `ajuste`: o consumo informado no próprio item, que vale sobre o da máquina.
+     - número: L/h do conjunto do Cadastro de Atividades (o mesmo trator puxa
+       uma grade pesada e um distribuidor com consumos bem diferentes);
+     - {un:"h"|"km", lh, lkm}: o do equipamento de apoio (aba Apoio), por
+       hora ou por km -- campo vazio usa o da máquina na unidade escolhida
+       (em km, o L/h dela na velocidade média, até alguém digitar o km/L). */
+function litrosDe(item, horas, kmViagens, ajuste){
   const c = consumoDe(item);
+  const aj = ajuste && typeof ajuste==="object" ? ajuste : (num(ajuste)>0 ? {un:"h", lh:num(ajuste)} : null);
+  if(aj){
+    if(aj.un==="km"){
+      const lkm = num(aj.lkm)>0 ? num(aj.lkm) : c.lkm;
+      const km = kmViagens!=null ? kmViagens : horas*c.vel;
+      return {...c, un:"km", lkm, litros: km*lkm, km, daAtividade: num(aj.lkm)>0,
+              fonteKm: kmViagens!=null ? "viagens" : "velocidade"};
+    }
+    const lh = num(aj.lh)>0 ? num(aj.lh) : c.lh;
+    return {...c, un:"h", lh, litros: horas*lh, daAtividade: num(aj.lh)>0,
+            km: kmViagens!=null ? kmViagens : null, fonteKm: kmViagens!=null ? "viagens" : null};
+  }
   if(c.un==="km"){
     const km = kmViagens!=null ? kmViagens : horas*c.vel;
     return {...c, litros: km*c.lkm, km, fonteKm: kmViagens!=null ? "viagens" : "velocidade"};

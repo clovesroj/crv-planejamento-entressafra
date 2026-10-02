@@ -26,9 +26,17 @@ function admCalc(){
     const mensal = num(l.valor);
     const crit = ADM_CRITERIOS[l.crit] ? l.crit : "direto";
     const meses = mesesDaLinha(l);
-    return {...l, mensal, crit, meses, total: mensal*meses.length};
+    // valor da linha em cada mês do orçamento: o mensal nos meses marcados, zero nos outros
+    const mes = Array.from({length:NM}, (_,i)=> meses.includes(i) ? mensal : 0);
+    return {...l, mensal, crit, meses, mes, total: mensal*meses.length};
   });
+  // soma do R$/mês lançado nas linhas (o valor de um mês em que todas ocorrem)
   const mensal = linhas.reduce((s,l)=>s+l.mensal,0);
+  /* Custo administrativo de cada mês: só as linhas que ocorrem naquele mês.
+     O motor lançava `mensal` (a soma de todas as linhas) em todos os 12 meses:
+     a linha marcada só para a entressafra aparecia também na safra, e o total
+     do ano passava do total das linhas. */
+  const mes = Array.from({length:NM}, (_,i)=> linhas.reduce((s,l)=>s+l.mes[i],0));
   // total NÃO é mensal*NM desde que uma linha possa ter menos meses que o ano
   // inteiro -- soma o total já prorateado de cada linha.
   const total = linhas.reduce((s,l)=>s+l.total,0);
@@ -36,7 +44,9 @@ function admCalc(){
   linhas.forEach(l=>{ porGrupo[l.grupo] = (porGrupo[l.grupo]||0) + l.total; });
   const porCriterio = {};
   linhas.forEach(l=>{ porCriterio[l.crit] = (porCriterio[l.crit]||0) + l.total; });
-  return {linhas, mensal, total, porGrupo, porCriterio};
+  return {linhas, mensal, mes, total, porGrupo, porCriterio,
+          // alguma linha não ocorre o ano inteiro: o custo varia de mês a mês
+          variaNoAno: linhas.some(l=>l.mensal>0 && l.meses.length!==NM)};
 }
 
 /* Rateio entre as etapas. `etapas` é o mapa já montado pela consolidação, com

@@ -999,6 +999,9 @@ td.dem-falta{color:var(--bad);font-weight:600}
 .ap-meses{display:grid;grid-template-columns:repeat(6,auto);gap:2px 8px;margin-top:6px;font-size:11px}
 .ap-meses label{display:inline-flex;align-items:center;gap:3px;white-space:nowrap;cursor:pointer}
 .ap-meses input{width:auto;margin:0}
+/* consumo do equipamento de apoio: valor + unidade (L/h ou km/L) na mesma célula */
+.ap-cons{display:inline-flex;align-items:center;gap:4px;justify-content:flex-end}
+.ap-cons select{width:auto;min-width:0;padding-right:18px}
 .ap-seg{display:inline-flex;gap:0}
 .ap-seg .btn{border-radius:0}
 .ap-seg .btn:first-child{border-radius:var(--r-sm) 0 0 var(--r-sm)}

@@ -49,8 +49,21 @@ function pintarApoio(R){
 
   // tabela do período escolhido
   const mesesDoPer = MESES.map((m,j)=>j).filter(j=>chaveDoMes(j)===c);
+  /* Consumo do equipamento, editável: L/h (máquina) ou km/L (veículo). O campo
+     vem com o número em uso -- o da máquina base enquanto a linha não tiver o
+     seu --; apagar volta ao da máquina. Vale nos dois períodos. */
+  const celConsumo = (l, i) => {
+    const km = l.consumoUn==="km";
+    const val = km ? l.consumoKmL : l.consumoLh;
+    return `<div class="ap-cons"><input data-apc="${i}" value="${val>0 ? +val.toFixed(2) : ""}" placeholder="${km?"km/L":"L/h"}"
+        inputmode="decimal" style="width:62px" title="Consumo do equipamento — digite para mudar; apagar volta ao da máquina base">
+      <select data-apu="${i}" title="Máquina consome por hora (L/h); veículo, por km (km/L)">
+        <option value="h"${km?"":" selected"}>L/h</option><option value="km"${km?" selected":""}>km/L</option></select></div>
+      <div class="calc" style="font-size:10px">${l.consProprio ? "do equipamento" : "da máquina"}${km
+        ? ` · ${fmt(l.consumoVel,0)} km/h` : ""}</div>`;
+  };
   $("#t_apoio_eq").innerHTML = th([["Equipamento"],["Máquina base"],["Função"],["Qtd na "+NOME_CURTO[c],1],["Horas/mês",1],
-    ["Meses"],["Horas",1],["Litros",1],["Diesel",1],["Operadores",1],["Manutenção",1],["Total na "+NOME_CURTO[c],1],
+    ["Consumo",1],["Meses"],["Horas",1],["Litros",1],["Diesel",1],["Operadores",1],["Manutenção",1],["Total na "+NOME_CURTO[c],1],
     ["Na "+NOME_CURTO[o]],[""]])+"<tbody>"+
     A.linhas.map((l,i)=>{
       const E = estruturaApoio(l), x = E[c], y = E[o];
@@ -63,13 +76,14 @@ function pintarApoio(R){
       <td>${celulaBusca("funcao", l.fcod, `data-ap="${i}" data-f="fcod"`)}</td>
       <td class="num"><input data-apq="${i}" data-per="${c}" data-f="qtd" value="${x.qtd||""}" placeholder="0" inputmode="decimal"></td>
       <td class="num"><input data-apq="${i}" data-per="${c}" data-f="hmes" value="${x.hmes||""}" placeholder="0" inputmode="decimal"></td>
+      <td class="num">${celConsumo(l, i)}</td>
       <td><div class="ap-meses">${chk}</div></td>
       <td class="num calc">${fmt(noPer(l.horasMes,c))}</td><td class="num calc">${fmt(noPer(l.litrosMes,c))}</td>
       <td class="num calc">${brl(noPer(l.dieselMes,c))}</td><td class="num calc">${brl(noPer(l.mdoMes,c))}</td>
       <td class="num calc">${brl(noPer(l.manutMes,c))}</td><td class="num tot">${brl(tot)}</td>
       <td class="calc">${y.qtd>0 ? `${fmt(y.qtd)} un × ${fmt(y.hmes)} h/mês` : "não trabalha"}</td>
       <td><button class="btn d" data-aprm="${i}">Remover</button></td></tr>`; }).join("")+
-    `<tr><td class="tot" colspan="3">TOTAL NA ${NOME_CURTO[c].toUpperCase()}</td><td class="num tot">${fmt(equipPer[c])}</td><td></td><td></td>
+    `<tr><td class="tot" colspan="3">TOTAL NA ${NOME_CURTO[c].toUpperCase()}</td><td class="num tot">${fmt(equipPer[c])}</td><td></td><td></td><td></td>
      <td class="num tot">${fmt(noPer(A.horasMes,c))}</td><td class="num tot">${fmt(noPer(A.litrosMes,c))}</td>
      <td class="num tot">${brl(noPer(A.dieselMes,c))}</td><td class="num tot">${brl(noPer(A.mdoMes,c))}</td>
      <td class="num tot">${brl(noPer(A.manutMes,c))}</td><td class="num tot">${brl(custoPer(c))}</td><td></td><td></td></tr></tbody>`;

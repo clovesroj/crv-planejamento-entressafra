@@ -1,4 +1,4 @@
-import { litrosDe } from './consumo.js';
+import { consumoDe, litrosDe } from './consumo.js';
 import { CFG } from '../dados/cfg.js';
 import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
 import { APOIO_FIXO, apoioLista } from '../nucleo/estado.js';
@@ -55,6 +55,15 @@ function mesesDoApoio(a){
     return x.qtd>0 && x.hmes>0 && (!E.m || E.m[i]) ? 1 : 0; });
 }
 
+/* Consumo do equipamento de apoio: o informado na linha (aba Apoio) ou o da
+   máquina base. Unidade L/h (máquina: hora trabalhada) ou km/L (veículo:
+   km = horas × velocidade média, litros = km ÷ km/L). Sem unidade escolhida,
+   vale a da máquina. */
+function consumoDoApoio(a){
+  const m = consumoDe(a.maq);
+  const un = a.unC==="km" || a.unC==="h" ? a.unC : m.un;
+  return {un, lh: num(a.lh), lkm: num(a.kmL)>0 ? 1/num(a.kmL) : 0};
+}
 function apoioCalc(MP){
   const linhas = apoioLista().map(a=>{
     const E = estruturaApoio(a);
@@ -62,7 +71,9 @@ function apoioCalc(MP){
     const cf = custoDaFuncao(a.fcod, MP);
     // cada período com a sua quantidade e as suas horas; L/h × horas ou
     // L/km × (horas × velocidade média), conforme o equipamento
-    const cons = {s:litrosDe(a.maq, E.s.qtd*E.s.hmes), e:litrosDe(a.maq, E.e.qtd*E.e.hmes)};
+    const aj = consumoDoApoio(a);
+    const cons = {s:litrosDe(a.maq, E.s.qtd*E.s.hmes, null, aj), e:litrosDe(a.maq, E.e.qtd*E.e.hmes, null, aj)};
+    const c0 = cons.s;   // unidade e consumo são do equipamento: iguais nos dois períodos
     const k = i => chaveDoMes(i);
     const qtdMes   = on.map((b,i)=>b ? E[k(i)].qtd : 0);
     const horasMes = on.map((b,i)=>b ? E[k(i)].qtd*E[k(i)].hmes : 0);
@@ -81,7 +92,8 @@ function apoioCalc(MP){
             qtd: Math.max(0, ...qtdMes), qtdMes,
             horas: soma(horasMes), horasMes, diesel, manut, manutMes:Array(NM).fill(0), mdo, mdoMes, fnome:cf.nome,
             litros: soma(litrosMes), litrosMes, dieselMes,
-            consumoLh: cons.s.lh || cons.e.lh, consumoUn: cons.s.un || cons.e.un, consumoLkm: cons.s.lkm || cons.e.lkm,
+            consumoLh: c0.lh, consumoUn: c0.un, consumoLkm: c0.lkm, consumoKmL: c0.lkm>0 ? 1/c0.lkm : 0,
+            consumoVel: c0.vel, consProprio: !!c0.daAtividade,
             km: temKm ? soma(kmMes) : null, fonteKm: cons.s.fonteKm || cons.e.fonteKm,
             efetivo: Math.max(0, ...efetivoMes), efetivoMes,
             total: diesel+manut+mdo};
@@ -140,4 +152,4 @@ function frotaApoio(L){
 }
 
 
-export { PER_APOIO, ROT_PER_APOIO, apoioCalc, chaveDoMes, estruturaApoio, frotaApoio, mesesDoApoio, migrarApoio };
+export { consumoDoApoio, PER_APOIO, ROT_PER_APOIO, apoioCalc, chaveDoMes, estruturaApoio, frotaApoio, mesesDoApoio, migrarApoio };

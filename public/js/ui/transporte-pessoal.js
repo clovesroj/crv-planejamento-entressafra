@@ -6,19 +6,22 @@ import { kpi, th } from './componentes.js';
 function pintarTPess(R){
   const T = R.TP;
   const cobertura = R.efetivoTotal>0 ? T.lugares/R.efetivoTotal*100 : 0;
+  // o total do período é o mensal × os meses: o mensal aparece junto, para não
+  // ler o total da entressafra (4 meses) como se fosse o custo de um mês
   $("#k_tp").innerHTML =
-    kpi("Custo total","",brl(T.total),"","tpess:total") +
+    kpi("Custo total no ano","",brl(T.total),"safra + entressafra","tpess:total") +
     kpi("Veículos / lugares","t",fmt(T.veic)+" / "+fmt(T.lugares), "no mês de pico","tpess:total") +
-    kpi("Safra","g",brl(T.porPeriodo.safra), NM_PER.safra+" meses · "+PERIODO_MESES.safra,"tpess:total") +
+    kpi("Safra","g",brl(T.porPeriodo.safra),
+        brl(T.porMes.safra)+"/mês × "+NM_PER.safra+" meses · "+PERIODO_MESES.safra,"tpess:total") +
     kpi("Entressafra","a",brl(T.porPeriodo.entressafra),
-        NM_PER.entressafra+" meses · "+PERIODO_MESES.entressafra,"tpess:total");
+        brl(T.porMes.entressafra)+"/mês × "+NM_PER.entressafra+" meses · "+PERIODO_MESES.entressafra,"tpess:total");
 
   // Cada rota ocupa três linhas: a identificação e o preço de contrato ficam na
   // linha-mãe, e a operação — quantos veículos, quantos km, quantos dias —
   // aparece uma vez por período, porque é isso que muda entre safra e parada.
   $("#t_tp").innerHTML = th([["Rota / período"],["Veículo"],["Lugares",1],["Qtd",1],["Km/dia",1],
     ["Dias/mês",1],["R$/km",1],["Diária ônibus",1],["Km extra/mês",1],["R$/km extra",1],
-    ["Custo km",1],["Custo diárias",1],["Custo km extra",1],["Total",1],[""]])+"<tbody>"+
+    ["Custo km",1],["Custo diárias",1],["Custo km extra",1],["Total no período",1],[""]])+"<tbody>"+
     T.linhas.map((l,i)=>
       `<tr>
         <td><input data-tp="${i}" data-f="rota" value="${esc(l.rota)}" style="text-align:left;min-width:210px"></td>
@@ -78,7 +81,8 @@ function linhaPeriodo(l, i, per){
     <td class="num">${campo("kmExtra")}</td>
     <td></td>
     <td class="num calc">${brl(b.cKm)}</td><td class="num calc">${brl(b.cDiaria)}</td>
-    <td class="num calc">${brl(b.cExtra)}</td><td class="num calc">${brl(b.total)}</td>
+    <td class="num calc">${brl(b.cExtra)}</td><td class="num calc">${brl(b.total)}${b.total>0
+      ? `<div class="calc" style="font-size:10px">${brl(b.mensal)}/mês</div>` : ""}</td>
     <td></td></tr>`;
 }
 

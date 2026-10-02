@@ -1,4 +1,5 @@
 import { ADM_CRITERIOS } from '../dados/administrativo.js';
+import { parTransp } from './transporte.js';
 import { CFG } from '../dados/cfg.js';
 import { ESCALAS } from '../dados/escalas.js';
 import { CAT_LBL, MESES, NM, PERIODOS, periodoMes } from '../nucleo/calendario.js';
@@ -489,7 +490,8 @@ function apresentacao(r, un){
     const q = num(r.meses[i]);
     if(!(q > 0)) return;
     const fr = total > 0 ? q/total : 0;
-    const h  = r.rend > 0 ? q/r.rend : 0;
+    // horas do mês do motor (critério por mês incluído); sem elas, volume ÷ rendimento
+    const h  = r.horasMes ? num(r.horasMes[i]) : (r.rend > 0 ? q/r.rend : 0);
     const c  = naoDiesel*fr + (r.dieselMes[i] || 0);
     const l  = r.litrosMes[i] || 0;
     acum.q += q; acum.h += h; acum.c += c; acum.l += l;
@@ -688,11 +690,12 @@ function rastroAtividade(R, cod){
       : {rot:`${p.modo?p.modo+" · ":""}${p.maq}${p.imp&&p.imp!=="----"?" + "+p.imp:""}`,
          val:brl(p.cDiesel+p.cManut+p.cMDO),
          sub:`${fmt(p.horas)} h · ${p.consumoUn==="km"
-             ? fmt(p.km)+" km"+(p.fonteKm==="viagens"?" (viagens)":" (horas × velocidade)")+" × "+fmt(p.consumoLkm,3)+" L/km"
-             : fmt(p.consumoLh,1)+" L/h"} = ${fmt(p.litros)} L · diesel ${brl(p.cDiesel)} · MDO ${brl(p.cMDO)} · CRM ${brl(p.cManut)}`})},
+             ? fmt(p.km)+" km"+(p.fonteKm==="viagens"?" (viagens)":" (horas × velocidade)")+" ÷ "+fmt(p.consumoLkm>0?1/p.consumoLkm:0,2)+" km/L"+
+               (p.consAtividade ? (r.a.tipo==="transp" ? " (da aba Transporte)" : " (informado)") : " (da máquina)")
+             : fmt(p.consumoLh,1)+" L/h"+(p.consAtividade ? (r.a.tipo==="transp" ? " (da aba Transporte)" : " (do Cadastro de Atividades)") : " (da máquina)")} = ${fmt(p.litros)} L · diesel ${brl(p.cDiesel)} · MDO ${brl(p.cMDO)} · CRM ${brl(p.cManut)}`})},
     {titulo:"Preços e custos aplicados", linhas:[
       {rot:"Diesel", val:brl(r.cDiesel),
-       sub:`${fmt(r.litros)} L · preço médio ${r.litros>0?brl(r.cDiesel/r.litros,2):brl(P.diesel,2)}/L, ponderado pelos meses`},
+       sub:`${fmt(r.litros)} L · cada mês pelo preço do diesel do mês (médio ${r.litros>0?brl(r.cDiesel/r.litros,2):brl(P.diesel,2)}/L)`},
       {rot:"Mão de obra", val:brl(r.cMDO),
        sub:`${r.fcod} · ${r.fnome} · ${fmt(r.efetivo)} pessoas × ${fmt((r.mdoMes||[]).filter(x=>x>0).length)} meses com volume × ${
          brl((R.MP.custoFuncao[r.fcod]||{}).mensal||0)}/mês (salário, encargos e benefícios)`},
@@ -787,7 +790,9 @@ function rastroNatureza(R, nat){
       blocos:[
         {titulo:"Linhas lançadas", linhas:A.linhas.filter(l=>l.total>0).map(l=>({
           rot:l.desc, val:brl(l.total),
-          sub:`${brl(l.mensal)}/mês · rateio por ${(ADM_CRITERIOS[l.crit]||{}).nome||l.crit}`}))},
+          sub:`${brl(l.mensal)}/mês × ${l.meses.length===NM ? "12 meses" : l.meses.length+" "+(l.meses.length===1?"mês":"meses")+" ("+l.meses.map(m=>MESES[m]).join(", ")+")"} · rateio por ${(ADM_CRITERIOS[l.crit]||{}).nome||l.crit}`}))},
+        {titulo:"Mês a mês (só as linhas que ocorrem no mês)", linhas:MESES.map((m,i)=>({rot:m, val:brl(A.mes[i]),
+          ir:"mes:"+i})).filter((_,i)=>A.mes[i]>0)},
         {titulo:"Rateio entre as etapas", linhas:Object.keys(R.etapas).map(e=>({
           rot:e, val:brl(R.etapas[e].admin||0), ir:"etapa:"+e}))
           .concat(R.AD.semRateio>0?[{rot:"Sem base para rateio", val:brl(R.AD.semRateio),
@@ -1101,11 +1106,13 @@ function rastroTransbordo(R){
   const TR = R.TR;
   const blocos = ["camSafra","camMuda","trbSafra","trbMuda"].map(k=>TR[k])
     .filter(b=>b.frotaR>0).map(b=>({rot:b.nome, val:fmt(b.frotaR)+" un",
-      sub:`${fmt(b.ton)} t · ciclo de ${fmt(b.ciclo,1)} min · ${fmt(b.viagens,0)} viagens`}));
+      // o ciclo vem em horas (cicloTransporte); a etiqueta dizia "min"
+      sub:`${fmt(b.ton)} t · ${fmt(b.raio||0)} km · ciclo de ${fmt((b.ciclo||0)*60,0)} min · ${fmt(b.viagens,0)} viagens`}));
   return {titulo:"Transbordos", subtitulo:"Frota de transporte e transbordo de cana", valor:fmt(TR.frota)+" un",
     blocos:[{titulo:"Por bloco (colheita/muda × caminhão/transbordo)", linhas: blocos.length?blocos:[{rot:"Nada dimensionado", val:"—"}]}],
     premissas: premissasGerais().concat([
-      {rot:"Raio médio — safra", val:fmt(P.raioSafra)+" km"}, {rot:"Raio médio — muda", val:fmt(P.raioMuda)+" km"},
+      {rot:"Caminhão — raio médio safra / muda", val:fmt(parTransp(null).raioSafra)+" / "+fmt(parTransp(null).raioMuda)+" km"},
+      {rot:"Transbordo — distância média safra / muda", val:fmt(parTransp({modo:"transbordo"}).raioSafra)+" / "+fmt(parTransp({modo:"transbordo"}).raioMuda)+" km"},
     ])};
 }
 function rastroApoio(R){
@@ -1248,8 +1255,11 @@ function rastroForn(R){
 function rastroTPess(R){
   const TP = R.TP;
   const itens = [...TP.linhas].sort((a,b)=>b.total-a.total);
+  const per = p => ({rot:PERIODOS[p], val:brl(TP.porPeriodo[p]),
+    sub:`${brl(TP.porMes[p])}/mês × ${fmt(MESES.filter((_,i)=>periodoMes(i)===p).length)} meses · o mesmo valor em cada mês do período`});
   return {titulo:"Transporte de pessoal", subtitulo:"Rotas de ônibus/van dos colaboradores", valor:brl(TP.total),
-    blocos:[{titulo:"Por rota", linhas: itens.map(l=>({rot:l.rota, val:brl(l.total),
+    blocos:[{titulo:"Por período (custo mensal das rotas)", linhas:[per("safra"), per("entressafra")]},
+      {titulo:"Por rota", linhas: itens.map(l=>({rot:l.rota, val:brl(l.total),
       sub:`${fmt(num(l.qtd))} veíc. · ${fmt(l.lugares)} lugares · ${fmt(l.kmRota+l.kmEx)} km`}))}],
     premissas:premissasGerais()};
 }

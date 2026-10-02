@@ -13,6 +13,7 @@ import { buscarAgrofit, bulaDoProduto } from '../io/agrofit.js';
 import { salvar } from '../io/persistencia.js';
 import { MESES, NM, periodoMes } from '../nucleo/calendario.js';
 import { migrarApoio } from '../calculo/apoio.js';
+import { consumoDe } from '../calculo/consumo.js';
 import { FAT, MO_APOIO, REAL, APOIO, APOIO_FIXO, ARR_PAR, ARR_RAT, BEN, CAT_SEL, CRM, CRM_ESP, DIESEL_MES, DIM, ENC, ESPOR, FROTA, FUN_SEL, GRAT, INSUMO, INS_DEL, INSX, P, PLANO, QUADRO, TERC_TAR, TERC_SUB, TERC_DET, setTERC_DET, TPESS, TRATC, TRAT_ATIVO, TRAT_NOME, TRAT_OBS, TRAT_SEL, FORN_PAR, ADM_RAT, ADM_MESES_ABERTO, admLista, apoioLista, arrLista, atividadesLista, fornLista, insLista, matLista, tpessLista, setPERIODO_SEL, setACOMP_MES, MESES_SEL, setMESES_SEL, setCRIT_GER, setCRIT_CABE, setREF_BUSCA, setREF_AG, setREF_FAM, setREF_FROTA, setREF_PROP,
   setGR_INICIO, setGR_FIM, setGR_EMPRESA, setGR_ESP, setGR_AG, setGR_COMP, setGR_FROTA, setGR_PROP, setGR_REFORMA } from '../nucleo/estado.js';
 import { AGROFIT_BUSCA, DIM_DET, FITO_ABERTO, PLANO_ABERTO, FROTA_ABERTO, FROTA_UN, INS_EDIT, INS_FICHA, MAQ, setAGROFIT_BUSCA, setAPOIO_DET, setDIM_DET, setFROTA_DEST, setFROTA_ORIG, setINS_EDIT, setINS_FICHA } from '../nucleo/estado.js';
@@ -148,6 +149,23 @@ document.addEventListener("input",e=>{
     migrarApoio(l); const k = t.dataset.per==="e" ? "e" : "s";
     l[k][t.dataset.f==="hmes" ? "hmes" : "qtd"] = num(t.value); salvar(); leve(); return; }
   if(t.dataset.apf!==undefined){ APOIO_FIXO[t.dataset.apf]=num(t.value); salvar(); leve(); return; }
+  // parâmetro do transbordo (P.trb); vazio volta a seguir o do caminhão
+  if(t.dataset.trb!==undefined){ const m = {...(P.trb||{})}, k = t.dataset.trb;
+    if(String(t.value).trim()==="") delete m[k]; else m[k] = num(t.value);
+    P.trb = m; salvar(); leve(); return; }
+  // L/h do trator de um transbordo (P.lhTrb); vazio volta ao consumo da máquina
+  if(t.dataset.lhtrb!==undefined){ const m = {...(P.lhTrb||{})}, v = num(t.value);
+    if(v>0) m[t.dataset.lhtrb] = v; else delete m[t.dataset.lhtrb];
+    P.lhTrb = m; salvar(); leve(); return; }
+  // km/L de uma composição do transporte (P.kmLTr); vazio volta ao consumo da máquina
+  if(t.dataset.kmltr!==undefined){ const m = {...(P.kmLTr||{})}, v = num(t.value);
+    if(v>0) m[t.dataset.kmltr] = v; else delete m[t.dataset.kmltr];
+    P.kmLTr = m; salvar(); leve(); return; }
+  // consumo do equipamento de apoio, na unidade em uso (L/h ou km/L); vazio volta ao da maquina
+  if(t.dataset.apc!==undefined){ const l=apoioLista()[+t.dataset.apc]; if(!l) return;
+    const un = l.unC==="km" || l.unC==="h" ? l.unC : consumoDe(l.maq).un;
+    if(un==="km") l.kmL = num(t.value); else l.lh = num(t.value);
+    salvar(); leve(); return; }
   if(t.dataset.tt!==undefined){ TERC_TAR[t.dataset.tt]=num(t.value); salvar(); leve(); return; }
   if(t.dataset.tsub!==undefined){ const c=t.dataset.tsub, m=t.dataset.tsm, f=t.dataset.tsf;
     TERC_SUB[c]=TERC_SUB[c]||{}; TERC_SUB[c][m]=TERC_SUB[c][m]||{};
@@ -525,6 +543,10 @@ document.addEventListener("change",e=>{
     DIM[c]=DIM[c]||{}; DIM[c].turnos=t.value==="" ? null : +t.value; salvar(); render(); return; }
   if(t.dataset.esc!==undefined){ const c=t.dataset.esc;
     DIM[c]=DIM[c]||{}; DIM[c].esc=t.value; salvar(); render(); return; }
+  // unidade do consumo do equipamento de apoio: L/h (hora) ou km/L (km)
+  if(t.dataset.apu!==undefined){ const l=apoioLista()[+t.dataset.apu]; if(!l) return;
+    l.unC = t.value==="km" ? "km" : "h"; salvar(); render(); return; }
+  if(t.dataset.apc!==undefined) return;   // ja gravado no input
   if(t.dataset.ap!==undefined){ const l=apoioLista()[+t.dataset.ap];
     l[t.dataset.f] = t.value;
     salvar(); render(); return; }
@@ -850,7 +872,11 @@ document.addEventListener("click",e=>{
       salvar(); render(); return; } }
   { const atalho = e.target.closest && e.target.closest("[data-admmesatalho]");
     if(atalho){ const l=admLista()[+atalho.dataset.i];
-      l.meses = atalho.dataset.admmesatalho==="todos" ? Array.from({length:NM},(_,i)=>i) : [];
+      const qual = atalho.dataset.admmesatalho;
+      // Todos, Nenhum, ou só os meses de um período (safra: abr a nov; entressafra: dez a mar)
+      l.meses = qual==="todos" ? Array.from({length:NM},(_,i)=>i)
+        : qual==="safra" || qual==="entressafra" ? Array.from({length:NM},(_,i)=>i).filter(i=>periodoMes(i)===qual)
+        : [];
       salvar(); render(); return; } }
   if(t.dataset.arrm!==undefined){ const l=arrLista()[+t.dataset.arrm];
     if(!confirm(`Remover "${l.faz}" dos arrendamentos?`)) return;

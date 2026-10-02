@@ -1,5 +1,325 @@
 # Histórico de mudanças
 
+## 2.56.0 — 2026-10-01 · Transbordo: consumo do trator em L/h
+
+- Na tabela "Consumo de diesel por composição" da aba Transporte, o
+  **transbordo (trator) passa a ter o consumo em L/h**. O caminhão canavieiro
+  continua em km/L. Litros do transbordo = horas do ciclo (viagens × ciclo ÷
+  disponibilidade) × L/h, com o L/h informado na aba ou, em branco, o L/h da
+  máquina (Trator 4x4 230 CV: 22 L/h na base). O campo vem com o valor em uso
+  ("informado" ou "da máquina"), e apagar volta ao da máquina. O km/L que
+  tenha sido gravado para um transbordo na 2.54.0 deixa de valer.
+- A tabela ganhou a coluna **Horas** (a base do consumo do trator) e mostra a
+  unidade de cada composição (km/L ou L/h).
+- **Integração:** os litros do transbordo entram mês a mês pelo preço do
+  diesel de cada mês, em todos estes lugares:
+  - o volume e o custo da aba Combustível (na tabela por atividade, o
+    transbordo mostra o L/h);
+  - a grande conta Diesel e a conta 200-110;
+  - o custo das etapas de Colheita (CO03) e Plantio (PL03);
+  - o rastro da atividade ("h × L/h (da aba Transporte)").
+- **Servidor:** o L/h dos transbordos (premissa `lhTrb`) é gravado por quem
+  edita a aba Transporte.
+- **Auditoria:** a conferência do transporte passa a ser "litros = km ÷ km/L
+  (caminhão) ou horas × L/h (transbordo)".
+
+**Validação:** sem L/h informado, os totais ficam idênticos aos da 2.55.0 (o
+trator já consumia pelo L/h da máquina). Com o transbordo de colheita a
+18 L/h, os litros saem horas × 18, e o diesel total, a grande conta, a conta
+200-110 e o diesel da etapa Colheita fecham. 63 conferências sem falha; 33
+abas, 506 rastros e 138 relatórios sem erro.
+
+## 2.55.0 — 2026-10-01 · Transporte: parâmetros separados de caminhões e transbordos
+
+A aba Transporte tinha um só bloco de parâmetros para o caminhão canavieiro e
+para o transbordo: a mesma velocidade, o mesmo tempo de carga e descarga, a
+mesma jornada, a mesma disponibilidade e o **mesmo raio médio (18 km)**. O
+transbordo anda dentro da lavoura, da colhedora até o caminhão, por bem menos
+km e mais devagar. Com o raio do caminhão, a frota, as horas e o diesel do
+transbordo saíam muito maiores.
+
+- **Caminhões canavieiros (transporte)** (CO02, PL02), painel próprio:
+  capacidade por viagem (t), velocidade carregado e vazio, tempo de carga e de
+  descarga, horas de operação/dia, disponibilidade e raio médio de safra e de
+  muda. A **capacidade do caminhão** (60 t) era usada na conta mas não
+  aparecia na tela; agora é editável.
+- **Transbordos (tratores)** (CO03, PL03), painel próprio: densidade de carga e
+  volume útil (capacidade = volume × densidade), velocidade carregado e vazio,
+  tempo de carga e de descarga, horas de operação/dia, disponibilidade e
+  distância média de safra e de muda.
+- O campo do transbordo que ainda não foi preenchido **segue o valor do
+  caminhão** ("igual ao caminhão"). Plano gravado antes desta versão não muda
+  número nenhum até alguém preencher. Apagar o campo volta a seguir o
+  caminhão.
+- Cada composição roda com os seus parâmetros em todo o motor: ciclo, viagens,
+  km, horas, frota, jornada e disponibilidade do Dimensionamento e do critério
+  por mês, diesel e custo.
+- A tabela do Transporte ganhou a coluna "Distância (km)" e o tipo de cada
+  linha (caminhão canavieiro ou transbordo).
+- Sai da tela o campo **"Manutenção (R$/h)"**, que não entrava em conta
+  nenhuma: a manutenção do transporte vem da aba Manutenção de Frota.
+- Rastro e relatório mostram os parâmetros dos dois. **Correção:** o rastro
+  dos transbordos dizia "ciclo de 1,9 min" para um ciclo de 1,9 hora; agora
+  mostra em minutos, com a distância.
+- Validação: "Velocidades do transbordo preenchidas".
+- **Servidor:** a capacidade do caminhão (`capCam`) e os parâmetros do
+  transbordo (`trb`) são gravados por quem edita a aba Transporte.
+
+**Validação:** sem parâmetro próprio do transbordo, os totais ficam idênticos
+aos da 2.54.0. Com o transbordo a 3 km e 12 km/h carregado, só o transbordo
+muda (no cenário de teste, a frota de transbordos da colheita foi de 119 para
+61) e o caminhão fica igual. 63 conferências sem falha; 33 abas, 506 rastros e
+138 relatórios sem erro.
+
+## 2.54.0 — 2026-10-01 · Transporte: consumo em km/L por composição
+
+- **O campo "Consumo do conjunto (L/h)" da aba Transporte não entrava em
+  conta nenhuma.** O diesel do transporte sempre saiu do consumo cadastrado
+  de cada máquina (caminhão e trator do transbordo, aba Combustível). O campo
+  sai da tela.
+- **Tabela nova "Consumo de diesel por composição (km/L)":** caminhão de
+  colheita, caminhão de muda, transbordo de colheita e transbordo de muda,
+  cada um com:
+  - a composição (máquina + implemento);
+  - os km rodados (viagens × ida carregado e volta vazio do raio médio);
+  - o consumo em **km/L**, editável;
+  - os litros, o L/t, o diesel em R$ e a participação no diesel total;
+  - um total do transporte.
+
+  O campo de km/L vem com o valor em uso ("informado" ou "da máquina", o
+  km/L que sai do consumo dela). Apagar volta ao da máquina.
+- **Conta:** litros = km ÷ km/L, distribuídos nos meses pela tonelagem
+  transportada e custeados pelo preço do diesel de cada mês. Entram no volume
+  e no custo da aba Combustível (na tabela por atividade, o transporte mostra
+  o km/L), na grande conta Diesel, na conta 200-110 e no custo das etapas de
+  Colheita e Plantio. No rastro da atividade aparece "km ÷ km/L (da aba
+  Transporte)".
+- **Servidor:** o km/L das composições (premissa `kmLTr`) é gravado por quem
+  edita a aba Transporte.
+- **Auditoria:**
+  - o cenário de teste ainda usava os códigos antigos de colheita e muda
+    (A01/A02), e a colheita, a muda e o transporte ficavam sem volume e fora
+    da conferência; corrigido;
+  - a conferência "diesel dos blocos = diesel das atividades de transporte"
+    procurava pelos códigos antigos TR1–TR4 e comparava zero com zero;
+    corrigida;
+  - nova: litros de cada composição = km ÷ km/L.
+
+**Validação:** caminhão de colheita a 1,6 km/L e transbordo de colheita a
+2,5 km/L: litros, diesel mês a mês, grande conta Diesel e conta 200-110
+batem com km ÷ km/L. Sem km/L informado, os totais ficam idênticos aos da
+2.53.0. 63 conferências sem falha; 33 abas, 506 rastros e 138 relatórios sem
+erro.
+
+## 2.53.0 — 2026-10-01 · Consumo de diesel editável em cada equipamento de apoio
+
+- **Aba Apoio, coluna "Consumo":** cada equipamento tem o seu consumo, em
+  **L/h** (máquina: pá carregadeira, motoniveladora, escavadeira) ou em
+  **km/L** (veículo: caminhão, veículo leve). A unidade se escolhe na própria
+  célula. O campo vem com o número em uso, e abaixo dele aparece a origem:
+  "da máquina" (o consumo da máquina base) ou "do equipamento" (o digitado
+  ali). Apagar volta ao da máquina. O consumo vale nos dois períodos (safra e
+  entressafra).
+- **Conta em km/L:** km = horas × velocidade média (a da máquina ou a média do
+  transporte, mostrada na célula) e litros = km ÷ km/L. Ao trocar de L/h
+  para km/L, o campo começa no equivalente do consumo da máquina, e os litros
+  só mudam quando se digita o km/L real.
+- **Integração:** os litros de cada equipamento entram mês a mês, nos meses
+  em que ele trabalha, com o custo pelo preço do diesel de cada mês, em todos
+  estes lugares:
+  - o volume e o custo de diesel da aba Combustível (linha "equipamentos de
+    apoio" e total);
+  - a grande conta Diesel e a conta 200-110;
+  - o custo do apoio;
+  - o rateio do diesel do apoio entre as etapas (pelos litros das atividades).
+- O relatório do Apoio traz a coluna Consumo. Na tabela de equipamentos da
+  aba Combustível, a máquina usada com consumo próprio fica marcada.
+- **Auditoria:** duas conferências novas:
+  - litros do apoio = horas × L/h ou km × L/km;
+  - custo do mês = litros do mês × preço do mês.
+  São 62 conferências.
+
+**Validação:** caminhão bombeiro a 22 L/h (era o da máquina, 18) e veículo
+leve a 9 km/L: litros, diesel total, grande conta e conta 200-110 batem com a
+conta à mão. 62 conferências sem falha; 33 abas, 505 rastros e 138 relatórios
+sem erro. Equipamento sem consumo próprio: nenhum número muda.
+
+## 2.52.1 — 2026-10-01 · Consumo de diesel editável à vista no Cadastro de Atividades
+
+- O campo "Consumo diesel (L/h)" mostrava o consumo da máquina como sugestão
+  (texto cinza do placeholder) e parecia calculado e travado. Agora ele vem
+  com o número em uso, em texto normal como os outros campos da linha, e
+  basta digitar por cima.
+- Abaixo do campo, a origem: "da máquina" enquanto vale o da aba Combustível,
+  "da atividade" depois de alterado, junto com o L/ha (ou L/t), que se
+  atualiza enquanto se digita.
+- Apagar o campo volta ao consumo da máquina. A alteração grava em "Salvar
+  alterações", como o resto do cadastro.
+
+## 2.52.0 — 2026-10-01 · Consumo de diesel por atividade e por mês de execução
+
+- **Cadastro de Atividades, coluna "Consumo diesel (L/h)":** é o consumo do
+  conjunto (máquina + implemento). O mesmo trator puxando uma grade pesada ou
+  um distribuidor consome valores bem diferentes. Em branco, vale o consumo da
+  máquina (aba Combustível / Manutenção de Frota), que aparece como sugestão.
+  Abaixo do campo aparece o consumo por unidade (L/ha, L/t = consumo ÷
+  rendimento). No transporte o diesel continua saindo das viagens (km × L/km
+  do veículo). Na atividade "junto" de outra, o diesel é o da outra.
+- **Diesel calculado por atividade e por mês de execução:**
+  - horas de cada mês = volume do mês ÷ rendimento, ou o critério por mês do
+    Dimensionamento;
+  - litros de cada mês = horas do mês × consumo;
+  - custo de cada mês = litros do mês × preço do diesel daquele mês.
+  - Antes, os litros iam aos meses pela fração do volume, mesmo quando o
+    rendimento do mês era outro, e o custo era litros × um preço médio. Com
+    preço e rendimento iguais em todos os meses, os números não mudam.
+- **Correção:** com mix de modos e critério por mês ao mesmo tempo, cada
+  frente própria contava as horas do volume inteiro do mês, e não só a sua
+  parte. As horas e o diesel saíam multiplicados.
+- **Aba Combustível, nova tabela "Diesel por atividade e mês de execução":**
+  - cada atividade com máquina, consumo (do cadastro ou da máquina), litros
+    por unidade e litros de cada mês, mais o total e o custo do período;
+  - a linha dos equipamentos de apoio;
+  - o total, que é o "Volume de diesel necessário".
+  - A tabela de equipamentos marca a máquina usada por alguma atividade com
+    consumo próprio.
+- **Relatórios:** a mesma tabela como seção "Diesel por atividade e mês de
+  execução", recortada pelo período, nos orçamentos de Colheita, Logística e
+  Frota e no anual detalhado.
+- **Rastro da atividade:** o consumo diz se vem do Cadastro de Atividades ou da
+  máquina. As horas do mês, no detalhamento mês a mês, são as do motor
+  (critério por mês incluído).
+- **Integração conferida:** o diesel das atividades e do apoio fecha com a
+  grande conta Diesel mês a mês, com a conta 200-110, com o custo das etapas e
+  com o custo operacional. A auditoria ganhou cinco conferências:
+  - grande conta Diesel = diesel;
+  - conta 200-110 = diesel;
+  - custo do mês = litros do mês × preço do mês;
+  - soma das horas do mês = horas;
+  - litros = horas × L/h.
+
+**Validação:** 60 conferências sem falha, no cenário padrão e no do mix.
+Também conferido com o preço variando por mês e o rendimento de janeiro pela
+metade: horas, litros e custo de cada mês batem com a conta à mão. 33 abas,
+505 rastros e 138 relatórios sem erro. Plano sem consumo próprio, sem
+critério por mês e com preço único: nenhum número muda.
+
+## 2.51.0 — 2026-10-01 · O Cadastro de Atividades manda no dimensionamento
+
+**O erro:** no Dimensionamento, as gradagens e a subsolagem (PS02 a PS07)
+apareciam a **2,20 ha/h** com um **Trator 4x4 150 CV**. No Cadastro de
+Atividades, elas estão a 0,7 ha/h (0,5 na subsolagem) com o Trator 4x4 230 CV
+e a grade. A causa: quando a atividade tem divisão por modo de execução no
+Plano Operacional (o "mix": Manual, Trator, Uniport, Drone, Terceiro), cada
+frente pegava os parâmetros **genéricos do modo**, e o modo "Trator" é um
+trator 150 CV com tanque de pulverização a 2,2 ha/h. Com três vezes menos
+horas, a frota, o diesel, a mão de obra e o **custo por hectare** saíam
+menores do que a operação real. Além disso, o detalhe do Dimensionamento
+tinha um "rendimento padrão" e uma "utilização" próprios, que se sobrepunham
+ao cadastro sem mostrar que o cadastro estava sendo ignorado.
+
+- **A frente que é a máquina do cadastro roda com os parâmetros do
+  cadastro:** rendimento, máquina, implemento, operadores e turnos, e a
+  função da atividade. O modo do cadastro sai pelo nome da máquina (Uniport,
+  Drone, Quadriciclo, Trator, equipe manual). Com uma máquina que não é de
+  nenhum modo (escavadeira, colhedora...), vale o único modo próprio do mix.
+  Os outros modos são outro jeito de fazer a operação (o drone numa atividade
+  de Uniport, o terceiro) e seguem com os parâmetros do modo.
+- **Sem mix:** o rendimento e a utilização são sempre os do cadastro. O
+  "rendimento padrão" e a "utilização" do detalhe do Dimensionamento deixam
+  de valer e viram leitura ("Rendimento do cadastro", "Utilização do
+  cadastro"), com o aviso de que se editam no Cadastro de Atividades. Os
+  valores que tinham sido digitados ali ficam guardados, mas não entram mais
+  na conta.
+- **Continuam valendo, como exceção à vista:** o critério por mês (botão
+  "mês", o mês que foge do rendimento do cadastro) e a frota fixada. Quando o
+  rendimento da atividade difere do cadastro, a tabela do Dimensionamento
+  mostra o do cadastro ao lado ("cad. 1,65") e a dica explica o motivo.
+- **Rendimento mostrado no Dimensionamento = o da frota própria** (área das
+  frentes próprias ÷ horas delas). Antes, com terceiro no mix, a área do
+  terceiro entrava sem as horas e o rendimento saía maior que o de qualquer
+  máquina (Dessecação a 3,28 ha/h com Uniport a 3,5 e drone a 1,5).
+- **Plano Operacional:** a dica de cada modo do mix diz com que máquina e
+  rendimento ele roda naquela atividade, e se vem do cadastro ou do padrão
+  do modo.
+- **Validação:** "rendimento zerado" e "utilização fora de 0–100%" levam ao
+  Cadastro de Atividades, que é onde se corrigem.
+
+**Efeito, no cenário de teste com o mix do print:** PS02 de 2,20 para
+0,70 ha/h (663 h para 2.084 h; custo por ha de R$ 886 para R$ 1.195); PS07
+de 2,20 para 0,50 ha/h (custo por ha de R$ 565 para R$ 1.009). PS01
+(Uniport 60% + Drone 20% + Terceiro 20%): Uniport com o 1,65 ha/h do
+cadastro, e não mais o 3,5 do modo. Plano sem mix e sem ajuste no
+Dimensionamento: nenhum número muda.
+
+**Validação:** 55 conferências sem falha, no cenário padrão e no do mix; 33
+abas, rastros e 138 relatórios sem erro.
+
+## 2.50.10 — 2026-09-29 · Custos administrativos só nos meses de cada linha
+
+**O erro:** desde 0456075, cada linha de custo administrativo pode ter os
+seus meses (coluna "Meses"), e o total da aba já respeitava isso. O motor,
+porém, lançava em **todos os 12 meses** a soma do R$/mês de todas as linhas.
+Uma linha marcada só para a entressafra aparecia também em cada mês da safra,
+o custo mensal da safra ficava inflado, e o custo total do plano passava do
+total da aba (uma linha de R$ 420.000/mês marcada de dez a mar entrava como
+R$ 5.040.000 no plano, em vez de R$ 1.680.000).
+
+- **Motor:** o custo administrativo de cada mês é a soma só das linhas que
+  ocorrem naquele mês. O custo fixo do mês fica depreciação + essas linhas, e
+  o custo fixo do ano, depreciação + total das linhas + arrendamento. Linha
+  sem mês marcado continua valendo os 12 meses, então plano que não usa a
+  coluna "Meses" não muda.
+- **Atalhos Safra e Entressafra** no seletor de meses de cada linha (ao lado
+  de Todos e Nenhum), para apropriar a linha só aos meses do período.
+- **Tela:** quando alguma linha não ocorre o ano inteiro, o cartão "Por mês"
+  mostra a faixa do mês mais barato ao mais caro. As Premissas e o relatório
+  passam a mostrar o total do ano.
+- **Rastro** da Administração: cada linha diz em quais meses ocorre, e há um
+  bloco novo mês a mês. A origem da grande conta "Fixos" traz o critério
+  "nos meses marcados em cada linha".
+- **Relatório de Administração por período:** o total de cada linha é o
+  valor dos meses do período em que ela ocorre. Antes era o total do ano ×
+  a fração de meses do período, e uma linha só da entressafra aparecia no
+  relatório da safra.
+
+**Validação:** com linhas marcadas só na entressafra, a safra fica só com a
+depreciação e cada mês da entressafra soma as linhas. O total do plano é a
+soma dos 12 meses. A auditoria ganhou duas conferências (administrativo = soma
+mês a mês; fixo = depreciação + administrativo + arrendamento): 55 sem falha.
+33 abas, 505 rastros e 138 relatórios sem erro. Sem a coluna "Meses" em uso,
+totais sem mudança.
+
+## 2.50.9 — 2026-09-29 · Transporte de pessoal: o custo mensal das rotas em cada mês
+
+**O erro:** nas grandes contas por mês, o transporte de pessoal da
+entressafra (R$ 815.200) era repartido entre os meses pela área operada:
+R$ 417.778 em dezembro, R$ 206.850 em janeiro, R$ 114.068 em fevereiro e
+R$ 76.504 em março. As rotas rodam igual em todo mês do período (os mesmos
+ônibus, os mesmos dias e as mesmas diárias), então o custo de cada mês é o
+mensal das rotas.
+
+- **Motor:** cada mês recebe o custo mensal das rotas do seu período. Na
+  entressafra, são R$ 203.800 em cada mês de dezembro a março; na safra, o
+  mensal da safra em cada mês de abril a novembro. O total do ano não muda
+  (R$ 815.200 = R$ 203.800/mês × 4 meses). Mudam o custo de cada mês, o
+  gráfico mensal, as grandes contas por mês e o recorte por meses.
+- **Como o total se forma, pela Rota 1:** 5 ônibus × 30 dias × R$ 400 de
+  diária = R$ 60.000/mês, e × 4 meses = R$ 240.000 na entressafra.
+- **Tela Transporte de Pessoal:** os cartões de Safra e Entressafra mostram
+  o mensal ("R$ 203.800/mês × 4 meses"), e o total do período de cada rota
+  traz o valor por mês logo abaixo. A coluna passa a se chamar "Total no
+  período" e o cartão, "Custo total no ano".
+- **Rastro** do transporte de pessoal: novo bloco por período, com o custo
+  mensal. A origem da grande conta passa a dizer "o custo mensal das rotas
+  em cada mês do período", não mais "pela área operada".
+- Nota da tabela "Grandes contas por mês" atualizada com o critério de cada
+  custo indireto.
+
+**Validação:** 54 conferências sem falha (mês a mês, as grandes contas
+continuam fechando com o custo do mês); 33 abas, 505 rastros e 138
+relatórios sem erro. Total do ano sem mudança.
+
 ## 2.50.8 — 2026-09-28 · Estoque de insumos zerado
 
 - **Botão "Zerar estoque"** no Cadastro de Insumos. Ele põe em zero o

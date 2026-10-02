@@ -3,8 +3,8 @@ import { P } from '../nucleo/estado.js';
 import { $, fmt, num } from '../nucleo/formato.js';
 
 const CAMPOS = ["dens","tch","plantio","haTratosPlanta","haTratosSoca","haColheita","tonColheita","arr_ha","hdia","disp","efic","dias","diasOper","diasTrab","hTurno",
-"diesel","arr","imob","dep","ipreco","densCarga","volTransb","velC","velV","tCarga",
-"tDesc","hDiaTr","dispTr","consTr","manutTr","raioSafra","raioMuda","perdaCarga","desnivel","rendBomba",
+"diesel","arr","imob","dep","ipreco","densCarga","volTransb","capCam","velC","velV","tCarga",
+"tDesc","hDiaTr","dispTr","raioSafra","raioMuda","perdaCarga","desnivel","rendBomba",
 "kwh","fonte","tercAereaTar","tercSistTar","tercSistHa","tercOutros"];
 
 function pintarPremissas(){ CAMPOS.forEach(k=>{const e=$("#p_"+k); if(e) e.value=P[k];}); }

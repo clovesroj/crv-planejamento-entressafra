@@ -8,7 +8,7 @@ import { DIM, P, PLANO, REAL, TERC_SUB, TERC_TAR, atividadesLista } from '../nuc
 import { num, pct } from '../nucleo/formato.js';
 import { precoDiesel } from './diesel.js';
 import { tratCusto } from './insumos.js';
-import { cicloTransporte } from './transporte.js';
+import { cicloTransporte, parTransp } from './transporte.js';
 import { custoDaFuncao } from './mao-de-obra.js';
 
 
@@ -45,6 +45,42 @@ function tarifaTercDe(cod){
 // junto de outra atividade (A39 e A19 na plantadora), a maquina e a dela: sem modo proprio
 const modoLiberado = a => a.tipo !== "transp" && !a.junto;
 function modosDe(a){ return MODOS_ORD; }
+
+/* O CADASTRO DE ATIVIDADES MANDA no rendimento, na máquina, no implemento,
+   nos operadores e nos turnos da frente própria.
+
+   Com o mix de modos (Plano Operacional), cada frente pegava os parâmetros
+   GENÉRICOS do modo (dados/modos.js): o "Trator" é um trator 150 CV com tanque
+   de pulverização a 2,2 ha/h. A gradagem com mix "Trator" passava a ser
+   dimensionada com esse trator e esse rendimento, e não com a grade do
+   cadastro (Trator 230 CV, 0,7 ha/h): três vezes menos horas, frota e custo
+   por hectare menores do que a operação real.
+
+   O modo que É a máquina do cadastro sai pelo nome da máquina (Uniport, Drone,
+   Quadriciclo, Trator, equipe manual). Máquina que não é de nenhum modo
+   (grade sem trator no nome, escavadeira, colhedora...) com um modo próprio
+   só no mix: é ela que executa. Os outros modos são outro jeito de fazer a
+   operação (o drone numa atividade de Uniport, o terceiro) e seguem com os
+   parâmetros do modo. */
+const MODO_POR_MAQUINA = [["Uniport",/uniport/i], ["Drone",/drone/i], ["Quadriciclo",/quadriciclo/i],
+                          ["Trator",/trator/i], ["Manual",/manual|costal|equipe/i]];
+function modoDoCadastro(a, M){
+  const porNome = MODO_POR_MAQUINA.find(([,re])=>re.test(a.maq||""));
+  if(porNome) return porNome[0];
+  const proprios = M ? modosDe(a).filter(m=>num(M.mx[m])>0 && !(CFG.modos[m]||{}).terc) : [];
+  return proprios.length===1 ? proprios[0] : null;
+}
+/** Parâmetros de uma frente do mix: os do cadastro da atividade, se o modo é a
+    máquina dela; senão, os do modo (com o ajuste da atividade, modoCfg). */
+function paramsDoModo(a, m, M){
+  const MO = {...CFG.modos[m], ...((a.modoCfg||{})[m]||{})};
+  if(MO.terc || m!==modoDoCadastro(a, M)) return {...MO, doCadastro:false};
+  return {...MO, maq:a.maq, imp:a.imp,
+          rend: num(a.rend)>0 ? num(a.rend) : num(MO.rend),
+          ops: num(a.ops)>0 ? num(a.ops) : MO.ops, turnos: num(a.turnos)>0 ? num(a.turnos) : MO.turnos,
+          // a função da atividade, como sem mix; o ajuste da atividade (modoCfg) manda
+          fcod: ((a.modoCfg||{})[m]||{}).fcod || CFG.func_at[a.nome] || MO.fcod, doCadastro:true};
+}
 
 // divisão da área entre modos de aplicação. Sem mix definido, roda 100% no padrão.
 function mixDe(a, p){
@@ -151,9 +187,11 @@ function eficPadrao(){
    geral: chuva e espera atrasam caminhao como atrasam colhedora. */
 function premissasDe(a){
   const transp = !!(a && a.tipo === "transp");
+  // caminhão e transbordo com jornada e disponibilidade próprias (parTransp)
+  const par = transp ? parTransp(a) : null;
   return {transp,
-          hDia: num(transp ? P.hDiaTr : P.hdia),
-          disp: num(transp ? P.dispTr : P.disp)/100,
+          hDia: num(transp ? par.hDia : P.hdia),
+          disp: num(transp ? par.disp : P.disp)/100,
           efic: eficPadrao()};
 }
 
@@ -403,7 +441,9 @@ function linha(a, MP){
      so. Sem ajuste, vale o do cadastro -- e o plano de quem nunca mexeu aqui
      nao muda em nada. */
   const opsOv = num((DIM[a.cod]||{}).ops);
-  const util = d.util!=null ? num(d.util) : a.util;
+  // utilização do cadastro da atividade (a do Dimensionamento, DIM.util, deixou
+  // de valer: eram dois lugares para o mesmo número, e o do cadastro era ignorado)
+  const util = a.util!=null && a.util!=="" ? num(a.util) : 0.8;
   const ehHa = a.un.indexOf("ha")===0;
   // ton por enquanto e a unica outra base fisica reconhecida nos totais do
   // plano (ha operados / toneladas); unidade nova que nao for nenhuma das
@@ -419,27 +459,30 @@ function linha(a, MP){
   let frentes;
   if(M){
     frentes = modosDe(a).filter(m=>num(M.mx[m])>0).map(m=>{
-      // modoCfg deixa a atividade ajustar maquina, implemento, rendimento ou funcao do modo
-      const MO = {...CFG.modos[m], ...((a.modoCfg||{})[m]||{})};
+      // o modo que é a máquina do cadastro roda com os parâmetros do cadastro
+      const MO = paramsDoModo(a, m, M);
       return {modo:m, pct:num(M.mx[m])/M.soma, maq:MO.maq, imp:MO.imp,
-              rend:MO.rend, ops:MO.ops, turnos:MO.turnos, fcodPad:MO.fcod, terc:!!MO.terc};
+              rend:num(MO.rend), ops:MO.ops, turnos:MO.turnos, fcodPad:MO.fcod, terc:!!MO.terc,
+              doCadastro:MO.doCadastro, cons: MO.doCadastro ? num(a.cons) : 0};
     });
   }else{
-    frentes = [{modo:"", pct:1, maq:a.maq, imp:a.imp,
-                rend: d.rend!=null?num(d.rend):a.rend,
+    // rendimento do cadastro (o "rendimento padrão" do Dimensionamento, DIM.rend,
+    // deixou de valer); o mês que foge dele continua no critério por mês
+    frentes = [{modo:"", pct:1, maq:a.maq, imp:a.imp, doCadastro:true, cons: num(a.cons),
+                rend: num(a.rend),
                 rendM: Array.isArray(d.rendM) && d.rendM.some(v=>num(v)>0) ? d.rendM : null,
                 ops:a.ops, turnos:a.turnos, fcodPad:null}];
   }
 
   const fcod = p.fcod || (frentes[0].fcodPad) || CFG.func_at[a.nome] || "596";
 
-  // fração de cada mês na quantidade da atividade: distribui litros e aplica o preço do mês
+  // fração de cada mês na quantidade da atividade (as horas sem critério por mês seguem o volume)
   const fracMes = total>0 ? meses.map(q=>num(q)/total) : Array(NM).fill(0);
-  const precoMed = fracMes.reduce((s,fr,i)=>s+fr*precoDiesel(i),0);
+  const zerosMes = () => Array(NM).fill(0);
 
   const partes = junto ? [{...frentes[0], area:total, horas:0, capMes:0, frota:0, frotaR:0, litros:0,
       fcod:"—", fnome:"Na "+junto, cDiesel:0, cManut:0, cMDO:0, mdoMes:Array(NM).fill(0), cTerc:0,
-      efetivo:0, direto:0}]
+      horasMes:zerosMes(), litrosMes:zerosMes(), dieselMes:zerosMes(), efetivo:0, direto:0}]
   : frentes.map(f=>{
     const area = total*f.pct;
     if(f.terc){
@@ -450,9 +493,10 @@ function linha(a, MP){
       const cTerc = area * tarifaTercDe(a.cod);
       return {...f, area, horas:0, capMes:0, frota:0, frotaR:0, litros:0,
               fcod:"—", fnome:"Prestador", cDiesel:0, cManut:0, cMDO:0, mdoMes:Array(NM).fill(0), cTerc,
-              efetivo:0, direto:cTerc};
+              horasMes:zerosMes(), litrosMes:zerosMes(), dieselMes:zerosMes(), efetivo:0, direto:cTerc};
     }
     let horas, frota;
+    let horasMesCrit = null; // horas de cada mês, quando o critério varia por mês
     let kmViagens = null;   // distância rodada, quando o trabalho a conhece
     /* Capacidade de UM equipamento no mes, a mesma conta para todo mundo:
        dias efetivos x jornada x disponibilidade x utilizacao x eficiencia.
@@ -464,27 +508,33 @@ function linha(a, MP){
        do caminhao como ja encolhia o da colhedora. */
     const capMes = num(P.dias) * pr.hDia * pr.disp * pr.efic * util;
     if(a.tipo==="transp"){
-      const raio = a.src==="PL01" ? P.raioMuda : P.raioSafra;   // PL01 = Colheita muda (antigo A02)
-      const ciclo = cicloTransporte(raio);
-      const cap = a.modo==="caminhao" ? P.capCam : P.capTransb;
+      // caminhão canavieiro ou transbordo, cada um com os seus parâmetros
+      const par = parTransp(a);
+      const raio = par.raioDe(a.src);
+      const ciclo = cicloTransporte(raio, par);
+      const cap = par.cap;
       const viagens = cap>0 ? area/cap : 0;
       // cada viagem vai carregada e volta vazia: duas vezes o raio
       kmViagens = viagens*2*num(raio);
-      horas = P.dispTr>0 ? viagens*ciclo/(P.dispTr/100) : 0;
+      horas = par.disp>0 ? viagens*ciclo/(par.disp/100) : 0;
     }else if(f.rendM || mensal){
       // criterio varia por mes: soma as horas mes a mes em vez de dividir o total
       // por um rendimento so — mes sem valor proprio usa o padrao (f.rend)
-      horas = meses.reduce((s,q,i)=>{
-        const qq = num(q);
-        if(!(qq>0)) return s;      // mes sem volume nao consome hora nenhuma
+      // guardadas mês a mês: o diesel do mês sai das horas do mês. Com mix, cada
+      // frente faz a sua parte do volume do mês (pct) -- antes cada uma contava
+      // o mês inteiro e as horas saíam multiplicadas pelo número de frentes
+      horasMesCrit = meses.map((q,i)=>{
+        const qq = num(q)*f.pct;
+        if(!(qq>0)) return 0;      // mes sem volume nao consome hora nenhuma
         const c = criterioDoMes(a.cod, i, util, pr);
         // frota fixada no mes: as horas sao a capacidade dela, e o rendimento do
         // mes passa a ser o que fecha a conta (a inversao do Dimensionamento,
         // aplicada mes a mes)
-        if(c.frota>0) return s + c.frota * diasDoMes(i, jan).efetivos * pr.hDia * c.disp * c.util * c.efic;
+        if(c.frota>0) return c.frota * diasDoMes(i, jan).efetivos * pr.hDia * c.disp * c.util * c.efic;
         const rendEf = c.rend>0 ? c.rend : f.rend;
-        return s + (rendEf>0 ? qq/rendEf : 0);
-      }, 0);
+        return rendEf>0 ? qq/rendEf : 0;
+      });
+      horas = horasMesCrit.reduce((s,x)=>s+x, 0);
     }else{
       horas = f.rend>0 ? area/f.rend : 0;
     }
@@ -508,10 +558,32 @@ function linha(a, MP){
     // a função segue o modo, salvo se o usuário tiver fixado uma função na atividade
     const fc = p.fcod ? fcod : (f.fcodPad || fcod);
     const cf = custoDaFuncao(fc, MP);
-    // L/h × horas ou L/km × km, conforme o equipamento (calculo/consumo.js)
-    const cons    = litrosDe(f.maq, horas, kmViagens);
+    /* Diesel da frente, mês a mês de execução:
+         litros = horas × L/h (ou km × L/km), com o L/h do Cadastro de
+                  Atividades quando informado e, sem ele, o da máquina;
+         litros do mês = os litros pelas horas do mês (o critério por mês muda
+                  a hora do mês, não só o volume);
+         custo do mês = litros do mês × preço do diesel do mês (aba Combustível).
+       Antes o custo era litros × preço médio ponderado pelo volume, e os litros
+       iam aos meses pela fração do volume mesmo quando o rendimento do mês era
+       outro. */
+    const horasMes = horasMesCrit && rendAlvo==null ? horasMesCrit : fracMes.map(fr=>horas*fr);
+    /* Consumo da frente:
+         caminhão canavieiro -- km/L da aba Transporte (P.kmLTr) sobre o da
+           máquina, com os km das viagens;
+         transbordo (trator) -- SEMPRE por hora: o L/h da aba Transporte
+           (P.lhTrb) ou, vazio, o L/h da máquina, × as horas do ciclo;
+         demais atividades -- o L/h do Cadastro de Atividades. */
+    const ehTrb   = a.tipo==="transp" && a.modo==="transbordo";
+    const kmLTr   = a.tipo==="transp" && !ehTrb ? num((P.kmLTr||{})[a.cod]) : 0;
+    const ajuste  = ehTrb ? {un:"h", lh: num((P.lhTrb||{})[a.cod])}
+                  : kmLTr>0 ? {un:"km", lkm:1/kmLTr}
+                  : (a.tipo!=="transp" && f.doCadastro ? num(f.cons) : 0);
+    const cons    = litrosDe(f.maq, horas, kmViagens, ajuste);
     const litros  = cons.litros;
-    const cDiesel = litros*precoMed;
+    const litrosMes = horasMes.map((h,i)=> horas>0 ? litros*h/horas : litros*fracMes[i]);
+    const dieselMes = litrosMes.map((l,i)=>l*precoDiesel(i));
+    const cDiesel = dieselMes.reduce((s,x)=>s+x, 0);
     const cManut  = 0;   // alocado adiante, a partir do CRM da frota prevista
     /* Mão de obra pelo efetivo, mês cheio: a equipe da frente (frota ×
        operadores × turnos × fator de escala) é paga o mês inteiro em todo mês
@@ -524,6 +596,7 @@ function linha(a, MP){
     const mdoMes  = meses.map(q => num(q)>0 ? efetivo*cf.mensal : 0);
     const cMDO    = mdoMes.reduce((s,x)=>s+x, 0);
     return {...f, area, horas, capMes, frota, frotaR:Math.ceil(frota), cTerc:0, litros, consumoLh:cons.lh,
+            horasMes, litrosMes, dieselMes, consAtividade: !!cons.daAtividade,
             consumoUn:cons.un, consumoLkm:cons.lkm, km:cons.km, fonteKm:cons.fonteKm,
             rend: rendAlvo!=null ? rendAlvo : f.rend, rendAlvo,
             fcod:fc, fnome:cf.nome, cDiesel, cManut, cMDO, mdoMes, custoMensal:cf.mensal,
@@ -551,9 +624,17 @@ function linha(a, MP){
   }else{
     cInsumo = (t && ehHa) ? total*t : 0;
   }
-  const rendMed = soma("horas")>0 ? total/soma("horas") : (frentes[0].rend||0);
+  // sem hora própria (tudo com terceiro): o rendimento é o da frente própria ou o do cadastro
+  const propria = partes.find(x=>!x.terc);
+  const rendMed = soma("horas")>0 ? total/soma("horas") : ((propria && propria.rend) || num(a.rend) || 0);
 
-  return {a, meses, total, rend:rendMed, junto,
+  /* Rendimento da frota própria: a área que ela faz ÷ as horas dela. O `rend`
+     acima é a área TOTAL por hora própria (fecha com as horas mês a mês do
+     rastro), e com terceiro no mix ficava maior que o de qualquer máquina. É
+     este que se compara com o cadastro. */
+  const areaPropria = partes.filter(x=>!x.terc).reduce((s,x)=>s+x.area,0);
+  const rendProprio = soma("horas")>0 ? areaPropria/soma("horas") : rendMed;
+  return {a, meses, total, rend:rendMed, rendProprio, junto, rendCadastro: num(a.rend),
           frotaAlvo: frotaAlvo>0 && !M && !mensal && !junto ? frotaAlvo : 0,
           frotaAlvoSuspensa: frotaAlvo>0 && !M && mensal && !junto ? frotaAlvo : 0,
           rendPremissa: (M || a.tipo==="transp" || junto) ? 0 : frentes[0].rend,
@@ -575,8 +656,12 @@ function linha(a, MP){
             ? MESES.map((m,i)=>tratsDetalhe.reduce((s,d)=>s+(d.area>0 ? d.custo*num((d.m||[])[i])/d.area : 0), 0))
             : meses.map(q=>total>0 ? cInsumo*num(q)/total : 0),
           litros: soma("litros"),
-          litrosMes: fracMes.map(fr=>fr*soma("litros")),
-          dieselMes: fracMes.map((fr,i)=>fr*soma("litros")*precoDiesel(i))};
+          // mês a mês de execução: a soma das frentes (horas, litros e custo de cada mês)
+          horasMes:  MESES.map((m,i)=>partes.reduce((s,x)=>s+num((x.horasMes||[])[i]),0)),
+          litrosMes: MESES.map((m,i)=>partes.reduce((s,x)=>s+num((x.litrosMes||[])[i]),0)),
+          dieselMes: MESES.map((m,i)=>partes.reduce((s,x)=>s+num((x.dieselMes||[])[i]),0)),
+          // consumo do conjunto: o do cadastro da atividade ou o da máquina
+          consumoLh: (partes.find(x=>!x.terc && x.consumoUn!=="km")||{}).consumoLh || 0};
 }
 
 /* Custo direto de uma atividade no mes i, pelo criterio do motor: diesel pelo
@@ -684,6 +769,6 @@ function removerAtividade(cod){
   return true;
 }
 
-export { MODOS_ORD, criterioMensal, diasDoMes, diretoNoMes, fatorDe, frotaDaAtividade, modoLiberado, modosDe, linha, mixDe, pessoasDaAtividade, picoFrotaPorItem,
+export { MODOS_ORD, modoDoCadastro, paramsDoModo, criterioMensal, diasDoMes, diretoNoMes, fatorDe, frotaDaAtividade, modoLiberado, modosDe, linha, mixDe, pessoasDaAtividade, picoFrotaPorItem,
          premissasDe, tarifaTerc, tarifaTercDe, temDetalheTerc, metaDe,
   temCriterioMensal, mesclarBaseAtividades, codigoAtividadeValido, criarAtividade, removerAtividade, removerAtividadesRetiradas };
