@@ -6,6 +6,7 @@ import { chaveProd, codigoTratValido, composicao, criarGrupoInsumo, criarTrat, d
   renomearGrupoInsumo, renomearTrat, setClasseGrupo, todasFamilias, tratCodigos, usosTrat } from '../calculo/insumos.js';
 import { codigoAtividadeValido, criarAtividade, removerAtividade } from '../calculo/atividade.js';
 import { mesesDaLinha } from '../calculo/administrativo.js';
+import { ADM_GRUPOS } from '../dados/administrativo.js';
 import { ligarBuscaMaterial } from '../ui/material-busca.js';
 import { CFG } from '../dados/cfg.js';
 import { ATIVIDADES_ERP } from '../dados/atividades-erp.js';
@@ -43,6 +44,13 @@ import { USUARIO, areasDePermissao, podeEditar } from '../nucleo/sessao.js';
 // codigo, descricao, grupo e unidade da linha -- um retrato do catalogo, para o
 // plano nao depender dele depois
 ligarBuscaMaterial((linha, m)=>{
+  // campo de busca do topo (linha -1): o material escolhido vira uma linha nova
+  if(linha<0){
+    const campo = document.getElementById("adm_busca_mat"); if(campo) campo.value = "";
+    admLista().push({grupo:Object.keys(ADM_GRUPOS)[0], desc:m.descricao, valor:0, crit:"direto", cc:"",
+      cod:m.codigo, matGrupo:m.grupo||"", matUn:m.un||""});
+    salvar(); render(); return;
+  }
   const l = admLista()[linha];
   if(!l) return;
   l.cod = m.codigo; l.desc = m.descricao; l.matGrupo = m.grupo || ""; l.matUn = m.un || "";

@@ -977,6 +977,12 @@
     <summary><span class="bl-tit">Linhas de custo</span></summary>
     <div class="bloco-corpo">
       <div class="panel"><h3>Linhas de custo</h3>
+        <div class="row" style="margin-bottom:10px;align-items:flex-end">
+          <div style="min-width:320px;max-width:560px;flex:1"><label for="adm_busca_mat">Lançar compra: buscar material por código ou nome</label>
+            <input type="text" id="adm_busca_mat" class="mat-busca" data-matlinha="-1" data-matcampo="novo" autocomplete="off"
+                   role="combobox" aria-autocomplete="list" aria-expanded="false"
+                   placeholder="Ex.: 1303806 ou colher pedreiro — escolha o material e a linha é criada"></div>
+        </div>
         <input type="search" class="tbl-busca" data-alvo="#t_adm" placeholder="Buscar linha de custo...">
         <div class="tblwrap"><table id="t_adm"></table></div>
         <div class="row" style="margin-top:10px"><button class="btn p" id="btn_adm_add">Adicionar linha</button></div>
