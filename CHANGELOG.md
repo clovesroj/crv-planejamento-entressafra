@@ -1,5 +1,51 @@
 # Histórico de mudanças
 
+## 2.57.0 — 2026-10-02 · Cadastro de Materiais e planejamento de compra
+
+- **Cadastro de Materiais**, novo submenu de Configurações: o catálogo de
+  materiais do ERP (exportação TCO13T, 122.393 itens na planilha de partida),
+  com busca por **código ou nome** (cada palavra digitada tem de aparecer;
+  mostra os 100 primeiros resultados e diz quantos há) e dois indicadores:
+  materiais cadastrados e data da última importação.
+- **Importador de planilha** na própria tela. Lê o arquivo no navegador,
+  reconhece as colunas pelo **nome** (não pela posição), **ignora a primeira
+  coluna ("Código da Empresa de Compras")** e, antes de gravar, mostra quantos
+  materiais são novos e quantos já estão cadastrados. Só entram os códigos que
+  **ainda não existem** — o que já está no cadastro fica como está, então dá
+  para importar a planilha completa sempre que quiser atualizar. Reimportar o
+  mesmo arquivo dá "0 novos". Colunas usadas: Código, Descrição, Descrição
+  Complementar 1 e 2, Saldo Atual, Grupo de Produto, Unidade Medida Consumo,
+  Utiliza no Custo, Código NBM e Tipo de Produto; as demais da exportação
+  vêm vazias ou constantes e ficam de fora. Textos entram sem os espaços de
+  preenchimento do ERP.
+- **Custos Administrativos** passa a ser o lugar do planejamento de compra: a
+  tabela de linhas agora tem **Grupo → Código material → Descrição material →
+  demais colunas**. Digitar o código ou parte do nome em qualquer um dos dois
+  campos abre a lista de materiais; escolher um grava na linha código,
+  descrição, grupo e unidade do material. O **×** desvincula o material e a
+  descrição volta a ser texto livre. Linha sem material (gasto que não é
+  compra, como as do cadastro inicial) continua como era. A linha nova já
+  nasce com a descrição em branco, para a busca por nome funcionar sem apagar
+  nada. O relatório "Administração" e o rastro mostram o código.
+- **Onde fica o catálogo.** Mais de 120 mil itens não cabem no documento do
+  plano (o navegador o carrega e regrava inteiro), então o catálogo tem
+  **tabela própria no servidor**, consultada por busca (`/api/materiais`).
+  No Postgres a tabela é criada sob demanda, fora do `schema.sql`; sem banco,
+  fica em `.data/materiais.json`. A linha de custo guarda só um retrato do
+  material escolhido (`cod`, `matGrupo`, `matUn`), então o plano continua
+  válido mesmo com o catálogo vazio. Documento antigo não tem esses campos e
+  não muda.
+- **Permissão:** nova área **Cadastro de Materiais** nos perfis. Consultar é
+  livre para quem está logado; importar exige a área (o servidor recusa com
+  403 quem não a tem).
+
+**Conferido:** planilha real de 122.393 linhas lida e importada pela interface
+em cerca de 3 s, com progresso; reimportação com 0 novos; busca no servidor;
+perfil sem a área consulta e recebe 403 ao importar; caminho do Postgres
+exercitado contra o emulador pg-mem (criação da tabela, inserção em lote sem
+duplicar, busca literal e ordenação). Os números do motor não mudam: o
+catálogo não entra em nenhuma conta.
+
 ## 2.56.0 — 2026-10-01 · Transbordo: consumo do trator em L/h
 
 - Na tabela "Consumo de diesel por composição" da aba Transporte, o

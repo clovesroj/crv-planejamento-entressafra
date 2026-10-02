@@ -541,13 +541,13 @@ const fornecedores = R => sec("Fornecedores","Fornecedores de cana — contratos
 const noRecorte = mes => REC.meses.reduce((s,i)=>s+num(mes[i]),0);
 const administracao = R => { const fAdm = R.ADM.total>0 ? noRecorte(R.ADM.mes)/R.ADM.total : REC.fracMeses;
   return secP("Administração","Custos administrativos e rateio",
-  ["Grupo","Natureza do gasto","R$/mês","Critério de rateio","Centro de custo","Total no período","Rateio"],
+  ["Grupo","Código material","Descrição material","R$/mês","Critério de rateio","Centro de custo","Total no período","Rateio"],
   R.ADM.linhas.map((l,i)=>{ const st=R.AD.porLinha[i]||{};
-    return [ADM_GRUPOS[l.grupo]||l.grupo, l.desc, brl(l.mensal), (ADM_CRITERIOS[l.crit]||{}).nome||l.crit, l.cc||"—",
+    return [ADM_GRUPOS[l.grupo]||l.grupo, l.cod||"—", l.desc, brl(l.mensal), (ADM_CRITERIOS[l.crit]||{}).nome||l.crit, l.cc||"—",
             brl(noRecorte(l.mes)), l.total<=0 ? "—" : (st.rateado>0?"rateado":(st.motivo||"sem rateio"))];})
-  .concat([["","TOTAL", brl(R.ADM.mensal), "", "", brl(noRecorte(R.ADM.mes)), ""]])
-  .concat(Object.keys(R.etapas).map(e=>["↳ rateio", e, "", "", "", brl((R.etapas[e].admin||0)*fAdm), ""]))
-  .concat(R.AD.semRateio>0 ? [["↳ sem base","volta para o rateio indireto","","","", brl(R.AD.semRateio*fAdm),""]] : [])); };
+  .concat([["","","TOTAL", brl(R.ADM.mensal), "", "", brl(noRecorte(R.ADM.mes)), ""]])
+  .concat(Object.keys(R.etapas).map(e=>["↳ rateio","", e, "", "", "", brl((R.etapas[e].admin||0)*fAdm), ""]))
+  .concat(R.AD.semRateio>0 ? [["↳ sem base","","volta para o rateio indireto","","","", brl(R.AD.semRateio*fAdm),""]] : [])); };
 
 /* ---------- 16. custos ---------- */
 const custoEtapa = R => { const E = etapasP(R);

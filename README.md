@@ -65,6 +65,7 @@ O menu lateral agrupa as abas assim:
 | | Plano de Contas | Custo projetado por conta contábil, fechando com o custo total do plano — o que não tem conta cai numa linha "Sem conta" à parte |
 | Configurações | Cadastro de Insumos | Os produtos, em blocos por família e ordem de princípio ativo; ficha técnica, editar em modal e link da bula pela API AGROFIT (Embrapa) |
 | | Grupos de Insumos | Grupos personalizados, além das famílias padrão |
+| | Cadastro de Materiais | Catálogo de materiais do ERP (mais de 120 mil itens, no servidor): busca por código ou nome e importador de planilha que só acrescenta os códigos novos. É de onde Custos Administrativos busca o material de cada planejamento de compra |
 | Administração | Orientações | Como usar o sistema e as premissas que ainda precisam de confirmação (só o administrador vê) |
 | | Usuários | Usuários, perfis e a matriz de quais abas cada perfil edita (só o administrador vê) |
 
@@ -147,7 +148,8 @@ server/                 BACK
   agrofit.js            cliente da API AGROFIT (Embrapa), OAuth2 e prazo de 15 s
   api.js                /api/health, /api/plano, /api/auth/*, /api/usuarios
                         (inclusive excluir), /api/perfis,
-                        /api/agrofit/produtos-formulados
+                        /api/agrofit/produtos-formulados, /api/materiais
+  materiais.js          Cadastro de Materiais: valida o lote importado e monta a busca
   estatico.js           arquivos de public/
   store/                BANCO
     index.js            escolhe o destino por DATABASE_URL

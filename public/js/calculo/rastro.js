@@ -789,7 +789,7 @@ function rastroNatureza(R, nat){
     return {titulo:"Administração", subtitulo:"Custos administrativos rateados", valor:brl(R.admT),
       blocos:[
         {titulo:"Linhas lançadas", linhas:A.linhas.filter(l=>l.total>0).map(l=>({
-          rot:l.desc, val:brl(l.total),
+          rot:l.cod ? `${l.cod} — ${l.desc}` : l.desc, val:brl(l.total),
           sub:`${brl(l.mensal)}/mês × ${l.meses.length===NM ? "12 meses" : l.meses.length+" "+(l.meses.length===1?"mês":"meses")+" ("+l.meses.map(m=>MESES[m]).join(", ")+")"} · rateio por ${(ADM_CRITERIOS[l.crit]||{}).nome||l.crit}`}))},
         {titulo:"Mês a mês (só as linhas que ocorrem no mês)", linhas:MESES.map((m,i)=>({rot:m, val:brl(A.mes[i]),
           ir:"mes:"+i})).filter((_,i)=>A.mes[i]>0)},
