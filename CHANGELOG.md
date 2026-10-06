@@ -1,5 +1,53 @@
 # Histórico de mudanças
 
+## 2.58.0 — 2026-10-06 · Custo contábil com a conta de cada rateio
+
+**Como o custo contábil é calculado** (cartões do Painel e da aba Custos:
+preparo, plantio, cana planta, cana soca, colheita, apoio, formação do
+canavial):
+
+> custo contábil = custo operacional + rateios; ÷ base física = R$/ha (ou R$/t)
+
+- **Custo operacional:** o que as atividades da operação consomem: diesel,
+  mão de obra, manutenção (CRM), insumos, terceirização e, em tratos, a
+  irrigação.
+- **Rateios:** a parte da operação nos custos que não são de uma atividade
+  só:
+  - **Diesel dos equipamentos de apoio:** pelos litros das atividades de cada
+    etapa; em tratos, pelos litros de cada cultura.
+  - **Arrendamento:** pelos percentuais de referência por etapa da aba
+    Arrendamentos; em tratos, pela área tratada de cada cultura.
+  - **Administrativo:** cada linha pelo seu critério (área, t, horas, custo
+    direto, centro de custo ou percentual); em tratos, pelo custo direto de
+    cada cultura.
+  - **Depreciação:** imobilizado × % ao ano, pelo custo direto de cada etapa e
+    de cada cultura.
+  - **Demais custos gerais:** o que não é de nenhuma etapa (operadores e CRM
+    do apoio, quadros ADM e oficina, FAT, apoio operacional, transporte de
+    pessoal, contratos de terceiros, materiais, esporádicos...), pela mesma
+    regra do custo direto.
+
+**Rastreabilidade nova:**
+
+- No detalhamento de cada operação, uma nota explica a fórmula, e cada
+  rateio é clicável (`oprat:<operação>:<rateio>`). Ele abre a conta passo a
+  passo: o valor do plano, a parte da etapa (com a base e o percentual) e, em
+  tratos, a parte da cultura. Há links para a origem (aba Apoio,
+  Arrendamentos, Administração, contas).
+- O administrativo abre linha a linha, com quanto de cada linha coube na
+  etapa e na cultura e por qual critério. Para isso, o rateio administrativo
+  passou a guardar a parte de cada linha em cada etapa (`porLinhaEtapa`).
+- Os demais custos gerais abrem por origem (operadores do apoio, quadro ADM,
+  oficina, transporte de pessoal...), cada uma com o valor do plano e a parte
+  desta operação.
+- Na formação do canavial, cada rateio abre pelas três operações que a
+  compõem.
+
+**Validação:** os 30 detalhamentos de rateio (6 operações × 5 rateios)
+chegam exatamente ao valor do motor. A soma das origens dos custos gerais
+fecha com o rateio, e a conta não mudou nenhum número. 63 conferências sem
+falha; 34 abas, 506 rastros e 138 relatórios sem erro.
+
 ## 2.57.0 — 2026-10-02 · Cadastro de Materiais e planejamento de compra
 
 - **Cadastro de Materiais**, novo submenu de Configurações: o catálogo de

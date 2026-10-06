@@ -101,8 +101,18 @@ function custoPorOperacao(R){
     if(op.id==="colheita") base = comAlternativa(base);
     base.haOper = ha;
 
+    /* Memória de cálculo de cada rateio -- o rastro do custo contábil mostra a
+       conta passo a passo: o valor do plano, a parte da etapa e, em tratos, a
+       parte da cultura. */
+    const memo = {
+      litrosEtapa, litrosOp: op.cultura ? s("litros") : litrosEtapa, fLitros, apoioEtapa,
+      arrEtapa: d.arrend||0, fArr: cult ? ((d.arrend||0)>0 ? (cult.arrend||0)/d.arrend : 0) : 1,
+      admEtapa: d.admin||0,  fAdm: cult ? ((d.admin||0)>0 ? (cult.admin||0)/d.admin : 0) : 1,
+      diretoEtapa: d.direto, diretoSum, fEtapa: d.direto/diretoSum, fDireto, diretoOp,
+      indiretoEtapa: d.indireto, haCult: cult ? (cult.ha||0) : 0,
+    };
     return {...op, oper:o, rateio:{apoio, arrend, admin, deprec, gerais,
-            total: apoio+arrend+admin+deprec+gerais}, contabil, base};
+            total: apoio+arrend+admin+deprec+gerais}, contabil, base, memo};
   }
 
   const principais = OPERACOES.map(linha).filter(Boolean);

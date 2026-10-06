@@ -56,6 +56,7 @@ function admRateio(ADM, etapas){
   const nomes = Object.keys(etapas);
   const porEtapa = {}; nomes.forEach(e=>{ porEtapa[e] = 0; });
   const porLinha = {};
+  const porLinhaEtapa = {};   // linha -> {etapa: valor}: o rastro do custo contábil abre por linha
   let semRateio = 0;
 
   const somaBase = campo => nomes.reduce((s,e)=>s+num(etapas[e][campo]),0);
@@ -67,20 +68,22 @@ function admRateio(ADM, etapas){
     const base = (ADM_CRITERIOS[l.crit]||{}).base;
     if(base==="cc"){
       // centro de custo: a linha inteira vai para a etapa escolhida
-      if(etapas[l.cc]){ porEtapa[l.cc] += l.total; porLinha[i] = {rateado:l.total, motivo:""}; }
+      if(etapas[l.cc]){ porEtapa[l.cc] += l.total; porLinha[i] = {rateado:l.total, motivo:""}; porLinhaEtapa[i] = {[l.cc]: l.total}; }
       else { semRateio += l.total; porLinha[i] = {rateado:0, motivo:"sem etapa: fica no rateio indireto"}; }
       return;
     }
     if(base==="fixo"){
       if(somaPct>0){
-        nomes.forEach(e=>{ porEtapa[e] += l.total*(admRat(e)/somaPct); });
+        porLinhaEtapa[i] = {};
+        nomes.forEach(e=>{ const v = l.total*(admRat(e)/somaPct); porEtapa[e] += v; porLinhaEtapa[i][e] = v; });
         porLinha[i] = {rateado:l.total, motivo:""};
       }else{ semRateio += l.total; porLinha[i] = {rateado:0, motivo:"percentuais zerados"}; }
       return;
     }
     const tot = bases[base] || 0;
     if(tot>0){
-      nomes.forEach(e=>{ porEtapa[e] += l.total*(num(etapas[e][base])/tot); });
+      porLinhaEtapa[i] = {};
+      nomes.forEach(e=>{ const v = l.total*(num(etapas[e][base])/tot); porEtapa[e] += v; porLinhaEtapa[i][e] = v; });
       porLinha[i] = {rateado:l.total, motivo:""};
     }else{
       semRateio += l.total;
@@ -89,7 +92,7 @@ function admRateio(ADM, etapas){
   });
 
   const rateado = nomes.reduce((s,e)=>s+porEtapa[e],0);
-  return {porEtapa, porLinha, semRateio, rateado, bases, somaPct};
+  return {porEtapa, porLinha, porLinhaEtapa, semRateio, rateado, bases, somaPct};
 }
 
 export { admCalc, admRat, admRateio, mesesDaLinha };

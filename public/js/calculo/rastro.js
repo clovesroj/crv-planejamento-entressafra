@@ -215,8 +215,8 @@ function rastroOperacao(R, id, modo){
     ]},
     {titulo:"Custo operacional por natureza", linhas: OPER.filter(([k])=>o[k]>0.5)
       .map(([k,n])=>({rot:n, val:brl(o[k]), sub:porUn(o[k])}))},
-    {titulo:"Rateios", linhas: RAT.filter(([k])=>Math.abs(r[k])>0.5)
-      .map(([k,n,como])=>({rot:n, val:brl(r[k]), sub:porUn(r[k])+" · "+como}))},
+    {titulo:"Rateios — clique para ver a conta de cada um", linhas: RAT.filter(([k])=>Math.abs(r[k])>0.5)
+      .map(([k,n,como])=>({rot:n, val:brl(r[k]), sub:porUn(r[k])+" · "+como, ir:"oprat:"+id+":"+k}))},
   ];
   // de onde vem: as partes da formação, ou as atividades da operação
   if(id==="formacao"){
@@ -237,6 +237,10 @@ function rastroOperacao(R, id, modo){
     titulo: l.nome,
     subtitulo: id==="formacao" ? "preparo de solo + plantio + tratos de cana planta · por hectare plantado"
                                : "custo operacional e rateios · base "+rotBase,
+    nota: "Custo contábil = custo operacional (o que as atividades da operação consomem: diesel, mão de obra, "+
+      "manutenção, insumos, irrigação e terceirização) + rateios (a parte da operação nos custos que não são de "+
+      "uma atividade só: diesel do apoio, arrendamento, administrativo, depreciação e demais custos gerais). "+
+      "Dividido pela base física, dá o custo por "+(b.un||"unidade")+". Cada rateio abre a sua conta.",
     // o número de cabeça é o do cartão que abriu: custo operacional, custo
     // contábil ou o custo contábil por unidade (Painel)
     valor: modo==="oper" ? brl(o.total) : modo==="contabil" ? brl(l.contabil) : porUn(l.contabil),
@@ -244,6 +248,115 @@ function rastroOperacao(R, id, modo){
     premissas: premBase.concat(premissasGerais()),
     voltar: l.etapa ? "etapa:"+l.etapa : "custoha",
   };
+}
+
+/* ---------- rateio de uma operação, passo a passo ----------
+   oprat:<operação>:<rateio>. A mesma conta de calculo/custo-operacao.js,
+   aberta: o valor do plano, a parte da etapa e, em tratos, a parte da
+   cultura (cana planta ou soca). Formação do canavial abre pelas partes. */
+function rastroRateioOperacao(R, id, k){
+  const C = custoPorOperacao(R);
+  const NOMES = {apoio:"Diesel dos equipamentos de apoio", arrend:"Arrendamento", admin:"Administrativo",
+                 deprec:"Depreciação", gerais:"Demais custos gerais"};
+  if(!NOMES[k]) return rastroOperacao(R, id);
+  if(id==="formacao"){
+    const F = C.formacao;
+    return {titulo: NOMES[k]+" — formação do canavial", subtitulo:"soma das três operações da formação", valor: brl(F.rateio[k]),
+      blocos:[{titulo:"Por operação", linhas: C.principais.filter(x=>x.formacao).map(x=>({rot:x.nome, val:brl(x.rateio[k]),
+        ir:"oprat:"+x.id+":"+k}))}], premissas:premissasGerais(), voltar:"op:formacao"};
+  }
+  const l = C.principais.concat(C.outras).find(x=>x.id===id);
+  if(!l) return rastroTotal(R);
+  const m = l.memo, v = l.rateio[k], cult = l.cultura;
+  const nomeCult = cult ? "cana "+cult.toLowerCase() : "";
+  const pc = x => fmt(x*100,1)+"%";
+  const linhas = [];
+  let nota = "";
+  if(k==="apoio"){
+    const litrosDir = R.L.reduce((s,r)=>s+num(r.litros),0);
+    linhas.push({rot:"Diesel dos equipamentos de apoio no plano", val:brl(R.AE.diesel), ir:"frota:apoio",
+      sub:fmt(R.AE.litros)+" L (aba Apoio)"});
+    linhas.push({rot:"Parte de "+l.etapa.toLowerCase(), val:brl(m.apoioEtapa),
+      sub:"litros das atividades da etapa ÷ litros de todas as atividades = "+fmt(m.litrosEtapa)+" ÷ "+fmt(litrosDir)+" L ("+pc(litrosDir>0?m.litrosEtapa/litrosDir:0)+")"});
+    if(cult) linhas.push({rot:"Parte da "+nomeCult, val:brl(v),
+      sub:"litros da cultura ÷ litros da etapa = "+fmt(m.litrosOp)+" ÷ "+fmt(m.litrosEtapa)+" L ("+pc(m.fLitros)+")"});
+    nota = "O diesel do apoio (caminhão bombeiro, comboio, pá carregadeira…) não é de uma atividade só: vai para as etapas pelos litros que cada uma consome.";
+  }
+  if(k==="arrend"){
+    const soma = ETAPAS_ORD.reduce((s,e)=>s+arrRat(e),0);
+    linhas.push({rot:"Arrendamento do plano", val:brl(R.AR.total), ir:"nat:arrend", sub:"contratos da aba Arrendamentos"});
+    linhas.push({rot:"Parte de "+l.etapa.toLowerCase(), val:brl(m.arrEtapa),
+      sub:"percentual de referência da etapa = "+fmt(arrRat(l.etapa),1)+"% de "+fmt(soma,1)+"% ("+pc(soma>0?arrRat(l.etapa)/soma:0)+"), aba Arrendamentos"});
+    if(cult) linhas.push({rot:"Parte da "+nomeCult, val:brl(v),
+      sub:"pela área tratada de cada cultura: "+fmt(m.haCult)+" ha ("+pc(m.fArr)+" do arrendamento de tratos)"});
+    nota = "O arrendamento vai para as etapas pelos percentuais de referência (PECEGE/USP) da aba Arrendamentos; dentro de tratos, cana planta e soca dividem pela área tratada.";
+  }
+  if(k==="admin"){
+    linhas.push({rot:"Administrativo de "+l.etapa.toLowerCase(), val:brl(m.admEtapa), ir:"nat:admin",
+      sub:"soma das linhas abaixo, cada uma pelo seu critério"});
+    const A = R.ADM, AD = R.AD, bases = AD.bases || {};
+    const descBase = {ha:"ha", ton:"t", horas:"horas", direto:"custo direto"};
+    A.linhas.forEach((x,i)=>{
+      const vEt = ((AD.porLinhaEtapa||{})[i]||{})[l.etapa] || 0;
+      if(!(vEt>0.5)) return;
+      const crit = ADM_CRITERIOS[x.crit] || {}, base = crit.base;
+      const etB = num((R.etapas[l.etapa]||{})[base]), totB = num(bases[base]);
+      const como = base==="cc" ? "centro de custo: a linha inteira vai para esta etapa"
+        : base==="fixo" ? "percentual por etapa da aba Custos Administrativos"
+        : (descBase[base]||base)+" da etapa ÷ "+(descBase[base]||base)+" do plano = "+
+          (base==="direto" ? brl(etB)+" ÷ "+brl(totB) : fmt(etB)+" ÷ "+fmt(totB))+" ("+pc(totB>0?etB/totB:0)+")";
+      linhas.push({rot:x.desc||"Linha "+(i+1), val:brl(vEt*m.fAdm),
+        sub:brl(x.total)+" no plano · "+como+(cult ? " · × "+pc(m.fAdm)+" da "+nomeCult : "")});
+    });
+    if(cult) linhas.push({rot:"Parte da "+nomeCult, val:brl(v), sub:"pelo custo direto de cada cultura ("+pc(m.fAdm)+")"});
+    nota = "Cada linha de custo administrativo vai para as etapas pelo seu critério (área, tonelada, horas, custo direto, centro de custo ou percentual).";
+  }
+  const parteEtapa = "custo direto da etapa ÷ custo direto do plano = "+brl(m.diretoEtapa)+" ÷ "+brl(m.diretoSum)+" ("+pc(m.fEtapa)+")";
+  const parteCult  = cult ? "custo direto da "+nomeCult+" ÷ custo direto da etapa = "+brl(m.diretoOp)+" ÷ "+brl(m.diretoEtapa)+" ("+pc(m.fDireto)+")" : "";
+  if(k==="deprec"){
+    linhas.push({rot:"Depreciação do plano", val:brl(R.depT), sub:"imobilizado "+brl(P.imob)+" × "+fmt(P.dep,1)+"% ao ano (Premissas)"});
+    linhas.push({rot:"Parte de "+l.etapa.toLowerCase(), val:brl(R.depT*m.fEtapa), sub:parteEtapa});
+    if(cult) linhas.push({rot:"Parte da "+nomeCult, val:brl(v), sub:parteCult});
+    nota = "A depreciação da frota vai para as etapas pelo custo direto de cada uma.";
+  }
+  if(k==="gerais"){
+    /* O que forma o rateio geral: o custo do plano que não é de nenhuma etapa
+       (calculo/index.js, indiretoPool), menos a depreciação, que tem linha própria. */
+    const temTratos = !!R.etapas["TRATOS CULTURAIS"];
+    const litrosDir = R.L.reduce((s,r)=>s+num(r.litros),0);
+    const arrSem = ETAPAS_ORD.reduce((s,e)=>s+arrRat(e),0)>0 ? 0 : num(R.AR.total);
+    const partes = [
+      ["Operadores dos equipamentos de apoio", R.AE.mdo, "frota:apoio"],
+      ["Manutenção (CRM) dos equipamentos de apoio", R.AE.manut, "frota:apoio"],
+      ["CRM da frota prevista além do plano", R.crmExtra, "frota:crmexced"],
+      ["Materiais de manutenção", (R.MT||{}).total, null],
+      ["Quadro ADM agrícola", R.mdoIndirT, "cat:mdo"],
+      ["Quadro da oficina", R.mdoManut, "cat:mdo"],
+      ["FAT — contrato suspenso", R.mdoFat, null],
+      ["Apoio operacional (Dimensionamento)", R.mdoApoioOper, null],
+      ["Transporte de pessoal", R.tpessT, "tpess"],
+      ["Contratos de terceiros", R.tercT, "cat:terc"],
+      ["Custos esporádicos", R.espT, "cat:espor"],
+      ["Administrativo sem base de rateio", (R.AD||{}).semRateio, "nat:admin"],
+      ["Arrendamento sem percentual por etapa", arrSem, "nat:arrend"],
+      ["Irrigação (sem etapa de tratos)", temTratos ? 0 : R.irrT, "cat:irrig"],
+      ["Diesel do apoio (sem litros nas atividades)", litrosDir>0 ? 0 : R.AE.diesel, "frota:apoio"],
+    ].map(([n,x,ir])=>[n, num(x), ir]).filter(([,x])=>Math.abs(x)>0.5);
+    const poolSemDep = num(R.indiretoPool) - num(R.depT);
+    const soma = partes.reduce((s,[,x])=>s+x,0);
+    if(Math.abs(poolSemDep-soma)>1) partes.push(["Outros custos gerais", poolSemDep-soma, null]);
+    const f = m.fEtapa*m.fDireto;
+    linhas.push({rot:"Custos gerais do plano (sem etapa própria)", val:brl(poolSemDep), sub:"o que não é custo de uma atividade, sem a depreciação"});
+    linhas.push({rot:"Parte de "+l.etapa.toLowerCase(), val:brl(poolSemDep*m.fEtapa), sub:parteEtapa});
+    if(cult) linhas.push({rot:"Parte da "+nomeCult, val:brl(v), sub:parteCult});
+    nota = "Os custos gerais vão para as etapas pelo custo direto de cada uma -- a mesma regra da depreciação. Abaixo, cada custo geral e quanto dele cabe nesta operação ("+pc(f)+").";
+    return {titulo: NOMES[k]+" — "+l.nome, subtitulo:"a parte da operação nos custos gerais do plano", valor: brl(v),
+      blocos:[{titulo:"A conta", linhas}, {titulo:"De onde vêm os custos gerais (parte desta operação)", linhas: partes.map(([n,x,ir])=>({
+        rot:n, val:brl(x*f), sub:brl(x)+" no plano × "+pc(f), ir:ir||undefined}))}],
+      nota, premissas:premissasGerais(), voltar:"op:"+id};
+  }
+  return {titulo: NOMES[k]+" — "+l.nome, subtitulo:"rateio do custo contábil, passo a passo", valor: brl(v),
+    blocos:[{titulo:"A conta", linhas}], nota, premissas:premissasGerais(), voltar:"op:"+id};
 }
 
 /* ---------- custo de colheita, só o corte ----------
@@ -1440,6 +1553,7 @@ function rastro(R, chave, periodo){
   if(tipo==="total") return rastroTotal(R);
   if(tipo==="custoha") return rastroCustoHa(R);
   if(tipo==="op"){ const [id, modo] = arg.split(":"); return rastroOperacao(R, id, modo); }
+  if(tipo==="oprat"){ const [id, k] = arg.split(":"); return rastroRateioOperacao(R, id, k); }
   if(tipo==="corte") return rastroCorte(R);
   if(tipo==="fixo" || tipo==="variavel") return rastroFixoVariavel(R, tipo);
   if(tipo==="periodo") return rastroPeriodo(R, arg);
